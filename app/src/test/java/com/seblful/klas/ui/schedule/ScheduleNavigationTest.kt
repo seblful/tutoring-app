@@ -1,8 +1,7 @@
 package com.seblful.klas.ui.schedule
 
-import com.seblful.klas.data.people.StudentEntity
-import com.seblful.klas.data.people.SubjectEntity
 import com.seblful.klas.domain.model.LessonStatus
+import com.seblful.klas.domain.time.today
 import com.seblful.klas.testutil.current
 import com.seblful.klas.testutil.observing
 import com.seblful.klas.ui.common.state.Loadable
@@ -18,14 +17,12 @@ import kotlinx.datetime.LocalTime
 import kotlinx.datetime.YearMonth
 import kotlinx.datetime.minus
 import kotlinx.datetime.plus
-import kotlinx.datetime.todayIn
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
-import kotlin.time.Clock
 import kotlin.time.Duration.Companion.days
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -61,7 +58,7 @@ class ScheduleNavigationTest : ScheduleTestFixture() {
     @Test
     fun `day navigation moves the selected date and today resets it`() = runTest(mainRule.dispatcher) {
         val vm = vm()
-        val today = Clock.System.todayIn(zone)
+        val today = env.clock.today()
 
         vm.goToNextDay()
         assertEquals(today.plus(1, DateTimeUnit.DAY), vm.selectedDate.value)
@@ -167,8 +164,8 @@ class ScheduleNavigationTest : ScheduleTestFixture() {
 
     @Test
     fun `the day view loads no markers at all`() = runTest(mainRule.dispatcher) {
-        val sid = env.studentDao.upsert(StudentEntity(name = "Аня"))
-        val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
+        val sid = env.fixtures.student(name = "Аня")
+        val subj = env.fixtures.subject(name = "Математика")
         val day = LocalDate(2026, 7, 15)
         env.fixtures.storedClass(
             studentId = sid, subjectId = subj, startMillis = startMillisOn(day, LocalTime(9, 0)),
@@ -205,8 +202,8 @@ class ScheduleNavigationTest : ScheduleTestFixture() {
 
     @Test
     fun `day markers cover the whole page, padding days included`() = runTest(mainRule.dispatcher) {
-        val sid = env.studentDao.upsert(StudentEntity(name = "Аня"))
-        val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
+        val sid = env.fixtures.student(name = "Аня")
+        val subj = env.fixtures.subject(name = "Математика")
         val padding = LocalDate(2026, 6, 30)
         val inMonth = LocalDate(2026, 7, 15)
         val otherMonth = LocalDate(2026, 9, 1)
@@ -236,8 +233,8 @@ class ScheduleNavigationTest : ScheduleTestFixture() {
 
     @Test
     fun `paging to another month reloads its markers`() = runTest(mainRule.dispatcher) {
-        val sid = env.studentDao.upsert(StudentEntity(name = "Аня"))
-        val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
+        val sid = env.fixtures.student(name = "Аня")
+        val subj = env.fixtures.subject(name = "Математика")
         val august = LocalDate(2026, 8, 12)
         env.fixtures.storedClass(
             studentId = sid, subjectId = subj, startMillis = startMillisOn(august, LocalTime(9, 0)),

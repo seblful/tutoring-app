@@ -1,7 +1,5 @@
 package com.seblful.klas.ui.students
 
-import com.seblful.klas.data.people.StudentEntity
-import com.seblful.klas.data.people.SubjectEntity
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Payment
@@ -29,15 +27,17 @@ import kotlin.time.Instant
 @RunWith(RobolectricTestRunner::class)
 class StudentsViewModelTest {
 
-    @get:Rule
+    @get:Rule(order = 1)
     val mainRule = MainDispatcherRule()
 
-    @get:Rule
+    @get:Rule(order = 0)
     val env = TestEnv()
 
-    private fun vm() = StudentsViewModel(
-        env.studentRepo, env.balanceRepo, env.classRepo, env.enrollmentRepo, env.subjectRepo, env.clock,
-        mainRule.dispatcher,
+    private fun vm() = mainRule.own(
+        StudentsViewModel(
+            env.studentRepo, env.balanceRepo, env.classRepo, env.enrollmentRepo, env.subjectRepo, env.clock,
+            mainRule.dispatcher,
+        ),
     )
 
     // The environment's clock reads Monday 1 June 2026, 15:00 in Minsk (12:00 UTC).
@@ -105,9 +105,9 @@ class StudentsViewModelTest {
 
     @Test
     fun `active list excludes archived students and carries each balance`() = runTest(mainRule.dispatcher) {
-        val active = env.studentDao.upsert(StudentEntity(name = "Аня"))
-        env.studentDao.upsert(StudentEntity(name = "Старый", archived = true))
-        val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
+        val active = env.fixtures.student(name = "Аня")
+        env.fixtures.student(name = "Старый", archived = true)
+        val subj = env.fixtures.subject(name = "Математика")
         env.fixtures.storedClass(
             studentId = active,
             subjectId = subj,
@@ -130,8 +130,8 @@ class StudentsViewModelTest {
 
     @Test
     fun `toggling archived shows all students including archived ones`() = runTest(mainRule.dispatcher) {
-        env.studentDao.upsert(StudentEntity(name = "Аня"))
-        env.studentDao.upsert(StudentEntity(name = "Старый", archived = true))
+        env.fixtures.student(name = "Аня")
+        env.fixtures.student(name = "Старый", archived = true)
 
         val vm = vm()
         observing(vm.rows)

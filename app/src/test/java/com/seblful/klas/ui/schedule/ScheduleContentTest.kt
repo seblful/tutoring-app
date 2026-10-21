@@ -1,12 +1,11 @@
 package com.seblful.klas.ui.schedule
 
-import com.seblful.klas.data.people.StudentEntity
-import com.seblful.klas.data.people.SubjectEntity
 import com.seblful.klas.domain.model.Group
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.schedule.CalendarLayout
 import com.seblful.klas.domain.schedule.DaySummary
+import com.seblful.klas.domain.time.today
 import com.seblful.klas.testutil.observing
 import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.common.state.valueOrNull
@@ -21,7 +20,6 @@ import kotlinx.datetime.atTime
 import kotlinx.datetime.minus
 import kotlinx.datetime.plus
 import kotlinx.datetime.toInstant
-import kotlinx.datetime.todayIn
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertSame
@@ -29,7 +27,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
-import kotlin.time.Clock
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.minutes
 
@@ -90,7 +87,7 @@ class ScheduleContentTest : ScheduleTestFixture() {
     fun `the selected day carries its own summary`() = runTest(mainRule.dispatcher) {
         val subj = env.fixtures.subject("Математика")
         val sid = env.fixtures.pricedStudent("Аня", subj, rate = Money.ofMajor(30))
-        val today = Clock.System.todayIn(zone)
+        val today = env.clock.today()
         env.fixtures.lesson(
             subjectId = subj, students = listOf(sid),
             start = today.atTime(9, 0).toInstant(zone),
@@ -121,11 +118,11 @@ class ScheduleContentTest : ScheduleTestFixture() {
         advanceUntilIdle()
         assertEquals(false, vm.canAddClass.value.valueOrNull())
 
-        env.studentDao.upsert(StudentEntity(name = "Аня"))
+        env.fixtures.student(name = "Аня")
         advanceUntilIdle()
         assertEquals("a student without any subject still can't book", false, vm.canAddClass.value.valueOrNull())
 
-        env.subjectDao.upsert(SubjectEntity(name = "Математика"))
+        env.fixtures.subject(name = "Математика")
         advanceUntilIdle()
         assertEquals(true, vm.canAddClass.value.valueOrNull())
     }
@@ -133,9 +130,9 @@ class ScheduleContentTest : ScheduleTestFixture() {
     @Test
     fun `rows show only the selected day's classes, time-sorted, with student and subject names`() =
         runTest(mainRule.dispatcher) {
-            val sid = env.studentDao.upsert(StudentEntity(name = "Аня"))
-            val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
-            val today = Clock.System.todayIn(zone)
+            val sid = env.fixtures.student(name = "Аня")
+            val subj = env.fixtures.subject(name = "Математика")
+            val today = env.clock.today()
             // Two classes today (out of order) and one tomorrow.
             env.fixtures.storedClass(
                 studentId = sid,
@@ -172,9 +169,9 @@ class ScheduleContentTest : ScheduleTestFixture() {
 
     @Test
     fun `week sections group the whole week by day and skip empty days`() = runTest(mainRule.dispatcher) {
-        val sid = env.studentDao.upsert(StudentEntity(name = "Аня"))
-        val other = env.studentDao.upsert(StudentEntity(name = "Пётр"))
-        val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
+        val sid = env.fixtures.student(name = "Аня")
+        val other = env.fixtures.student(name = "Пётр")
+        val subj = env.fixtures.subject(name = "Математика")
         val monday = LocalDate(2026, 7, 13)
         val thursday = LocalDate(2026, 7, 16)
         val nextWeek = LocalDate(2026, 7, 20)
@@ -211,8 +208,8 @@ class ScheduleContentTest : ScheduleTestFixture() {
 
     @Test
     fun `week sections follow the visible week, not the selected day`() = runTest(mainRule.dispatcher) {
-        val sid = env.studentDao.upsert(StudentEntity(name = "Аня"))
-        val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
+        val sid = env.fixtures.student(name = "Аня")
+        val subj = env.fixtures.subject(name = "Математика")
         val nextWeek = LocalDate(2026, 7, 20)
         env.fixtures.storedClass(
             studentId = sid, subjectId = subj, startMillis = startMillisOn(nextWeek, LocalTime(9, 0)),
@@ -234,9 +231,9 @@ class ScheduleContentTest : ScheduleTestFixture() {
 
     @Test
     fun `switching view inside the week reads nothing new`() = runTest(mainRule.dispatcher) {
-        val sid = env.studentDao.upsert(StudentEntity(name = "Аня"))
-        val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
-        val today = Clock.System.todayIn(zone)
+        val sid = env.fixtures.student(name = "Аня")
+        val subj = env.fixtures.subject(name = "Математика")
+        val today = env.clock.today()
         val otherDay = CalendarLayout.week(CalendarLayout.startOfWeek(today)).first { it != today }
         env.fixtures.storedClass(
             studentId = sid, subjectId = subj, startMillis = startMillisOn(today, LocalTime(9, 0)),
@@ -266,9 +263,9 @@ class ScheduleContentTest : ScheduleTestFixture() {
 
     @Test
     fun `the week agenda collapses a group lesson exactly like the day list`() = runTest(mainRule.dispatcher) {
-        val ann = env.studentDao.upsert(StudentEntity(name = "Аня"))
-        val bob = env.studentDao.upsert(StudentEntity(name = "Борис"))
-        val subj = env.subjectDao.upsert(SubjectEntity(name = "Алгебра"))
+        val ann = env.fixtures.student(name = "Аня")
+        val bob = env.fixtures.student(name = "Борис")
+        val subj = env.fixtures.subject(name = "Алгебра")
         val groupId = env.groupRepo.save(Group(name = "11 «А»"), setOf(ann, bob))
         val wednesday = LocalDate(2026, 7, 15)
         val at = startMillisOn(wednesday, LocalTime(12, 0))
@@ -305,11 +302,11 @@ class ScheduleContentTest : ScheduleTestFixture() {
 
     @Test
     fun `a group lesson is one row, with its members inside it`() = runTest(mainRule.dispatcher) {
-        val ann = env.studentDao.upsert(StudentEntity(name = "Аня"))
-        val bob = env.studentDao.upsert(StudentEntity(name = "Борис"))
-        val subj = env.subjectDao.upsert(SubjectEntity(name = "Алгебра"))
+        val ann = env.fixtures.student(name = "Аня")
+        val bob = env.fixtures.student(name = "Борис")
+        val subj = env.fixtures.subject(name = "Алгебра")
         val groupId = env.groupRepo.save(Group(name = "11 «А»"), setOf(ann, bob))
-        val today = Clock.System.todayIn(zone)
+        val today = env.clock.today()
         val at = startMillisOn(today, LocalTime(12, 0))
         env.fixtures.storedClass(
             studentId = ann,

@@ -33,25 +33,27 @@ import kotlin.time.Instant
 @RunWith(RobolectricTestRunner::class)
 class GroupDetailViewModelTest {
 
-    @get:Rule
+    @get:Rule(order = 1)
     val mainRule = MainDispatcherRule()
 
-    @get:Rule
+    @get:Rule(order = 0)
     val env = TestEnv()
     private val fixtures get() = env.fixtures
 
     private val rate = Money.ofMajor(20)
 
-    private fun vm(id: Long) = GroupDetailViewModel(
-        savedStateHandle = SavedStateHandle(mapOf("id" to id)),
-        groups = env.groupRepo,
-        students = env.studentRepo,
-        subjects = env.subjectRepo,
-        classes = env.classRepo,
-        homework = env.homeworkRepo,
-        appScope = mainRule.appScope,
-        computation = mainRule.dispatcher,
-        clock = env.clock,
+    private fun vm(id: Long) = mainRule.own(
+        GroupDetailViewModel(
+            savedStateHandle = SavedStateHandle(mapOf("id" to id)),
+            groups = env.groupRepo,
+            students = env.studentRepo,
+            subjects = env.subjectRepo,
+            classes = env.classRepo,
+            homework = env.homeworkRepo,
+            appScope = mainRule.appScope,
+            computation = mainRule.dispatcher,
+            clock = env.clock,
+        ),
     )
 
     private fun at(key: Long): Instant = Instant.fromEpochMilliseconds(key * 7_200)

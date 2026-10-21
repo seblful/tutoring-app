@@ -1,6 +1,5 @@
 package com.seblful.klas.ui.subjects
 
-import com.seblful.klas.data.people.SubjectEntity
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Subject
 import com.seblful.klas.testutil.MainDispatcherRule
@@ -21,13 +20,13 @@ import org.robolectric.RobolectricTestRunner
 @RunWith(RobolectricTestRunner::class)
 class SubjectsViewModelTest {
 
-    @get:Rule
+    @get:Rule(order = 1)
     val mainRule = MainDispatcherRule()
 
-    @get:Rule
+    @get:Rule(order = 0)
     val env = TestEnv()
 
-    private fun vm() = SubjectsViewModel(env.subjectRepo, mainRule.appScope, mainRule.dispatcher)
+    private fun vm() = mainRule.own(SubjectsViewModel(env.subjectRepo, mainRule.appScope, mainRule.dispatcher))
 
     @Test
     fun `save trims the name and ignores a blank one`() = runTest(mainRule.dispatcher) {
@@ -45,7 +44,7 @@ class SubjectsViewModelTest {
 
     @Test
     fun `deleting a subject with no classes removes it`() = runTest(mainRule.dispatcher) {
-        val id = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
+        val id = env.fixtures.subject(name = "Математика")
         val vm = vm()
         observing(vm.subjects)
         advanceUntilIdle()

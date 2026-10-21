@@ -1,8 +1,6 @@
 package com.seblful.klas.data.repository
 
-import com.seblful.klas.data.people.StudentEntity
 import com.seblful.klas.data.people.StudentSubjectCrossRef
-import com.seblful.klas.data.people.SubjectEntity
 import com.seblful.klas.domain.model.ClassMode
 import com.seblful.klas.domain.model.Group
 import com.seblful.klas.domain.model.LessonStatus
@@ -26,7 +24,7 @@ class GroupRepositoryTest {
     private val repo = env.groupRepo
 
     private suspend fun students(vararg names: String): List<Long> =
-        names.map { env.studentDao.upsert(StudentEntity(name = it)) }
+        names.map { env.fixtures.student(name = it) }
 
     @Test
     fun `saving a group creates it with exactly the chosen members`() = runTest {
@@ -75,7 +73,7 @@ class GroupRepositoryTest {
     @Test
     fun `a subject-bound group keeps only the students priced for that subject`() = runTest {
         val (ann, bob) = students("Аня", "Борис")
-        val algebra = env.subjectDao.upsert(SubjectEntity(name = "Алгебра"))
+        val algebra = env.fixtures.subject(name = "Алгебра")
         env.studentDao.addSubjectLink(StudentSubjectCrossRef(ann, algebra))
 
         val id = repo.save(Group(name = "11 «А»", subjectId = algebra), setOf(ann, bob))
@@ -106,7 +104,7 @@ class GroupRepositoryTest {
     @Test
     fun `giving an existing group a subject drops the members who are not priced for it`() = runTest {
         val (ann, bob) = students("Аня", "Борис")
-        val algebra = env.subjectDao.upsert(SubjectEntity(name = "Алгебра"))
+        val algebra = env.fixtures.subject(name = "Алгебра")
         env.studentDao.addSubjectLink(StudentSubjectCrossRef(ann, algebra))
         val id = repo.save(Group(name = "Группа"), setOf(ann, bob))
         assertEquals(setOf(ann, bob), repo.getMemberIds(id).toSet())
@@ -130,7 +128,7 @@ class GroupRepositoryTest {
     @Test
     fun `a group with lessons is not deletable — those lessons must keep naming it`() = runTest {
         val (ann) = students("Аня")
-        val subject = env.subjectDao.upsert(SubjectEntity(name = "Алгебра"))
+        val subject = env.fixtures.subject(name = "Алгебра")
         val id = repo.save(Group(name = "11 «А»"), setOf(ann))
         env.fixtures.storedClass(
             studentId = ann, subjectId = subject, startMillis = 1, durationMinutes = 60,

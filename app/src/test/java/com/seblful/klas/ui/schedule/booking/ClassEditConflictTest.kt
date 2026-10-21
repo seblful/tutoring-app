@@ -4,6 +4,7 @@ import com.seblful.klas.domain.model.ClassMode
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.schedule.TimeConflict
+import com.seblful.klas.domain.time.today
 import com.seblful.klas.testutil.current
 import com.seblful.klas.testutil.observing
 import com.seblful.klas.ui.common.state.Loadable
@@ -19,7 +20,6 @@ import kotlinx.datetime.atTime
 import kotlinx.datetime.minus
 import kotlinx.datetime.plus
 import kotlinx.datetime.toInstant
-import kotlinx.datetime.todayIn
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -27,7 +27,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
-import kotlin.time.Clock
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
@@ -35,7 +34,7 @@ class ClassEditConflictTest : ClassEditTestFixture() {
 
     @Test
     fun `a cancelled past lesson remains editable after its slot is reused`() = runTest(mainRule.dispatcher) {
-        val date = Clock.System.todayIn(zone).minus(2, DateTimeUnit.DAY)
+        val date = env.clock.today().minus(2, DateTimeUnit.DAY)
         val (_, id) = seedLesson(date, LocalTime(10, 0))
         env.classRepo.setStatus(env.classRepo.getSessionFor(id)!!, LessonStatus.CANCELLED)
         seedLesson(date, LocalTime(10, 0), studentName = "Replacement")
@@ -66,7 +65,7 @@ class ClassEditConflictTest : ClassEditTestFixture() {
 
     @Test
     fun `a lesson cannot be booked over one that is already there`() = runTest(mainRule.dispatcher) {
-        val date = Clock.System.todayIn(zone).plus(3, DateTimeUnit.DAY)
+        val date = env.clock.today().plus(3, DateTimeUnit.DAY)
         seedLesson(date, LocalTime(10, 0)) // Борис, 10:00–11:00
         val (annId, subjectId) = seedStudentWithPricedSubject(studentName = "Аня", subjectName = "Физика")
 
@@ -93,7 +92,7 @@ class ClassEditConflictTest : ClassEditTestFixture() {
 
     @Test
     fun `a lesson starting exactly when another ends is allowed`() = runTest(mainRule.dispatcher) {
-        val date = Clock.System.todayIn(zone).plus(3, DateTimeUnit.DAY)
+        val date = env.clock.today().plus(3, DateTimeUnit.DAY)
         seedLesson(date, LocalTime(10, 0)) // 10:00–11:00
         val (annId, subjectId) = seedStudentWithPricedSubject(studentName = "Аня", subjectName = "Физика")
 
@@ -115,7 +114,7 @@ class ClassEditConflictTest : ClassEditTestFixture() {
 
     @Test
     fun `a cancelled lesson frees its hour`() = runTest(mainRule.dispatcher) {
-        val date = Clock.System.todayIn(zone).plus(3, DateTimeUnit.DAY)
+        val date = env.clock.today().plus(3, DateTimeUnit.DAY)
         val (_, bookedId) = seedLesson(date, LocalTime(10, 0))
         env.classRepo.setStatus(env.classRepo.getSessionFor(bookedId)!!, LessonStatus.CANCELLED)
         val (annId, subjectId) = seedStudentWithPricedSubject(studentName = "Аня", subjectName = "Физика")
@@ -135,7 +134,7 @@ class ClassEditConflictTest : ClassEditTestFixture() {
 
     @Test
     fun `re-saving the lesson being edited does not clash with itself`() = runTest(mainRule.dispatcher) {
-        val date = Clock.System.todayIn(zone).plus(3, DateTimeUnit.DAY)
+        val date = env.clock.today().plus(3, DateTimeUnit.DAY)
         val (_, bookedId) = seedLesson(date, LocalTime(10, 0))
 
         val vm = vm(bookedId)
@@ -159,7 +158,7 @@ class ClassEditConflictTest : ClassEditTestFixture() {
     @Test
     fun `a group lesson does not clash with its own members when re-saved`() = runTest(mainRule.dispatcher) {
         val (groupId, ann, bob) = seedGroup()
-        val start = Clock.System.todayIn(zone).plus(3, DateTimeUnit.DAY).atTime(10, 0).toInstant(zone)
+        val start = env.clock.today().plus(3, DateTimeUnit.DAY).atTime(10, 0).toInstant(zone)
         val ids = env.classRepo.book(
             groupId = groupId, subjectId = env.stored().subjects.first().id, start = start,
             durationMinutes = 60, mode = ClassMode.IN_PERSON,
@@ -187,7 +186,7 @@ class ClassEditConflictTest : ClassEditTestFixture() {
         val clashes = clashesDrawnBy(vm)
         advanceUntilIdle()
 
-        vm.fillFor(ann, subject, Clock.System.todayIn(zone).plus(3, DateTimeUnit.DAY), LocalTime(10, 0), minutes = 60)
+        vm.fillFor(ann, subject, env.clock.today().plus(3, DateTimeUnit.DAY), LocalTime(10, 0), minutes = 60)
         advanceUntilIdle()
         var done = false
         vm.save { done = true }
@@ -204,7 +203,7 @@ class ClassEditConflictTest : ClassEditTestFixture() {
             val (groupId, ann, bob) = seedGroup()
             val ids = env.classRepo.book(
                 groupId = groupId, subjectId = env.stored().subjects.first().id,
-                start = Clock.System.todayIn(zone).plus(3, DateTimeUnit.DAY).atTime(10, 0).toInstant(zone),
+                start = env.clock.today().plus(3, DateTimeUnit.DAY).atTime(10, 0).toInstant(zone),
                 durationMinutes = 60, mode = ClassMode.IN_PERSON,
                 studentIds = listOf(ann),
                 price = groupRate,
@@ -227,7 +226,7 @@ class ClassEditConflictTest : ClassEditTestFixture() {
     @Test
     fun `a group lesson in the way is reported by its group name`() = runTest(mainRule.dispatcher) {
         val (groupId, ann, bob) = seedGroup()
-        val date = Clock.System.todayIn(zone).plus(4, DateTimeUnit.DAY)
+        val date = env.clock.today().plus(4, DateTimeUnit.DAY)
         env.classRepo.book(
             groupId = groupId, subjectId = env.stored().subjects.first().id,
             start = date.atTime(10, 0).toInstant(zone),
@@ -254,7 +253,7 @@ class ClassEditConflictTest : ClassEditTestFixture() {
     fun `a save refused for a taken slot says so instead of doing nothing`() =
         runTest(mainRule.dispatcher) {
             val (occupier, subject) = seedStudentWithPricedSubject(studentName = "Борис")
-            val date = Clock.System.todayIn(zone).plus(3, DateTimeUnit.DAY)
+            val date = env.clock.today().plus(3, DateTimeUnit.DAY)
             env.classRepo.book(
                 subjectId = subject, start = date.atTime(10, 0).toInstant(zone),
                 durationMinutes = 60, mode = ClassMode.IN_PERSON,
@@ -284,7 +283,7 @@ class ClassEditConflictTest : ClassEditTestFixture() {
         runTest(mainRule.dispatcher) {
             // The one-lesson case goes through the same write now, and its wording must not drift into
             // the run's.
-            val date = Clock.System.todayIn(zone).plus(3, DateTimeUnit.DAY)
+            val date = env.clock.today().plus(3, DateTimeUnit.DAY)
             seedLesson(date, LocalTime(10, 0))
             val (ann, subject) = seedStudentWithPricedSubject(studentName = "Аня", subjectName = "Физика")
 

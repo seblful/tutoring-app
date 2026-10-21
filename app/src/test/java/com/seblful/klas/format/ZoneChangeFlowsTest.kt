@@ -31,10 +31,10 @@ import kotlin.time.Instant
 
 @RunWith(RobolectricTestRunner::class)
 class ZoneChangeFlowsTest {
-    @get:Rule
+    @get:Rule(order = 1)
     val main = MainDispatcherRule()
 
-    @get:Rule
+    @get:Rule(order = 0)
     val env = TestEnv()
 
     private val instant = Instant.parse("2026-06-01T00:30:00Z")
@@ -59,9 +59,11 @@ class ZoneChangeFlowsTest {
             val subject = env.fixtures.subject()
             val student = env.fixtures.pricedStudent(subjectId = subject)
             val id = env.fixtures.lesson(subject, listOf(student), instant).single()
-            val vm = ScheduleViewModel(
-                env.classRepo, env.studentRepo, env.subjectRepo, env.groupRepo, env.homeworkRepo,
-                main.appScope, main.dispatcher, clock,
+            val vm = main.own(
+                ScheduleViewModel(
+                    env.classRepo, env.studentRepo, env.subjectRepo, env.groupRepo, env.homeworkRepo,
+                    main.appScope, main.dispatcher, clock,
+                ),
             )
             observing(vm.content)
             runCurrent()

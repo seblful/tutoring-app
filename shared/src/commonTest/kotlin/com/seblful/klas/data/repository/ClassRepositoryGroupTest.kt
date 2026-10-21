@@ -1,8 +1,6 @@
 package com.seblful.klas.data.repository
 
 import com.seblful.klas.data.lessons.AttendanceEntity
-import com.seblful.klas.data.people.StudentEntity
-import com.seblful.klas.data.people.SubjectEntity
 import com.seblful.klas.domain.lesson.SessionEdit
 import com.seblful.klas.domain.model.Attended
 import com.seblful.klas.domain.model.ClassMode
@@ -41,9 +39,9 @@ class ClassRepositoryGroupTest {
     private var groupId = 0L
 
     private suspend fun seed() {
-        ann = env.studentDao.upsert(StudentEntity(name = "Аня"))
-        bob = env.studentDao.upsert(StudentEntity(name = "Борис"))
-        algebra = env.subjectDao.upsert(SubjectEntity(name = "Алгебра"))
+        ann = env.fixtures.student(name = "Аня")
+        bob = env.fixtures.student(name = "Борис")
+        algebra = env.fixtures.subject(name = "Алгебра")
         groupId = env.groupRepo.save(Group(name = "11 «А»", price = groupRate), setOf(ann, bob))
     }
 
@@ -358,7 +356,7 @@ class ClassRepositoryGroupTest {
     fun `adding a member to a scheduled lesson books them at the lesson's terms`() = runTest {
         seed()
         val ids = bookSession(members = listOf(ann))
-        val cate = env.studentDao.upsert(StudentEntity(name = "Вера"))
+        val cate = env.fixtures.student(name = "Вера")
 
         repo.apply(
             repo.getSessionFor(ids.first())!!,

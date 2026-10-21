@@ -1,14 +1,12 @@
 package com.seblful.klas.ui.schedule
 
-import com.seblful.klas.data.people.StudentEntity
-import com.seblful.klas.data.people.SubjectEntity
 import com.seblful.klas.domain.lesson.DeleteWarning
 import com.seblful.klas.domain.model.Assignee
 import com.seblful.klas.domain.model.Attended
 import com.seblful.klas.domain.model.Group
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
-import com.seblful.klas.domain.time.WallClock
+import com.seblful.klas.domain.time.today
 import com.seblful.klas.testutil.TestEnv
 import com.seblful.klas.testutil.observing
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -20,7 +18,6 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.plus
-import kotlinx.datetime.todayIn
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -28,7 +25,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
-import kotlin.time.Clock
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.Instant
 
@@ -57,8 +53,8 @@ class ScheduleWriteTest : ScheduleTestFixture() {
 
     @Test
     fun `setStatus completes a class and captures its charge`() = runTest(mainRule.dispatcher) {
-        val sid = env.studentDao.upsert(StudentEntity(name = "Аня"))
-        val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
+        val sid = env.fixtures.student(name = "Аня")
+        val subj = env.fixtures.subject(name = "Математика")
         val id = env.fixtures.storedClass(
             studentId = sid,
             subjectId = subj,
@@ -79,9 +75,9 @@ class ScheduleWriteTest : ScheduleTestFixture() {
 
     @Test
     fun `a lesson cannot be moved onto an hour another lesson already holds`() = runTest(mainRule.dispatcher) {
-        val ann = env.studentDao.upsert(StudentEntity(name = "Аня"))
-        val bob = env.studentDao.upsert(StudentEntity(name = "Борис"))
-        val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
+        val ann = env.fixtures.student(name = "Аня")
+        val bob = env.fixtures.student(name = "Борис")
+        val subj = env.fixtures.subject(name = "Математика")
         val day = LocalDate(2026, 7, 15)
         val moving = env.fixtures.storedClass(
             studentId = ann,
@@ -115,9 +111,9 @@ class ScheduleWriteTest : ScheduleTestFixture() {
 
     @Test
     fun `a cancelled lesson cannot be returned to an hour taken since`() = runTest(mainRule.dispatcher) {
-        val ann = env.studentDao.upsert(StudentEntity(name = "Аня"))
-        val bob = env.studentDao.upsert(StudentEntity(name = "Борис"))
-        val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
+        val ann = env.fixtures.student(name = "Аня")
+        val bob = env.fixtures.student(name = "Борис")
+        val subj = env.fixtures.subject(name = "Математика")
         val day = LocalDate(2026, 7, 15)
         val at = startMillisOn(day, LocalTime(10, 0))
         val cancelled = env.fixtures.storedClass(
@@ -149,8 +145,8 @@ class ScheduleWriteTest : ScheduleTestFixture() {
 
     @Test
     fun `a cancelled lesson returns to a free hour`() = runTest(mainRule.dispatcher) {
-        val ann = env.studentDao.upsert(StudentEntity(name = "Аня"))
-        val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
+        val ann = env.fixtures.student(name = "Аня")
+        val subj = env.fixtures.subject(name = "Математика")
         val day = LocalDate(2026, 7, 15)
         val cancelled = env.fixtures.storedClass(
             studentId = ann, subjectId = subj,
@@ -169,16 +165,18 @@ class ScheduleWriteTest : ScheduleTestFixture() {
     @Test
     fun `a status change that fails to commit is reported`() = runTest(mainRule.dispatcher) {
         val env = TestEnv()
-        val ann = env.studentDao.upsert(StudentEntity(name = "Аня"))
-        val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
+        val ann = env.fixtures.student(name = "Аня")
+        val subj = env.fixtures.subject(name = "Математика")
         val id = env.fixtures.storedClass(
             studentId = ann, subjectId = subj,
             startMillis = startMillisOn(LocalDate(2026, 7, 15), LocalTime(10, 0)),
             durationMinutes = 60, status = LessonStatus.SCHEDULED,
         )
-        val vm = ScheduleViewModel(
-            env.classRepo, env.studentRepo, env.subjectRepo, env.groupRepo, env.homeworkRepo, mainRule.appScope,
-            mainRule.dispatcher, WallClock.system(),
+        val vm = mainRule.own(
+            ScheduleViewModel(
+                env.classRepo, env.studentRepo, env.subjectRepo, env.groupRepo, env.homeworkRepo, mainRule.appScope,
+                mainRule.dispatcher, env.clock,
+            ),
         )
         val seen = mutableListOf<ScheduleViewModel.Event>()
         backgroundScope.launch { vm.events.stream.collect { seen += it } }
@@ -193,16 +191,18 @@ class ScheduleWriteTest : ScheduleTestFixture() {
     @Test
     fun `a delete that fails to commit is reported`() = runTest(mainRule.dispatcher) {
         val env = TestEnv()
-        val ann = env.studentDao.upsert(StudentEntity(name = "Аня"))
-        val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
+        val ann = env.fixtures.student(name = "Аня")
+        val subj = env.fixtures.subject(name = "Математика")
         val id = env.fixtures.storedClass(
             studentId = ann, subjectId = subj,
             startMillis = startMillisOn(LocalDate(2026, 7, 15), LocalTime(10, 0)),
             durationMinutes = 60, status = LessonStatus.SCHEDULED,
         )
-        val vm = ScheduleViewModel(
-            env.classRepo, env.studentRepo, env.subjectRepo, env.groupRepo, env.homeworkRepo, mainRule.appScope,
-            mainRule.dispatcher, WallClock.system(),
+        val vm = mainRule.own(
+            ScheduleViewModel(
+                env.classRepo, env.studentRepo, env.subjectRepo, env.groupRepo, env.homeworkRepo, mainRule.appScope,
+                mainRule.dispatcher, env.clock,
+            ),
         )
         val seen = mutableListOf<ScheduleViewModel.Event>()
         backgroundScope.launch { vm.events.stream.collect { seen += it } }
@@ -216,8 +216,8 @@ class ScheduleWriteTest : ScheduleTestFixture() {
 
     @Test
     fun `a write that succeeds reports nothing`() = runTest(mainRule.dispatcher) {
-        val ann = env.studentDao.upsert(StudentEntity(name = "Аня"))
-        val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
+        val ann = env.fixtures.student(name = "Аня")
+        val subj = env.fixtures.subject(name = "Математика")
         val id = env.fixtures.storedClass(
             studentId = ann, subjectId = subj,
             startMillis = startMillisOn(LocalDate(2026, 7, 15), LocalTime(10, 0)),
@@ -235,8 +235,8 @@ class ScheduleWriteTest : ScheduleTestFixture() {
 
     @Test
     fun `marking a lesson completed is never refused`() = runTest(mainRule.dispatcher) {
-        val ann = env.studentDao.upsert(StudentEntity(name = "Аня"))
-        val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
+        val ann = env.fixtures.student(name = "Аня")
+        val subj = env.fixtures.subject(name = "Математика")
         val id = env.fixtures.storedClass(
             studentId = ann, subjectId = subj,
             startMillis = startMillisOn(LocalDate(2026, 7, 15), LocalTime(10, 0)),
@@ -253,8 +253,8 @@ class ScheduleWriteTest : ScheduleTestFixture() {
 
     @Test
     fun `a lesson can be nudged within its own hour`() = runTest(mainRule.dispatcher) {
-        val ann = env.studentDao.upsert(StudentEntity(name = "Аня"))
-        val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
+        val ann = env.fixtures.student(name = "Аня")
+        val subj = env.fixtures.subject(name = "Математика")
         val day = LocalDate(2026, 7, 15)
         val id = env.fixtures.storedClass(
             studentId = ann,
@@ -277,9 +277,9 @@ class ScheduleWriteTest : ScheduleTestFixture() {
 
     @Test
     fun `a group lesson moves as one, without clashing with its own members`() = runTest(mainRule.dispatcher) {
-        val ann = env.studentDao.upsert(StudentEntity(name = "Аня"))
-        val bob = env.studentDao.upsert(StudentEntity(name = "Борис"))
-        val subj = env.subjectDao.upsert(SubjectEntity(name = "Алгебра"))
+        val ann = env.fixtures.student(name = "Аня")
+        val bob = env.fixtures.student(name = "Борис")
+        val subj = env.fixtures.subject(name = "Алгебра")
         val groupId = env.groupRepo.save(Group(name = "11 «А»"), setOf(ann, bob))
         val day = LocalDate(2026, 7, 15)
         val at = startMillisOn(day, LocalTime(12, 0))
@@ -315,11 +315,11 @@ class ScheduleWriteTest : ScheduleTestFixture() {
 
     @Test
     fun `completing a group row completes every member's class`() = runTest(mainRule.dispatcher) {
-        val ann = env.studentDao.upsert(StudentEntity(name = "Аня"))
-        val bob = env.studentDao.upsert(StudentEntity(name = "Борис"))
-        val subj = env.subjectDao.upsert(SubjectEntity(name = "Алгебра"))
+        val ann = env.fixtures.student(name = "Аня")
+        val bob = env.fixtures.student(name = "Борис")
+        val subj = env.fixtures.subject(name = "Алгебра")
         val groupId = env.groupRepo.save(Group(name = "11 «А»"), setOf(ann, bob))
-        val at = startMillisOn(Clock.System.todayIn(zone), LocalTime(12, 0))
+        val at = startMillisOn(env.clock.today(), LocalTime(12, 0))
         env.fixtures.storedClass(
             studentId = ann,
             subjectId = subj,
@@ -356,8 +356,8 @@ class ScheduleWriteTest : ScheduleTestFixture() {
 
     @Test
     fun `delete removes the class`() = runTest(mainRule.dispatcher) {
-        val sid = env.studentDao.upsert(StudentEntity(name = "Аня"))
-        val subj = env.subjectDao.upsert(SubjectEntity(name = "Математика"))
+        val sid = env.fixtures.student(name = "Аня")
+        val subj = env.fixtures.subject(name = "Математика")
         val id = env.fixtures.storedClass(
             studentId = sid,
             subjectId = subj,

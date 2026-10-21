@@ -27,7 +27,7 @@ class LessonAttendanceTest {
     @get:Rule
     val language = AppLocaleRule.english()
 
-    @get:Rule
+    @get:Rule(order = 0)
     val env = TestEnv()
 
     @Test

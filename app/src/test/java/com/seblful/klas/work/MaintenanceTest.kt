@@ -1,7 +1,5 @@
 package com.seblful.klas.work
 
-import com.seblful.klas.data.people.StudentEntity
-import com.seblful.klas.data.people.SubjectEntity
 import com.seblful.klas.domain.model.Attended
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
@@ -28,10 +26,10 @@ import kotlin.time.Instant
 @RunWith(RobolectricTestRunner::class)
 class MaintenanceTest {
 
-    @get:Rule
+    @get:Rule(order = 1)
     val mainRule = MainDispatcherRule()
 
-    @get:Rule
+    @get:Rule(order = 0)
     val env = TestEnv()
     private val now: Instant = Instant.parse("2026-06-15T12:00:00Z")
 

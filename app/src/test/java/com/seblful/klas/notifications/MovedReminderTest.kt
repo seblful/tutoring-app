@@ -13,7 +13,7 @@ import kotlin.time.Instant
 
 @RunWith(RobolectricTestRunner::class)
 class MovedReminderTest {
-    @get:Rule
+    @get:Rule(order = 0)
     val env = TestEnv()
 
     private fun due() = DueReminder(

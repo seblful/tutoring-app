@@ -23,10 +23,10 @@ import kotlin.time.Instant
 @RunWith(RobolectricTestRunner::class)
 class DueDigestTest {
 
-    @get:Rule
+    @get:Rule(order = 1)
     val mainRule = MainDispatcherRule()
 
-    @get:Rule
+    @get:Rule(order = 0)
     val env = TestEnv()
 
     private val morning: Instant = Instant.parse("2026-06-15T06:00:00Z")

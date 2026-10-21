@@ -1,6 +1,5 @@
 package com.seblful.klas.ui.students
 
-import com.seblful.klas.data.people.SubjectEntity
 import com.seblful.klas.domain.model.Balance
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
@@ -115,7 +114,7 @@ class StudentArchiveTest : StudentDetailTestFixture() {
     @Test
     fun `archiving calls off the student's planned lessons`() = runTest(mainRule.dispatcher) {
         val sid = seedStudent()
-        val subject = env.subjectDao.upsert(SubjectEntity(name = "Алгебра"))
+        val subject = env.fixtures.subject(name = "Алгебра")
         val future = env.fixtures.storedClass(
             studentId = sid, subjectId = subject, startMillis = 4_000_000_000_000,
             durationMinutes = 60, status = LessonStatus.SCHEDULED, priceMinor = 3000,
@@ -151,7 +150,7 @@ class StudentArchiveTest : StudentDetailTestFixture() {
     @Test
     fun `archiving says how many lessons it called off`() = runTest(mainRule.dispatcher) {
         val sid = seedStudent()
-        val subject = env.subjectDao.upsert(SubjectEntity(name = "Алгебра"))
+        val subject = env.fixtures.subject(name = "Алгебра")
         env.fixtures.storedClass(
             studentId = sid, subjectId = subject, startMillis = 4_000_000_000_000,
             durationMinutes = 60, status = LessonStatus.SCHEDULED, priceMinor = 3000,
@@ -188,7 +187,7 @@ class StudentArchiveTest : StudentDetailTestFixture() {
     @Test
     fun `restoring does not put the called-off lessons back`() = runTest(mainRule.dispatcher) {
         val sid = seedStudent()
-        val subject = env.subjectDao.upsert(SubjectEntity(name = "Алгебра"))
+        val subject = env.fixtures.subject(name = "Алгебра")
         env.fixtures.storedClass(
             studentId = sid, subjectId = subject, startMillis = 4_000_000_000_000,
             durationMinutes = 60, status = LessonStatus.SCHEDULED, priceMinor = 3000,
@@ -210,7 +209,7 @@ class StudentArchiveTest : StudentDetailTestFixture() {
     @Test
     fun `the hours of a called-off lesson become bookable again`() = runTest(mainRule.dispatcher) {
         val sid = seedStudent()
-        val subject = env.subjectDao.upsert(SubjectEntity(name = "Алгебра"))
+        val subject = env.fixtures.subject(name = "Алгебра")
         val at = 4_000_000_000_000
         env.fixtures.storedClass(
             studentId = sid, subjectId = subject, startMillis = at,

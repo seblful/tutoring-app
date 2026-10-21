@@ -20,7 +20,7 @@ import kotlin.time.Instant
 @RunWith(RobolectricTestRunner::class)
 class SnapshotDaoTest {
 
-    @get:Rule
+    @get:Rule(order = 0)
     val env = TestEnv()
 
     private suspend fun seedALesson(subject: String, student: String, into: TestEnv = env) {

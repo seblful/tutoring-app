@@ -3,6 +3,7 @@ package com.seblful.klas.ui.schedule.booking
 import com.seblful.klas.domain.model.ClassMode
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.schedule.Repeat
+import com.seblful.klas.domain.time.today
 import com.seblful.klas.format.MoneyField
 import com.seblful.klas.testutil.current
 import com.seblful.klas.testutil.observing
@@ -17,7 +18,6 @@ import kotlinx.datetime.atTime
 import kotlinx.datetime.plus
 import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
-import kotlinx.datetime.todayIn
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -26,7 +26,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
-import kotlin.time.Clock
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
@@ -57,7 +56,7 @@ class ClassEditRepeatTest : ClassEditTestFixture() {
         advanceUntilIdle()
 
         vm.fillFor(
-            ann, subject, Clock.System.todayIn(zone).plus(2, DateTimeUnit.DAY), LocalTime(10, 0), minutes = 60,
+            ann, subject, env.clock.today().plus(2, DateTimeUnit.DAY), LocalTime(10, 0), minutes = 60,
         )
         var done = false
         vm.save { done = true }
@@ -70,7 +69,7 @@ class ClassEditRepeatTest : ClassEditTestFixture() {
 
     @Test
     fun `a first-date clash still allows booking the free dates`() = runTest(mainRule.dispatcher) {
-        val first = Clock.System.todayIn(zone).plus(2, DateTimeUnit.DAY)
+        val first = env.clock.today().plus(2, DateTimeUnit.DAY)
         seedLesson(first, LocalTime(10, 0))
         val (student, subject) = seedStudentWithPricedSubject(studentName = "Anna", subjectName = "Physics")
         val vm = vm()
@@ -89,7 +88,7 @@ class ClassEditRepeatTest : ClassEditTestFixture() {
 
     @Test
     fun `an entirely occupied run disables Save`() = runTest(mainRule.dispatcher) {
-        val first = Clock.System.todayIn(zone).plus(2, DateTimeUnit.DAY)
+        val first = env.clock.today().plus(2, DateTimeUnit.DAY)
         for (week in 0..2) seedLesson(first.plus(week, DateTimeUnit.WEEK), LocalTime(10, 0))
         val (student, subject) = seedStudentWithPricedSubject(studentName = "Anna", subjectName = "Physics")
         val vm = vm()
@@ -108,7 +107,7 @@ class ClassEditRepeatTest : ClassEditTestFixture() {
         observing(vm.state)
         advanceUntilIdle()
 
-        val first = Clock.System.todayIn(zone).plus(2, DateTimeUnit.DAY)
+        val first = env.clock.today().plus(2, DateTimeUnit.DAY)
         vm.fillRepeating(ann, subject, first, LocalTime(10, 0), Repeat.WEEKLY, count = 4)
         var done = false
         vm.save { done = true }
@@ -129,7 +128,7 @@ class ClassEditRepeatTest : ClassEditTestFixture() {
         observing(vm.state)
         advanceUntilIdle()
 
-        val first = Clock.System.todayIn(zone).plus(2, DateTimeUnit.DAY)
+        val first = env.clock.today().plus(2, DateTimeUnit.DAY)
         vm.fillRepeating(ann, subject, first, LocalTime(10, 0), Repeat.FORTNIGHTLY, count = 3)
         advanceUntilIdle()
 
@@ -143,7 +142,7 @@ class ClassEditRepeatTest : ClassEditTestFixture() {
         // Repeating is a property of the act of booking; there is nothing for it to say about a row
         // already in the database, and an edit that quietly turned one lesson into twelve would be the
         // worst possible reading of the field.
-        val (_, id) = seedLesson(Clock.System.todayIn(zone).plus(2, DateTimeUnit.DAY), LocalTime(14, 0))
+        val (_, id) = seedLesson(env.clock.today().plus(2, DateTimeUnit.DAY), LocalTime(14, 0))
         val vm = vm(id)
         observing(vm.state)
         advanceUntilIdle()
@@ -155,7 +154,7 @@ class ClassEditRepeatTest : ClassEditTestFixture() {
     @Test
     fun `a run that loses one date books the rest and holds the screen to say so`() =
         runTest(mainRule.dispatcher) {
-            val first = Clock.System.todayIn(zone).plus(2, DateTimeUnit.DAY)
+            val first = env.clock.today().plus(2, DateTimeUnit.DAY)
             // Борис already has the third Monday of the run.
             seedLesson(first.plus(2, DateTimeUnit.WEEK), LocalTime(10, 0))
             val (ann, subject) = seedStudentWithPricedSubject(studentName = "Аня", subjectName = "Физика")
@@ -178,7 +177,7 @@ class ClassEditRepeatTest : ClassEditTestFixture() {
     @Test
     fun `acknowledging the report clears it, and leaving then asks nothing`() =
         runTest(mainRule.dispatcher) {
-            val first = Clock.System.todayIn(zone).plus(2, DateTimeUnit.DAY)
+            val first = env.clock.today().plus(2, DateTimeUnit.DAY)
             seedLesson(first.plus(1, DateTimeUnit.WEEK), LocalTime(10, 0))
             val (ann, subject) = seedStudentWithPricedSubject(studentName = "Аня", subjectName = "Физика")
 
@@ -201,7 +200,7 @@ class ClassEditRepeatTest : ClassEditTestFixture() {
     @Test
     fun `a run whose every date is taken writes nothing and says which refusal it was`() =
         runTest(mainRule.dispatcher) {
-            val first = Clock.System.todayIn(zone).plus(2, DateTimeUnit.DAY)
+            val first = env.clock.today().plus(2, DateTimeUnit.DAY)
             val (bob, physics) = seedStudentWithPricedSubject(studentName = "Борис", subjectName = "Химия")
             repeat(3) { week ->
                 env.classRepo.book(

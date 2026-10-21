@@ -2,6 +2,7 @@ package com.seblful.klas.ui.schedule.booking
 
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
+import com.seblful.klas.domain.time.today
 import com.seblful.klas.testutil.current
 import com.seblful.klas.testutil.observing
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -14,7 +15,6 @@ import kotlinx.datetime.atTime
 import kotlinx.datetime.plus
 import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
-import kotlinx.datetime.todayIn
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -22,7 +22,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
-import kotlin.time.Clock
 import kotlin.time.Instant
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -169,7 +168,7 @@ class ClassEditTimeTest : ClassEditTestFixture() {
 
     @Test
     fun `a lesson that starts at 23 00 opens ready to save`() = runTest(mainRule.dispatcher) {
-        val (_, id) = seedLesson(Clock.System.todayIn(zone).plus(3, DateTimeUnit.DAY), LocalTime(23, 0))
+        val (_, id) = seedLesson(env.clock.today().plus(3, DateTimeUnit.DAY), LocalTime(23, 0))
         val vm = vm(id)
         observing(vm.state)
         advanceUntilIdle()

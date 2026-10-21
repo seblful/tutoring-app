@@ -1,8 +1,6 @@
 package com.seblful.klas.data.repository
 
-import com.seblful.klas.data.people.GroupEntity
-import com.seblful.klas.data.people.StudentEntity
-import com.seblful.klas.data.people.SubjectEntity
+import com.seblful.klas.domain.model.Money
 import com.seblful.klas.testutil.TestEnv
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
@@ -21,7 +19,7 @@ class NameOrderingTest {
 
     @Test
     fun `subjects come out in reader order - whatever order they were added in`() = runTest {
-        listOf("Физика", "алгебра", "Биология").forEach { env.subjectDao.upsert(SubjectEntity(name = it)) }
+        listOf("Физика", "алгебра", "Биология").forEach { env.fixtures.subject(name = it) }
 
         assertEquals(
             listOf("алгебра", "Биология", "Физика"),
@@ -31,7 +29,7 @@ class NameOrderingTest {
 
     @Test
     fun `active students are ordered case-insensitively - including Cyrillic`() = runTest {
-        listOf("Ярослав", "анна", "Борис").forEach { env.studentDao.upsert(StudentEntity(name = it)) }
+        listOf("Ярослав", "анна", "Борис").forEach { env.fixtures.student(name = it) }
 
         assertEquals(
             listOf("анна", "Борис", "Ярослав"),
@@ -41,9 +39,9 @@ class NameOrderingTest {
 
     @Test
     fun `archived students are listed last - each group in reader order`() = runTest {
-        env.studentDao.upsert(StudentEntity(name = "Ярослав"))
-        env.studentDao.upsert(StudentEntity(name = "анна", archived = true))
-        env.studentDao.upsert(StudentEntity(name = "Борис"))
+        env.fixtures.student(name = "Ярослав")
+        env.fixtures.student(name = "анна", archived = true)
+        env.fixtures.student(name = "Борис")
 
         assertEquals(
             listOf("Борис", "Ярослав", "анна"),
@@ -53,9 +51,9 @@ class NameOrderingTest {
 
     @Test
     fun `active groups are ordered - and archived ones left out`() = runTest {
-        env.groupDao.upsert(GroupEntity(name = "Ярославцы"))
-        env.groupDao.upsert(GroupEntity(name = "абитуриенты"))
-        env.groupDao.upsert(GroupEntity(name = "Выпускники", archived = true))
+        env.fixtures.group(name = "Ярославцы", rate = Money.ZERO)
+        env.fixtures.group(name = "абитуриенты", rate = Money.ZERO)
+        env.fixtures.group(name = "Выпускники", archived = true, rate = Money.ZERO)
 
         assertEquals(
             listOf("абитуриенты", "Ярославцы"),
@@ -65,9 +63,9 @@ class NameOrderingTest {
 
     @Test
     fun `archived groups are listed last by observeAll`() = runTest {
-        env.groupDao.upsert(GroupEntity(name = "Ярославцы"))
-        env.groupDao.upsert(GroupEntity(name = "абитуриенты", archived = true))
-        env.groupDao.upsert(GroupEntity(name = "Выпускники"))
+        env.fixtures.group(name = "Ярославцы", rate = Money.ZERO)
+        env.fixtures.group(name = "абитуриенты", archived = true, rate = Money.ZERO)
+        env.fixtures.group(name = "Выпускники", rate = Money.ZERO)
 
         assertEquals(
             listOf("Выпускники", "Ярославцы", "абитуриенты"),

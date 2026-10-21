@@ -1,15 +1,13 @@
 package com.seblful.klas.ui.schedule.booking
 
-import com.seblful.klas.data.billing.PriceEntity
-import com.seblful.klas.data.people.StudentEntity
 import com.seblful.klas.data.people.StudentSubjectCrossRef
-import com.seblful.klas.data.people.SubjectEntity
 import com.seblful.klas.data.toDomain
 import com.seblful.klas.domain.model.Attended
 import com.seblful.klas.domain.model.ClassMode
 import com.seblful.klas.domain.model.Group
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
+import com.seblful.klas.domain.time.today
 import com.seblful.klas.format.MoneyField
 import com.seblful.klas.testutil.current
 import com.seblful.klas.testutil.observing
@@ -21,7 +19,6 @@ import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.plus
-import kotlinx.datetime.todayIn
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -29,7 +26,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
-import kotlin.time.Clock
 import kotlin.time.Instant
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -50,7 +46,7 @@ class ClassEditGroupTest : ClassEditTestFixture() {
         vm.change(
             BookingIntent.Edit {
                 it.copy(
-                    date = Clock.System.todayIn(zone).plus(3, DateTimeUnit.DAY),
+                    date = env.clock.today().plus(3, DateTimeUnit.DAY),
                     timeFrom = LocalTime(10, 0),
                     durationMinutes = 60,
                 )
@@ -75,7 +71,7 @@ class ClassEditGroupTest : ClassEditTestFixture() {
             advanceUntilIdle()
             vm.change(BookingIntent.IncludeMember(ann, included = false))
             vm.change(BookingIntent.IncludeMember(bob, included = false))
-            val date = Clock.System.todayIn(zone).plus(3, DateTimeUnit.DAY)
+            val date = env.clock.today().plus(3, DateTimeUnit.DAY)
             vm.change(
                 BookingIntent.Edit {
                     it.copy(date = date, timeFrom = LocalTime(10, 0), durationMinutes = 60)
@@ -111,7 +107,7 @@ class ClassEditGroupTest : ClassEditTestFixture() {
     @Test
     fun `a group can be booked for any subject, priced for its members or not`() = runTest(mainRule.dispatcher) {
         val (groupId, _, _) = seedGroup()
-        env.subjectDao.upsert(SubjectEntity(name = "Физика"))
+        env.fixtures.subject(name = "Физика")
 
         val vm = vm(groupId = groupId)
         observing(vm.state)
@@ -155,7 +151,7 @@ class ClassEditGroupTest : ClassEditTestFixture() {
     @Test
     fun `an archived member is left out of a new group lesson`() = runTest(mainRule.dispatcher) {
         val (groupId, ann, bob) = seedGroup()
-        env.studentDao.upsert(env.studentDao.getById(bob)!!.copy(archived = true))
+        env.studentRepo.setArchived(env.studentRepo.getById(bob)!!, archived = true)
 
         val vm = vm(groupId = groupId)
         observing(vm.state)
@@ -163,7 +159,7 @@ class ClassEditGroupTest : ClassEditTestFixture() {
 
         assertEquals(listOf(ann), vm.state.current.members.map { it.id })
 
-        val date = Clock.System.todayIn(zone).plus(2, DateTimeUnit.DAY)
+        val date = env.clock.today().plus(2, DateTimeUnit.DAY)
         vm.change(BookingIntent.Edit { it.copy(date = date, timeFrom = LocalTime(10, 0), durationMinutes = 60) })
         vm.save { }
         advanceUntilIdle()
@@ -193,7 +189,7 @@ class ClassEditGroupTest : ClassEditTestFixture() {
         observing(vm.state)
         advanceUntilIdle()
 
-        val date = Clock.System.todayIn(zone).plus(2, DateTimeUnit.DAY)
+        val date = env.clock.today().plus(2, DateTimeUnit.DAY)
         vm.change(BookingIntent.Edit { it.copy(date = date, timeFrom = LocalTime(10, 0), durationMinutes = 90) })
         var done = false
         vm.save { done = true }
@@ -218,7 +214,7 @@ class ClassEditGroupTest : ClassEditTestFixture() {
         observing(vm.state)
         advanceUntilIdle()
 
-        val date = Clock.System.todayIn(zone).plus(2, DateTimeUnit.DAY)
+        val date = env.clock.today().plus(2, DateTimeUnit.DAY)
         vm.change(BookingIntent.Edit { it.copy(date = date, timeFrom = LocalTime(10, 0), durationMinutes = 60) })
         // Bob is away this week. He stays on the roster; he just isn't at this lesson.
         vm.change(BookingIntent.IncludeMember(bob, false))
@@ -243,7 +239,7 @@ class ClassEditGroupTest : ClassEditTestFixture() {
         observing(vm.state)
         advanceUntilIdle()
 
-        val date = Clock.System.todayIn(zone).plus(2, DateTimeUnit.DAY)
+        val date = env.clock.today().plus(2, DateTimeUnit.DAY)
         vm.change(BookingIntent.Edit { it.copy(date = date, timeFrom = LocalTime(10, 0), durationMinutes = 60) })
         vm.change(BookingIntent.IncludeMember(ann, false))
         vm.change(BookingIntent.IncludeMember(bob, false))
@@ -257,11 +253,11 @@ class ClassEditGroupTest : ClassEditTestFixture() {
 
     @Test
     fun `a group that has a subject decides the lesson's subject`() = runTest(mainRule.dispatcher) {
-        val ann = env.studentDao.upsert(StudentEntity(name = "Аня"))
-        val algebra = env.subjectDao.upsert(SubjectEntity(name = "Алгебра"))
-        val physics = env.subjectDao.upsert(SubjectEntity(name = "Физика"))
+        val ann = env.fixtures.student(name = "Аня")
+        val algebra = env.fixtures.subject(name = "Алгебра")
+        val physics = env.fixtures.subject(name = "Физика")
         env.studentDao.addSubjectLink(StudentSubjectCrossRef(ann, algebra))
-        env.priceDao.upsert(PriceEntity(ann, algebra, Money.ofMajor(30).minor))
+        env.enrollmentRepo.enroll(ann, algebra, Money.ofMajor(30))
         val groupId = env.groupRepo.save(
             Group(name = "11 «А»", price = groupRate, subjectId = algebra),
             setOf(ann),
@@ -281,7 +277,7 @@ class ClassEditGroupTest : ClassEditTestFixture() {
     @Test
     fun `a group with no subject still offers every subject`() = runTest(mainRule.dispatcher) {
         val (groupId, _, _) = seedGroup()
-        env.subjectDao.upsert(SubjectEntity(name = "Физика"))
+        env.fixtures.subject(name = "Физика")
 
         val vm = vm(groupId = groupId)
         observing(vm.state)
@@ -331,8 +327,8 @@ class ClassEditGroupTest : ClassEditTestFixture() {
                 studentIds = listOf(ann, bob),
                 price = groupRate,
             ).written()
-            val carl = env.studentDao.upsert(StudentEntity(name = "Вова"))
-            env.priceDao.upsert(PriceEntity(carl, algebra, Money.ofMajor(20).minor))
+            val carl = env.fixtures.student(name = "Вова")
+            env.enrollmentRepo.enroll(carl, algebra, Money.ofMajor(20))
             env.groupRepo.save(Group(id = groupId, name = "11 «А»"), setOf(ann, carl))
 
             val vm = vm(id = ids.first())

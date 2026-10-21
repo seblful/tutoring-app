@@ -1,43 +1,32 @@
 package com.seblful.klas.testutil
 
-import org.junit.Assert.assertTrue
+import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class DirectSeedingRatchetTest {
-
-    private val cap = 250
-
     private val seedCall = Regex("""[A-Za-z]*[Dd]ao\.(?:insertAll|upsert|insert)\(""")
 
     @Test
-    fun `direct DAO seeding only ever gets rarer`() {
+    fun `raw writes are limited to explicit legacy and malformed-state scenarios`() {
         val counts = ProjectFiles.testSources()
             .filterNot { it.parentFile?.name == "testutil" }
-            .associate { it.name to seedCall.findAll(it.readText()).count() }
+            .associate { file ->
+                file.invariantSeparatorsPath.substringAfterLast("/src/") to
+                    seedCall.findAll(SourceText.code(file.readText())).count()
+            }
             .filterValues { it > 0 }
-        val total = counts.values.sum()
-
-        val worst = counts.entries.sortedByDescending { it.value }
-            .joinToString("\n") { "  ${it.value}\t${it.key}" }
-        assertTrue(
-            "Tests seed rows straight through $total DAO writes, over the cap of $cap. Seed " +
-                "through `env.fixtures` instead — it goes in through the repositories, so the " +
-                "invariant is applied and the charge is the production rule's. If a direct write is " +
-                "genuinely needed, lower the cap in this test to pay for it.\n$worst",
-            total <= cap,
-        )
-    }
-
-    @Test
-    fun `the cap is not stale`() {
-        val total = ProjectFiles.testSources()
-            .filterNot { it.parentFile?.name == "testutil" }
-            .sumOf { seedCall.findAll(it.readText()).count() }
-
-        assertTrue(
-            "Only $total direct DAO seed calls are left but the cap is still $cap. Lower it to " +
-                "$total so the next one that appears is caught.",
-            total >= cap,
+        val prefix = "commonTest/kotlin/com/seblful/klas/data/repository/"
+        assertEquals(
+            "Seed normal application states through fixtures. Keep each raw-storage exception explicit.",
+            mapOf(
+                // A malformed attendance row must be readable without inventing a valid booking.
+                "${prefix}ClassRepositoryGroupTest.kt" to 1,
+                // Pre-existing groups, prices and history without repository audit records.
+                "${prefix}RateHistoryTest.kt" to 3,
+                // Legacy backups may contain a rate without its enrollment link.
+                "${prefix}SubjectRepositoryTest.kt" to 1,
+            ),
+            counts,
         )
     }
 }

@@ -17,7 +17,7 @@ import kotlin.time.Instant
 @RunWith(RobolectricTestRunner::class)
 class ReminderActionsTest {
 
-    @get:Rule
+    @get:Rule(order = 0)
     val env = TestEnv()
     private val notifier = RecordingNotifier()
 

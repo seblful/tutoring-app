@@ -1,9 +1,7 @@
 package com.seblful.klas.notifications
 
-import com.seblful.klas.data.people.GroupEntity
-import com.seblful.klas.data.people.StudentEntity
-import com.seblful.klas.data.people.SubjectEntity
 import com.seblful.klas.domain.model.LessonStatus
+import com.seblful.klas.domain.model.Money
 import com.seblful.klas.testutil.RecordingNotifier
 import com.seblful.klas.testutil.TestEnv
 import kotlinx.coroutines.test.runTest
@@ -20,7 +18,7 @@ import kotlin.time.Instant
 @RunWith(RobolectricTestRunner::class)
 class DueReminderTest {
 
-    @get:Rule
+    @get:Rule(order = 0)
     val env = TestEnv()
     private val notifier = RecordingNotifier()
 
@@ -39,8 +37,8 @@ class DueReminderTest {
 
     private val soon = now.plus(1800.seconds)
 
-    private suspend fun student(name: String = "Аня") = env.studentDao.upsert(StudentEntity(name = name))
-    private suspend fun subject(name: String = "Математика") = env.subjectDao.upsert(SubjectEntity(name = name))
+    private suspend fun student(name: String = "Аня") = env.fixtures.student(name = name)
+    private suspend fun subject(name: String = "Математика") = env.fixtures.subject(name = name)
 
     private suspend fun scheduledClass(
         studentId: Long,
@@ -76,7 +74,7 @@ class DueReminderTest {
     fun `a group lesson is announced by the group, not by whichever member it points at`() = runTest {
         val s = student("Аня")
         val subj = subject("Математика")
-        val group = env.groupDao.upsert(GroupEntity(name = "11 «А»"))
+        val group = env.fixtures.group(name = "11 «А»", rate = Money.ZERO)
         val id = scheduledClass(s, subj, groupId = group)
 
         assertTrue(due.post(id, now))

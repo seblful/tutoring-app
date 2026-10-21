@@ -2,7 +2,6 @@ package com.seblful.klas.data.repository
 
 import com.seblful.klas.calendar.Guest
 import com.seblful.klas.data.lessons.LessonWrite
-import com.seblful.klas.data.people.StudentEntity
 import com.seblful.klas.domain.lesson.SessionEdit
 import com.seblful.klas.domain.model.ClassMode
 import com.seblful.klas.domain.model.LessonStatus
@@ -86,7 +85,7 @@ class ClassRepositoryTest {
     fun `a mirrored class invites the student when email invites are on`() = runTest {
         env.settingsRepo.update { it.copy(calendarSyncEnabled = true) }
         env.settingsRepo.update { it.copy(emailInvitesEnabled = true) }
-        env.studentDao.upsert(StudentEntity(id = STUDENT, name = "Аня", email = "anya@example.com"))
+        env.fixtures.student(id = STUDENT, name = "Аня", email = "anya@example.com")
 
         book()
 
@@ -96,7 +95,7 @@ class ClassRepositoryTest {
     @Test
     fun `syncing alone mails nobody — invites are off until the tutor opts in`() = runTest {
         env.settingsRepo.update { it.copy(calendarSyncEnabled = true) }
-        env.studentDao.upsert(StudentEntity(id = STUDENT, name = "Аня", email = "anya@example.com"))
+        env.fixtures.student(id = STUDENT, name = "Аня", email = "anya@example.com")
 
         book()
 
@@ -109,7 +108,7 @@ class ClassRepositoryTest {
         // switching invites off must not degrade to "no guest" — that would leave it standing.
         env.settingsRepo.update { it.copy(calendarSyncEnabled = true) }
         env.settingsRepo.update { it.copy(emailInvitesEnabled = false) }
-        env.studentDao.upsert(StudentEntity(id = STUDENT, name = "Аня", email = "anya@example.com"))
+        env.fixtures.student(id = STUDENT, name = "Аня", email = "anya@example.com")
 
         book()
 
@@ -119,7 +118,7 @@ class ClassRepositoryTest {
     @Test
     fun `a student with no email yields no guest at all`() = runTest {
         env.settingsRepo.update { it.copy(calendarSyncEnabled = true) }
-        env.studentDao.upsert(StudentEntity(id = STUDENT, name = "Аня", email = ""))
+        env.fixtures.student(id = STUDENT, name = "Аня", email = "")
 
         book()
 
@@ -205,6 +204,7 @@ class ClassRepositoryTest {
 
     @Test
     fun `moving a class to the future re-plans it back to scheduled with no charge`() = runTest {
+        env.fixtures.withCalendarSync()
         val id = book(now.minus(3600.seconds))
         repo.setStatus(session(id), LessonStatus.COMPLETED)
 
@@ -212,6 +212,7 @@ class ClassRepositoryTest {
 
         assertEquals(LessonStatus.SCHEDULED, moved.status)
         assertTrue(moved.charge.isZero)
+        assertEquals(moved.start, env.calendar.upserts.last().start)
     }
 
     @Test
@@ -356,6 +357,43 @@ class ClassRepositoryTest {
 
         assertTrue(outcome is LessonWrite.Written<*>, "answered, not thrown")
         assertEquals(LessonStatus.SCHEDULED, repo.getById(id)?.status)
+    }
+
+    @Test
+    fun `moving a scheduled lesson persists its new hour and retains its calendar event`() = runTest {
+        env.fixtures.withCalendarSync()
+        val id = book()
+        val event = repo.getById(id)!!.calendarEventId
+        env.calendar.calls.clear()
+        val next = now.plus((2 * 86_400).seconds)
+
+        repo.move(session(id), next, now)
+
+        assertEquals(next, repo.getById(id)!!.start)
+        assertEquals(event, repo.getById(id)!!.calendarEventId)
+        assertEquals(next, env.calendar.upserts.single().start)
+        assertEquals(event, env.calendar.upserts.single().calendarEventId)
+    }
+
+    @Test
+    fun `moving a taught lesson within the past refreshes its event without creating another`() = runTest {
+        env.fixtures.withCalendarSync()
+        val id = book(now.minus((3 * 86_400).seconds))
+        repo.setStatus(session(id), LessonStatus.COMPLETED)
+        val before = repo.getById(id)!!
+        env.calendar.calls.clear()
+        env.calendar.refreshes.clear()
+        val next = now.minus((2 * 86_400).seconds)
+
+        repo.move(session(id), next, now)
+
+        val after = repo.getById(id)!!
+        assertEquals(next, after.start)
+        assertEquals(before.status, after.status)
+        assertEquals(before.charge, after.charge)
+        assertEquals(before.calendarEventId, after.calendarEventId)
+        assertTrue(env.calendar.upserts.isEmpty())
+        assertEquals(next, env.calendar.refreshes.single().klass.start)
     }
 
     private companion object {

@@ -28,17 +28,17 @@ import org.robolectric.RobolectricTestRunner
 @RunWith(RobolectricTestRunner::class)
 class OnboardingViewModelTest {
 
-    @get:Rule
+    @get:Rule(order = 1)
     val mainRule = MainDispatcherRule()
 
     /** Storing a language publishes the app's display locale, which is process-wide — put it back. */
     @get:Rule
     val locale = AppLocaleRule.russian()
 
-    @get:Rule
+    @get:Rule(order = 0)
     val env = TestEnv()
 
-    private fun vm() = OnboardingViewModel(env.subjectRepo, env.settingsRepo, mainRule.appScope)
+    private fun vm() = mainRule.own(OnboardingViewModel(env.subjectRepo, env.settingsRepo, mainRule.appScope))
 
     @Test
     fun `the subject list is Loading until read, and Ready even when a fresh install has none`() =
@@ -55,7 +55,7 @@ class OnboardingViewModelTest {
 
     @Test
     fun `the language and currency start where the phone puts them`() = runTest(mainRule.dispatcher) {
-        val minsk = OnboardingViewModel(env.subjectRepo, env.settingsRepo, mainRule.appScope)
+        val minsk = mainRule.own(OnboardingViewModel(env.subjectRepo, env.settingsRepo, mainRule.appScope))
         observing(minsk.locale)
         advanceUntilIdle()
 
@@ -67,7 +67,7 @@ class OnboardingViewModelTest {
     @Test
     fun `an English phone in Minsk is offered English and rubles`() = runTest(mainRule.dispatcher) {
         TestEnv(deviceLocales = listOf(java.util.Locale.forLanguageTag("en-BY"))).use { env ->
-            val vm = OnboardingViewModel(env.subjectRepo, env.settingsRepo, mainRule.appScope)
+            val vm = mainRule.own(OnboardingViewModel(env.subjectRepo, env.settingsRepo, mainRule.appScope))
             observing(vm.locale)
             advanceUntilIdle()
 
@@ -96,7 +96,7 @@ class OnboardingViewModelTest {
     @Test
     fun `skipping the setup still persists the currency the phone named`() = runTest(mainRule.dispatcher) {
         TestEnv(deviceLocales = listOf(java.util.Locale.forLanguageTag("de-DE"))).use { env ->
-            val vm = OnboardingViewModel(env.subjectRepo, env.settingsRepo, mainRule.appScope)
+            val vm = mainRule.own(OnboardingViewModel(env.subjectRepo, env.settingsRepo, mainRule.appScope))
 
             vm.complete()
             advanceUntilIdle()
@@ -140,8 +140,10 @@ class OnboardingViewModelTest {
         val broken = object : SettingsDao by env.settingsDao {
             override suspend fun upsert(settings: SettingsEntity): Unit = throw IllegalStateException("disk full")
         }
-        val vm = OnboardingViewModel(
-            env.subjectRepo, SettingsRepository(broken, env.deviceLocales.toDevicePreferences()), mainRule.appScope,
+        val vm = mainRule.own(
+            OnboardingViewModel(
+                env.subjectRepo, SettingsRepository(broken, env.deviceLocales.toDevicePreferences()), mainRule.appScope,
+            ),
         )
         val events = mutableListOf<OnboardingViewModel.Event>()
         backgroundScope.launch { vm.events.stream.collect { events += it } }

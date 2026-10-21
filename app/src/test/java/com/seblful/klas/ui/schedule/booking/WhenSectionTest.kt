@@ -5,16 +5,15 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performScrollTo
+import com.seblful.klas.domain.time.today
 import com.seblful.klas.ui.theme.KlasTheme
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.plus
-import kotlinx.datetime.todayIn
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
-import kotlin.time.Clock
 
 /** The When section before and after a day is picked. */
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -36,7 +35,7 @@ class WhenSectionTest : ClassEditTestFixture() {
 
     @Test
     fun `with a day the timeline takes the hint's place`() {
-        val vm = vm(day = Clock.System.todayIn(zone).plus(1, DateTimeUnit.DAY))
+        val vm = vm(day = env.clock.today().plus(1, DateTimeUnit.DAY))
         compose.setContent { KlasTheme { ClassEditScreen(onBack = {}, viewModel = vm) } }
         compose.waitForIdle()
 

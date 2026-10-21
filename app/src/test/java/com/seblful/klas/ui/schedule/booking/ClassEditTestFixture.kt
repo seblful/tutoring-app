@@ -1,13 +1,9 @@
 package com.seblful.klas.ui.schedule.booking
 
 import androidx.lifecycle.SavedStateHandle
-import com.seblful.klas.data.billing.PriceEntity
-import com.seblful.klas.data.people.StudentEntity
-import com.seblful.klas.data.people.SubjectEntity
 import com.seblful.klas.domain.model.ClassMode
 import com.seblful.klas.domain.model.Group
 import com.seblful.klas.domain.model.Money
-import com.seblful.klas.domain.time.WallClock
 import com.seblful.klas.format.MoneyField
 import com.seblful.klas.testutil.MainDispatcherRule
 import com.seblful.klas.testutil.TestEnv
@@ -22,32 +18,34 @@ import org.junit.Rule
 @OptIn(ExperimentalCoroutinesApi::class)
 abstract class ClassEditTestFixture {
 
-    @get:Rule
+    @get:Rule(order = 1)
     val mainRule = MainDispatcherRule()
 
-    @get:Rule
+    @get:Rule(order = 0)
     val env = TestEnv()
-    protected val zone: TimeZone = TimeZone.currentSystemDefault()
+    protected val zone: TimeZone = env.clock.zone
 
     protected fun vm(
         id: Long = 0L,
         groupId: Long = 0L,
         day: LocalDate? = null,
         studentId: Long = 0L,
-    ) = ClassEditViewModel(
-        savedStateHandle = SavedStateHandle(
-            mapOf("id" to id, "group" to groupId, "day" to day?.toString(), "student" to studentId),
+    ) = mainRule.own(
+        ClassEditViewModel(
+            savedStateHandle = SavedStateHandle(
+                mapOf("id" to id, "group" to groupId, "day" to day?.toString(), "student" to studentId),
+            ),
+            classes = env.classRepo,
+            studentsRepo = env.studentRepo,
+            groupsRepo = env.groupRepo,
+            subjectsRepo = env.subjectRepo,
+            enrollment = env.enrollmentRepo,
+            settingsRepo = env.settingsRepo,
+            notificationPermission = env.notificationPermission,
+            appScope = mainRule.appScope,
+            computation = mainRule.dispatcher,
+            clock = env.clock,
         ),
-        classes = env.classRepo,
-        studentsRepo = env.studentRepo,
-        groupsRepo = env.groupRepo,
-        subjectsRepo = env.subjectRepo,
-        enrollment = env.enrollmentRepo,
-        settingsRepo = env.settingsRepo,
-        notificationPermission = env.notificationPermission,
-        appScope = mainRule.appScope,
-        computation = mainRule.dispatcher,
-        clock = WallClock.system(),
     )
 
     protected suspend fun seedStudentWithPricedSubject(
@@ -56,9 +54,9 @@ abstract class ClassEditTestFixture {
         price: Money = Money.ofMajor(30),
         mode: ClassMode = ClassMode.IN_PERSON,
     ): Pair<Long, Long> {
-        val studentId = env.studentDao.upsert(StudentEntity(name = studentName, defaultMode = mode))
-        val subjectId = env.subjectDao.upsert(SubjectEntity(name = subjectName))
-        env.priceDao.upsert(PriceEntity(studentId, subjectId, price.minor))
+        val studentId = env.fixtures.student(name = studentName, defaultMode = mode)
+        val subjectId = env.fixtures.subject(name = subjectName)
+        env.enrollmentRepo.enroll(studentId, subjectId, price)
         return studentId to subjectId
     }
 
@@ -102,11 +100,11 @@ abstract class ClassEditTestFixture {
         bobPrice: Money = Money.ofMajor(25),
         price: Money = groupRate,
     ): Triple<Long, Long, Long> {
-        val ann = env.studentDao.upsert(StudentEntity(name = "Аня"))
-        val bob = env.studentDao.upsert(StudentEntity(name = "Борис"))
-        val algebra = env.subjectDao.upsert(SubjectEntity(name = "Алгебра"))
-        env.priceDao.upsert(PriceEntity(ann, algebra, annPrice.minor))
-        env.priceDao.upsert(PriceEntity(bob, algebra, bobPrice.minor))
+        val ann = env.fixtures.student(name = "Аня")
+        val bob = env.fixtures.student(name = "Борис")
+        val algebra = env.fixtures.subject(name = "Алгебра")
+        env.enrollmentRepo.enroll(ann, algebra, annPrice)
+        env.enrollmentRepo.enroll(bob, algebra, bobPrice)
         val groupId = env.groupRepo.save(
             Group(name = "11 «А»", price = price, defaultMode = ClassMode.REMOTE),
             setOf(ann, bob),

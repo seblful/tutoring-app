@@ -4,8 +4,6 @@ import com.seblful.klas.calendar.CalendarMirror
 import com.seblful.klas.calendar.CalendarSync
 import com.seblful.klas.calendar.Guest
 import com.seblful.klas.data.lessons.ClassRepository
-import com.seblful.klas.data.people.StudentEntity
-import com.seblful.klas.data.people.SubjectEntity
 import com.seblful.klas.domain.lesson.SessionEdit
 import com.seblful.klas.domain.model.ClassMode
 import com.seblful.klas.domain.model.Group
@@ -45,10 +43,10 @@ class ClassRepositoryAtomicityTest {
         var groupId = 0L
 
         suspend fun seed(rate: Money) {
-            ann = env.studentDao.upsert(StudentEntity(name = "Аня"))
-            bob = env.studentDao.upsert(StudentEntity(name = "Борис"))
-            cleo = env.studentDao.upsert(StudentEntity(name = "Вера"))
-            algebra = env.subjectDao.upsert(SubjectEntity(name = "Алгебра"))
+            ann = env.fixtures.student(name = "Аня")
+            bob = env.fixtures.student(name = "Борис")
+            cleo = env.fixtures.student(name = "Вера")
+            algebra = env.fixtures.subject(name = "Алгебра")
             groupId = env.groupRepo.save(Group(name = "11 «А»", price = rate), setOf(ann, bob, cleo))
         }
     }
@@ -228,8 +226,8 @@ class ClassRepositoryAtomicityTest {
             env.classDao, env.lessonDao, env.attendanceDao, mirror, env.reminders, env.transactor,
         )
         env.settingsRepo.update { it.copy(calendarSyncEnabled = true) }
-        env.studentDao.upsert(StudentEntity(id = 1, name = "Аня"))
-        env.subjectDao.upsert(SubjectEntity(id = 1, name = "Алгебра"))
+        env.fixtures.student(id = 1, name = "Аня")
+        env.fixtures.subject(id = 1, name = "Алгебра")
 
         val id = repo.book(
             subjectId = 1,

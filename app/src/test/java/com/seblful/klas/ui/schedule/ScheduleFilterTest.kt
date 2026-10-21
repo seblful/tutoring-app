@@ -2,6 +2,7 @@ package com.seblful.klas.ui.schedule
 
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.schedule.ScheduleEmpty
+import com.seblful.klas.domain.time.today
 import com.seblful.klas.testutil.current
 import com.seblful.klas.testutil.observing
 import com.seblful.klas.ui.common.state.valueOrNull
@@ -10,7 +11,6 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.atTime
 import kotlinx.datetime.toInstant
-import kotlinx.datetime.todayIn
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -18,7 +18,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
-import kotlin.time.Clock
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
@@ -26,7 +25,7 @@ class ScheduleFilterTest : ScheduleTestFixture() {
 
     @Test
     fun `the schedule shows everyone until it is narrowed`() = runTest(mainRule.dispatcher) {
-        val today = Clock.System.todayIn(zone)
+        val today = env.clock.today()
         seedTwoStudentsOn(today)
 
         val vm = vm()
@@ -40,7 +39,7 @@ class ScheduleFilterTest : ScheduleTestFixture() {
     @Test
     fun `narrowing to a student leaves only their lessons, and names them`() =
         runTest(mainRule.dispatcher) {
-            val today = Clock.System.todayIn(zone)
+            val today = env.clock.today()
             val (ann, _) = seedTwoStudentsOn(today)
 
             val vm = vm()
@@ -58,7 +57,7 @@ class ScheduleFilterTest : ScheduleTestFixture() {
 
     @Test
     fun `clearing the filter brings everyone back`() = runTest(mainRule.dispatcher) {
-        val today = Clock.System.todayIn(zone)
+        val today = env.clock.today()
         val (ann, _) = seedTwoStudentsOn(today)
 
         val vm = vm()
@@ -76,7 +75,7 @@ class ScheduleFilterTest : ScheduleTestFixture() {
 
     @Test
     fun `a group lesson the student is in stays a whole lesson`() = runTest(mainRule.dispatcher) {
-        val today = Clock.System.todayIn(zone)
+        val today = env.clock.today()
         val subj = env.fixtures.subject("Математика")
         val ann = env.fixtures.pricedStudent("Аня", subj)
         val bob = env.fixtures.pricedStudent("Борис", subj)
@@ -101,7 +100,7 @@ class ScheduleFilterTest : ScheduleTestFixture() {
 
     @Test
     fun `a group lesson the student is not in is left out entirely`() = runTest(mainRule.dispatcher) {
-        val today = Clock.System.todayIn(zone)
+        val today = env.clock.today()
         val subj = env.fixtures.subject("Математика")
         val ann = env.fixtures.pricedStudent("Аня", subj)
         val bob = env.fixtures.pricedStudent("Борис", subj)
@@ -122,7 +121,7 @@ class ScheduleFilterTest : ScheduleTestFixture() {
 
     @Test
     fun `the month's markers are narrowed with the list`() = runTest(mainRule.dispatcher) {
-        val today = Clock.System.todayIn(zone)
+        val today = env.clock.today()
         val (ann, _) = seedTwoStudentsOn(today)
 
         val vm = vm()
@@ -145,7 +144,7 @@ class ScheduleFilterTest : ScheduleTestFixture() {
      */
     @Test
     fun `a filter on a student who is not there shows everyone`() = runTest(mainRule.dispatcher) {
-        val today = Clock.System.todayIn(zone)
+        val today = env.clock.today()
         seedTwoStudentsOn(today)
 
         val vm = vm()
@@ -165,7 +164,7 @@ class ScheduleFilterTest : ScheduleTestFixture() {
         runTest(mainRule.dispatcher) {
             // The menu only offers active students, but one already being looked at must not lose the
             // chip that says so — the chip is the only way back to everyone else.
-            val today = Clock.System.todayIn(zone)
+            val today = env.clock.today()
             val (ann, _) = seedTwoStudentsOn(today)
 
             val vm = vm()
@@ -185,7 +184,7 @@ class ScheduleFilterTest : ScheduleTestFixture() {
 
     @Test
     fun `a narrowed schedule reports being narrowed, not quiet`() = runTest(mainRule.dispatcher) {
-        val today = Clock.System.todayIn(zone)
+        val today = env.clock.today()
         val (ann, _) = seedTwoStudentsOn(today)
 
         val vm = vm()

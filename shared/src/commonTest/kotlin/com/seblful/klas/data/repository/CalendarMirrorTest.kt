@@ -1,8 +1,5 @@
 package com.seblful.klas.data.repository
 
-import com.seblful.klas.data.people.GroupEntity
-import com.seblful.klas.data.people.StudentEntity
-import com.seblful.klas.data.people.SubjectEntity
 import com.seblful.klas.domain.model.ClassMode
 import com.seblful.klas.domain.model.Group
 import com.seblful.klas.domain.model.Money
@@ -31,9 +28,9 @@ class CalendarMirrorTest {
 
     private suspend fun mirroredLesson(groupId: Long? = null): Long {
         env.settingsRepo.update { it.copy(calendarSyncEnabled = true, emailInvitesEnabled = true) }
-        env.studentDao.upsert(StudentEntity(id = STUDENT, name = "Аня", email = "anya@example.com"))
-        env.subjectDao.upsert(SubjectEntity(id = SUBJECT, name = "Алгебра"))
-        if (groupId != null) env.groupDao.upsert(GroupEntity(id = groupId, name = "11 «А»", subjectId = SUBJECT))
+        env.fixtures.student(id = STUDENT, name = "Аня", email = "anya@example.com")
+        env.fixtures.subject(id = SUBJECT, name = "Алгебра")
+        if (groupId != null) env.fixtures.group(id = groupId, name = "11 «А»", subjectId = SUBJECT, rate = Money.ZERO)
         return env.classRepo.book(
             subjectId = SUBJECT,
             start = start,
@@ -92,8 +89,8 @@ class CalendarMirrorTest {
      */
     @Test
     fun `a rename mirrors nothing while sync is off`() = runTest {
-        env.studentDao.upsert(StudentEntity(id = STUDENT, name = "Аня"))
-        env.subjectDao.upsert(SubjectEntity(id = SUBJECT, name = "Алгебра"))
+        env.fixtures.student(id = STUDENT, name = "Аня")
+        env.fixtures.subject(id = SUBJECT, name = "Алгебра")
 
         env.studentRepo.upsert(Student(id = STUDENT, name = "Анна"))
 

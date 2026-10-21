@@ -1,8 +1,10 @@
 # Testing
 
 Choose tests by the behavior they prove. Quick build commands are in the [README](../README.md#build--test).
-`./gradlew verify` runs the JVM suites, screenshot comparisons, Android lint, ktlint, detekt and debug
-app/test builds used by the main CI job. Device and iOS simulator execution are separate checks.
+Run `./gradlew testQuick` during development: domain and shared JVM tests, Android behavior tests and
+`node --test store/`, without screenshot rendering. Node 22+ is required for the store tooling suite.
+`./gradlew verify` also runs screenshot comparisons, Android lint, ktlint, detekt and debug app/test
+builds used by CI. Device and iOS simulator execution are separate checks.
 
 ## Unit tests
 
@@ -12,23 +14,30 @@ app/test builds used by the main CI job. Device and iOS simulator execution are 
 | `shared/src/commonTest` | Repository atomicity and race cases, backup contracts, feature queries, parsing and clock events over real Room databases. Platform test source sets provide database creation. |
 | `app/src/test` | Android locale/graph behavior, view models, mappers, formatters and source/artifact tripwires. Unmocked Android calls fail (`isReturnDefaultValues` is off). |
 
-- Seed through `testutil/Fixtures`, never DAOs (`DirectSeedingRatchetTest` guards exceptions).
-- Shared repository/backup tests use a portable `TestEnv` and close it with `@AfterTest`. Android
-  view-model tests keep their JUnit-rule `TestEnv` under Robolectric. Both use real Room and bundled
-  SQLite: schema, converters, FKs and cascades are production code; only host behavior is doubled.
-  No fake DAOs. Store/query and pilot tests use the production shared graph as well.
-- Portable port doubles, seeding helpers and `MutableClock` live in `shared/src/testFixtures/kotlin`.
-  Both shared and Android unit suites compile those sources against their own `TestEnv`; fixture
-  behavior has one implementation without adding test code to the app or library artifacts.
+- Seed valid application states through `testutil/Fixtures`; use `storedClass` for raw persisted states.
+  `DirectSeedingRatchetTest` lists the few direct-write exceptions by file and purpose, and fails if an
+  exception grows or disappears without updating that list.
+- `RepositoryTestEnv` in `shared/src/testFixtures/kotlin` owns the common repository graph. Shared,
+  Android JVM and device adapters supply real Room databases with bundled SQLite and own their cleanup.
+  Shared tests close their adapter with `@AfterTest`; Android JVM tests use a JUnit rule. No fake DAOs.
+  Query and pilot tests exercise the production shared graph.
+- Portable port doubles, fixtures and a pinned `MutableClock` are compiled only into test source sets.
+  Give repositories and view models the same clock and zone. Tests of system clock changes explicitly
+  opt into the device clock.
+- Wrap manually constructed view models in `mainRule.own(...)`. The dispatcher rule clears them and
+  cancels its application scope before the database rule closes; use rule order 1 for the dispatcher
+  and order 0 for the database environment.
 - `PilotWorkflowTest` closes and reopens a temporary file database to prove persistence; each platform
   supplies file creation and cleanup. In-memory tests cannot prove this contract.
 - `RecordingTransactor` counts real transactions and `failAt` forces rollback. Queries use
   `Dispatchers.Unconfined`, so writes/invalidated flows settle together; `advanceUntilIdle()` remains
   the test clock. Referenced rows must exist before booking or saving.
 - Artifact tripwires use `testutil/ProjectFiles` and inspect all three modules. They guard schema/backup
-  coverage, enum names, table writes, screen contracts and migration wiring; `MigrationChainTest` is
-  the unit guard for upgrades. Generic formatting/complexity belongs to ktlint/detekt.
-- `./gradlew :app:testDebugUnitTest` runs app tests without screenshot comparison.
+  coverage, enum names, table writes and migration wiring; `MigrationChainTest` is the unit guard for
+  upgrades. Test UI behavior through Compose semantics and interactions, and visual styling through
+  previews. General source restrictions belong to detekt; avoid filename and call-spelling assertions.
+- `./gradlew :app:testDebugBehavior` runs Android JVM behavior tests without previews or screenshots.
+  The underlying `:app:testDebugUnitTest` remains the full JVM suite used by Roborazzi.
 - `./gradlew :domain:jvmTest :shared:jvmTest` runs common tests on the JVM without Android.
 - Common tests use `kotlin.test` assertions and `assertFailsWith`, without JVM-only annotation
   parameters or plain `assert`. Keep commas out of backtick function names; Kotlin/Native rejects them.
@@ -54,8 +63,9 @@ unfolded foldable, a tablet and a desktop window — bar or rail, People alone a
 homework in columns, and a settings page beside the index. It ends on the card: a tab tapped before its bar hides and returns may still show a press. Its goldens are recorded and compared by the same tasks.
 
 Review PNG changes and commit them with the UI change. Failures leave `*_compare.png` (golden | diff |
-new) in `app/build/outputs/roborazzi/`; CI uploads `screenshot-diffs`. Plain unit runs compose previews
-but do not capture/compare them.
+new) in `app/build/outputs/roborazzi/`; CI uploads `screenshot-diffs`. `testQuick` and
+`:app:testDebugBehavior` exclude generated previews, form-factor capture and opt-in store captures.
+Use Roborazzi tasks to record or verify screenshots; keep those checks in `verify`.
 
 `KlasPreviewTester` tolerates up to **0.5%** differing pixels, without neighboring-pixel shifts, for
 Windows/Linux rasterization differences. Tiny color changes can pass: inspect those previews yourself.
@@ -67,7 +77,9 @@ bare `Application`); native graphics, resources and JDK access flags live in `ap
 ## Instrumented tests
 
 Use `app/src/androidTest` for migrations, device calendar/notifications, backup round-trip, gestures,
-text measurement, plurals and accessibility. `KlasTestRunner` uses `KlasTestApp`'s production graph
+text measurement, plurals and accessibility. `DevicePersistenceTest` checks the bundled Android driver;
+repository business rules and query calculations run in shared common tests on JVM and iOS.
+`KlasTestRunner` uses `KlasTestApp`'s production graph
 without startup scheduling; activity/receiver injection works even before a test creates a rule.
 `KlasGraphTest` covers runtime graph discovery separately on the JVM.
 

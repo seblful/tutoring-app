@@ -21,15 +21,17 @@ import org.robolectric.RobolectricTestRunner
 @RunWith(RobolectricTestRunner::class)
 class SettingsDeliveryTest {
 
-    @get:Rule
+    @get:Rule(order = 1)
     val mainRule = MainDispatcherRule()
 
-    @get:Rule
+    @get:Rule(order = 0)
     val env = TestEnv()
 
-    private fun vm() = SettingsViewModel(
-        env.settingsRepo, SettingsWorkflow(env.settingsRepo, env.calendarMirror, env.reminders, env.maintenance),
-        env.calendarPermission, env.notificationPermission, env.exactAlarmPermission, mainRule.appScope,
+    private fun vm() = mainRule.own(
+        SettingsViewModel(
+            env.settingsRepo, SettingsWorkflow(env.settingsRepo, env.calendarMirror, env.reminders, env.maintenance),
+            env.calendarPermission, env.notificationPermission, env.exactAlarmPermission, mainRule.appScope,
+        ),
     )
 
     @Test

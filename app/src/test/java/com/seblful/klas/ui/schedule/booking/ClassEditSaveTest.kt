@@ -4,6 +4,7 @@ import com.seblful.klas.domain.model.Attended
 import com.seblful.klas.domain.model.ClassMode
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
+import com.seblful.klas.domain.time.today
 import com.seblful.klas.format.MoneyField
 import com.seblful.klas.testutil.current
 import com.seblful.klas.testutil.observing
@@ -20,14 +21,13 @@ import kotlinx.datetime.minus
 import kotlinx.datetime.plus
 import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
-import kotlinx.datetime.todayIn
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
-import kotlin.time.Clock
+import kotlin.time.Duration.Companion.hours
 import kotlin.time.Instant
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -37,7 +37,7 @@ class ClassEditSaveTest : ClassEditTestFixture() {
     @Test
     fun `a booking saves on the schedule day without choosing the date again`() = runTest(mainRule.dispatcher) {
         seedStudentWithPricedSubject()
-        val scheduleDay = Clock.System.todayIn(zone).plus(7, DateTimeUnit.DAY)
+        val scheduleDay = env.clock.today().plus(7, DateTimeUnit.DAY)
         val vm = vm(day = scheduleDay)
         observing(vm.state)
         advanceUntilIdle()
@@ -61,7 +61,7 @@ class ClassEditSaveTest : ClassEditTestFixture() {
         observing(vm.state)
         advanceUntilIdle()
 
-        val date = Clock.System.todayIn(zone).plus(3, DateTimeUnit.DAY)
+        val date = env.clock.today().plus(3, DateTimeUnit.DAY)
         vm.change(
             BookingIntent.Edit {
                 it.copy(
@@ -96,7 +96,7 @@ class ClassEditSaveTest : ClassEditTestFixture() {
             BookingIntent.Edit {
                 it.copy(
                     studentId = studentId, subjectId = subjectId,
-                    date = Clock.System.todayIn(zone).plus(3, DateTimeUnit.DAY),
+                    date = env.clock.today().plus(3, DateTimeUnit.DAY),
                     timeFrom = LocalTime(10, 0), durationMinutes = 60, price = MoneyField("30"),
                 )
             },
@@ -120,7 +120,7 @@ class ClassEditSaveTest : ClassEditTestFixture() {
         backgroundScope.launch { vm.events.stream.collect(sent::add) }
         advanceUntilIdle()
 
-        vm.fillFor(ann, subject, Clock.System.todayIn(zone).plus(3, DateTimeUnit.DAY), LocalTime(10, 0), minutes = 60)
+        vm.fillFor(ann, subject, env.clock.today().plus(3, DateTimeUnit.DAY), LocalTime(10, 0), minutes = 60)
         advanceUntilIdle()
         var done = 0
         vm.save { done++ }
@@ -139,7 +139,7 @@ class ClassEditSaveTest : ClassEditTestFixture() {
             val vm = vm()
             advanceUntilIdle()
             vm.fillFor(
-                ann, subject, Clock.System.todayIn(zone).plus(2, DateTimeUnit.DAY), LocalTime(10, 0), minutes = 60,
+                ann, subject, env.clock.today().plus(2, DateTimeUnit.DAY), LocalTime(10, 0), minutes = 60,
             )
             advanceUntilIdle()
 
@@ -177,7 +177,7 @@ class ClassEditSaveTest : ClassEditTestFixture() {
     fun `editing a completed class into the future re-plans it back to scheduled and voids the charge`() =
         runTest(mainRule.dispatcher) {
             val (studentId, subjectId) = seedStudentWithPricedSubject()
-            val past = Clock.System.todayIn(zone).minus(1, DateTimeUnit.DAY).atTime(10, 0).toInstant(zone)
+            val past = env.clock.today().minus(1, DateTimeUnit.DAY).atTime(10, 0).toInstant(zone)
             val id = env.fixtures.storedClass(
                 studentId = studentId, subjectId = subjectId, startMillis = past.toEpochMilliseconds(),
                 durationMinutes = 60, priceMinor = Money.ofMajor(30).minor,
@@ -187,7 +187,7 @@ class ClassEditSaveTest : ClassEditTestFixture() {
             observing(vm.state)
             advanceUntilIdle()
 
-            vm.change(BookingIntent.Edit { it.copy(date = Clock.System.todayIn(zone).plus(2, DateTimeUnit.DAY)) })
+            vm.change(BookingIntent.Edit { it.copy(date = env.clock.today().plus(2, DateTimeUnit.DAY)) })
             vm.save { }
             advanceUntilIdle()
 
@@ -200,7 +200,7 @@ class ClassEditSaveTest : ClassEditTestFixture() {
     @Test
     fun `an edit saved over a lesson completed underneath the form keeps it taught and billed`() =
         runTest(mainRule.dispatcher) {
-            val start = Instant.parse("2026-06-15T07:00:00Z")
+            val start = env.clock.now().minus(2.hours)
             val (studentId, subjectId) = seedStudentWithPricedSubject()
             val id = env.fixtures.storedClass(
                 studentId = studentId, subjectId = subjectId, startMillis = start.toEpochMilliseconds(),
@@ -259,7 +259,7 @@ class ClassEditSaveTest : ClassEditTestFixture() {
             // A fixed 10:00 rather than a week ago exactly: this test lengthens the lesson to 90 minutes,
             // which — while the form held an end time — pushed it past midnight on an evening run and made
             // the charge assertion fail for the time of day rather than for the rule.
-            val past = Clock.System.todayIn(zone).minus(7, DateTimeUnit.DAY).atTime(10, 0).toInstant(zone)
+            val past = env.clock.today().minus(7, DateTimeUnit.DAY).atTime(10, 0).toInstant(zone)
             val id = env.fixtures.storedClass(
                 studentId = studentId, subjectId = subjectId, startMillis = past.toEpochMilliseconds(),
                 durationMinutes = 60, priceMinor = Money.ofMajor(30).minor,
