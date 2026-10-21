@@ -60,6 +60,7 @@ import com.seblful.klas.ui.common.MinTouchTarget
 import com.seblful.klas.ui.common.ShowMessagesFor
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.languageLabel
+import com.seblful.klas.ui.common.predictiveBack
 import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.rememberOpenDocument
 import com.seblful.klas.ui.common.state.valueOrNull
@@ -166,9 +167,11 @@ fun OnboardingScreen(
         Step.STUDENT -> Step.SUBJECTS
     }
     // The system back, too: the screen sits outside the `NavDisplay`, so without this the gesture on step 2
-    // left the app mid-setup while the arrow above went back a step.
+    // left the app mid-setup while the arrow above went back a step. Outside it, the gesture's preview is
+    // this screen's to draw: the step shrinks under the finger (`predictiveBack`).
+    val backState = rememberNavigationEventState(NavigationEventInfo.None)
     NavigationBackHandler(
-        state = rememberNavigationEventState(NavigationEventInfo.None),
+        state = backState,
         isBackEnabled = previousStep != null,
         onBackCompleted = { previousStep?.let { step = it } },
     )
@@ -188,7 +191,7 @@ fun OnboardingScreen(
         // so without this the keyboard covers the one control that finishes setup.
         imeAware = true,
     ) { modifier, bottomInset ->
-        Column(modifier.padding(bottomInset)) {
+        Column(modifier.padding(bottomInset).predictiveBack(backState)) {
             // Which step, and how many are left. Without it the setup was a sequence of screens with
             // no visible end, which is the difference between "this takes a minute" as a claim and as
             // something the tutor can see.
