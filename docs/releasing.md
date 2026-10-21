@@ -89,8 +89,17 @@ that track is separate from the required closed test.
    Upload `app/build/outputs/bundle/release/app-release.aab` in the Console.
 3. Complete Data safety using [the privacy policy](../store/privacy-policy.md) and
    [Google's definitions](https://support.google.com/googleplay/android-developer/answer/10787469).
-   Review optional calendar sync, invitations and user-selected exports/sharing, including applicable
-   exemptions. `allowBackup="false"` disables Android backup; it does not mean data is never transferred.
+   Answer **no data collected or shared**:
+   - Collection means the app transmits data off the device. Klas declares no `INTERNET` permission and
+     ships no network, analytics or crash-reporting SDK. The crash log stays in app storage.
+   - On-device hand-offs to other apps count as sharing, but each is exempt. Calendar sync and email
+     invitations are opt-in switches that say the calendar account syncs and invites, so they fall
+     under disclosure and consent. Backup and CSV export, report and homework sharing, and contact
+     buttons run only when the user taps them, which is the user-initiated exemption.
+   - Google Play's own Android vitals is not the app's collection.
+
+   Revisit this when adding `INTERNET`, any SDK, or a transfer the user does not start.
+   `allowBackup="false"` disables Android backup; it does not mean data is never transferred.
 
 ## Set up the pipeline (once)
 
