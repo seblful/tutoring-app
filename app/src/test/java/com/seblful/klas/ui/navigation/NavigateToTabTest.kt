@@ -15,6 +15,18 @@ class NavigateToTabTest {
     private fun tap(tab: TopDestination) = navigator.navigateToTab(tab)
 
     @Test
+    fun `a screen closes only itself`() {
+        tap(TopDestination.PEOPLE)
+        navigator.navigate(Routes.StudentDetail(1))
+        val card = navigator.top
+
+        navigator.close(card)
+        navigator.close(card)
+
+        assertEquals(listOf("Schedule", "People"), stack())
+    }
+
+    @Test
     fun `tray arrivals preserve an unfinished form from the same tab and another tab`() {
         navigator.navigate(Routes.classEdit(0))
         val draft = navigator.top

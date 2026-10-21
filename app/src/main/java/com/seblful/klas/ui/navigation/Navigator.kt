@@ -50,6 +50,14 @@ class KlasNavigator internal constructor(
     }
 
     /**
+     * Pops [screen] if it is still on top — a screen's own back arrow. A leaving screen stays tappable for the
+     * length of its fade, so a second tap on the arrow would otherwise close the screen under it too.
+     */
+    fun close(screen: Screen) {
+        if (top.id == screen.id) goBack()
+    }
+
+    /**
      * Pushes [route] in place of what is above [under], the nearest screen with that route — a list opening
      * a detail beside it replaces the one it showed instead of stacking them. With [under] not on the stack
      * it is an ordinary [navigate].

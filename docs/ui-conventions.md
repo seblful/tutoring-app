@@ -106,6 +106,8 @@ Build screens from shared state and controls. Feature rules belong in the domain
 - Navigation 3 shows one flat back stack of `Screen`s (`KlasNavigator`): a route plus an id, so the same
   card opened twice is two entries. Per-tab stacks were rejected: a tray tap may put a tab over a form from
   another tab. `KlasGraph` is one exhaustive `when` over the sealed `Route`.
+- A screen's back arrow closes that screen (`KlasNavigator.close`), not whatever is on top: a screen stays
+  tappable while it fades out, and a second tap used to close the one beneath it too.
 - `NavDisplay` owns system back for the stack. Back that stays inside a screen (a dirty form's
   `leaveGuard`, an onboarding step) uses `NavigationBackHandler`, never the legacy `BackHandler`. Where
   that back changes what is on screen and `NavDisplay` cannot preview it, the same state drives

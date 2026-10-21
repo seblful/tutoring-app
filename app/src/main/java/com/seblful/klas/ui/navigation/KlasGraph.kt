@@ -64,8 +64,6 @@ class KlasGraph(
     fun entry(screen: Screen): NavEntry<Screen> =
         NavEntry(screen, contentKey = screen.id, metadata = screen.route.paneMetadata()) { Content(screen) }
 
-    private val back: () -> Unit = navigator::goBack
-
     private val go: (Route) -> Unit = navigator::navigate
 
     // A dispatch table: one plain branch per route, each a call. Exhaustive over the sealed [Route], so a
@@ -73,6 +71,8 @@ class KlasGraph(
     @Suppress("CyclomaticComplexMethod")
     @Composable
     private fun Content(screen: Screen) {
+        // This screen's own back, not "whatever is on top": see [KlasNavigator.close].
+        val back = { navigator.close(screen) }
         when (val route = screen.route) {
             Routes.Schedule -> Schedule(screen.id)
             Routes.Reports -> ReportsScreen(onStudentClick = { go(Routes.StudentDetail(it)) }, debtsArrival(screen.id))
@@ -80,12 +80,12 @@ class KlasGraph(
             Routes.People -> People()
             Routes.Homework -> HomeworkScreen(onAddStudent = { go(Routes.StudentAdd) })
             Routes.StudentAdd -> StudentFormScreen(onBack = back)
-            is Routes.StudentAddForSubject -> StudentAddForSubject(route)
-            is Routes.StudentDetail -> StudentDetail(route)
-            Routes.GroupAdd -> GroupForm(editing = null)
-            is Routes.GroupDetail -> GroupDetail(route)
-            is Routes.GroupEdit -> GroupForm(editing = route)
-            is Routes.ClassEdit -> ClassEdit(route)
+            is Routes.StudentAddForSubject -> StudentAddForSubject(route, back)
+            is Routes.StudentDetail -> StudentDetail(route, back)
+            Routes.GroupAdd -> GroupForm(editing = null, back)
+            is Routes.GroupDetail -> GroupDetail(route, back)
+            is Routes.GroupEdit -> GroupForm(editing = route, back)
+            is Routes.ClassEdit -> ClassEdit(route, back)
             Routes.Subjects -> SubjectsScreen(onBack = back)
             Routes.Backup -> BackupScreen(onBack = back)
             Routes.Settings -> Settings()
@@ -144,7 +144,7 @@ class KlasGraph(
     }
 
     @Composable
-    private fun StudentAddForSubject(route: Routes.StudentAddForSubject) {
+    private fun StudentAddForSubject(route: Routes.StudentAddForSubject, back: () -> Unit) {
         val results = LocalResultEventBus.current
         StudentFormScreen(
             onBack = back,
@@ -157,7 +157,7 @@ class KlasGraph(
     }
 
     @Composable
-    private fun StudentDetail(route: Routes.StudentDetail) {
+    private fun StudentDetail(route: Routes.StudentDetail, back: () -> Unit) {
         StudentDetailScreen(
             onBack = back,
             onLessonClick = { go(Routes.classEdit(it)) },
@@ -169,7 +169,7 @@ class KlasGraph(
     }
 
     @Composable
-    private fun GroupDetail(route: Routes.GroupDetail) {
+    private fun GroupDetail(route: Routes.GroupDetail, back: () -> Unit) {
         GroupDetailScreen(
             onBack = back,
             onEdit = { go(Routes.GroupEdit(route.id)) },
@@ -184,7 +184,7 @@ class KlasGraph(
 
     /** Adding and editing are the same form; it tells them apart by the id it is given, none for a new one. */
     @Composable
-    private fun GroupForm(editing: Routes.GroupEdit?) {
+    private fun GroupForm(editing: Routes.GroupEdit?, back: () -> Unit) {
         val viewModel: GroupFormViewModel =
             if (editing != null) routeViewModel(editing) else routeViewModel(Routes.GroupAdd)
         val results = LocalResultEventBus.current
@@ -205,7 +205,7 @@ class KlasGraph(
     }
 
     @Composable
-    private fun ClassEdit(route: Routes.ClassEdit) {
+    private fun ClassEdit(route: Routes.ClassEdit, back: () -> Unit) {
         val viewModel: ClassEditViewModel = routeViewModel(route)
         ResultEffect<CreatedStudent> { viewModel.selectCreatedStudent(it.id) }
         ResultEffect<CreatedGroup> { viewModel.choose(Assignee.Group(it.id)) }
