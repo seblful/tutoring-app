@@ -11,6 +11,7 @@ import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.toRoute
+import com.seblful.klas.domain.model.Assignee
 import com.seblful.klas.ui.backup.BackupScreen
 import com.seblful.klas.ui.diagnostics.DiagnosticsScreen
 import com.seblful.klas.ui.groups.GroupDetailScreen
@@ -23,7 +24,6 @@ import com.seblful.klas.ui.people.PeopleScreen
 import com.seblful.klas.ui.reports.ReportsScreen
 import com.seblful.klas.ui.schedule.ScheduleScreen
 import com.seblful.klas.ui.schedule.ScheduleTarget
-import com.seblful.klas.ui.schedule.booking.BookingIntent
 import com.seblful.klas.ui.schedule.booking.BookingSetupNavigation
 import com.seblful.klas.ui.schedule.booking.ClassEditScreen
 import com.seblful.klas.ui.schedule.booking.ClassEditViewModel
@@ -56,7 +56,7 @@ fun NavGraphBuilder.klasGraph(
     screen<Routes.ClassEdit> { entry ->
         val viewModel: ClassEditViewModel = assistedMetroViewModel()
         CreatedResult(entry, CREATED_STUDENT, viewModel::selectCreatedStudent)
-        CreatedResult(entry, CREATED_GROUP) { viewModel.change(BookingIntent.ChooseGroup(it)) }
+        CreatedResult(entry, CREATED_GROUP) { viewModel.choose(Assignee.Group(it)) }
         ClassEditScreen(
             onBack = { navController.popBackStack() },
             viewModel = viewModel,

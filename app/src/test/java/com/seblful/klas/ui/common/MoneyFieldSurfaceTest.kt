@@ -54,7 +54,7 @@ class MoneyFieldSurfaceTest {
                 "`MoneyTextField`: $users",
             users.containsAll(
                 setOf(
-                    "ClassEditScreen.kt",
+                    "ClassEditSections.kt",
                     "GroupFormScreen.kt",
                     "StudentFormScreen.kt",
                     "StudentDialogs.kt",

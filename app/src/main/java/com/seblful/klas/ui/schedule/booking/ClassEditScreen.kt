@@ -2,62 +2,39 @@ package com.seblful.klas.ui.schedule.booking
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.seblful.klas.R
-import com.seblful.klas.domain.schedule.Recurrence
-import com.seblful.klas.domain.schedule.Repeat
 import com.seblful.klas.format.formatDate
 import com.seblful.klas.notifications.rememberNotificationPermissionRequest
-import com.seblful.klas.ui.common.AddRow
 import com.seblful.klas.ui.common.ConfirmDialog
-import com.seblful.klas.ui.common.CountPickerModal
-import com.seblful.klas.ui.common.DatePickerModal
 import com.seblful.klas.ui.common.DropdownField
-import com.seblful.klas.ui.common.DurationPickerModal
 import com.seblful.klas.ui.common.EmptyState
 import com.seblful.klas.ui.common.KlasScreen
 import com.seblful.klas.ui.common.LoadingFormScreen
-import com.seblful.klas.ui.common.MemberPickRow
-import com.seblful.klas.ui.common.ModeField
-import com.seblful.klas.ui.common.MoneyTextField
 import com.seblful.klas.ui.common.NoticeDialog
 import com.seblful.klas.ui.common.PickerField
-import com.seblful.klas.ui.common.PresetChips
-import com.seblful.klas.ui.common.SaveAction
-import com.seblful.klas.ui.common.SectionTitle
-import com.seblful.klas.ui.common.SegmentedChoice
 import com.seblful.klas.ui.common.ShowMessagesFor
 import com.seblful.klas.ui.common.Spacing
-import com.seblful.klas.ui.common.TimePickerModal
-import com.seblful.klas.ui.common.durationLabel
 import com.seblful.klas.ui.common.leaveGuard
 import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.common.timeText
-import com.seblful.klas.ui.schedule.timeConflictText
 import com.seblful.klas.ui.theme.KlasIcons
 import dev.zacsweers.metrox.viewmodel.assistedMetroViewModel
-import kotlinx.datetime.LocalDate
 
 @Composable
 fun ClassEditScreen(
@@ -109,7 +86,6 @@ private fun ClassEditForm(
 ) {
     val form = state.form
     val members = state.members
-    val durations by viewModel.durationOptions.collectAsStateWithLifecycle()
 
     // A save can still be refused after the button was enabled — say so rather than doing nothing.
     val messages = rememberMessages()
@@ -152,11 +128,6 @@ private fun ClassEditForm(
     // shown to nobody; the screen leaves when the dialog is dismissed.
     val seriesOutcome by viewModel.seriesOutcome.collectAsStateWithLifecycle()
 
-    var showDatePicker by remember { mutableStateOf(false) }
-    var showFromPicker by remember { mutableStateOf(false) }
-    var showDurationPicker by remember { mutableStateOf(false) }
-    var showRepeatCountPicker by remember { mutableStateOf(false) }
-
     // Whether saving needs asking about, and how many billed lessons the question counts, are both
     // `state.saveIntent`'s — see [SaveIntent]. What is held here is only whether the dialog is up.
     var confirmingDrops by remember { mutableStateOf<SaveIntent.ConfirmBilledDrops?>(null) }
@@ -176,274 +147,32 @@ private fun ClassEditForm(
         title = title,
         onBack = requestLeave,
         messages = messages,
-        // The keyboard shrinks the viewport rather than covering it; the shell composes that in ahead
-        // of the scroll below. A taken time is as disqualifying as a missing field, and `canSave`
-        // already says so — the lesson could not happen.
+        // The keyboard shrinks the viewport rather than covering it; the shell composes that in ahead of
+        // the scroll below, so the save bar rides above the keyboard.
         imeAware = true,
-        actions = { SaveAction(enabled = state.canSave, onSave = ::requestSave) },
     ) { modifier, bottomInset ->
-        Column(
-            modifier
-                // The gutter inside the scroll, as the student form has it: padded outside, the fields
-                // scrolled within a box 16 dp short of the bar instead of passing under it.
-                .verticalScroll(rememberScrollState())
-                .padding(bottomInset)
-                .padding(Spacing.gutter),
-            verticalArrangement = Arrangement.spacedBy(Spacing.gutter),
-        ) {
-            // Who the lesson is for. Only offered while booking: an existing lesson already is one
-            // kind or the other, and turning a student's class into a group lesson (or back) would
-            // silently create or destroy other students' billed classes.
-            if (viewModel.isNew) {
-                TargetSelector(selected = form.target, onSelect = { viewModel.change(BookingIntent.ChooseTarget(it)) })
-            }
-
-            when (form.target) {
-                ClassTarget.STUDENT -> DropdownField(
-                    label = stringResource(R.string.class_student_label),
-                    selectedText = state.studentName,
-                    options = remember(state.students) { state.students.map { it.id to it.name } },
-                    onSelect = { id -> viewModel.change(BookingIntent.ChooseStudent(id)) },
-                )
-
-                // Anything that qualifies a field goes in that field's own `supportingText` — this
-                // notice was a standalone `Text` under it, which put two hint mechanisms on one form.
-                // `isError` because it is a refusal, not a note: nothing can be booked until there is
-                // a group, and a grey line saying so reads as advice.
-                ClassTarget.GROUP -> DropdownField(
-                    label = stringResource(R.string.class_group_label),
-                    selectedText = state.groupName,
-                    options = remember(state.groups) { state.groups.map { it.id to it.name } },
-                    onSelect = { id -> viewModel.change(BookingIntent.ChooseGroup(id)) },
-                    // A booked lesson can't be handed to another group: its members' classes are
-                    // billed history, and the other group is a different set of people.
-                    enabled = viewModel.isNew,
-                    supportingText = stringResource(R.string.class_no_groups)
-                        .takeIf { state.hasNoGroups },
-                    isError = state.hasNoGroups,
-                )
-            }
-
-            if (viewModel.isNew) {
-                if (form.target == ClassTarget.STUDENT) {
-                    AddRow(stringResource(R.string.schedule_add_student), setup.addStudent)
-                } else {
-                    AddRow(stringResource(R.string.group_add_title), setup.addGroup)
+        Column(modifier) {
+            Column(
+                Modifier
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState())
+                    .padding(Spacing.gutter),
+                verticalArrangement = Arrangement.spacedBy(Spacing.gutter),
+            ) {
+                FormSection(stringResource(R.string.class_section_who)) {
+                    WhoSection(state, viewModel.isNew, viewModel, setup)
+                }
+                FormSection(stringResource(R.string.class_section_when)) {
+                    WhenSection(state, viewModel)
+                }
+                FormSection(stringResource(R.string.class_section_terms)) {
+                    TermsSection(state, viewModel)
                 }
             }
-
-            DropdownField(
-                label = stringResource(R.string.class_subject_label),
-                selectedText = state.subjectName,
-                options = remember(state.subjects) { state.subjects.map { it.id to it.name } },
-                onSelect = { id -> viewModel.change(BookingIntent.ChooseSubject(id)) },
-                enabled = state.subjectPickerEnabled,
-                supportingText = state.subjectNotice?.let { notice ->
-                    stringResource(
-                        when (notice) {
-                            SubjectNotice.FIXED_BY_GROUP -> R.string.class_subject_from_group
-                            SubjectNotice.NONE_FOR_GROUP -> R.string.class_no_subjects_for_group
-                            SubjectNotice.NONE_FOR_STUDENT -> R.string.class_no_subjects_for_student
-                        },
-                    )
-                },
-                // «Предмет задан группой» is a fact about how this form works; the other two are the
-                // reason nothing can be booked. Only the second kind is red — one grey line for both is
-                // how the blocking one stopped being visible.
-                isError = state.subjectNotice != null &&
-                    state.subjectNotice != SubjectNotice.FIXED_BY_GROUP,
-            )
-            when (state.subjectNotice) {
-                SubjectNotice.NONE_FOR_STUDENT -> form.studentId?.let { id ->
-                    AddRow(stringResource(R.string.subject_set_price), onClick = { setup.studentSubjects(id) })
-                }
-                SubjectNotice.NONE_FOR_GROUP -> AddRow(stringResource(R.string.subject_add), setup.subjects)
-                else -> Unit
-            }
-
-            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.gutter)) {
-                PickerField(
-                    value = form.date?.let {
-                        it.formatDate()
-                    } ?: "",
-                    label = stringResource(R.string.class_date_label),
-                    onClick = { showDatePicker = true },
-                    modifier = Modifier.weight(1.4f),
-                )
-                // Marked as the field that is wrong — it is the only thing that *can* be wrong about a
-                // time now, since a start and a length cannot be impossible. The sentence itself is
-                // **not** in this field's supporting slot: the field is `weight(1f)` of a 1.4 : 1 row,
-                // which is about 98dp of text width on a 360dp phone, and «Занято: Мария Петрова
-                // 14:00 – 15:30» wraps to five lines in that. It goes full-width under the row instead.
-                PickerField(
-                    value = form.timeFrom?.timeText() ?: "",
-                    label = stringResource(R.string.class_time_from_label),
-                    onClick = { showFromPicker = true },
-                    modifier = Modifier.weight(1f),
-                    isError = state.conflictBlocksSave,
-                )
-            }
-            state.conflict?.let { conflict ->
-                Text(
-                    if (form.repeat.repeats) {
-                        stringResource(
-                            R.string.class_series_availability,
-                            state.availableOccurrences,
-                        )
-                    } else {
-                        timeConflictText(conflict)
-                    },
-                    style = MaterialTheme.typography.bodySmall,
-                    color = if (state.conflictBlocksSave) MaterialTheme.colorScheme.error
-                    else MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-
-            // How long, not when it ends — a length is what the lesson is stored as, and the question
-            // the tutor already has an answer to. The end is shown beside the label as a consequence.
-            DurationPicker(
-                options = durations,
-                selected = form.durationMinutes,
-                ends = state.ending,
-                onSelect = { minutes -> viewModel.change(BookingIntent.LastsFor(minutes)) },
-                onCustom = { showDurationPicker = true },
-            )
-
-            // Whether this books one lesson or a term of them. **Only while booking**: repeating is a
-            // property of the act, not of a lesson, so there is nothing for it to say about a row already
-            // in the database — and offering it there would read as an invitation to turn one lesson into
-            // twelve by editing it.
-            if (viewModel.isNew) {
-                RepeatPicker(
-                    repeat = form.repeat,
-                    count = form.repeatCount,
-                    until = form.repeatsUntil,
-                    onRepeat = { repeat -> viewModel.change(BookingIntent.Edit { it.copy(repeat = repeat) }) },
-                    onCount = { count -> viewModel.change(BookingIntent.Edit { it.copy(repeatCount = count) }) },
-                    onCustomCount = { showRepeatCountPicker = true },
-                )
-                if (form.repeat.repeats) {
-                    Text(
-                        stringResource(R.string.class_repeat_independent_hint),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
-
-            if (form.target == ClassTarget.GROUP) {
-                // These ticks correct the booked roster. Absences are recorded separately in the lesson sheet.
-                if (state.groupHasNoMembers) {
-                    Text(
-                        stringResource(R.string.class_group_no_active_members),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.error,
-                    )
-                    form.groupId?.let { id ->
-                        AddRow(stringResource(R.string.group_edit_members), onClick = { setup.groupEdit(id) })
-                    }
-                }
-                if (members.isNotEmpty()) {
-                    SectionTitle(stringResource(R.string.class_group_members_title))
-                    // Distinguish correcting the booked roster from recording an absence.
-                    if (!viewModel.isNew) {
-                        Text(
-                            stringResource(R.string.class_group_members_editable),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    // The same roster picker as the group form, applied to this lesson's membership.
-                    members.forEach { student ->
-                        MemberPickRow(
-                            student = student,
-                            selected = student.id !in form.excludedMemberIds,
-                            onToggle = { on -> viewModel.change(BookingIntent.IncludeMember(student.id, on)) },
-                        )
-                    }
-                    if (state.allMembersExcluded) {
-                        Text(
-                            stringResource(R.string.class_group_no_members_left),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.error,
-                        )
-                    }
-                }
-            }
-
-            // **The rate, never folded.** For a group it is *n* students' money; for one student it is
-            // the number that will be billed. It used to be a [PickerField] that a tap replaced with a
-            // text field for a student and a plain text field for a group — the same input, two
-            // appearances, on the same form, decided by who the lesson is for. The fold saved one line
-            // and cost the tutor the one fact on the form that is about money: whether the pre-filled
-            // rate is the one they meant was readable only after a tap.
-            //
-            // The label is the only thing that still differs, because the question does: a group's rate
-            // is the group's, a student's is theirs for this subject.
-            MoneyTextField(
-                field = form.price,
-                onValueChange = { text ->
-                    viewModel.change(BookingIntent.Edit { it.copy(price = it.price.typed(text)) })
-                },
-                label = stringResource(
-                    if (form.target == ClassTarget.GROUP) R.string.class_group_price_label
-                    else R.string.price_label,
-                ),
-            )
-
-            // Never folded either, and for its own reason: a mode is not a rate the tutor already
-            // agreed, it is a guess from the student's usual place that this lesson may contradict — so
-            // it has to be readable, and changeable, without a tap to reveal it first.
-            ModeField(
-                label = stringResource(R.string.class_location_label),
-                selected = form.mode,
-                onSelect = { selected -> viewModel.change(BookingIntent.Edit { it.copy(mode = selected) }) },
-            )
+            // A taken time is as disqualifying as a missing field, and `canSave` already says so — the
+            // lesson could not happen. The bar says which of the two it is.
+            BookingSaveBar(state, viewModel.isNew, bottomInset, onSave = ::requestSave)
         }
-    }
-
-    if (showDatePicker) {
-        DatePickerModal(
-            initial = viewModel.datePickerDefault(),
-            onConfirm = { date ->
-                viewModel.change(BookingIntent.Edit { it.copy(date = date) })
-                showDatePicker = false
-            },
-            onDismiss = { showDatePicker = false },
-        )
-    }
-    if (showFromPicker) {
-        TimePickerModal(
-            initial = viewModel.startPickerDefault(),
-            onConfirm = { time ->
-                viewModel.change(BookingIntent.StartAt(time))
-                showFromPicker = false
-            },
-            onDismiss = { showFromPicker = false },
-        )
-    }
-    if (showDurationPicker) {
-        DurationPickerModal(
-            initialMinutes = viewModel.durationPickerDefault(),
-            onConfirm = { minutes ->
-                viewModel.change(BookingIntent.LastsFor(minutes))
-                showDurationPicker = false
-            },
-            onDismiss = { showDurationPicker = false },
-        )
-    }
-    if (showRepeatCountPicker) {
-        CountPickerModal(
-            title = stringResource(R.string.class_repeat_count_title),
-            label = stringResource(R.string.class_repeat_count_field, Recurrence.MAX_COUNT),
-            initial = viewModel.repeatCountPickerDefault(),
-            max = Recurrence.MAX_COUNT,
-            onConfirm = { count ->
-                viewModel.change(BookingIntent.Edit { it.copy(repeatCount = count) })
-                showRepeatCountPicker = false
-            },
-            onDismiss = { showRepeatCountPicker = false },
-        )
     }
 
     // Dismissing **is** leaving: the lessons are already written, so there is nothing to decide here and
@@ -473,116 +202,6 @@ private fun ClassEditForm(
 }
 
 @Composable
-private fun TargetSelector(selected: ClassTarget, onSelect: (ClassTarget) -> Unit) {
-    // Segments, not chips. Every other mutually-exclusive choice in the app is a segmented row — the
-    // schedule's view mode, the lesson status, People's two sides, four settings rows — and this one sat
-    // at the top of the most-used form looking like the duration chips below it, which are chips for a
-    // reason (a shortlist with an escape hatch). See [SegmentedChoice].
-    SegmentedChoice(
-        options = ClassTarget.entries,
-        selected = selected,
-        onSelect = onSelect,
-        label = { target ->
-            stringResource(
-                when (target) {
-                    ClassTarget.STUDENT -> R.string.class_target_student
-                    ClassTarget.GROUP -> R.string.class_target_group
-                },
-            )
-        },
-    )
-}
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun DurationPicker(
-    options: List<Int>,
-    selected: Int?,
-    ends: ClassForm.Ending?,
-    onSelect: (Int) -> Unit,
-    onCustom: () -> Unit,
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(Spacing.inline)) {
-        // A flow, so the consequence moves to a line of its own whole rather than being squeezed into a
-        // column beside the label — «Длительность · до 00:00 (следующего дня)» at a large font scale.
-        FlowRow(itemVerticalAlignment = Alignment.CenterVertically) {
-            SectionTitle(stringResource(R.string.class_duration_label))
-            if (ends != null) {
-                Text(
-                    " · " + endsAtText(ends),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
-        PresetChips(
-            presets = options,
-            selected = selected,
-            label = { minutes -> durationLabel(minutes) },
-            customLabel = stringResource(R.string.class_duration_custom),
-            onSelect = onSelect,
-            onCustom = onCustom,
-        )
-    }
-}
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun RepeatPicker(
-    repeat: Repeat,
-    count: Int,
-    until: LocalDate?,
-    onRepeat: (Repeat) -> Unit,
-    onCount: (Int) -> Unit,
-    onCustomCount: () -> Unit,
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(Spacing.inline)) {
-        // A flow, so the consequence moves to a line of its own whole rather than being squeezed into a
-        // column beside the label — «Длительность · до 00:00 (следующего дня)» at a large font scale.
-        FlowRow(itemVerticalAlignment = Alignment.CenterVertically) {
-            SectionTitle(stringResource(R.string.class_repeat_label))
-            // «по 24 сентября» — the last day the run reaches. Shown only once there is a date to count
-            // from, exactly as the lesson's end waits for a start.
-            if (until != null) {
-                Text(
-                    " · " + stringResource(R.string.class_repeat_until, until.formatDate()),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
-        SegmentedChoice(
-            options = Repeat.entries,
-            selected = repeat,
-            onSelect = onRepeat,
-            label = { option ->
-                stringResource(
-                    when (option) {
-                        Repeat.NONE -> R.string.class_repeat_none
-                        Repeat.WEEKLY -> R.string.class_repeat_weekly
-                        Repeat.FORTNIGHTLY -> R.string.class_repeat_fortnightly
-                    },
-                )
-            },
-        )
-        if (repeat.repeats) {
-            Text(
-                stringResource(R.string.class_repeat_count_label),
-                style = MaterialTheme.typography.labelLarge,
-            )
-            PresetChips(
-                presets = Recurrence.COMMON_COUNTS,
-                selected = count,
-                label = { option -> option.toString() },
-                customLabel = stringResource(R.string.class_repeat_count_custom),
-                onSelect = onCount,
-                onCustom = onCustomCount,
-            )
-        }
-    }
-}
-
-@Composable
 private fun seriesOutcomeText(outcome: SeriesOutcome): String {
     val booked = pluralStringResource(R.plurals.class_series_booked, outcome.booked, outcome.booked)
     val skipped = pluralStringResource(
@@ -594,7 +213,7 @@ private fun seriesOutcomeText(outcome: SeriesOutcome): String {
 }
 
 @Composable
-private fun endsAtText(ends: ClassForm.Ending): String {
+internal fun endsAtText(ends: ClassForm.Ending): String {
     val time = ends.time.timeText()
     return if (ends.nextDay) {
         stringResource(R.string.class_duration_ends_next_day, time)

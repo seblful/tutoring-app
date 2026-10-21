@@ -17,6 +17,7 @@ import com.seblful.klas.di.Computation
 import com.seblful.klas.domain.lesson.ClassRules
 import com.seblful.klas.domain.lesson.GroupRules
 import com.seblful.klas.domain.lesson.SessionEdit
+import com.seblful.klas.domain.model.Assignee
 import com.seblful.klas.domain.model.ClassSession
 import com.seblful.klas.domain.model.Group
 import com.seblful.klas.domain.model.Money
@@ -292,6 +293,35 @@ class ClassEditViewModel @AssistedInject constructor(
         }
             .derive(this, computation, Loadable.Loading)
 
+    /** A new booking's «Who» chips — see [TargetChoices.pick]. An edit never reads it, so never queries. */
+    val targetChoices: StateFlow<List<TargetChoice>> =
+        combine(
+            classes.observeRecentlyTaught(clock.now(), TargetChoices.SHOWN),
+            allStudents,
+            allGroups,
+            form.map { it.assignee }.distinctUntilChanged(),
+        ) { recent, studentList, groupList, chosen ->
+            TargetChoices.pick(recent, studentList, groupList, chosen)
+        }
+            .derive(this, computation, emptyList())
+
+    /**
+     * Books for [who], from a chip or «All…» — the target and the one in it as one choice, which is what
+     * replaced asking «Student or group?» first.
+     */
+    fun choose(who: Assignee, known: Student? = null) {
+        when (who) {
+            is Assignee.Student -> {
+                change(BookingIntent.ChooseTarget(ClassTarget.STUDENT))
+                change(BookingIntent.ChooseStudent(who.studentId, known))
+            }
+            is Assignee.Group -> {
+                change(BookingIntent.ChooseTarget(ClassTarget.GROUP))
+                change(BookingIntent.ChooseGroup(who.groupId))
+            }
+        }
+    }
+
     private fun describe(clash: ClassSession, students: List<Student>, groups: List<Group>): TimeConflict =
         TimeConflict.of(
             clash = clash,
@@ -403,7 +433,7 @@ class ClassEditViewModel @AssistedInject constructor(
 
     fun selectCreatedStudent(studentId: Long) {
         viewModelScope.launch {
-            studentsRepo.getById(studentId)?.let { change(BookingIntent.ChooseStudent(it.id, it)) }
+            studentsRepo.getById(studentId)?.let { choose(Assignee.Student(it.id), known = it) }
         }
     }
 

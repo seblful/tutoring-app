@@ -41,7 +41,7 @@ class SectionTitleSurfaceTest {
             "Expected the forms, the lesson sheet, the report cards and settings to use `SectionTitle`: $users",
             users.containsAll(
                 setOf(
-                    "ClassEditScreen.kt",
+                    "ClassEditSections.kt",
                     "StudentFormScreen.kt",
                     "GroupFormScreen.kt",
                     "ClassActionsSheet.kt",

@@ -123,6 +123,12 @@ Build screens from shared state and controls. Feature rules belong in the domain
   inside the week. Summaries are count·hours·money (`DaySummary`); show “now” only today. Completion is
   an undoable green swipe; cancelled lessons recede with a red badge. Book by duration, starting on the
   selected schedule day.
+- The booking form is three `FormSection` cards — Who, When, Terms — in the order the tutor answers.
+  A new booking picks who from chips (`TargetChoices`: recently taught first, students and groups
+  together, «All…» for the rest and for adding someone), so there is no Student/Group switch; an edit
+  keeps its kind. Rate and place stay written out. It alone saves from a bottom `BookingSaveBar`, not
+  the bar's `SaveAction`: the bar shows the booking it will make, or names what is missing or in the
+  way (`ClassFormState.saveBar`, `Ready` exactly when `canSave`).
 - Lesson context opens homework, payment entry and profiles for the named student/group. Group payments
   first ask who paid; completing a lesson never creates a payment. Profiles book through the same form.
 - Setup detours push over the unfinished booking/group form and return created IDs through its navigation

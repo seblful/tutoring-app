@@ -221,4 +221,52 @@ class ClassFormTest {
         )
         assertFalse("a student booking has no opinion about groups", stateWith().hasNoGroups)
     }
+
+    // ---- The save bar ----------------------------------------------------------------------------
+
+    @Test
+    fun `the save bar names what is missing, in the order the form is filled in`() {
+        assertEquals(
+            SaveBar.Missing(BookingGap.entries),
+            stateWith(form = ClassForm(price = MoneyField(""))).saveBar,
+        )
+        assertEquals(
+            SaveBar.Missing(listOf(BookingGap.START)),
+            stateWith(form = validForm.copy(timeFrom = null)).saveBar,
+        )
+    }
+
+    @Test
+    fun `nothing is missing exactly when the form is valid`() {
+        val forms = listOf(
+            ClassForm(),
+            validForm,
+            validForm.copy(studentId = null),
+            validForm.copy(subjectId = null),
+            validForm.copy(date = null),
+            validForm.copy(timeFrom = null),
+            validForm.copy(durationMinutes = 0),
+            validForm.copy(price = MoneyField("abc")),
+            validForm.copy(target = ClassTarget.GROUP, studentId = null, groupId = 4),
+        )
+        forms.forEach { form -> assertEquals(form.toString(), form.isValid, stateWith(form = form).gaps.isEmpty()) }
+    }
+
+    @Test
+    fun `the save bar is ready exactly when the form can be saved`() {
+        val member = Student(id = 5, name = "Аня")
+        val group = validForm.copy(target = ClassTarget.GROUP, studentId = null, groupId = 4)
+        val cases = mapOf(
+            stateWith(form = validForm) to SaveBar.Ready,
+            stateWith(form = validForm, conflict = someoneElse) to SaveBar.Taken,
+            stateWith(form = group) to SaveBar.NoBookableMembers,
+            stateWith(form = group.copy(excludedMemberIds = setOf(5)), members = listOf(member)) to
+                SaveBar.NoneTicked,
+            stateWith(form = group, members = listOf(member)) to SaveBar.Ready,
+        )
+        cases.forEach { (state, bar) ->
+            assertEquals(bar, state.saveBar)
+            assertEquals(bar == SaveBar.Ready, state.canSave)
+        }
+    }
 }

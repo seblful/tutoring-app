@@ -129,6 +129,23 @@
         <item quantity="other">%1$d lessons</item>
     </plurals>
     <string name="class_add_title">New lesson</string>
+    <!-- The booking form's three sections and the save bar under them. -->
+    <string name="class_section_who">Who</string>
+    <string name="class_section_when">When</string>
+    <string name="class_section_terms">Terms</string>
+    <string name="class_everyone">All…</string>
+    <string name="class_book_action">Book</string>
+    <string name="class_still_needed">Still needed</string>
+    <string name="class_gap_who">student or group</string>
+    <string name="class_gap_subject">subject</string>
+    <string name="class_gap_date">date</string>
+    <string name="class_gap_start">start time</string>
+    <string name="class_gap_length">length</string>
+    <string name="class_gap_price">price</string>
+    <plurals name="class_series_lessons">
+        <item quantity="one">%1$d lesson</item>
+        <item quantity="other">%1$d lessons</item>
+    </plurals>
     <string name="class_edit_title">Edit lesson</string>
     <string name="class_student_label">Student</string>
     <string name="class_subject_label">Subject</string>

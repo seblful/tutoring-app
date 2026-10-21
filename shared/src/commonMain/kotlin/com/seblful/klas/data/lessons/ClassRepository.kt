@@ -114,6 +114,17 @@ class ClassRepository @Inject constructor(
     fun observeGroupSpans(now: Instant): Flow<Map<Long, NearestLessons>> =
         lessons.observeGroupSpans(now.toEpochMilliseconds()).map { it.toNearest() }
 
+    /**
+     * Up to [limit] students and groups, the one taught most recently by [now] first — see
+     * [ClassDao.observeRecentlyTaught].
+     */
+    fun observeRecentlyTaught(now: Instant, limit: Int): Flow<List<Assignee>> =
+        dao.observeRecentlyTaught(now.toEpochMilliseconds(), limit).map { rows ->
+            rows.mapNotNull { row ->
+                row.groupId?.let(Assignee::Group) ?: row.studentId?.let(Assignee::Student)
+            }
+        }
+
     private fun List<LessonSpan>.toNearest(): Map<Long, NearestLessons> = associate { span ->
         span.ownerId to NearestLessons(
             next = span.nextMillis?.let(Instant::fromEpochMilliseconds),

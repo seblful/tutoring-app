@@ -106,9 +106,55 @@ data class ClassFormState(
         get() = form.isValid && availableOccurrences > 0 && !conflictBlocksSave &&
             !allMembersExcluded && !groupHasNoMembers
 
+    /**
+     * What the form still lacks, in the order it is filled in. Empty exactly when [ClassForm.isValid] is
+     * true — the same checks, named, so the save bar can say what is missing instead of greying out.
+     */
+    val gaps: List<BookingGap>
+        get() = buildList {
+            if (!form.hasTarget) add(BookingGap.WHO)
+            if (form.subjectId == null) add(BookingGap.SUBJECT)
+            if (form.date == null) add(BookingGap.DATE)
+            if (form.timeFrom == null) add(BookingGap.START)
+            if ((form.durationMinutes ?: 0) <= 0) add(BookingGap.LENGTH)
+            if (!form.price.isValid) add(BookingGap.PRICE)
+        }
+
+    /** What the save bar says — [SaveBar.Ready] exactly when [canSave]. */
+    val saveBar: SaveBar
+        get() = when {
+            gaps.isNotEmpty() -> SaveBar.Missing(gaps)
+            conflictBlocksSave || availableOccurrences == 0 -> SaveBar.Taken
+            groupHasNoMembers -> SaveBar.NoBookableMembers
+            allMembersExcluded -> SaveBar.NoneTicked
+            else -> SaveBar.Ready
+        }
+
     /** What tapping save should do: save, or ask about the income it would destroy first. */
     val saveIntent: SaveIntent
         get() = billedDrops.let { if (it > 0) SaveIntent.ConfirmBilledDrops(it) else SaveIntent.Save }
+}
+
+/** One thing a booking cannot be saved without — see [ClassFormState.gaps]. */
+enum class BookingGap { WHO, SUBJECT, DATE, START, LENGTH, PRICE }
+
+/**
+ * The save bar under the booking form: the lesson as it will be booked, or the one reason it cannot be
+ * yet. A greyed-out button alone left the tutor to find which field it was waiting for.
+ */
+sealed interface SaveBar {
+    data class Missing(val gaps: List<BookingGap>) : SaveBar
+
+    /** The hour is another lesson's — [ClassFormState.conflict] says whose. */
+    data object Taken : SaveBar
+
+    /** The group's members are all archived. */
+    data object NoBookableMembers : SaveBar
+
+    /** Every member was unticked. */
+    data object NoneTicked : SaveBar
+
+    data object Ready : SaveBar
 }
 
 /**

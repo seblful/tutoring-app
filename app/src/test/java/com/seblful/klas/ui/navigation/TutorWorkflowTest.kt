@@ -138,10 +138,11 @@ class TutorWorkflowTest {
             waitForText("Workflow student")
             compose.onNodeWithContentDescription(text(R.string.schedule_add_class)).performClick()
             waitFor(R.string.class_add_title)
-            // The title is drawn while the form still loads; the target choice comes with the loaded form.
-            val group = hasText(text(R.string.class_target_group)) and isSelectable()
-            compose.waitUntil(10_000) { compose.onAllNodes(group).fetchSemanticsNodes().isNotEmpty() }
-            compose.onNode(group).performClick()
+            // The title is drawn while the form still loads; «All…» comes with the loaded form, and adding a
+            // group is in it.
+            waitFor(R.string.class_everyone)
+            click(R.string.class_everyone)
+            waitFor(R.string.group_add_title)
             click(R.string.group_add_title)
             waitFor(R.string.group_name_label)
             compose.onNodeWithText(text(R.string.group_name_label)).performTextInput("After school")
