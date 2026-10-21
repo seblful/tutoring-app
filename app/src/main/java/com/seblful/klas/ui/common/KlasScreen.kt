@@ -24,6 +24,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -96,11 +97,11 @@ fun KlasScreen(
 
     // Only on a *change* of page, not on arriving: a screen returned to restores its list's position and
     // the bar's offset together, and resetting here would leave a scrolled list under an untinted bar.
-    var shownPage by remember { mutableStateOf(page) }
-    if (page != shownPage) {
-        shownPage = page
-        scrollBehavior.state.contentOffset = 0f
-    }
+    // A plain holder, committed after the pass: as state, read and then written here, it recomposed the
+    // screen a second time on every change of page.
+    val shownPage = remember { ShownPage(page) }
+    if (page != shownPage.value) scrollBehavior.state.contentOffset = 0f
+    SideEffect { shownPage.value = page }
 
     // A large title has two lines to spend on a name while it is large; collapsed into an ordinary bar it
     // has one, like any other — it was two there too, and a long name drew two lines of 22sp in a 64 dp
@@ -183,14 +184,17 @@ fun KlasScreen(
         snackbarHost = { if (messages != null) SnackbarHost(messages.hostState) },
         topBar = {
             when (titleSize) {
+                // Painted behind a see-through bar, from the draw phase: given as the bar's colour, the tint
+                // recomposed the whole bar on every frame of its fade.
                 TitleSize.Compact -> TopAppBar(
                     title = barTitle,
+                    modifier = Modifier.drawBehind { drawRect(readBarColor()) },
                     navigationIcon = barNavigation,
                     actions = barActions,
                     scrollBehavior = scrollBehavior,
                     colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = barColor.value,
-                        scrolledContainerColor = barColor.value,
+                        containerColor = Color.Transparent,
+                        scrolledContainerColor = Color.Transparent,
                     ),
                 )
 
@@ -247,6 +251,9 @@ fun ScreenHeader(modifier: Modifier = Modifier, content: @Composable ColumnScope
 }
 
 private val LocalBarColor = staticCompositionLocalOf<(() -> Color)?> { null }
+
+/** The page [KlasScreen] last drew, kept out of snapshot state — see its `page`. */
+private class ShownPage(var value: Any?)
 
 /** The Scaffold's insets without the bottom one, which [KlasScreen] hands its body instead. */
 private class AboveBottom(private val insets: PaddingValues) : PaddingValues {

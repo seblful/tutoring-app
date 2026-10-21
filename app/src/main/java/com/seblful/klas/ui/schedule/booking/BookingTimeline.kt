@@ -23,6 +23,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -32,6 +33,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
@@ -41,7 +43,6 @@ import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -92,10 +93,13 @@ internal fun BookingTimeline(
     // A slide under way, and where it has the lesson starting until the finger lifts.
     var slide by remember(timeline.day) { mutableStateOf<Slide?>(null) }
     var sliding by remember(timeline.day) { mutableStateOf<Instant?>(null) }
+    // A slide moves [sliding] every five minutes of it, so it is read only where it is drawn — the times over
+    // the bar and the lesson's block — and here only whether there is one, which flips twice a slide.
+    val drawn = { sliding?.let { Scheduling.Slot(it, length) } ?: chosen }
+    val lifted by remember(timeline.day) { derivedStateOf { sliding != null } }
     val tick = rememberStepTickFeedback()
     val shown = peeked?.takeIf { it in timeline.booked }
-    val drawn = sliding?.let { Scheduling.Slot(it, length) } ?: chosen
-    val red = sliding == null && clashes
+    val red = !lifted && clashes
     val nudge = { by: Duration -> chosen?.let { timeline.shifted(it.start, by, length) }?.let(onStart) }
     Column(modifier, verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Peek(timeline, shown, drawn, red)
@@ -103,7 +107,7 @@ internal fun BookingTimeline(
             timeline = timeline,
             chosen = drawn,
             clashes = red,
-            lifted = sliding != null,
+            lifted = lifted,
             suggestion = suggestion,
             peeked = shown,
             mine = mine,
@@ -149,7 +153,7 @@ private class Slide(val origin: Instant) {
 @Composable
 private fun Bar(
     timeline: DayTimeline,
-    chosen: Scheduling.Slot?,
+    chosen: () -> Scheduling.Slot?,
     clashes: Boolean,
     lifted: Boolean,
     suggestion: Scheduling.Slot?,
@@ -184,11 +188,26 @@ private fun Bar(
         timeline.booked.forEach { lesson ->
             BookedBlock(timeline, lesson, width, peeked = lesson == peeked, mine = lesson.assignee == mine)
         }
-        if (chosen != null) {
-            ChosenBlock(timeline, chosen, width, clashes, lifted)
-        } else if (suggestion != null) {
-            Suggestion(timeline, suggestion, width, onStart)
-        }
+        ChosenOrSuggestion(timeline, chosen, width, clashes, lifted, suggestion, onStart)
+    }
+}
+
+/** The lesson being booked, or before it has a start the one offered — read here, as it slides, not in [Bar]. */
+@Composable
+private fun ChosenOrSuggestion(
+    timeline: DayTimeline,
+    chosen: () -> Scheduling.Slot?,
+    width: Dp,
+    clashes: Boolean,
+    lifted: Boolean,
+    suggestion: Scheduling.Slot?,
+    onStart: (Instant) -> Unit,
+) {
+    val slot = chosen()
+    if (slot != null) {
+        ChosenBlock(timeline, slot, width, clashes, lifted)
+    } else if (suggestion != null) {
+        Suggestion(timeline, suggestion, width, onStart)
     }
 }
 
@@ -261,7 +280,6 @@ private fun ChosenBlock(timeline: DayTimeline, slot: Scheduling.Slot, width: Dp,
 @Composable
 private fun Suggestion(timeline: DayTimeline, suggestion: Scheduling.Slot, width: Dp, onStart: (Instant) -> Unit) {
     val primary = MaterialTheme.colorScheme.primary
-    val dash = with(LocalDensity.current) { floatArrayOf(5.dp.toPx(), 3.dp.toPx()) }
     val label = stringResource(R.string.class_timeline_suggestion, suggestion.start.timeText())
     Segment(
         timeline,
@@ -271,16 +289,16 @@ private fun Suggestion(timeline: DayTimeline, suggestion: Scheduling.Slot, width
             .padding(vertical = 3.dp)
             .fillMaxHeight()
             .testTag(SUGGESTION_TAG)
-            .drawBehind {
-                drawRoundRect(
-                    color = primary.copy(alpha = SUGGESTION_FILL),
-                    cornerRadius = CornerRadius(BlockRadius.toPx()),
+            .drawWithCache {
+                val corner = CornerRadius(BlockRadius.toPx())
+                val dashed = Stroke(
+                    width = 2.dp.toPx(),
+                    pathEffect = PathEffect.dashPathEffect(floatArrayOf(5.dp.toPx(), 3.dp.toPx())),
                 )
-                drawRoundRect(
-                    color = primary,
-                    cornerRadius = CornerRadius(BlockRadius.toPx()),
-                    style = Stroke(width = 2.dp.toPx(), pathEffect = PathEffect.dashPathEffect(dash)),
-                )
+                onDrawBehind {
+                    drawRoundRect(color = primary.copy(alpha = SUGGESTION_FILL), cornerRadius = corner)
+                    drawRoundRect(color = primary, cornerRadius = corner, style = dashed)
+                }
             }
             .clickable(onClickLabel = label, role = Role.Button) { onStart(suggestion.start) },
     ) { span ->

@@ -1,6 +1,6 @@
 package com.seblful.klas.ui.common
 
-import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.Animatable
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,10 +14,12 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
@@ -27,20 +29,24 @@ import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.semantics.Role
 import com.seblful.klas.format.bulletJoin
 import com.seblful.klas.ui.theme.KlasIcons
+import kotlinx.coroutines.launch
 
 /**  header that **stays** while a list scrolls under it — and only looks like a band while it does. */
 @Composable
 fun PinnedHeader(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
+    // Written at placement, so read only off the composition: read by it, a placement that pinned the header
+    // recomposed it a frame late, every time the list carried it to the top or away.
     var pinned by remember { mutableStateOf(false) }
     val colors = MaterialTheme.colorScheme
-    val background by animateColorAsState(
-        targetValue = if (pinned) colors.surfaceContainer else colors.surface,
-        label = "pinned header",
-    )
+    val background = remember { Animatable(colors.surface) }
+    LaunchedEffect(colors) {
+        snapshotFlow { if (pinned) colors.surfaceContainer else colors.surface }
+            .collect { target -> launch { background.animateTo(target) } }
+    }
     Column(
         modifier
             .onPlaced { pinned = it.positionInParent().y <= 0f }
-            .drawBehind { drawRect(background) },
+            .drawBehind { drawRect(background.value) },
         content = content,
     )
 }

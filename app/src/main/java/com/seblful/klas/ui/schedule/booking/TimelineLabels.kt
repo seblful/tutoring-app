@@ -47,11 +47,18 @@ import kotlin.time.Instant
  * edges; else how the bar is used.
  */
 @Composable
-internal fun Peek(timeline: DayTimeline, lesson: DayTimeline.Lesson?, chosen: Scheduling.Slot?, clashes: Boolean) {
+internal fun Peek(
+    timeline: DayTimeline,
+    lesson: DayTimeline.Lesson?,
+    chosen: () -> Scheduling.Slot?,
+    clashes: Boolean,
+) {
+    // Read here rather than by the caller: it moves with every step of a slide.
+    val slot = chosen()
     Box(Modifier.fillMaxWidth().heightIn(min = PeekHeight), contentAlignment = Alignment.BottomStart) {
-        if (lesson == null && chosen != null) {
+        if (lesson == null && slot != null) {
             val colors = MaterialTheme.colorScheme
-            StartAndEnd(timeline, chosen, if (clashes) colors.error else colors.primary)
+            StartAndEnd(timeline, slot, if (clashes) colors.error else colors.primary)
         } else if (lesson == null) {
             Text(
                 stringResource(R.string.class_timeline_hint),

@@ -1,14 +1,17 @@
 package com.seblful.klas.ui.common
 
-import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.Animatable
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
 import androidx.navigationevent.NavigationEvent
 import androidx.navigationevent.NavigationEventTransitionState
 import androidx.navigationevent.compose.NavigationEventState
+import kotlinx.coroutines.launch
 import kotlin.math.abs
 
 /**
@@ -17,15 +20,23 @@ import kotlin.math.abs
  * letting go reads as leaving. A cancelled gesture eases back.
  *
  * [state] must be the one given to the screen's `NavigationBackHandler`.
+ *
+ * The gesture is read in a `snapshotFlow` and drawn in `graphicsLayer`, never in composition: it moves every
+ * frame it is held, and a read here would recompose the caller's whole content with it.
  */
 @Composable
 fun Modifier.predictiveBack(state: NavigationEventState<*>): Modifier {
-    val pull by animateFloatAsState(backPull(state.transitionState), label = "predictiveBack")
+    val pull = remember { Animatable(0f) }
+    LaunchedEffect(state) {
+        // A launch per target, as `animateFloatAsState` does: each takes over the last one's velocity.
+        snapshotFlow { backPull(state.transitionState) }.collect { target -> launch { pull.animateTo(target) } }
+    }
     return this.graphicsLayer {
-        val scale = 1f - MaxScaleDrop * abs(pull)
+        val amount = pull.value
+        val scale = 1f - MaxScaleDrop * abs(amount)
         scaleX = scale
         scaleY = scale
-        translationX = pull * (size.width / ShiftDivisor - ShiftInset.toPx())
+        translationX = amount * (size.width / ShiftDivisor - ShiftInset.toPx())
     }
 }
 

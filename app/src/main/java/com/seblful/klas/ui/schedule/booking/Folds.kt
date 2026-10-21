@@ -25,7 +25,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.collapse
@@ -102,7 +102,12 @@ internal fun Fold(
                     overflow = TextOverflow.Ellipsis,
                 )
             }
-            Icon(KlasIcons.Filled.ExpandMore, contentDescription = null, modifier = Modifier.rotate(turn))
+            // Turned in the draw phase, so the fold's row is not recomposed on every frame of the turn.
+            Icon(
+                KlasIcons.Filled.ExpandMore,
+                contentDescription = null,
+                modifier = Modifier.graphicsLayer { rotationZ = turn },
+            )
         }
         AnimatedVisibility(
             opened,

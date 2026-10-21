@@ -18,7 +18,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -27,7 +26,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -84,13 +82,6 @@ fun SwipeToConfirmBox(
     // down both edges of every student's and group's homework.
     val moved by remember { derivedStateOf { dragged != 0f } }
 
-    // One flag, two ways of saying it: the pop is drawn from `armed` below, the tick fires on its edge.
-    // `snapshotFlow` emits on change, which is what makes the tick one per crossing rather than one per
-    // frame — and silence on the way back, where nothing has happened to announce.
-    LaunchedEffect(Unit) {
-        snapshotFlow { armed }.collect { if (it) armedFeedback() }
-    }
-
     fun springHome() {
         goingHome?.cancel()
         goingHome = scope.launch {
@@ -102,8 +93,13 @@ fun SwipeToConfirmBox(
         modifier
             .onSizeChanged { width = it.width.toFloat() }
             .pointerInput(toward) {
+                // One flag, two ways of saying it: the pop is drawn from `armed`, the tick fires here as a drag
+                // crosses the mark — once per crossing, and silent on the way back, where nothing has happened
+                // to announce. From the drag itself, not a watcher on `armed`: every row on screen kept one.
                 fun slide(delta: Float) {
+                    val wasArmed = swipeArmed(abs(dragged), width)
                     dragged = toward.clamp(dragged + delta, width)
+                    if (!wasArmed && swipeArmed(abs(dragged), width)) armedFeedback()
                 }
                 awaitEachGesture {
                     val down = awaitFirstDown(requireUnconsumed = false)
