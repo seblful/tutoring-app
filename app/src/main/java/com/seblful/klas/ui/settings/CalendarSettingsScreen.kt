@@ -21,6 +21,8 @@ fun CalendarSettingsScreen(onBack: (() -> Unit)?, viewModel: SettingsViewModel =
         val openSettings = rememberOpenSystemSettings(messages, ::appDetailsSettings)
         val denied = stringResource(R.string.calendar_denied)
         val openLabel = stringResource(R.string.action_open_settings)
+        val rationale = stringResource(R.string.calendar_rationale)
+        val allowLabel = stringResource(R.string.action_allow)
         val reject = rememberRejectFeedback()
         val requestCalendar = rememberCalendarPermissionRequest {
             if (viewModel.calendarPermissionAnswered() != CalendarSyncToggle.APPLIED) {
@@ -32,7 +34,9 @@ fun CalendarSettingsScreen(onBack: (() -> Unit)?, viewModel: SettingsViewModel =
             settings = page.settings,
             delivery = page.calendar,
             onSync = { on ->
-                if (viewModel.setCalendarSyncEnabled(on) == CalendarSyncToggle.PERMISSION_NEEDED) requestCalendar()
+                if (viewModel.setCalendarSyncEnabled(on) == CalendarSyncToggle.PERMISSION_NEEDED) {
+                    messages.ask(requestCalendar, rationale, allowLabel)
+                }
             },
             onUpdate = viewModel::update,
             onFixCalendar = openSettings,

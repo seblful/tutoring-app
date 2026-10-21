@@ -41,6 +41,7 @@
     -->
     <string name="action_done">Готово</string>
     <string name="action_cancel">Отмена</string>
+    <string name="action_allow">Разрешить</string>
     <string name="action_ok">Понятно</string>
     <string name="action_back">Назад</string>
     <string name="action_archive">В архив</string>
@@ -516,6 +517,7 @@
     <string name="more_subjects">Предметы</string>
     <string name="more_backup">Резервная копия</string>
     <string name="calendar_denied">Нет доступа к календарю</string>
+    <string name="calendar_rationale">Чтобы показывать занятия в календаре устройства, Klas нужен доступ к нему</string>
 
     <!-- About: every published app has one, and the version is the first thing a bug report needs. -->
     <string name="about_title">О приложении</string>
@@ -599,6 +601,7 @@
     -->
     <string name="settings_notifications_denied">Без разрешения уведомления не придут</string>
     <string name="action_open_settings">Открыть настройки</string>
+    <string name="settings_notifications_rationale">Напоминания о занятиях и сводки приходят уведомлениями — для них нужно разрешение</string>
     <!-- No activity behind a system settings action — rare, but real on some OEM builds. -->
     <string name="settings_page_missing">Не удалось открыть настройки</string>
     <!-- Exact-alarm recovery; notification permission has a shared recovery row. -->

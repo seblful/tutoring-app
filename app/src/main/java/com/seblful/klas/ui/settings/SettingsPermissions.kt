@@ -13,6 +13,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
+import com.seblful.klas.PermissionPrompt
 import com.seblful.klas.R
 import com.seblful.klas.notifications.rememberNotificationPermissionRequest
 import com.seblful.klas.ui.common.Messages
@@ -41,6 +42,8 @@ internal fun rememberNotificationAction(
 ): (NotificationsIntent) -> Unit {
     val denied = stringResource(R.string.settings_notifications_denied)
     val openLabel = stringResource(R.string.action_open_settings)
+    val rationale = stringResource(R.string.settings_notifications_rationale)
+    val allowLabel = stringResource(R.string.action_allow)
     val openSettings = rememberOpenSystemSettings(messages, ::appNotificationSettings)
     val reject = rememberRejectFeedback()
     val request = rememberNotificationPermissionRequest { granted ->
@@ -52,11 +55,19 @@ internal fun rememberNotificationAction(
     }
     return { intent ->
         when (intent) {
-            NotificationsIntent.Request -> request()
+            NotificationsIntent.Request -> messages.ask(request, rationale, allowLabel)
             NotificationsIntent.BlockedBySystem -> openSettings()
             NotificationsIntent.Nothing -> Unit
         }
     }
+}
+
+/**
+ * Shows [prompt] — or, when the tutor refused it before, first says why in [rationale], whose
+ * [allowLabel] action shows it. Ignoring that snackbar asks nothing.
+ */
+internal fun Messages.ask(prompt: PermissionPrompt, rationale: String, allowLabel: String) {
+    if (prompt.rationaleDue()) show(rationale, allowLabel, prompt.launch) else prompt.launch()
 }
 
 internal fun appNotificationSettings(context: Context): Intent =

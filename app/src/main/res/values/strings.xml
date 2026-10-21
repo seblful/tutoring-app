@@ -34,6 +34,8 @@
     <!-- "Done" closes a picker; "Save" writes. Picking a date saves nothing. -->
     <string name="action_done">Done</string>
     <string name="action_cancel">Cancel</string>
+    <!-- Shows the platform's permission prompt, from a snackbar that has just said why it is needed. -->
+    <string name="action_allow">Allow</string>
     <string name="action_ok">Got it</string>
     <string name="action_back">Back</string>
     <string name="action_archive">Archive</string>
@@ -430,6 +432,8 @@
     <string name="more_subjects">Subjects</string>
     <string name="more_backup">Backup</string>
     <string name="calendar_denied">No access to the calendar</string>
+    <!-- Said before asking again, once the tutor has refused calendar access. Carries action_allow. -->
+    <string name="calendar_rationale">Klas needs calendar access to show lessons in this device\'s calendar</string>
 
     <!-- About: every published app has one, and the version is the first thing a bug report needs. -->
     <string name="about_title">About</string>
@@ -500,6 +504,8 @@
          has refused. It carries action_open_settings. -->
     <string name="settings_notifications_denied">Without permission, notifications cannot arrive</string>
     <string name="action_open_settings">Open settings</string>
+    <!-- Said before asking again, once the tutor has refused notifications. Carries action_allow. -->
+    <string name="settings_notifications_rationale">Lesson reminders and summaries are notifications, so they need your permission</string>
     <!-- No activity behind a system settings action — rare, but real on some OEM builds. -->
     <string name="settings_page_missing">Could not open settings</string>
     <!-- Exact-alarm recovery; notification permission has a shared recovery row. -->

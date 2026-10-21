@@ -58,6 +58,9 @@ The database drives both mirrors; neither writes changes back into Klas.
 - Ask for notifications in Settings and once at first booking (`shouldAskForNotifications`), never at
   first launch. Permission ports report grants/`canAsk`; Compose permission-request helpers show prompts.
   View models carry no Android permission names.
+- After one refusal, Settings explains before asking again: a snackbar whose «Разрешить» shows the prompt
+  (`PermissionPrompt.rationaleDue`, `Messages.ask`). The first-booking ask is skipped then, as that
+  screen is leaving and cannot explain; Settings remains the way back.
 - Settings → Notifications groups lesson reminders and the three summaries. `NotificationDelivery`
   reports global notification permission for every enabled type, including auto-completion reports,
   even when lesson reminders are off. `ReminderDelivery` adds exact-alarm status only for lesson reminders

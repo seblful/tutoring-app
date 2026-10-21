@@ -117,10 +117,13 @@ private fun ClassEditForm(
     // The screen shows the prompt and nothing else. The answer is deliberately unhandled — a denial is not
     // refused, corrected or explained here, because the tutor has just booked a lesson and is on their way
     // out of this screen, and the place that reports reminders not working is the one row in Settings that
-    // can also do something about it.
+    // can also do something about it. For the same reason a tutor who already refused once in Settings is
+    // not asked again here: Android would have the app explain first, and a screen that is leaving cannot.
     val requestNotifications = rememberNotificationPermissionRequest()
     LaunchedEffect(Unit) {
-        viewModel.askForNotifications.stream.collect { requestNotifications() }
+        viewModel.askForNotifications.stream.collect {
+            if (!requestNotifications.rationaleDue()) requestNotifications.launch()
+        }
     }
 
     // A repeating booking that got some of its dates and not others — see [SeriesOutcome]. State rather

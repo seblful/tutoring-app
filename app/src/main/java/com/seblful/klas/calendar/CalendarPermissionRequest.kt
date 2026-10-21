@@ -1,15 +1,10 @@
 package com.seblful.klas.calendar
 
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
+import com.seblful.klas.PermissionPrompt
+import com.seblful.klas.rememberPermissionPrompt
 
-/** hows the platform's calendar prompt when the returned function is called, then calls [onAnswered]. */
+/** The platform's calendar prompt; [onAnswered] is called once the tutor has answered it. */
 @Composable
-fun rememberCalendarPermissionRequest(onAnswered: () -> Unit): () -> Unit {
-    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
-        onAnswered()
-    }
-    return remember(launcher) { { launcher.launch(AndroidCalendarPermission.REQUIRED.toTypedArray()) } }
-}
+fun rememberCalendarPermissionRequest(onAnswered: () -> Unit): PermissionPrompt =
+    rememberPermissionPrompt(AndroidCalendarPermission.REQUIRED) { onAnswered() }
