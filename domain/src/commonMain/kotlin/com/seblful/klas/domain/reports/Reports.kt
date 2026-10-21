@@ -88,12 +88,15 @@ object Reports {
     /**
      * One report line, with its label and amount.
      *
+     * @param id the student, subject or group the line is about — unique within its section, so a list
+     *   can follow a line when the ranking reorders.
      * @param percent null where a share would be a lie — the lines of a section that does not partition
      *   the income (groups) or that measures something else entirely (debts) are not parts of one whole.
      * @param studentId the student to open for a debt line.
      * @param share the amount relative to the largest line in the section, or null when there is no ranking.
      */
     data class Line(
+        val id: Long,
         val label: String,
         val amount: Money,
         val percent: Int? = null,
@@ -233,11 +236,12 @@ object Reports {
                 .takeIf { it.size > 1 }
                 .orEmpty()
                 .map { KindLine(it.kind, it.total, percentOf(it.total, total)) },
-            byGroup = incomeByGroup(inPeriod).ranked(whole = null) { groupNames[it] },
-            bySubject = incomeBySubject(inPeriod).ranked(total) { subjectNames[it] },
-            byStudent = incomeByStudent(inPeriod).ranked(total) { studentNames[it] },
+            byGroup = incomeByGroup(inPeriod).ranked(whole = null, idOf = { it.value }) { groupNames[it] },
+            bySubject = incomeBySubject(inPeriod).ranked(total, idOf = { it.value }) { subjectNames[it] },
+            byStudent = incomeByStudent(inPeriod).ranked(total, idOf = { it.value }) { studentNames[it] },
             debts = debts(knownBalances).map {
                 Line(
+                    id = it.student.value,
                     label = studentNames[it.student].orEmpty(),
                     amount = it.amount,
                     studentId = it.student.value,
@@ -256,13 +260,14 @@ object Reports {
      * @param whole what these lines are parts of, or null when they are not parts of anything — see
      *   [Line.percent].
      */
-    private fun <K> Map<K, Money>.ranked(whole: Money?, nameOf: (K) -> String?): List<Line> {
+    private fun <K> Map<K, Money>.ranked(whole: Money?, idOf: (K) -> Long, nameOf: (K) -> String?): List<Line> {
         val rows = entries
             .filter { it.value.minor > 0 }
             .sortedByDescending { it.value.minor }
         val top = rows.firstOrNull()?.value?.minor?.coerceAtLeast(1)
         return rows.map {
             Line(
+                id = idOf(it.key),
                 label = nameOf(it.key).orEmpty(),
                 amount = it.value,
                 percent = whole?.let { w -> percentOf(it.value, w) },

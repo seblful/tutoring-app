@@ -20,7 +20,7 @@ class ReportCsvTest {
         byStudent = "По ученикам", debts = "Долги", outstanding = "Всего к получению",
     )
 
-    private fun line(amount: Long, label: String) = Reports.Line(label, Money(amount))
+    private fun line(amount: Long, label: String) = Reports.Line(id = 0, label = label, amount = Money(amount))
 
     @Test
     fun `a shared file is named after its period`() {

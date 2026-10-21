@@ -343,6 +343,23 @@ class ReportsTest {
         assertEquals(listOf(1.0f, 0.25f), report.bySubject.map { it.share })
     }
 
+    /** What a list keys a line by, so a row is followed — not matched by position — as the ranking moves. */
+    @Test
+    fun `each line is identified by the student - subject or group it is about`() {
+        val classes = listOf(
+            klass(1, 10, "2026-06-10T10:00:00Z", 4000, groupId = 7),
+            klass(2, 20, "2026-06-11T10:00:00Z", 1000),
+        )
+        val period = ReportPeriod(ReportPeriod.Kind.MONTH, YearMonth(2026, 6))
+
+        val report = reportOf(classes, period)
+
+        assertEquals(listOf(1L, 2L), report.byStudent.map { it.id })
+        assertEquals(listOf(10L, 20L), report.bySubject.map { it.id })
+        assertEquals(listOf(7L), report.byGroup.map { it.id })
+        assertEquals(listOf(1L, 2L), report.debts.map { it.id })
+    }
+
     @Test
     fun `a section of one line offers no bar — nothing to rank it against`() {
         val classes = listOf(klass(1, 10, "2026-06-10T10:00:00Z", 4000))

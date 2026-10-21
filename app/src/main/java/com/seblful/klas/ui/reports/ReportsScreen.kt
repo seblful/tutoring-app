@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -31,11 +30,13 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -46,7 +47,13 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithCache
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawOutline
+import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -84,6 +91,7 @@ import com.seblful.klas.ui.common.outsetRowPress
 import com.seblful.klas.ui.common.plusInset
 import com.seblful.klas.ui.common.rememberCreateDocument
 import com.seblful.klas.ui.common.rememberMessages
+import com.seblful.klas.ui.common.rememberSkeletonPulse
 import com.seblful.klas.ui.common.sectionSurface
 import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.common.text
@@ -91,6 +99,7 @@ import com.seblful.klas.ui.navigation.Arrival
 import com.seblful.klas.ui.theme.KlasIcons
 import dev.zacsweers.metrox.viewmodel.metroViewModel
 import kotlinx.coroutines.flow.first
+import kotlin.math.roundToInt
 
 /** The money screen: what the chosen period earned, where it came from, and who still owes. */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -231,8 +240,9 @@ private fun ReportsSkeleton() {
         Modifier.fillMaxWidth().padding(Spacing.gutter),
         verticalArrangement = Arrangement.spacedBy(Spacing.itemGap),
     ) {
-        com.seblful.klas.ui.common.SkeletonBlock(IncomeCardHeight)
-        ListSkeleton(rows = 3, rowHeight = SectionCardHeight, contentPadding = PaddingValues(0.dp))
+        val pulse = rememberSkeletonPulse()
+        com.seblful.klas.ui.common.SkeletonBlock(IncomeCardHeight, pulse = pulse)
+        ListSkeleton(rows = 3, rowHeight = SectionCardHeight, contentPadding = PaddingValues(0.dp), pulse = pulse)
     }
 }
 
@@ -273,10 +283,10 @@ private fun ReportBody(
         state = listState,
         contentPadding = PaddingValues(Spacing.gutter).plusInset(bottomInset),
     ) {
-        item { IncomeCard(state) }
+        item(key = "income", contentType = "income") { IncomeCard(state) }
 
         if (state.noIncome) {
-            standalone {
+            standalone("no-income") {
                 Text(
                     stringResource(R.string.reports_no_income),
                     style = MaterialTheme.typography.bodyMedium,
@@ -284,15 +294,15 @@ private fun ReportBody(
                 )
             }
         } else {
-            standalone { StatRow(listOf(lessonsStat(state.taught), hoursStat(state.taught.minutes))) }
+            standalone("stats") { StatRow(listOf(lessonsStat(state.taught), hoursStat(state.taught.minutes))) }
             // The one breakdown ordered by time rather than by size, so it is drawn as a timeline.
-            if (!state.trend.isEmpty) standalone { TrendCard(state.trend) }
+            if (!state.trend.isEmpty) standalone("trend") { TrendCard(state.trend) }
             // Where the money came from, by *kind* of teaching — the one split the per-student and
             // per-subject lines below cannot show, since both kinds are mixed inside each of them.
-            if (state.byKind.isNotEmpty()) standalone { KindSplitCard(state.byKind) }
-            rankedSection(byGroupTitle, state.byGroup)
-            rankedSection(bySubjectTitle, state.bySubject)
-            rankedSection(byStudentTitle, state.byStudent)
+            if (state.byKind.isNotEmpty()) standalone("kinds") { KindSplitCard(state.byKind) }
+            rankedSection("group", byGroupTitle, state.byGroup)
+            rankedSection("subject", bySubjectTitle, state.bySubject)
+            rankedSection("student", byStudentTitle, state.byStudent)
         }
 
         // Last, and it has to stay last: the debt digest's tap scrolls to it — see [debtsItemCount].
@@ -300,19 +310,19 @@ private fun ReportBody(
     }
 }
 
-/** An item standing on its own, [Spacing.itemGap] below the one before it. */
-private fun LazyListScope.standalone(content: @Composable () -> Unit) {
-    item { Box(Modifier.padding(top = Spacing.itemGap)) { content() } }
+/** An item standing on its own, [Spacing.itemGap] below the one before it — its [key] is its kind too. */
+private fun LazyListScope.standalone(key: String, content: @Composable () -> Unit) {
+    item(key = key, contentType = key) { Box(Modifier.padding(top = Spacing.itemGap)) { content() } }
 }
 
 /**
  * A ranked breakdown, one list item per line: a year's per-student section can run to hundreds, and as a
  * single card it was composed whole in the frame it scrolled into view.
  */
-private fun LazyListScope.rankedSection(title: String, lines: List<Reports.Line>) {
+private fun LazyListScope.rankedSection(section: String, title: String, lines: List<Reports.Line>) {
     if (lines.isEmpty()) return
-    item(contentType = CARD_HEADING) { CardSlice(first = true) { CardHeading(title) } }
-    itemsIndexed(lines, contentType = { _, _ -> "ranked" }) { index, line ->
+    item(key = "$section/heading", contentType = CARD_HEADING) { CardSlice(first = true) { CardHeading(title) } }
+    itemsIndexed(lines, key = { _, line -> "$section/${line.id}" }, contentType = { _, _ -> "ranked" }) { index, line ->
         CardSlice(last = index == lines.lastIndex, gapAbove = Spacing.itemGap) { RankedLine(line) }
     }
 }
@@ -475,17 +485,22 @@ private fun IncomeTrendChart(trend: Reports.Trend, labelOf: (Reports.Trend.Bar) 
         horizontalArrangement = Arrangement.spacedBy(BarGap),
     ) {
         trend.bars.forEach { bar ->
+            // Against the peak already in hand: [Reports.Trend.shareOf] would find it again for every bar.
+            val share = bar.total.minor.toFloat() / peak.total.minor
+            val fill = if (bar.key == peak.key) filled else filled.copy(alpha = 0.45f)
             Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
-                Box(Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.BottomCenter) {
-                    Box(Modifier.fillMaxSize().clip(BarShape).background(track))
-                    Box(
-                        Modifier
-                            .fillMaxWidth()
-                            .fillMaxHeight(trend.shareOf(bar))
-                            .clip(BarShape)
-                            .background(if (bar.key == peak.key) filled else filled.copy(alpha = 0.45f)),
-                    )
-                }
+                // The track and its fill on one node, with the outlines kept until the bar is resized.
+                Spacer(
+                    Modifier.fillMaxWidth().weight(1f).drawWithCache {
+                        val trackOutline = BarShape.createOutline(size, layoutDirection, this)
+                        val height = (size.height * share).roundToInt().toFloat()
+                        val fillOutline = BarShape.createOutline(Size(size.width, height), layoutDirection, this)
+                        onDrawBehind {
+                            drawOutline(trackOutline, track)
+                            if (height > 0f) translate(top = size.height - height) { drawOutline(fillOutline, fill) }
+                        }
+                    },
+                )
                 // Shrinks rather than clipping: a twelfth of a phone at a large font scale cut «сен» to «се».
                 Text(
                     labelOf(bar),
@@ -563,34 +578,30 @@ private fun RankedLine(line: Reports.Line) {
     }
 }
 
+/** Drawn on one node: it is in every ranked row, and a section can run to hundreds of them. */
 @Composable
 private fun RankedBar(fraction: Float, modifier: Modifier = Modifier) {
-    Box(
-        modifier
-            .height(6.dp)
-            .clip(CircleShape)
-            .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
-    ) {
-        Box(
-            Modifier
-                .fillMaxWidth(fraction.coerceIn(0f, 1f))
-                .fillMaxHeight()
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.primary),
-        )
-    }
+    val track = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+    val fill = MaterialTheme.colorScheme.primary
+    Spacer(
+        modifier.height(6.dp).drawBehind {
+            drawRoundRect(track, cornerRadius = CornerRadius(size.height / 2))
+            val filled = Size((size.width * fraction.coerceIn(0f, 1f)).roundToInt().toFloat(), size.height)
+            drawRoundRect(fill, size = filled, cornerRadius = CornerRadius(filled.minDimension / 2))
+        },
+    )
 }
 
 private fun LazyListScope.debtsSection(state: Reports.Report, onStudentClick: (Long) -> Unit) {
     // «Текущий баланс, за всё время» belongs to the title: it says why this card ignores the period. As
     // the card's first row it sat a full item gap below the heading and read as a caption to the total.
-    item(contentType = CARD_HEADING) {
+    item(key = "debt/heading", contentType = CARD_HEADING) {
         CardSlice(first = true) {
             CardHeading(stringResource(R.string.reports_debts), stringResource(R.string.reports_debts_all_time))
         }
     }
     if (state.debts.isEmpty()) {
-        item {
+        item(key = "debt/none", contentType = "debt-none") {
             CardSlice(last = true, gapAbove = Spacing.itemGap) {
                 Text(
                     stringResource(R.string.reports_no_debts),
@@ -601,7 +612,7 @@ private fun LazyListScope.debtsSection(state: Reports.Report, onStudentClick: (L
         }
         return
     }
-    item {
+    item(key = "debt/total", contentType = "debt-total") {
         CardSlice(gapAbove = Spacing.itemGap) {
             AmountRow(
                 label = stringResource(R.string.reports_total_outstanding),
@@ -618,7 +629,7 @@ private fun LazyListScope.debtsSection(state: Reports.Report, onStudentClick: (L
     //
     // No gap between the rows: each is already a full touch target, and an item gap on top of that spaced
     // the debts twice as far apart as any other rows on the screen.
-    itemsIndexed(state.debts, contentType = { _, _ -> "debt" }) { index, debt ->
+    itemsIndexed(state.debts, key = { _, debt -> "debt/${debt.id}" }, contentType = { _, _ -> "debt" }) { index, debt ->
         CardSlice(last = index == state.debts.lastIndex, gapAbove = if (index == 0) Spacing.itemGap else 0.dp) {
             AmountRow(
                 label = debt.label,
@@ -682,19 +693,21 @@ private fun CardSlice(
         bottomStart = if (last) card.bottomStart else square,
         bottomEnd = if (last) card.bottomEnd else square,
     )
-    // The surface [SectionCard] is, so a sliced card reads as the cards beside it.
-    Surface(
-        modifier = Modifier.fillMaxWidth().padding(top = if (first) Spacing.itemGap else 0.dp),
-        shape = shape,
-        color = MaterialTheme.colorScheme.sectionSurface,
-    ) {
+    // The surface [SectionCard] is, so a sliced card reads as the cards beside it — painted rather than a
+    // `Surface`, which added a node, a clip layer and a semantics group to every row of the report. Nothing
+    // inside needs the clip: a debt's press is clipped to its own shape, inset from the card's edge.
+    CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.onSurface) {
         Column(
-            Modifier.padding(
-                start = Spacing.gutter,
-                end = Spacing.gutter,
-                top = if (first) Spacing.gutter else gapAbove,
-                bottom = if (last) Spacing.gutter else 0.dp,
-            ),
+            Modifier
+                .fillMaxWidth()
+                .padding(top = if (first) Spacing.itemGap else 0.dp)
+                .background(MaterialTheme.colorScheme.sectionSurface, shape)
+                .padding(
+                    start = Spacing.gutter,
+                    end = Spacing.gutter,
+                    top = if (first) Spacing.gutter else gapAbove,
+                    bottom = if (last) Spacing.gutter else 0.dp,
+                ),
             content = content,
         )
     }
