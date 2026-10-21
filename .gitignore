@@ -54,3 +54,6 @@ output.json
 iosApp/*.xcodeproj/
 iosApp/DerivedData/
 *.xcresult/
+
+# Play policy audit scratch output (android-skills:play-policy-insights).
+.scratch/
