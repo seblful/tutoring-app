@@ -67,7 +67,9 @@ The database drives both mirrors; neither writes changes back into Klas.
   (`OFF|ON_TIME|BLOCKED|LATE`); `CalendarDelivery` reports sync permission (`OFF|ON|BLOCKED`). Recovery
   links open the relevant system page or request a grant, and status refreshes on return.
 - Morning agenda, evening unmarked lessons and weekly debts are opt-in workers: lateness is acceptable.
-  Upkeep schedules them, leaves due runs alone and sends nothing for an empty digest.
+  Upkeep schedules them, leaves due runs alone and sends nothing for an empty digest. No worker runs in
+  the foreground: the manifest removes WorkManager's foreground service and `FOREGROUND_SERVICE`, and
+  detekt forbids `ForegroundInfo` until both are restored.
 - Digest times follow the device's wall clock/zone. `ClockChangeReceiver` runs upkeep immediately on a
   clock/timezone change. The evening digest asks about today's lessons, with no action button;
   auto-completion instead assumes they were taught.

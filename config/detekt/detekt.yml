@@ -15,6 +15,9 @@ style:
       - 'android.os.VibrationEffect'
       - 'android.view.HapticFeedbackConstants'
       - 'androidx.compose.runtime.collectAsState'
+      # The manifest removes WorkManager's foreground service and its permission; a worker calling
+      # setForeground would fail at run time. Restore both there before lifting this.
+      - 'androidx.work.ForegroundInfo'
   MaxLineLength:
     active: false
   NewLineAtEndOfFile:

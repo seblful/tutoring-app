@@ -22,6 +22,15 @@
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
     <!--
+      WorkManager declares a foreground service for workers that call `setForeground`. None does — the
+      digests are deferrable and short — so the service and its permission are removed rather than shipped
+      unused. detekt forbids importing `ForegroundInfo` while they are gone.
+    -->
+    <uses-permission
+        android:name="android.permission.FOREGROUND_SERVICE"
+        tools:node="remove" />
+
+    <!--
       No platform backup, on purpose — see res/xml/data_extraction_rules.xml for the argument.
       The app's own JSON export (Ещё → Резервная копия) is how data moves between devices.
     -->
@@ -139,6 +148,11 @@
                 android:value="androidx.startup"
                 tools:node="remove" />
         </provider>
+
+        <!-- See FOREGROUND_SERVICE above. -->
+        <service
+            android:name="androidx.work.impl.foreground.SystemForegroundService"
+            tools:node="remove" />
     </application>
 
 </manifest>
