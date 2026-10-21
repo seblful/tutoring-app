@@ -167,6 +167,32 @@ class TutorWorkflowTest {
         }
     }
 
+    private fun openLesson(flags: Int = 0) =
+        Intent(ApplicationProvider.getApplicationContext(), MainActivity::class.java)
+            .setAction(TrayNavigation.ACTION_OPEN_LESSON)
+            .putExtra(TrayNavigation.EXTRA_CLASS_ID, lessonId)
+            .addFlags(flags)
+
+    @Test
+    fun `a cold start from the tray opens the lesson it names`() {
+        ActivityScenario.launch<MainActivity>(openLesson()).use {
+            waitFor(R.string.class_edit_title)
+        }
+    }
+
+    /**
+     * Up to Android 11, Back finishes the root activity; Recents then relaunches it with the intent that
+     * started the task — here, an old notification's.
+     */
+    @Test
+    fun `a relaunch from Recents does not replay the notification that started the task`() {
+        ActivityScenario.launch<MainActivity>(openLesson(Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY)).use {
+            waitForText("Workflow student")
+            compose.waitForIdle()
+            compose.onNodeWithText(text(R.string.class_edit_title)).assertDoesNotExist()
+        }
+    }
+
     @Test
     fun `notification arrivals preserve the typed booking until Back returns to it`() {
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->

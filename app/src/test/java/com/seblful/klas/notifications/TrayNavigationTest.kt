@@ -68,6 +68,12 @@ class TrayNavigationTest {
     }
 
     @Test
+    fun `a relaunch from Recents goes nowhere in particular, whatever intent it replays`() {
+        assertNull(TrayNavigation.destinationFor(TrayNavigation.ACTION_OPEN_LESSON, classId = 42, fromHistory = true))
+        assertNull(TrayNavigation.destinationFor(TrayNavigation.ACTION_OPEN_DEBTS, classId = 0, fromHistory = true))
+    }
+
+    @Test
     fun `an id that did not survive is refused, not opened as lesson zero`() {
         assertNull(TrayNavigation.destinationFor(TrayNavigation.ACTION_OPEN_LESSON, classId = 0))
         assertNull(TrayNavigation.destinationFor(TrayNavigation.ACTION_OPEN_LESSON, classId = -1))

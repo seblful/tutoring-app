@@ -36,6 +36,7 @@ internal fun OpensWhatTheTrayNames(
             classId = intent.getLongExtra(TrayNavigation.EXTRA_CLASS_ID, 0L),
             epochDay = intent.takeIf { it.hasExtra(TrayNavigation.EXTRA_DAY) }
                 ?.getLongExtra(TrayNavigation.EXTRA_DAY, 0L),
+            fromHistory = intent.flags and Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY != 0,
         )
         when (destination) {
             is TrayNavigation.Destination.Lesson -> navigator.openLessonForm(destination.classId)

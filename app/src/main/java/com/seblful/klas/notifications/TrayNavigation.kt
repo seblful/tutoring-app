@@ -102,8 +102,16 @@ object TrayNavigation {
      * @param epochDay [EXTRA_DAY] as read, or null when the intent has none. A day that is missing or out
      *   of `LocalDate`'s range is read as today: the activity is exported, as the launcher's is, so the
      *   value is not only this app's to write, and a number it cannot be a date must not crash the start.
+     * @param fromHistory the intent carries `FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY`: Recents relaunching a
+     *   task whose activity Back finished (Android 11 and below), with the intent that *started* the task.
+     *   If a notification started it, the tap was answered then, so it must not be replayed.
      */
-    fun destinationFor(action: String?, classId: Long, epochDay: Long? = null): Destination? = when (action) {
+    fun destinationFor(
+        action: String?,
+        classId: Long,
+        epochDay: Long? = null,
+        fromHistory: Boolean = false,
+    ): Destination? = if (fromHistory) null else when (action) {
         ACTION_OPEN_LESSON -> lessonIdOrNull(classId)?.let { Destination.Lesson(it) }
         ACTION_SHOW_LESSON -> lessonIdOrNull(classId)?.let { Destination.LessonOnSchedule(it) }
         ACTION_OPEN_DEBTS -> Destination.Debts
