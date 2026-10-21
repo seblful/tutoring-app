@@ -61,6 +61,15 @@ class KlasNavigator internal constructor(
     }
 
     /**
+     * Closes the nearest screen with [route] and everything above it — a list's back arrow, which leaves with
+     * the detail beside it. The start tab stays.
+     */
+    fun closeFrom(route: Route) {
+        val at = stack.indexOfLast { it.route == route }
+        if (at > 0) stack.removeRange(at, stack.size)
+    }
+
+    /**
      * Switches to [tab] the way the bar does, keeping each tab's screens. External interruptions use
      * [openTabFromTray] to preserve a pushed form.
      *

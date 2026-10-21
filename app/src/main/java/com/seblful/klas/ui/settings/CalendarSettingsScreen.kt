@@ -16,7 +16,7 @@ import com.seblful.klas.ui.common.rememberRejectFeedback
 import dev.zacsweers.metrox.viewmodel.metroViewModel
 
 @Composable
-fun CalendarSettingsScreen(onBack: () -> Unit, viewModel: SettingsViewModel = metroViewModel()) {
+fun CalendarSettingsScreen(onBack: (() -> Unit)?, viewModel: SettingsViewModel = metroViewModel()) {
     SettingsPage(R.string.settings_calendar_title, onBack, viewModel) { page, modifier, bottomInset, messages ->
         val openSettings = rememberOpenSystemSettings(messages, ::appDetailsSettings)
         val denied = stringResource(R.string.calendar_denied)

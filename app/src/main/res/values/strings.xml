@@ -701,6 +701,8 @@
     <string name="people_no_lessons">No lessons yet</string>
     <!-- Beside the People list on a wide screen, before a card is opened. -->
     <string name="people_pick_card">Choose a student or a group</string>
+    <!-- Beside the Settings index on a wide screen, before a page is opened. -->
+    <string name="settings_pick_page">Choose a section</string>
 
     <plurals name="students_count">
         <item quantity="one">%1$d student</item>

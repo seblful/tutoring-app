@@ -38,9 +38,9 @@ import com.seblful.klas.ui.navigation.KlasGraph
 import com.seblful.klas.ui.navigation.OpensWhatTheTrayNames
 import com.seblful.klas.ui.navigation.Screen
 import com.seblful.klas.ui.navigation.TopDestination
-import com.seblful.klas.ui.navigation.cardBesideList
 import com.seblful.klas.ui.navigation.crossFade
 import com.seblful.klas.ui.navigation.klasTabs
+import com.seblful.klas.ui.navigation.listBesideDetail
 import com.seblful.klas.ui.navigation.owningTab
 import com.seblful.klas.ui.navigation.rememberKlasNavigator
 import com.seblful.klas.ui.onboarding.OnboardingScreen
@@ -107,12 +107,13 @@ private fun MainApp() {
     val navigator = rememberKlasNavigator()
     val backStack = navigator.backStack
 
-    // The same pane directive decides both whether a card sits beside the People list and, below, whether
-    // the tabs stay up for it.
+    // The same pane directive decides both whether a detail sits beside its list and, below, whether the
+    // tabs stay up for it: they do beside a tab (People), not beside a pushed list (Settings).
     val directive = calculatePaneScaffoldDirective(currentWindowAdaptiveInfoV2())
     val listDetail = rememberListDetailSceneStrategy<Screen>(directive = directive)
-    val besideList = directive.maxHorizontalPartitions > 1 && cardBesideList(backStack)
-    val onTab = TopDestination.of(navigator.top.route) != null || besideList
+    val besideTab = directive.maxHorizontalPartitions > 1 &&
+        listBesideDetail(backStack)?.let(TopDestination::of) != null
+    val onTab = TopDestination.of(navigator.top.route) != null || besideTab
 
     // **Which tab is marked is not "which route is showing".** Asked the second way, the answer while
     // anything is pushed is *none of them* — so the instant a form opened, every glyph in the bar fell

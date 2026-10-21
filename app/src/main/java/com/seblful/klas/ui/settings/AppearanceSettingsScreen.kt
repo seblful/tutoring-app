@@ -19,7 +19,7 @@ import com.seblful.klas.ui.theme.dynamicColorAvailable
 import dev.zacsweers.metrox.viewmodel.metroViewModel
 
 @Composable
-fun AppearanceSettingsScreen(onBack: () -> Unit, viewModel: SettingsViewModel = metroViewModel()) {
+fun AppearanceSettingsScreen(onBack: (() -> Unit)?, viewModel: SettingsViewModel = metroViewModel()) {
     SettingsPage(R.string.settings_appearance_title, onBack, viewModel) { page, modifier, bottomInset, _ ->
         AppearanceSettingsContent(page.settings, viewModel::update, dynamicColorAvailable, modifier, bottomInset)
     }

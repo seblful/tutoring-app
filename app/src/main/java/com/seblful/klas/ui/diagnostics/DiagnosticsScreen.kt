@@ -38,7 +38,7 @@ import dev.zacsweers.metrox.viewmodel.metroViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DiagnosticsScreen(
-    onBack: () -> Unit,
+    onBack: (() -> Unit)?,
     viewModel: DiagnosticsViewModel = metroViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()

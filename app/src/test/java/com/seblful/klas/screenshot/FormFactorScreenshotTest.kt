@@ -93,10 +93,10 @@ class FormFactorScreenshotTest {
     @Config(qualifiers = "en-rUS-w1920dp-h1080dp-land-mdpi")
     fun desktop() = tour("desktop")
 
-    // Ends on the card: a tab tapped before its bar hides and returns may still show a press, so no capture
-    // follows a return to the tabs.
+    // A tab tapped before its bar hides and returns may still show a press, so no capture with the tabs
+    // showing follows a return to them: the last one is a pushed page, which hides them.
     private fun tour(formFactor: String) {
-        ActivityScenario.launch(MainActivity::class.java).use {
+        ActivityScenario.launch(MainActivity::class.java).use { scenario ->
             // The schedule is not captured: its day is one column at any width, and its «now» line arrives
             // on its own flow, at a moment Robolectric does not pin down.
             waitFor(string(R.string.class_status_in_progress))
@@ -114,7 +114,21 @@ class FormFactorScreenshotTest {
             // «Earned» is the card's own; «Owes» is on the list beside it too.
             waitFor(string(R.string.stat_earned))
             capture(formFactor, "people-student")
+
+            // Back first: on a phone the card hides the bar, so More is only there under it.
+            scenario.onActivity { it.onBackPressedDispatcher.onBackPressed() }
+            settle()
+            tab(R.string.nav_more)
+            click(R.string.settings_title)
+            click(R.string.settings_lessons_title)
+            waitFor(string(R.string.settings_autocomplete))
+            capture(formFactor, "settings-lessons")
         }
+    }
+
+    private fun click(@StringRes label: Int) {
+        compose.onAllNodesWithText(string(label)).filterToOne(hasClickAction()).performClick()
+        settle()
     }
 
     private fun capture(formFactor: String, screen: String) {

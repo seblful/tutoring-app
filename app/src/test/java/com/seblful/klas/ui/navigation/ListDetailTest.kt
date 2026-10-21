@@ -1,8 +1,7 @@
 package com.seblful.klas.ui.navigation
 
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
+import org.junit.Assert.assertNull
 import org.junit.Test
 
 class ListDetailTest {
@@ -29,21 +28,60 @@ class ListDetailTest {
         navigator.navigate(Routes.StudentDetail(1))
 
         assertEquals(listOf("Schedule", "People", "GroupDetail", "StudentDetail"), stack())
-        assertTrue(cardBesideList(navigator.backStack))
+        assertEquals(Routes.People, listBesideDetail(navigator.backStack))
     }
 
     @Test
     fun `a card is beside the list only with the list under it`() {
         navigator.navigate(Routes.StudentDetail(1))
-        assertFalse("opened from the schedule", cardBesideList(navigator.backStack))
+        assertNull("opened from the schedule", listBesideDetail(navigator.backStack))
 
         navigator.navigateToTab(TopDestination.PEOPLE)
-        assertFalse("the list alone", cardBesideList(navigator.backStack))
+        assertNull("the list alone", listBesideDetail(navigator.backStack))
 
         navigator.replaceAbove(Routes.People, Routes.StudentDetail(1))
-        assertTrue(cardBesideList(navigator.backStack))
+        assertEquals(Routes.People, listBesideDetail(navigator.backStack))
 
         navigator.navigate(Routes.classEdit(0, studentId = 1))
-        assertFalse("a form over the card owns the window", cardBesideList(navigator.backStack))
+        assertNull("a form over the card owns the window", listBesideDetail(navigator.backStack))
+    }
+
+    @Test
+    fun `a settings page opened from the index replaces the one beside it`() {
+        navigator.navigateToTab(TopDestination.MORE)
+        navigator.navigate(Routes.Settings)
+        navigator.replaceAbove(Routes.Settings, Routes.LessonSettings)
+
+        navigator.replaceAbove(Routes.Settings, Routes.Diagnostics)
+
+        assertEquals(listOf("Schedule", "More", "Settings", "Diagnostics"), stack())
+        assertEquals(Routes.Settings, listBesideDetail(navigator.backStack))
+    }
+
+    @Test
+    fun `a detail is beside only its own list`() {
+        navigator.navigateToTab(TopDestination.PEOPLE)
+        navigator.navigate(Routes.LessonSettings)
+
+        assertNull(listBesideDetail(navigator.backStack))
+    }
+
+    @Test
+    fun `the index's back arrow leaves Settings with the page beside it`() {
+        navigator.navigateToTab(TopDestination.MORE)
+        navigator.navigate(Routes.Settings)
+        navigator.replaceAbove(Routes.Settings, Routes.CalendarSettings)
+
+        navigator.closeFrom(Routes.Settings)
+
+        assertEquals(listOf("Schedule", "More"), stack())
+    }
+
+    @Test
+    fun `closing a list that is not open keeps the stack`() {
+        navigator.closeFrom(Routes.Settings)
+        navigator.closeFrom(Routes.Schedule)
+
+        assertEquals(listOf("Schedule"), stack())
     }
 }

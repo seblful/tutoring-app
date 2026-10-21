@@ -32,7 +32,7 @@ import com.seblful.klas.ui.common.currencyChoices
 import dev.zacsweers.metrox.viewmodel.metroViewModel
 
 @Composable
-fun LessonSettingsScreen(onBack: () -> Unit, viewModel: SettingsViewModel = metroViewModel()) {
+fun LessonSettingsScreen(onBack: (() -> Unit)?, viewModel: SettingsViewModel = metroViewModel()) {
     val backlog by viewModel.pendingSweep.collectAsStateWithLifecycle()
     SettingsPage(R.string.settings_lessons_title, onBack, viewModel) { page, modifier, bottomInset, messages ->
         val settings = page.settings

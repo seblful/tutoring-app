@@ -27,7 +27,7 @@ private fun SettingsIndexPreview() = PreviewSurface {
     SettingsIndex(
         AppSettings(), NotificationDelivery.BLOCKED, ReminderDelivery.BLOCKED, CalendarDelivery.OFF,
         SettingsNavigation({}, {}, {}, {}, {}),
-        Modifier.height(640.dp),
+        modifier = Modifier.height(640.dp),
     )
 }
 

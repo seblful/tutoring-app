@@ -833,6 +833,8 @@
     <string name="people_no_lessons">Занятий пока нет</string>
     <!-- Beside the People list on a wide screen, before a card is opened. -->
     <string name="people_pick_card">Выберите ученика или группу</string>
+    <!-- Beside the Settings index on a wide screen, before a page is opened. -->
+    <string name="settings_pick_page">Выберите раздел</string>
 
     <plurals name="students_count">
         <item quantity="one">%1$d ученик</item>

@@ -1,9 +1,11 @@
 package com.seblful.klas.ui.navigation
 
+import androidx.annotation.StringRes
 import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
 import androidx.compose.material3.adaptive.navigation3.ListDetailSceneStrategy
 import androidx.compose.material3.adaptive.navigation3.LocalListDetailSceneScope
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.DEFAULT_ARGS_KEY
 import androidx.lifecycle.HasDefaultViewModelProviderFactory
@@ -37,6 +39,7 @@ import com.seblful.klas.ui.settings.AppearanceSettingsScreen
 import com.seblful.klas.ui.settings.CalendarSettingsScreen
 import com.seblful.klas.ui.settings.LessonSettingsScreen
 import com.seblful.klas.ui.settings.NotificationSettingsScreen
+import com.seblful.klas.ui.settings.SettingsCategory
 import com.seblful.klas.ui.settings.SettingsNavigation
 import com.seblful.klas.ui.settings.SettingsScreen
 import com.seblful.klas.ui.students.StudentDetailScreen
@@ -86,11 +89,11 @@ class KlasGraph(
             Routes.Subjects -> SubjectsScreen(onBack = back)
             Routes.Backup -> BackupScreen(onBack = back)
             Routes.Settings -> Settings()
-            Routes.LessonSettings -> LessonSettingsScreen(onBack = back)
-            Routes.NotificationSettings -> NotificationSettingsScreen(onBack = back)
-            Routes.CalendarSettings -> CalendarSettingsScreen(onBack = back)
-            Routes.AppearanceSettings -> AppearanceSettingsScreen(onBack = back)
-            Routes.Diagnostics -> DiagnosticsScreen(onBack = back)
+            Routes.LessonSettings -> LessonSettingsScreen(onBack = back.takeUnless { besideList() })
+            Routes.NotificationSettings -> NotificationSettingsScreen(onBack = back.takeUnless { besideList() })
+            Routes.CalendarSettings -> CalendarSettingsScreen(onBack = back.takeUnless { besideList() })
+            Routes.AppearanceSettings -> AppearanceSettingsScreen(onBack = back.takeUnless { besideList() })
+            Routes.Diagnostics -> DiagnosticsScreen(onBack = back.takeUnless { besideList() })
             // About is where the app makes the "your data is on this device and nowhere else" promise, which
             // is also where its one obligation is stated — so the way to act on it is here.
             Routes.About -> AboutScreen(onBack = back, onBackup = { go(Routes.Backup) })
@@ -132,7 +135,11 @@ class KlasGraph(
             onAddStudent = { go(Routes.StudentAdd) },
             onGroupClick = { navigator.replaceAbove(Routes.People, Routes.GroupDetail(it)) },
             onAddGroup = { go(Routes.GroupAdd) },
-            open = openBesideList(navigator.backStack),
+            open = when (val card = openBeside(Routes.People, navigator.backStack)) {
+                is Routes.StudentDetail -> Assignee.Student(card.id)
+                is Routes.GroupDetail -> Assignee.Group(card.id)
+                else -> null
+            },
         )
     }
 
@@ -215,34 +222,43 @@ class KlasGraph(
         )
     }
 
+    /** The list of the Settings pane: a page it opens replaces the one shown beside it. */
     @Composable
     private fun Settings() {
+        val open = openBeside(Routes.Settings, navigator.backStack)
+        val page: (SettingsCategory) -> Unit = { navigator.replaceAbove(Routes.Settings, SettingsPages.getValue(it)) }
         SettingsScreen(
-            onBack = back,
+            onBack = { navigator.closeFrom(Routes.Settings) },
             navigation = SettingsNavigation(
-                lessons = { go(Routes.LessonSettings) },
-                notifications = { go(Routes.NotificationSettings) },
-                calendar = { go(Routes.CalendarSettings) },
-                appearance = { go(Routes.AppearanceSettings) },
-                diagnostics = { go(Routes.Diagnostics) },
+                lessons = { page(SettingsCategory.LESSONS) },
+                notifications = { page(SettingsCategory.NOTIFICATIONS) },
+                calendar = { page(SettingsCategory.CALENDAR) },
+                appearance = { page(SettingsCategory.APPEARANCE) },
+                diagnostics = { page(SettingsCategory.DIAGNOSTICS) },
             ),
+            open = SettingsPages.entries.firstOrNull { it.value == open }?.key,
         )
     }
 }
 
-/** The card opened from the People list, while it is shown beside the list; null otherwise. */
+/** Where each row of the Settings index leads. */
+private val SettingsPages: Map<SettingsCategory, Route> = mapOf(
+    SettingsCategory.APPEARANCE to Routes.AppearanceSettings,
+    SettingsCategory.NOTIFICATIONS to Routes.NotificationSettings,
+    SettingsCategory.LESSONS to Routes.LessonSettings,
+    SettingsCategory.CALENDAR to Routes.CalendarSettings,
+    SettingsCategory.DIAGNOSTICS to Routes.Diagnostics,
+)
+
+/** The detail opened from [list], while it is shown beside the list; null otherwise. */
 @OptIn(ExperimentalMaterial3AdaptiveApi::class)
 @Composable
-private fun openBesideList(stack: List<Screen>): Assignee? {
+private fun openBeside(list: Route, stack: List<Screen>): Route? {
     if (LocalListDetailSceneScope.current == null) return null
-    return when (val card = stack.getOrNull(stack.indexOfLast { it.route == Routes.People } + 1)?.route) {
-        is Routes.StudentDetail -> Assignee.Student(card.id)
-        is Routes.GroupDetail -> Assignee.Group(card.id)
-        else -> null
-    }
+    return stack.getOrNull(stack.indexOfLast { it.route == list } + 1)?.route
 }
 
-/** Whether this card shares the window with the list it was opened from. */
+/** Whether this detail shares the window with the list it was opened from. */
 @OptIn(ExperimentalMaterial3AdaptiveApi::class)
 @Composable
 private fun besideList(): Boolean = LocalListDetailSceneScope.current != null
@@ -254,37 +270,41 @@ private data class CreatedStudent(val id: Long)
 private data class CreatedGroup(val id: Long)
 
 /**
- * Where a route sits in a list-detail layout: People is the list, and the student and group cards it opens are
- * the detail beside it once the window has room for two panes. Opened from anywhere else, a card has no list
- * under it and fills the window as before.
+ * The list this route is the detail of, once the window has room for two panes: the student and group cards
+ * beside People, each settings page beside the Settings index. Opened from anywhere else, a detail has no list
+ * under it and fills the window. Null for a route that is not a detail.
  */
-private enum class Pane { LIST, DETAIL }
-
-private fun Route.pane(): Pane? = when (this) {
-    Routes.People -> Pane.LIST
-    is Routes.StudentDetail, is Routes.GroupDetail -> Pane.DETAIL
+private fun Route.list(): Route? = when (this) {
+    is Routes.StudentDetail, is Routes.GroupDetail -> Routes.People
+    in SettingsPages.values -> Routes.Settings
     else -> null
 }
 
+// Keyed by the list, so a detail joins only its own list's scene.
 @OptIn(ExperimentalMaterial3AdaptiveApi::class)
-private fun Route.paneMetadata(): Map<String, Any> = when (pane()) {
-    Pane.LIST -> ListDetailSceneStrategy.listPane(detailPlaceholder = { PickPerson() })
-    Pane.DETAIL -> ListDetailSceneStrategy.detailPane()
-    null -> emptyMap()
+private fun Route.paneMetadata(): Map<String, Any> = when (this) {
+    Routes.People -> ListDetailSceneStrategy.listPane(sceneKey = this) {
+        PickDetail(R.string.people_pick_card, KlasIcons.Outlined.Group)
+    }
+    Routes.Settings -> ListDetailSceneStrategy.listPane(sceneKey = this) {
+        PickDetail(R.string.settings_pick_page, KlasIcons.Outlined.Settings)
+    }
+    else -> list()?.let { ListDetailSceneStrategy.detailPane(sceneKey = it) }.orEmpty()
 }
 
 /**
- * Whether the top of [backStack] is a card with the list it came from under it — what a two-pane window shows
- * side by side, so the tabs stay with the list.
+ * The list under the detail on top of [backStack] — what a two-pane window shows beside it — or null when the
+ * top is not a detail opened from its own list. A detail opened from another of the same list's details stacks
+ * on it, beside the same list.
  */
-fun cardBesideList(backStack: List<Screen>): Boolean {
-    val list = backStack.indexOfLast { it.route.pane() != Pane.DETAIL }
-    return list in 0 until backStack.lastIndex && backStack[list].route.pane() == Pane.LIST
+fun listBesideDetail(backStack: List<Screen>): Route? {
+    val list = backStack.last().route.list() ?: return null
+    return backStack.dropLastWhile { it.route.list() == list }.lastOrNull()?.route?.takeIf { it == list }
 }
 
 @Composable
-private fun PickPerson() {
-    EmptyState(title = stringResource(R.string.people_pick_card), icon = KlasIcons.Outlined.Group)
+private fun PickDetail(@StringRes title: Int, icon: ImageVector) {
+    EmptyState(title = stringResource(title), icon = icon)
 }
 
 /**

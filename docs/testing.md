@@ -51,7 +51,7 @@ Roborazzi plugin generate tests; no handwritten test class is needed.
 
 `FormFactorScreenshotTest` is the other kind: the real app, seeded with the demo tutor, on a phone, an
 unfolded foldable, a tablet and a desktop window — bar or rail, People alone and with a card beside it,
-homework in columns. It ends on the card: a tab tapped before its bar hides and returns may still show a press. Its goldens are recorded and compared by the same tasks.
+homework in columns, and a settings page beside the index. It ends on the card: a tab tapped before its bar hides and returns may still show a press. Its goldens are recorded and compared by the same tasks.
 
 Review PNG changes and commit them with the UI change. Failures leave `*_compare.png` (golden | diff |
 new) in `app/build/outputs/roborazzi/`; CI uploads `screenshot-diffs`. Plain unit runs compose previews

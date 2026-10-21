@@ -14,7 +14,7 @@ import com.seblful.klas.ui.common.Spacing
 import dev.zacsweers.metrox.viewmodel.metroViewModel
 
 @Composable
-fun NotificationSettingsScreen(onBack: () -> Unit, viewModel: SettingsViewModel = metroViewModel()) {
+fun NotificationSettingsScreen(onBack: (() -> Unit)?, viewModel: SettingsViewModel = metroViewModel()) {
     SettingsPage(R.string.settings_notifications_title, onBack, viewModel) { page, modifier, bottomInset, messages ->
         val notify = rememberNotificationAction(viewModel, messages)
         val openExactAlarms = rememberOpenSystemSettings(messages, ::exactAlarmSettings)
