@@ -82,6 +82,8 @@ private enum class GroupTab(val labelRes: Int, val icon: ImageVector) {
 
 private data class GroupNavigation(
     val back: () -> Unit,
+    /** Whether the bar draws [back] as an arrow; not beside the list the card was opened from. */
+    val backArrow: Boolean,
     val edit: () -> Unit,
     val member: (Long) -> Unit,
     val lesson: (Long) -> Unit,
@@ -92,6 +94,7 @@ private data class GroupNavigation(
  * A group's card: what it is taught and for how much, how much of it has happened, who is in it and
  * which lessons they attended.
  *
+ * @param backArrow false beside the People list the card was opened from: the list is the way to another.
  * @param onEdit opens the group form — the only place a group's roster, subject or rate changes.
  * @param onMemberClick opens a member's own card, which is where their money lives.
  */
@@ -104,15 +107,16 @@ fun GroupDetailScreen(
     viewModel: GroupDetailViewModel = assistedMetroViewModel(),
     onBookLesson: () -> Unit = {},
     initialHomework: Boolean = false,
+    backArrow: Boolean = true,
 ) {
     // As the student's card: `GroupDetailState()` is an empty group rather than an unread one, so the
     // wait is its own screen instead of a card claiming no members and no lessons. See [Loadable].
     when (val screenState = viewModel.state.collectAsStateWithLifecycle().value) {
-        Loadable.Loading -> LoadingDetailScreen(onBack)
+        Loadable.Loading -> LoadingDetailScreen(onBack.takeIf { backArrow })
         is Loadable.Ready ->
             GroupCard(
                 screenState.value, viewModel,
-                GroupNavigation(onBack, onEdit, onMemberClick, onLessonClick, onBookLesson), initialHomework,
+                GroupNavigation(onBack, backArrow, onEdit, onMemberClick, onLessonClick, onBookLesson), initialHomework,
             )
     }
 }
@@ -158,7 +162,7 @@ private fun GroupCard(
     // collapsing title, so the two cards read as one pattern.
     KlasScreen(
         title = group?.name,
-        onBack = navigation.back,
+        onBack = navigation.back.takeIf { navigation.backArrow },
         titleSize = TitleSize.Large,
         messages = messages,
         actions = {

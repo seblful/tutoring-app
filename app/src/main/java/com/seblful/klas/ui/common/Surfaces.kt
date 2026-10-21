@@ -20,6 +20,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.seblful.klas.ui.theme.KlasIcons
@@ -47,21 +48,23 @@ val ColorScheme.sectionSurface: Color get() = surfaceContainerHighest
  *
  * @param dimmed for an item whose content no longer counts — a cancelled lesson. It stays fully
  * legible (it is still a record of something) but stops competing with the lessons that are on.
+ * @param selected for the item open beside its list, tinted as the rail marks its tab.
  */
 @Composable
 fun ContentCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     dimmed: Boolean = false,
+    selected: Boolean = false,
     content: @Composable ColumnScope.() -> Unit,
 ) {
+    val surface = if (selected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.itemSurface
     Card(
         onClick = onClick,
-        modifier = modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.itemSurface
-                .copy(alpha = if (dimmed) DimmedAlpha else 1f),
-        ),
+        modifier = modifier
+            .fillMaxWidth()
+            .then(if (selected) Modifier.semantics { this.selected = true } else Modifier),
+        colors = CardDefaults.cardColors(containerColor = surface.copy(alpha = if (dimmed) DimmedAlpha else 1f)),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
         Column(

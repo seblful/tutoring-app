@@ -85,7 +85,8 @@ in [the version catalog](../gradle/libs.versions.toml).
   `AppWorkerFactory` with nested `@AssistedFactory`/`@WorkerKey`, and the activity provides the view-model
   factory. metrox's `AppComponentFactory` needs API 28; minSdk is 24.
 - View models contribute via `@ViewModelKey` and `@ContributesIntoMap` and use `metroViewModel()`.
-  Navigation arguments require assisted `SavedStateHandle`, a nested factory and `assistedMetroViewModel()`.
+  Navigation arguments require assisted `SavedStateHandle`, a nested factory and `routeViewModel(route)`, which
+  hands the route's properties to the handle under their names (Navigation 3 does not).
 - Test graphs replace bindings with `excludes` (`StoreGraph`). `KlasGraphTest` checks runtime discovery
   of view models, workers and manifest receivers.
 

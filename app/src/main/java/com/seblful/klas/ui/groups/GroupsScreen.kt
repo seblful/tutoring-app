@@ -40,6 +40,7 @@ fun GroupsList(
     onAddGroup: () -> Unit,
     modifier: Modifier = Modifier,
     bottomInset: PaddingValues = PaddingValues(),
+    openId: Long? = null,
 ) {
     val rows = when (state) {
         Loadable.Loading -> {
@@ -70,14 +71,24 @@ fun GroupsList(
         verticalArrangement = Arrangement.spacedBy(Spacing.itemGap),
     ) {
         items(rows, key = { it.group.id }) { row ->
-            GroupCard(row, onClick = { onGroupClick(row.group.id) }, modifier = animateInPlace())
+            GroupCard(
+                row,
+                onClick = { onGroupClick(row.group.id) },
+                modifier = animateInPlace(),
+                selected = row.group.id == openId,
+            )
         }
     }
 }
 
 /** One group on the list: what it is taught, how many are in it, and when it next meets. */
 @Composable
-internal fun GroupCard(row: GroupRow, onClick: () -> Unit, modifier: Modifier = Modifier) {
+internal fun GroupCard(
+    row: GroupRow,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    selected: Boolean = false,
+) {
     PeopleCard(
         title = row.group.name,
         // The rate is the group page's: it is not what a group is picked by. A row of monograms was here too —
@@ -94,6 +105,7 @@ internal fun GroupCard(row: GroupRow, onClick: () -> Unit, modifier: Modifier = 
         onClick = onClick,
         leading = { IconAvatar(KlasIcons.Outlined.Groups) },
         modifier = modifier,
+        selected = selected,
     ) {
         if (row.group.archived) ArchivedBadge()
     }

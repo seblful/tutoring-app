@@ -59,6 +59,8 @@ import com.seblful.klas.ui.theme.KlasIcons
  * whose body is swapped for another *without scrolling*. The bar keeps count of how far content has
  * scrolled beneath it, and a page that opens at its top has scrolled nowhere: without this, «Группы»
  * opened under a bar (and a [ScreenHeader]) still tinted for the students list scrolled a moment ago.
+ * @param maxContentWidth how wide the body may grow: [MaxContentWidth] for a column of rows, more for a body
+ * that lays its items out in columns of its own.
  * @param content given the modifier for the screen's top-level scrollable — the top and side insets and the
  * cap applied — and the **bottom inset**, which the body owns: a list adds it to its `contentPadding`
  * (see [plusInset]) and a scrolling column pads by it *inside* its scroll, so rows pass under the system
@@ -77,6 +79,7 @@ fun KlasScreen(
     messages: Messages? = null,
     imeAware: Boolean = false,
     page: Any? = null,
+    maxContentWidth: Dp = MaxContentWidth,
     actions: @Composable RowScope.() -> Unit = {},
     floatingActionButton: @Composable () -> Unit = {},
     content: @Composable (modifier: Modifier, bottomInset: PaddingValues) -> Unit,
@@ -221,7 +224,7 @@ fun KlasScreen(
                     .then(if (imeAware) Modifier.imePadding() else Modifier)
                     // The bottom is the body's now (`bottomInset`); nothing under it pads by it again.
                     .consumeWindowInsets(insets)
-                    .constrainedContent(),
+                    .constrainedContent(maxContentWidth),
                 bottomInset,
             )
         }

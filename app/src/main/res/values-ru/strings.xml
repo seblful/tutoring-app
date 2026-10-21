@@ -837,6 +837,8 @@
     <string name="people_next_weekday">%1$s %2$s</string>
     <string name="people_last_lesson">Последний раз %1$s</string>
     <string name="people_no_lessons">Занятий пока нет</string>
+    <!-- Beside the People list on a wide screen, before a card is opened. -->
+    <string name="people_pick_card">Выберите ученика или группу</string>
 
     <plurals name="students_count">
         <item quantity="one">%1$d ученик</item>

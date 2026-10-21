@@ -2,9 +2,6 @@ package com.seblful.klas.ui.navigation
 
 import androidx.annotation.StringRes
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.navigation.NavBackStackEntry
-import androidx.navigation.NavDestination
-import androidx.navigation.NavDestination.Companion.hasRoute
 import com.seblful.klas.R
 import com.seblful.klas.ui.students.StudentTask
 import com.seblful.klas.ui.theme.KlasIcons
@@ -12,66 +9,73 @@ import kotlinx.datetime.LocalDate
 import kotlinx.serialization.Serializable
 
 /**
+ * A destination in the app. Sealed, so the graph's `when` over it is checked for a screen per route and the
+ * back stack serializes without reflection.
+ */
+@Serializable
+sealed interface Route
+
+/**
  * Every destination in the app, as a type: navigating to one takes an instance, and its arguments are its
  * properties. Their names (`id`, `group`, `day`) are also the keys a view model reads them under from its
- * `SavedStateHandle`.
+ * `SavedStateHandle` (see `routeViewModel`).
  */
 object Routes {
     @Serializable
-    data object Schedule
+    data object Schedule : Route
 
     /** Students and groups, as one tab with two views inside it. */
     @Serializable
-    data object People
+    data object People : Route
 
     /** Every student's and group's homework: what is current, and the archive of what is done. */
     @Serializable
-    data object Homework
+    data object Homework : Route
 
     @Serializable
-    data object Reports
+    data object Reports : Route
 
     @Serializable
-    data object More
+    data object More : Route
 
     @Serializable
-    data object Subjects
+    data object Subjects : Route
 
     @Serializable
-    data object Backup
+    data object Backup : Route
 
     @Serializable
-    data object Settings
+    data object Settings : Route
 
     @Serializable
-    data object LessonSettings
+    data object LessonSettings : Route
 
     @Serializable
-    data object NotificationSettings
+    data object NotificationSettings : Route
 
     @Serializable
-    data object CalendarSettings
+    data object CalendarSettings : Route
 
     @Serializable
-    data object AppearanceSettings
+    data object AppearanceSettings : Route
 
     @Serializable
-    data object Diagnostics
+    data object Diagnostics : Route
 
     @Serializable
-    data object About
+    data object About : Route
 
     @Serializable
-    data object StudentAdd
+    data object StudentAdd : Route
 
     @Serializable
-    data class StudentAddForSubject(val subject: Long = 0)
+    data class StudentAddForSubject(val subject: Long = 0) : Route
 
     @Serializable
-    data class StudentDetail(val id: Long, val task: StudentTask? = null)
+    data class StudentDetail(val id: Long, val task: StudentTask? = null) : Route
 
     @Serializable
-    data object GroupAdd
+    data object GroupAdd : Route
 
     /**
      * A group's **card** — who is in it, what it has been taught, what its rate has been. Editing it
@@ -79,18 +83,18 @@ object Routes {
      * which answered how to change a group and nothing about how one is going.
      */
     @Serializable
-    data class GroupDetail(val id: Long, val setHomework: Boolean = false)
+    data class GroupDetail(val id: Long, val setHomework: Boolean = false) : Route
 
     /** The group form for an existing group — the only place its roster, subject or rate changes. */
     @Serializable
-    data class GroupEdit(val id: Long)
+    data class GroupEdit(val id: Long) : Route
 
     /**
      * id = 0 means "new class". [group] (non-zero) opens the form already booking for that group —
      * [student] preselects an individual. Profile entry uses the same conflict-checked form as Schedule.
      */
     @Serializable
-    data class ClassEdit(val id: Long, val group: Long = 0, val day: String? = null, val student: Long = 0)
+    data class ClassEdit(val id: Long, val group: Long = 0, val day: String? = null, val student: Long = 0) : Route
 
     /**
      * [ClassEdit] with its day as a date. A string in the route because navigation carries a string with
@@ -118,8 +122,9 @@ object Routes {
  * whole apparatus existed because two tabs were showing one idea; now they are one tab with a
  * segmented control inside it, and the list is simply [entries].
  */
+@Serializable
 enum class TopDestination(
-    val route: Any,
+    val route: Route,
     @param:StringRes val labelRes: Int,
     /** Drawn while this is the current tab. */
     val icon: ImageVector,
@@ -142,9 +147,8 @@ enum class TopDestination(
     ;
 
     companion object {
-        /** The tab [destination] is, or null for a screen pushed over one. */
-        fun of(destination: NavDestination): TopDestination? =
-            entries.firstOrNull { destination.hasRoute(it.route::class) }
+        /** The tab [route] is, or null for a screen pushed over one. */
+        fun of(route: Route): TopDestination? = entries.firstOrNull { it.route == route }
     }
 }
 
@@ -152,5 +156,5 @@ enum class TopDestination(
  * The tab that owns whatever is on top of [backStack], or null when none is on it: **the deepest entry
  * that is a tab**. A screen pushed over a tab belongs to the tab it was opened from.
  */
-fun owningTab(backStack: List<NavBackStackEntry>): TopDestination? =
-    backStack.asReversed().firstNotNullOfOrNull { TopDestination.of(it.destination) }
+fun owningTab(backStack: List<Screen>): TopDestination? =
+    backStack.asReversed().firstNotNullOfOrNull { TopDestination.of(it.route) }

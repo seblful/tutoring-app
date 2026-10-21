@@ -163,7 +163,7 @@ fun OnboardingScreen(
         Step.SUBJECTS -> Step.LOCALE
         Step.STUDENT -> Step.SUBJECTS
     }
-    // The system back, too: the screen sits outside the `NavHost`, so without this the gesture on step 2
+    // The system back, too: the screen sits outside the `NavDisplay`, so without this the gesture on step 2
     // left the app mid-setup while the arrow above went back a step.
     BackHandler(enabled = previousStep != null) { previousStep?.let { step = it } }
 

@@ -26,7 +26,10 @@ Build screens from shared state and controls. Feature rules belong in the domain
 
 ## Layout and controls
 
-- One `KlasScreen`/`Scaffold` owns insets, width cap, snackbar, back arrow and scroll behavior.
+- One `KlasScreen`/`Scaffold` owns insets, width cap, snackbar, back arrow and scroll behavior. The cap
+  (`MaxContentWidth`, 600 dp) holds a column of rows to a readable width; a body that lays items out in
+  columns lifts it (`maxContentWidth`) — homework cards are an adaptive grid — while `SegmentedPage`
+  keeps its tabs at the cap.
   `ScreenHeader` joins pinned controls to the bar: page-colored at rest, tinted together on scroll,
   no divider. Pass `page` when replacing a non-scrolling body to reset bar tint.
 - Edge to edge: `KlasScreen` pads its body's top and sides and hands the bottom inset over as
@@ -98,11 +101,18 @@ Build screens from shared state and controls. Feature rules belong in the domain
 ## Motion, navigation and accessibility
 
 - Tabs are People, Homework, Schedule, Reports, More; Schedule opens first, Students/Groups share People.
-  Selection follows the back stack. Destinations cross-fade; predictive back is enabled.
-- `navigateToTab` ignores reselection to avoid a pop/restore fade glitch. Navigating to the owning tab
-  closes its pushed screens; another tab retains its stack (`owningTabRoute`). All tray actions preserve
-  a pushed screen beneath their destination; Back returns to its draft. See
-  [tray destinations](calendar-and-reminders.md#lesson-reminders).
+  Selection follows the back stack. Destinations cross-fade; predictive back is enabled. The tabs are a
+  bottom bar on a phone and a rail once the window is medium width (`NavigationSuiteScaffold`).
+- Navigation 3 shows one flat back stack of `Screen`s (`KlasNavigator`): a route plus an id, so the same
+  card opened twice is two entries. Per-tab stacks were rejected: a tray tap may put a tab over a form from
+  another tab. `KlasGraph` is one exhaustive `when` over the sealed `Route`.
+- `navigateToTab` ignores reselection to avoid a re-targeted fade. Navigating to the owning tab closes its
+  pushed screens; another tab's screens are set aside and keep their view models and saved state
+  (`KlasNavigator.live`). All tray actions preserve a pushed screen beneath their destination; Back returns
+  to its draft. See [tray destinations](calendar-and-reminders.md#lesson-reminders).
+- With room for two panes, People is a list-detail layout: a student or group card opened from the list sits
+  beside it (Material `ListDetailSceneStrategy`), replaces the card shown there, is marked on the list and
+  has no back arrow; the tabs stay. A card opened elsewhere fills the window. Other screens stay one pane.
 - Lazy items use `animateInPlace`: movement only, no fade overlay. Key items by page when replacing views.
 - A row swipe claims only its own direction (`SwipeToward`); the other way turns a `SegmentedPage`.
   Homework slides toward the tab it moves to — current right, done left — the way its tab cannot turn.
@@ -146,8 +156,8 @@ Build screens from shared state and controls. Feature rules belong in the domain
   rather than back onto itself (`DayTimeline.shifted`) — and are what screen readers use. Length is the same `Fold` inside When, opening to its chips.
 - Lesson context opens homework, payment entry and profiles for the named student/group. Group payments
   first ask who paid; completing a lesson never creates a payment. Profiles book through the same form.
-- Setup detours push over the unfinished booking/group form and return created IDs through its navigation
-  entry. The parent selects the result without resetting its date, time or other edits. Group eligibility
+- Setup detours push over the unfinished booking/group form and return created IDs through the result bus
+  (`ResultEffect`). The parent selects the result without resetting its date, time or other edits. Group eligibility
   can be repaired with an individual subject price in place; group lessons still use the group rate.
 - Homework filters offer assignees with current/archived work, including a student's group work; the
   add dialog offers everyone, orders by nearest lesson and names the destination lesson. Card entry

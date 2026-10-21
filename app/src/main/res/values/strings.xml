@@ -703,6 +703,8 @@
     <string name="people_next_weekday">%1$s %2$s</string>
     <string name="people_last_lesson">Last lesson %1$s</string>
     <string name="people_no_lessons">No lessons yet</string>
+    <!-- Beside the People list on a wide screen, before a card is opened. -->
+    <string name="people_pick_card">Choose a student or a group</string>
 
     <plurals name="students_count">
         <item quantity="one">%1$d student</item>

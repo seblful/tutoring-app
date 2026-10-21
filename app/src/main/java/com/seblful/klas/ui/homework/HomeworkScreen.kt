@@ -5,8 +5,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
@@ -18,6 +19,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.seblful.klas.R
 import com.seblful.klas.domain.lesson.LessonKind
@@ -37,6 +40,7 @@ import com.seblful.klas.ui.common.SegmentedPage
 import com.seblful.klas.ui.common.ShowMessagesFor
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.animateInPlace
+import com.seblful.klas.ui.common.constrainedContent
 import com.seblful.klas.ui.common.plusInset
 import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.state.Loadable
@@ -103,6 +107,8 @@ fun HomeworkScreen(
                 )
             }
         },
+        // The cards lay themselves out in columns (see [HomeworkList]); the tabs above them keep a column's width.
+        maxContentWidth = Dp.Infinity,
         floatingActionButton = {
             FloatingActionButton(onClick = ::add) {
                 Icon(KlasIcons.Filled.Add, stringResource(R.string.homework_add))
@@ -123,7 +129,7 @@ fun HomeworkScreen(
         ) {
             Box(Modifier.fillMaxSize()) {
                 when (val ready = state) {
-                    Loadable.Loading -> ListSkeleton(Modifier.padding(bottomInset))
+                    Loadable.Loading -> ListSkeleton(Modifier.constrainedContent().padding(bottomInset))
                     is Loadable.Ready -> HomeworkList(
                         side = side,
                         lists = ready.value.lists,
@@ -207,14 +213,17 @@ private fun HomeworkList(
         }
         return
     }
-    LazyColumn(
-        Modifier.fillMaxSize(),
+    // Cards side by side once the window holds two: a column of them on a tablet is a strip down the middle.
+    LazyVerticalGrid(
+        columns = GridCells.Adaptive(MinCardWidth),
+        modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(
             start = Spacing.gutter,
             end = Spacing.gutter,
             top = Spacing.inline,
             bottom = FabClearance,
         ).plusInset(bottomInset),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.itemGap),
         verticalArrangement = Arrangement.spacedBy(Spacing.itemGap),
     ) {
         items(rows, key = { it.homework.id }) { row ->
@@ -229,3 +238,6 @@ private fun HomeworkList(
         }
     }
 }
+
+/** The narrowest a homework card gets before the grid drops a column: its share button and tick still fit. */
+private val MinCardWidth = 340.dp

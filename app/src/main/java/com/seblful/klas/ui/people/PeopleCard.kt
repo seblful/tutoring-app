@@ -23,6 +23,7 @@ import com.seblful.klas.ui.common.Spacing
  *
  * @param supporting the lesson first: the line is cut at its end, and when they are next seen is what the list
  * is read for — the subjects and the head count can be cut, the time cannot.
+ * @param selected whether the card is the one open beside the list.
  * @param trailing on the name's line, baseline to baseline — a balance, or the archived badge.
  */
 @Composable
@@ -32,9 +33,10 @@ internal fun PeopleCard(
     onClick: () -> Unit,
     leading: @Composable () -> Unit,
     modifier: Modifier = Modifier,
+    selected: Boolean = false,
     trailing: @Composable () -> Unit = {},
 ) {
-    ContentCard(onClick = onClick, modifier = modifier) {
+    ContentCard(onClick = onClick, modifier = modifier, selected = selected) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             leading()
             Spacer(Modifier.width(Spacing.leading))

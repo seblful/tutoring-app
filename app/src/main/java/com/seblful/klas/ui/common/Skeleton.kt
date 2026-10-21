@@ -121,10 +121,10 @@ private fun placeholderAlpha(): State<Float> {
  * A detail card before its subject has been read: the stat strip, the tab row, and rows under it.
  *
  * @param onBack the back arrow stays live throughout. A screen that cannot be left until it has loaded
- * is a screen that traps the tutor if the load is slow.
+ * is a screen that traps the tutor if the load is slow. Null beside a list, as on the loaded card.
  */
 @Composable
-fun LoadingDetailScreen(onBack: () -> Unit) {
+fun LoadingDetailScreen(onBack: (() -> Unit)?) {
     KlasScreen(
         // No title: the title is the name of the thing being loaded, and inventing a placeholder for it
         // would be the one piece of this screen that lies rather than waits.

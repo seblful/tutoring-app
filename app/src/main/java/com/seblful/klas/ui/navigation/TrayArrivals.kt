@@ -11,13 +11,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.core.util.Consumer
-import androidx.navigation.NavHostController
 import com.seblful.klas.notifications.TrayNavigation
 import com.seblful.klas.ui.schedule.ScheduleTarget
 
 @Composable
 internal fun OpensWhatTheTrayNames(
-    navController: NavHostController,
+    navigator: KlasNavigator,
     onSchedule: (ScheduleTarget) -> Unit,
     onDebts: () -> Unit,
 ) {
@@ -27,7 +26,7 @@ internal fun OpensWhatTheTrayNames(
     // alone would land the tutor on whatever day they were last browsing, which for a notification saying
     // «3 занятия не отмечены» would show a week with none of them in it.
     fun toSchedule(target: ScheduleTarget) {
-        navController.openTabFromTray(TopDestination.SCHEDULE)
+        navigator.openTabFromTray(TopDestination.SCHEDULE)
         onSchedule(target)
     }
 
@@ -39,12 +38,12 @@ internal fun OpensWhatTheTrayNames(
                 ?.getLongExtra(TrayNavigation.EXTRA_DAY, 0L),
         )
         when (destination) {
-            is TrayNavigation.Destination.Lesson -> navController.openLessonForm(destination.classId)
+            is TrayNavigation.Destination.Lesson -> navigator.openLessonForm(destination.classId)
             is TrayNavigation.Destination.LessonOnSchedule ->
                 toSchedule(ScheduleTarget.Lesson(destination.classId))
             // A form interrupted by a notification stays underneath, just as with Reschedule.
             TrayNavigation.Destination.Debts -> {
-                navController.openTabFromTray(TopDestination.REPORTS)
+                navigator.openTabFromTray(TopDestination.REPORTS)
                 onDebts()
             }
             TrayNavigation.Destination.Today -> toSchedule(ScheduleTarget.Today)

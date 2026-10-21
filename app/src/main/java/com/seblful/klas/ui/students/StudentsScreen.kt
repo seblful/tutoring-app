@@ -44,6 +44,7 @@ fun StudentsList(
     onAddStudent: () -> Unit,
     modifier: Modifier = Modifier,
     bottomInset: PaddingValues = PaddingValues(),
+    openId: Long? = null,
 ) {
     val rows = when (state) {
         Loadable.Loading -> {
@@ -78,20 +79,31 @@ fun StudentsList(
         items(rows, key = { it.student.id }) { row ->
             // Archiving somebody, or re-sorting by debt, moves rows. Without this they teleport, which reads as a
             // glitch rather than as a change.
-            StudentCard(row, onClick = { onStudentClick(row.student.id) }, modifier = animateInPlace())
+            StudentCard(
+                row,
+                onClick = { onStudentClick(row.student.id) },
+                modifier = animateInPlace(),
+                selected = row.student.id == openId,
+            )
         }
     }
 }
 
 /** One student on the list: what they take and when they are next taught, with any balance at the name's end. */
 @Composable
-internal fun StudentCard(row: StudentRow, onClick: () -> Unit, modifier: Modifier = Modifier) {
+internal fun StudentCard(
+    row: StudentRow,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    selected: Boolean = false,
+) {
     PeopleCard(
         title = row.student.name,
         supporting = bulletJoin(lessonLineText(row.lessons), row.subjects.joinToString(", ")),
         onClick = onClick,
         leading = { Avatar(row.student.name, row.student.id) },
         modifier = modifier,
+        selected = selected,
     ) {
         // Only a balance that is something — a debt or a credit. «Нет задолженности» on most rows was the same
         // news repeated, and it drowned out the rows that differ.

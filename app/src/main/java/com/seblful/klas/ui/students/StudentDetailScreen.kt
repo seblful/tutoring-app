@@ -96,11 +96,17 @@ enum class StudentTask { HOMEWORK, PAYMENT, SUBJECT }
 
 private data class StudentNavigation(
     val back: () -> Unit,
+    /** Whether the bar draws [back] as an arrow; not beside the list the card was opened from. */
+    val backArrow: Boolean,
     val lesson: (Long) -> Unit,
     val book: () -> Unit,
 )
 
-/** The card, once there is a student to draw one for. */
+/**
+ * The card, once there is a student to draw one for.
+ *
+ * @param backArrow false beside the People list the card was opened from: the list is the way to another.
+ */
 @Composable
 fun StudentDetailScreen(
     onBack: () -> Unit,
@@ -109,11 +115,15 @@ fun StudentDetailScreen(
     viewModel: StudentDetailViewModel = assistedMetroViewModel(),
     onBookLesson: () -> Unit = {},
     initialTask: StudentTask? = null,
+    backArrow: Boolean = true,
 ) {
     when (val screenState = viewModel.state.collectAsStateWithLifecycle().value) {
-        Loadable.Loading -> LoadingDetailScreen(onBack)
+        Loadable.Loading -> LoadingDetailScreen(onBack.takeIf { backArrow })
         is Loadable.Ready -> StudentCard(
-            screenState.value, viewModel, StudentNavigation(onBack, onLessonClick, onBookLesson), initialTask,
+            screenState.value,
+            viewModel,
+            StudentNavigation(onBack, backArrow, onLessonClick, onBookLesson),
+            initialTask,
         )
     }
 }
@@ -212,7 +222,7 @@ private fun StudentCard(
     // behaviour it needs, said once.
     KlasScreen(
         title = student?.name,
-        onBack = navigation.back,
+        onBack = navigation.back.takeIf { navigation.backArrow },
         titleSize = TitleSize.Large,
         messages = messages,
         actions = {

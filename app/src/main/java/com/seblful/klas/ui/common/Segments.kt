@@ -202,8 +202,11 @@ fun <T> SegmentedPage(
 ) {
     Column(modifier.swipeBetweenSegments(options, selected, onSelect)) {
         ScreenHeader {
-            ViewTabs(options, selected, onSelect, label)
-            header()
+            // Held to a column's width even over a body that grows wider, so the tabs do not spread apart.
+            Column(Modifier.fillMaxWidth().constrainedContent()) {
+                ViewTabs(options, selected, onSelect, label)
+                header()
+            }
         }
         content()
     }

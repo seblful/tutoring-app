@@ -18,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.seblful.klas.R
+import com.seblful.klas.domain.model.Assignee
 import com.seblful.klas.ui.common.HoldToName
 import com.seblful.klas.ui.common.KlasScreen
 import com.seblful.klas.ui.common.NamedIconButton
@@ -37,7 +38,11 @@ private enum class PeopleTab(val labelRes: Int) {
     GROUPS(R.string.groups_title),
 }
 
-/** Люди» — students and groups under one tab. */
+/**
+ * «Люди» — students and groups under one tab.
+ *
+ * @param open the student or group whose card is open beside the list, marked on it; null with none beside it.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PeopleScreen(
@@ -45,6 +50,7 @@ fun PeopleScreen(
     onAddStudent: () -> Unit,
     onGroupClick: (Long) -> Unit,
     onAddGroup: () -> Unit,
+    open: Assignee? = null,
     studentsViewModel: StudentsViewModel = metroViewModel(),
     groupsViewModel: GroupsViewModel = metroViewModel(),
 ) {
@@ -129,6 +135,7 @@ fun PeopleScreen(
                         onStudentClick = onStudentClick,
                         onAddStudent = onAddStudent,
                         bottomInset = bottomInset,
+                        openId = (open as? Assignee.Student)?.studentId,
                     )
 
                     PeopleTab.GROUPS -> GroupsList(
@@ -137,6 +144,7 @@ fun PeopleScreen(
                         onGroupClick = onGroupClick,
                         onAddGroup = onAddGroup,
                         bottomInset = bottomInset,
+                        openId = (open as? Assignee.Group)?.groupId,
                     )
                 }
             }

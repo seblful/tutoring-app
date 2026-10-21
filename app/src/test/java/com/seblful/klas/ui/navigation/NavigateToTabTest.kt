@@ -1,91 +1,45 @@
 package com.seblful.klas.ui.navigation
 
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.ui.test.junit4.createComposeRule
-import androidx.navigation.NavController
-import androidx.navigation.NavHostController
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.rememberNavController
 import org.junit.Assert.assertEquals
-import org.junit.Rule
+import org.junit.Assert.assertSame
 import org.junit.Test
-import org.junit.runner.RunWith
-import org.robolectric.RobolectricTestRunner
 
-@RunWith(RobolectricTestRunner::class)
 class NavigateToTabTest {
 
-    @get:Rule
-    val compose = createComposeRule()
+    private val navigator = KlasNavigator()
 
-    private lateinit var navController: NavHostController
+    private fun stack(): List<String> = navigator.backStack.map { it.routeName() }
 
-    private val arrivals = mutableListOf<String?>()
+    private fun showing(): TopDestination? = TopDestination.of(navigator.top.route)
 
-    private fun showTabs() {
-        compose.setContent {
-            navController = rememberNavController()
-            DisposableEffect(navController) {
-                val listener = NavController.OnDestinationChangedListener { _, destination, _ ->
-                    arrivals += destination.route
-                }
-                navController.addOnDestinationChangedListener(listener)
-                onDispose { navController.removeOnDestinationChangedListener(listener) }
-            }
-            NavHost(navController, startDestination = Routes.Schedule) {
-                TopDestination.entries.forEach { tab -> screen(tab.route::class) {} }
-                screen<Routes.StudentDetail> {}
-                screen<Routes.ClassEdit> {}
-                screen<Routes.Settings> {}
-                screen<Routes.LessonSettings> {}
-                screen<Routes.NotificationSettings> {}
-                screen<Routes.CalendarSettings> {}
-                screen<Routes.AppearanceSettings> {}
-            }
-        }
-    }
-
-    private fun stack(): List<String> = navController.currentBackStack.value.mapNotNull { it.destination.routeName() }
-
-    private fun showing(): TopDestination? = navController.currentDestination?.let(TopDestination::of)
-
-    private fun tap(tab: TopDestination) = onUiThread { navController.navigateToTab(tab) }
-
-    private fun onUiThread(action: () -> Unit) {
-        compose.runOnUiThread(action)
-        compose.waitForIdle()
-    }
+    private fun tap(tab: TopDestination) = navigator.navigateToTab(tab)
 
     @Test
     fun `tray arrivals preserve an unfinished form from the same tab and another tab`() {
-        showTabs()
-        onUiThread { navController.navigate(Routes.classEdit(0)) }
-        val draft = navController.currentBackStackEntry!!
-        onUiThread { draft.savedStateHandle["draft"] = "Maths at 30" }
+        navigator.navigate(Routes.classEdit(0))
+        val draft = navigator.top
 
         for (tab in listOf(TopDestination.SCHEDULE, TopDestination.REPORTS)) {
-            onUiThread { navController.openTabFromTray(tab) }
+            navigator.openTabFromTray(tab)
             assertEquals(tab, showing())
-            onUiThread { navController.popBackStack() }
-            assertEquals(draft, navController.currentBackStackEntry)
-            assertEquals("Maths at 30", draft.savedStateHandle.get<String>("draft"))
+            navigator.goBack()
+            assertSame(draft, navigator.top)
         }
     }
 
     @Test
     fun `settings categories return through the index and retain More tab ownership`() {
-        showTabs()
         tap(TopDestination.MORE)
-        onUiThread { navController.navigate(Routes.Settings) }
+        navigator.navigate(Routes.Settings)
         for (category in listOf(
             Routes.LessonSettings, Routes.NotificationSettings, Routes.CalendarSettings, Routes.AppearanceSettings,
         )) {
-            onUiThread { navController.navigate(category) }
-            assertEquals(TopDestination.MORE, owningTab(navController.currentBackStack.value))
-            onUiThread { navController.popBackStack() }
+            navigator.navigate(category)
+            assertEquals(TopDestination.MORE, owningTab(navigator.backStack))
+            navigator.goBack()
             assertEquals(listOf("Schedule", "More", "Settings"), stack())
         }
-        onUiThread { navController.navigate(Routes.CalendarSettings) }
+        navigator.navigate(Routes.CalendarSettings)
         tap(TopDestination.SCHEDULE)
         tap(TopDestination.MORE)
         assertEquals(listOf("Schedule", "More", "Settings", "CalendarSettings"), stack())
@@ -95,31 +49,27 @@ class NavigateToTabTest {
 
     @Test
     fun `a tap on the tab that is showing goes nowhere`() {
-        showTabs()
         tap(TopDestination.HOMEWORK)
-        val arrived = arrivals.size
+        val shown = navigator.backStack.toList()
 
         tap(TopDestination.HOMEWORK)
         tap(TopDestination.HOMEWORK)
 
-        assertEquals(arrived, arrivals.size)
+        assertEquals(shown, navigator.backStack)
         assertEquals(TopDestination.HOMEWORK, showing())
     }
 
     @Test
     fun `a tap on the start tab while it shows goes nowhere either`() {
-        showTabs()
-        val arrived = arrivals.size
+        val shown = navigator.backStack.toList()
 
         tap(TopDestination.SCHEDULE)
 
-        assertEquals(arrived, arrivals.size)
+        assertEquals(shown, navigator.backStack)
     }
 
     @Test
     fun `a tap on another tab switches to it`() {
-        showTabs()
-
         tap(TopDestination.HOMEWORK)
         assertEquals(TopDestination.HOMEWORK, showing())
         tap(TopDestination.PEOPLE)
@@ -130,8 +80,7 @@ class NavigateToTabTest {
 
     @Test
     fun `a tap on the schedule closes a form opened from it`() {
-        showTabs()
-        onUiThread { navController.navigate(Routes.classEdit(5)) }
+        navigator.navigate(Routes.classEdit(5))
 
         tap(TopDestination.SCHEDULE)
 
@@ -140,9 +89,8 @@ class NavigateToTabTest {
 
     @Test
     fun `a tap on the reports closes a card opened from them`() {
-        showTabs()
         tap(TopDestination.REPORTS)
-        onUiThread { navController.navigate(Routes.StudentDetail(1)) }
+        navigator.navigate(Routes.StudentDetail(1))
 
         tap(TopDestination.REPORTS)
 
@@ -152,14 +100,43 @@ class NavigateToTabTest {
 
     @Test
     fun `a screen pushed over another tab waits with it and comes back with it`() {
-        showTabs()
         tap(TopDestination.PEOPLE)
-        onUiThread { navController.navigate(Routes.StudentDetail(1)) }
+        navigator.navigate(Routes.StudentDetail(1))
+        val card = navigator.top
 
         tap(TopDestination.SCHEDULE)
         assertEquals(listOf("Schedule"), stack())
+        assertEquals("a waiting card stays live, so it keeps its state", true, card in navigator.live)
 
         tap(TopDestination.PEOPLE)
         assertEquals(listOf("Schedule", "People", "StudentDetail"), stack())
+        assertSame(card, navigator.top)
+    }
+
+    @Test
+    fun `a form opened over the schedule waits with it while another tab shows`() {
+        navigator.navigate(Routes.classEdit(5))
+        navigator.openTabFromTray(TopDestination.SCHEDULE)
+
+        tap(TopDestination.REPORTS)
+        tap(TopDestination.SCHEDULE)
+
+        assertEquals(listOf("Schedule", "ClassEdit", "Schedule"), stack())
+    }
+
+    @Test
+    fun `back from the start tab is left to the system`() {
+        navigator.goBack()
+
+        assertEquals(listOf("Schedule"), stack())
+    }
+
+    @Test
+    fun `the same card opened twice is two screens`() {
+        navigator.navigate(Routes.StudentDetail(1))
+        navigator.navigate(Routes.GroupDetail(2))
+        navigator.navigate(Routes.StudentDetail(1))
+
+        assertEquals(navigator.backStack.size, navigator.backStack.map { it.id }.toSet().size)
     }
 }

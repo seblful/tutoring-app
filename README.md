@@ -24,7 +24,7 @@ Russian and English UI, Material 3, and 28 currencies with localized names and s
 
 ## Tech Stack
 
-Kotlin, Jetpack Compose/Material 3, Room, Metro DI, WorkManager, `AlarmManager`, kotlinx-serialization
+Kotlin, Jetpack Compose/Material 3 (adaptive), Navigation 3, Room, Metro DI, WorkManager, `AlarmManager`, kotlinx-serialization
 and kotlinx-datetime. Android MVVM in `:app`; Kotlin Multiplatform persistence/workflows in `:shared`
 and pure rules in `:domain`.
 **JDK 21**, **minSdk 24**. [Dependency versions](gradle/libs.versions.toml) ·

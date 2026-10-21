@@ -1,11 +1,14 @@
 package com.seblful.klas.ui
 
-import android.annotation.SuppressLint
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
 import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
+import androidx.compose.material3.adaptive.currentWindowAdaptiveInfoV2
+import androidx.compose.material3.adaptive.layout.calculatePaneScaffoldDirective
+import androidx.compose.material3.adaptive.navigation3.rememberListDetailSceneStrategy
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffold
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffoldDefaults
 import androidx.compose.material3.adaptive.navigationsuite.rememberNavigationSuiteScaffoldState
@@ -19,22 +22,27 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.currentBackStackEntryAsState
-import androidx.navigation.compose.rememberNavController
+import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
+import androidx.navigation3.runtime.rememberDecoratedNavEntries
+import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
+import androidx.navigation3.runtime.result.rememberResultEventBusNavEntryDecorator
+import androidx.navigation3.scene.SinglePaneSceneStrategy
+import androidx.navigation3.ui.NavDisplay
 import com.seblful.klas.data.settings.SettingsRepository
 import com.seblful.klas.domain.model.Currency
 import com.seblful.klas.domain.model.ThemeChoice
 import com.seblful.klas.ui.common.LocalCurrency
 import com.seblful.klas.ui.common.ProvideLocalizedResources
 import com.seblful.klas.ui.navigation.Arrival
+import com.seblful.klas.ui.navigation.KlasGraph
 import com.seblful.klas.ui.navigation.OpensWhatTheTrayNames
-import com.seblful.klas.ui.navigation.Routes
+import com.seblful.klas.ui.navigation.Screen
 import com.seblful.klas.ui.navigation.TopDestination
-import com.seblful.klas.ui.navigation.klasGraph
+import com.seblful.klas.ui.navigation.cardBesideList
+import com.seblful.klas.ui.navigation.crossFade
 import com.seblful.klas.ui.navigation.klasTabs
-import com.seblful.klas.ui.navigation.navigateToTab
 import com.seblful.klas.ui.navigation.owningTab
+import com.seblful.klas.ui.navigation.rememberKlasNavigator
 import com.seblful.klas.ui.onboarding.OnboardingScreen
 import com.seblful.klas.ui.schedule.ScheduleTarget
 import com.seblful.klas.ui.theme.KlasTheme
@@ -93,18 +101,18 @@ fun AppRoot(rootViewModel: RootViewModel = metroViewModel()) {
     }
 }
 
-// `currentBackStack` is `@RestrictedApi` — navigation exposes it for its own group, not for apps. It is
-// read here for one reason, spelled out below: which tab is lit is a question only the stack can answer.
-// The alternative in public API is `visibleEntries`, which is the wrong list — a pushed screen that has
-// finished arriving covers its tab, so the tab stops being visible and the bar would go dead the moment
-// the transition ended, which is the bug this replaced. Suppressed at the one call site rather than
-// lint-baselined, so anything else restricted that lands in this file still fails the build.
-@SuppressLint("RestrictedApi")
+@OptIn(ExperimentalMaterial3AdaptiveApi::class)
 @Composable
 private fun MainApp() {
-    val navController = rememberNavController()
-    val backStackEntry by navController.currentBackStackEntryAsState()
-    val onTab = backStackEntry?.destination?.let(TopDestination::of) != null
+    val navigator = rememberKlasNavigator()
+    val backStack = navigator.backStack
+
+    // The same pane directive decides both whether a card sits beside the People list and, below, whether
+    // the tabs stay up for it.
+    val directive = calculatePaneScaffoldDirective(currentWindowAdaptiveInfoV2())
+    val listDetail = rememberListDetailSceneStrategy<Screen>(directive = directive)
+    val besideList = directive.maxHorizontalPartitions > 1 && cardBesideList(backStack)
+    val onTab = TopDestination.of(navigator.top.route) != null || besideList
 
     // **Which tab is marked is not "which route is showing".** Asked the second way, the answer while
     // anything is pushed is *none of them* — so the instant a form opened, every glyph in the bar fell
@@ -113,27 +121,44 @@ private fun MainApp() {
     //
     // A pushed screen sits on top of the tab it was opened from, so the back stack already holds the
     // answer: the deepest entry that is a tab is the one that owns whatever is above it. Read rather
-    // than remembered, which is what keeps it right through a process death, a deep link and a tray tap
-    // — a remembered "last tab seen" would be a guess restored from nothing on any arrival that did not
+    // than remembered, which is what keeps it right through a process death and a tray tap — a
+    // remembered "last tab seen" would be a guess restored from nothing on any arrival that did not
     // start at a tab.
-    val backStack by navController.currentBackStack.collectAsStateWithLifecycle()
     val selectedTab = owningTab(backStack)
 
     /**
      * The latest tray tap that asked a tab for something more than itself — the schedule for a day or a
      * lesson's sheet, the reports for their debts. See [Arrival], and why each tap is its own instance.
-     * Bound to the new destination entry so a tab preserved below a draft cannot replay the tap later.
+     * Bound to the screen it landed on, so a tab preserved below a draft cannot replay the tap later.
      */
-    var scheduleArrival by remember { mutableStateOf<Pair<String, Arrival<ScheduleTarget>>?>(null) }
-    var debtsArrival by remember { mutableStateOf<Pair<String, Arrival<Unit>>?>(null) }
+    var scheduleArrival by remember { mutableStateOf<Pair<Long, Arrival<ScheduleTarget>>?>(null) }
+    var debtsArrival by remember { mutableStateOf<Pair<Long, Arrival<Unit>>?>(null) }
 
     OpensWhatTheTrayNames(
-        navController,
-        onSchedule = { target ->
-            navController.currentBackStackEntry?.let { scheduleArrival = it.id to Arrival(target) }
-        },
-        onDebts = { navController.currentBackStackEntry?.let { debtsArrival = it.id to Arrival(Unit) } },
+        navigator,
+        onSchedule = { target -> scheduleArrival = navigator.top.id to Arrival(target) },
+        onDebts = { debtsArrival = navigator.top.id to Arrival(Unit) },
     )
+
+    val graph = remember(navigator) {
+        KlasGraph(
+            navigator,
+            scheduleArrival = { id -> scheduleArrival?.takeIf { it.first == id }?.second },
+            debtsArrival = { id -> debtsArrival?.takeIf { it.first == id }?.second },
+        )
+    }
+    // Decorated over every live screen, not only the shown ones: a tab's screens set aside while another
+    // tab shows keep their view models and saved state, as `NavHost`'s saved tabs did.
+    val decorated = rememberDecoratedNavEntries(
+        backStack = navigator.live,
+        entryDecorators = listOf(
+            rememberSaveableStateHolderNavEntryDecorator(),
+            rememberViewModelStoreNavEntryDecorator(),
+            rememberResultEventBusNavEntryDecorator(),
+        ),
+        entryProvider = graph::entry,
+    ).associateBy { it.contentKey }
+    val entries = backStack.map { decorated.getValue(it.id) }
 
     // **The chrome leaves with the screen, not ahead of it.** Whether the tabs apply is settled the
     // instant `navigate` is called, but the screen they belong to takes the length of a fade to go
@@ -156,26 +181,22 @@ private fun MainApp() {
 
     NavigationSuiteScaffold(
         navigationSuiteItems = {
-            klasTabs(tabs = TopDestination.entries, selected = selectedTab) { dest ->
-                navController.navigateToTab(dest)
-            }
+            klasTabs(tabs = TopDestination.entries, selected = selectedTab, onSelect = navigator::navigateToTab)
         },
         // Hidden on a pushed screen, which owns the whole window: a card or a form is not somewhere the
-        // tabs apply. Still one call site, because a second would be a second composable identity and
-        // would rebuild the `NavHost` — and with it the back stack.
+        // tabs apply — unless the card shares the window with the People list. Still one call site,
+        // because a second would be a second composable identity and would rebuild the `NavDisplay`.
         state = chrome,
         layoutType = NavigationSuiteScaffoldDefaults.calculateFromAdaptiveInfo(currentWindowAdaptiveInfo()),
     ) {
-        NavHost(
-            navController = navController,
-            startDestination = Routes.Schedule,
+        NavDisplay(
+            entries = entries,
             modifier = Modifier.fillMaxSize(),
-        ) {
-            klasGraph(
-                navController,
-                scheduleArrival = { id -> scheduleArrival?.takeIf { it.first == id }?.second },
-                debtsArrival = { id -> debtsArrival?.takeIf { it.first == id }?.second },
-            )
-        }
+            sceneStrategies = listOf(listDetail, SinglePaneSceneStrategy()),
+            transitionSpec = { crossFade() },
+            popTransitionSpec = { crossFade() },
+            predictivePopTransitionSpec = { crossFade() },
+            onBack = navigator::goBack,
+        )
     }
 }

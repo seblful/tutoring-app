@@ -1,6 +1,7 @@
 package com.seblful.klas.ui.common
 
 import androidx.compose.foundation.lazy.LazyItemScope
+import androidx.compose.foundation.lazy.grid.LazyGridItemScope
 import androidx.compose.ui.Modifier
 
 /**
@@ -8,4 +9,8 @@ import androidx.compose.ui.Modifier
  * way to animate a lazy list item.
  */
 fun LazyItemScope.animateInPlace(modifier: Modifier = Modifier): Modifier =
+    modifier.animateItem(fadeInSpec = null, fadeOutSpec = null)
+
+/** [animateInPlace] for a grid's item. */
+fun LazyGridItemScope.animateInPlace(modifier: Modifier = Modifier): Modifier =
     modifier.animateItem(fadeInSpec = null, fadeOutSpec = null)
