@@ -22,6 +22,8 @@ Preserve on-device data and existing backup files when changing storage. Before 
   `LOCALIZED` collation: sort/match text in Kotlin.
 - Bump `AppDatabase`'s schema version and add a migration for every change past `BASELINE_VERSION`.
   `MigrationChainTest` checks wiring; each migration needs a device test against exported schemas.
+  `SupportedUpgradeTest` additionally checks every supported old schema through the current production
+  factory with populated related rows; extend its cases when a new schema ships.
   Room sources, migration registration and exported schemas belong to `:shared`; Android device tests
   read `shared/schemas/` as assets. Platform database builders share `buildDatabase`'s configuration.
   Hosts use `openDatabase` and own the returned `KlasDatabase`; shared bindings own the DAO wiring.

@@ -25,6 +25,8 @@ class MainDispatcherRule(
         viewModels.put("test-${nextOwner++}", it)
     }
 
+    fun clearViewModels() = viewModels.clear()
+
     /**
      * Stands in for the injected `@ApplicationScope` — the scope a view model hands its **writes**
      * to so they outlive the screen. Built on this rule's [dispatcher], so it shares the test's one
@@ -43,7 +45,7 @@ class MainDispatcherRule(
 
     override fun finished(description: Description) {
         try {
-            viewModels.clear()
+            clearViewModels()
         } finally {
             appScope.cancel()
             Dispatchers.resetMain()

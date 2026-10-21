@@ -64,6 +64,7 @@ tasks.register("verify") {
     description = "Run JVM tests, screenshots, Android lint, formatting, static analysis and debug builds."
     dependsOn(
         "testStore",
+        "testDeviceTools",
         ":domain:jvmTest", ":shared:jvmTest", ":app:verifyRoborazziDebug", ":app:lintDebug",
         ":app:assembleDebug", ":app:assembleDebugAndroidTest",
     )
@@ -81,5 +82,11 @@ tasks.register<Exec>("testStore") {
 tasks.register("testQuick") {
     group = "verification"
     description = "Run domain, shared, Android behavior and store tooling tests without screenshots."
-    dependsOn(":domain:jvmTest", ":shared:jvmTest", ":app:testDebugBehavior", "testStore")
+    dependsOn(":domain:jvmTest", ":shared:jvmTest", ":app:testDebugBehavior", "testStore", "testDeviceTools")
+}
+
+tasks.register<Exec>("testDeviceTools") {
+    group = "verification"
+    description = "Check Android relaunch orchestration and failure reporting without a device."
+    commandLine("node", "--test", "scripts/")
 }

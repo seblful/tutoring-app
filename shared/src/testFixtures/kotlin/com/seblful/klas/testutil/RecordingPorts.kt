@@ -176,6 +176,14 @@ class RecordingNotifier : Notifier {
 }
 
 class RecordingTransactor(private val delegate: Transactor, var failAt: Int? = null) : Transactor {
+    private var nextGate: TransactionGate? = null
+
+    /** Pause one write before it acquires the database lock. Reads can still prove it has not landed. */
+    fun pauseNextTransaction(): TransactionGate {
+        check(nextGate == null) { "A transaction is already waiting to be paused" }
+        return TransactionGate().also { nextGate = it }
+    }
+
     var count = 0
         private set
 
@@ -189,6 +197,9 @@ class RecordingTransactor(private val delegate: Transactor, var failAt: Int? = n
 
     override suspend fun <T> transaction(block: suspend () -> T): T {
         val number = ++count
+        val gate = nextGate
+        nextGate = null
+        gate?.pause()
         depth++
         maxDepth = maxOf(maxDepth, depth)
         try {
