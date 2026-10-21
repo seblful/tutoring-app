@@ -49,7 +49,11 @@ internal fun WhenSection(state: ClassFormState, viewModel: ClassEditViewModel) {
     val durations by viewModel.durationOptions.collectAsStateWithLifecycle()
     var customLength by remember { mutableStateOf(false) }
     WeekChoice(viewModel, selected = form.date)
-    state.timeline?.let { day -> DayOnTimeline(day, state, viewModel) }
+    state.timeline?.let { day -> DayOnTimeline(day, state, viewModel) } ?: Text(
+        stringResource(R.string.class_timeline_pick_day),
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
     state.conflict?.let { conflict -> ConflictLine(conflict, state) }
 
     // How long, not when it ends — a length is what the lesson is stored as. The end is its consequence.

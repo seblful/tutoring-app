@@ -9,6 +9,7 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atTime
 import kotlinx.datetime.toInstant
 import kotlin.math.roundToLong
+import kotlin.time.Duration
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Instant
@@ -89,6 +90,23 @@ data class DayTimeline(
             .filter { (from, until) -> until - from >= length }
             .map { (from, until) -> snapped.coerceIn(from, until - length) }
             .minByOrNull { (it - at).absoluteValue }
+    }
+
+    /**
+     * Where a lesson of [minutes] at [from] goes when moved [by] — a step either way: that far if it fits
+     * whole in free time there, else on past the lesson in the way to the nearest start that way that does.
+     * Unlike [nearestFree] it never comes back to [from], so a lesson back to back with another still moves.
+     * Null when nothing that way is free.
+     */
+    fun shifted(from: Instant, by: Duration, minutes: Int): Instant? {
+        val length = minutes.minutes
+        val to = from + by
+        val fits = freeGaps().filter { (gapStart, gapEnd) -> gapEnd - gapStart >= length }
+        return if (by.isPositive()) {
+            fits.filter { (_, gapEnd) -> to <= gapEnd - length }.minOfOrNull { (gapStart, _) -> maxOf(gapStart, to) }
+        } else {
+            fits.filter { (gapStart, _) -> to >= gapStart }.maxOfOrNull { (_, gapEnd) -> minOf(gapEnd - length, to) }
+        }
     }
 
     /** The stretches of the timeline no lesson is in, in order — lessons that overlap make one busy stretch. */

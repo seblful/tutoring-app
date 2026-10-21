@@ -13,6 +13,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Instant
 
 class DayTimelineTest {
@@ -138,6 +139,26 @@ class DayTimelineTest {
         val timeline = DayTimeline.of(day, utc, listOf(booked(10, 0, 240), booked(11, 0, 60)))
 
         assertEquals(at(14), timeline.nearestFree(at(12, 30), minutes = 60))
+    }
+
+    @Test
+    fun `a step moves a lesson five minutes in free time`() {
+        assertEquals(at(12, 5), thursday.shifted(at(12), 5.minutes, minutes = 60))
+        assertEquals(at(11, 55), thursday.shifted(at(12), (-5).minutes, minutes = 60))
+    }
+
+    @Test
+    fun `a step from back to back with a lesson goes past it`() {
+        // 14:30 ends as Мария starts at 15:30; later is after her, and from 16:30 earlier is before her.
+        assertEquals(at(16, 30), thursday.shifted(at(14, 30), 5.minutes, minutes = 60))
+        assertEquals(at(14, 30), thursday.shifted(at(16, 30), (-5).minutes, minutes = 60))
+    }
+
+    @Test
+    fun `a step passes over a gap too short for the lesson`() {
+        // Two hours fit nowhere after Мария, and from 9:00 there is nowhere earlier.
+        assertNull(thursday.shifted(at(13, 30), 5.minutes, minutes = 120))
+        assertNull(thursday.shifted(at(9), (-5).minutes, minutes = 60))
     }
 
     @Test

@@ -46,7 +46,7 @@ mirrors and [database and backup](database-and-backup.md) for persistence contra
   day 09–21, widened to whole hours around any lesson outside that; any free time drawn can be tapped.
   A tap snaps to five minutes, then moves just enough to fit the free gap, so a finger near a lesson
   books back to back. A slide lands on the nearest start, either side of a lesson, where the whole
-  lesson fits free.
+  lesson fits free. A five-minute step moves that way only, past a lesson in the way.
 - Repeating bookings write ordinary lessons in one transaction (`Recurrence`, `bookSeries`). Taken
   slots are skipped, including the first date; Save requires at least one free occurrence. Results are
   reported as `SeriesWrite`; there is no series entity or bulk “cancel the rest”. See

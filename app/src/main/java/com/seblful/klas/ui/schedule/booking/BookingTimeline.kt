@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -29,7 +30,6 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.shadow
@@ -44,10 +44,8 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
@@ -59,6 +57,7 @@ import com.seblful.klas.domain.schedule.Scheduling
 import com.seblful.klas.ui.common.avatarColors
 import com.seblful.klas.ui.common.rememberStepTickFeedback
 import com.seblful.klas.ui.common.timeText
+import com.seblful.klas.ui.theme.KlasIcons
 import kotlin.math.roundToInt
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.hours
@@ -74,7 +73,8 @@ import kotlin.time.Instant
  * stopping at them. It is drawn as it moves and booked when the finger lifts. Before a start is chosen,
  * [suggestion] is drawn dashed and booked by a tap. [onStart] is given an exact start, already free;
  * [length] is how long the lesson is. Once it is known who the lesson is for — [mine] — their other
- * lessons that day stand out, outlined, and everyone else's fade.
+ * lessons that day stand out, outlined, among everyone else's. A chosen lesson also has buttons under
+ * the bar that move it five minutes either way — the precise way, and the one a screen reader uses.
  */
 @Composable
 internal fun BookingTimeline(
@@ -96,6 +96,7 @@ internal fun BookingTimeline(
     val shown = peeked?.takeIf { it in timeline.booked }
     val drawn = sliding?.let { Scheduling.Slot(it, length) } ?: chosen
     val red = sliding == null && clashes
+    val nudge = { by: Duration -> chosen?.let { timeline.shifted(it.start, by, length) }?.let(onStart) }
     Column(modifier, verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Peek(timeline, shown, drawn, red)
         Bar(
@@ -106,11 +107,12 @@ internal fun BookingTimeline(
             suggestion = suggestion,
             peeked = shown,
             mine = mine,
-            // A second tap on the same lesson puts its bubble away again.
+            // A second tap on the same lesson puts its bubble away again; a tap on this one leaves it be.
             onTap = { at ->
                 val lesson = timeline.lessonAt(at)
                 peeked = lesson?.takeIf { it != shown }
-                if (lesson == null) timeline.place(at, length)?.let(onStart)
+                val onChosen = chosen != null && at >= chosen.start && at < chosen.end
+                if (lesson == null && !onChosen) timeline.place(at, length)?.let(onStart)
             },
             onSlideFrom = { at ->
                 peeked = null
@@ -132,10 +134,10 @@ internal fun BookingTimeline(
                 sliding = null
                 slide = null
             },
-            onNudge = { by -> chosen?.let { timeline.nearestFree(it.start + by, length) }?.let(onStart) },
             onStart = onStart,
         )
         Ticks(timeline)
+        if (chosen != null) Nudges(onEarlier = { nudge(-STEP) }, onLater = { nudge(STEP) })
     }
 }
 
@@ -157,11 +159,8 @@ private fun Bar(
     onSlideFrom: (Instant) -> Unit,
     onSlideBy: (Float) -> Unit,
     onSlid: () -> Unit,
-    onNudge: (Duration) -> Unit,
     onStart: (Instant) -> Unit,
 ) {
-    val earlier = stringResource(R.string.class_timeline_earlier)
-    val later = stringResource(R.string.class_timeline_later)
     val colors = MaterialTheme.colorScheme
     val described = timeline.booked.map { lessonText(it) }.joinToString("; ")
     BoxWithConstraints(
@@ -172,7 +171,7 @@ private fun Bar(
             .clip(BarShape)
             .background(colors.surfaceContainerHigh)
             .drawBehind { hourLines(timeline, colors.outlineVariant.copy(alpha = HOUR_LINE_ALPHA)) }
-            .barReading(described, chosen != null, earlier, later, onNudge)
+            .semantics { contentDescription = described }
             .barTouch(
                 rememberUpdatedState(timeline),
                 rememberUpdatedState(onTap),
@@ -183,12 +182,7 @@ private fun Bar(
     ) {
         val width = maxWidth
         timeline.booked.forEach { lesson ->
-            val stand = when (mine) {
-                null -> Standing.EVEN
-                lesson.assignee -> Standing.MINE
-                else -> Standing.OTHERS
-            }
-            BookedBlock(timeline, lesson, width, peeked = lesson == peeked, stand)
+            BookedBlock(timeline, lesson, width, peeked = lesson == peeked, mine = lesson.assignee == mine)
         }
         if (chosen != null) {
             ChosenBlock(timeline, chosen, width, clashes, lifted)
@@ -200,7 +194,7 @@ private fun Bar(
 
 /**
  * A lesson already on the day: a block in its colour, with the first letter of who it is for if it fits —
- * outlined if it is [Standing.MINE], faded if [Standing.OTHERS].
+ * outlined, with the letter bold, if it is [mine] — for whoever this lesson is for.
  */
 @Composable
 private fun BookedBlock(
@@ -208,12 +202,12 @@ private fun BookedBlock(
     lesson: DayTimeline.Lesson,
     width: Dp,
     peeked: Boolean,
-    stand: Standing,
+    mine: Boolean,
 ) {
     val (fill, letter) = lessonColors(lesson.assignee)
     val outline = when {
         peeked -> MaterialTheme.colorScheme.onSurface
-        stand == Standing.MINE -> letter
+        mine -> letter
         else -> null
     }
     Segment(
@@ -223,7 +217,7 @@ private fun BookedBlock(
         Modifier
             .padding(vertical = 6.dp, horizontal = 1.dp)
             .fillMaxHeight()
-            .alpha(if (stand == Standing.OTHERS) FADED else 1f)
+            .then(if (mine) Modifier.testTag(MINE_TAG) else Modifier)
             .clip(BlockShape)
             .background(fill)
             .then(if (outline != null) Modifier.border(2.dp, outline, BlockShape) else Modifier),
@@ -232,16 +226,13 @@ private fun BookedBlock(
             Text(
                 lesson.who.take(1),
                 style = MaterialTheme.typography.labelMedium,
-                fontWeight = if (stand == Standing.MINE) FontWeight.Bold else null,
+                fontWeight = if (mine) FontWeight.Bold else null,
                 color = letter,
                 maxLines = 1,
             )
         }
     }
 }
-
-/** A day's lesson against the one being booked: the same person's, someone else's, or not known yet. */
-private enum class Standing { EVEN, MINE, OTHERS }
 
 /** This lesson: indigo — red on a clash — with a grip to say it slides, raised while it does. */
 @Composable
@@ -266,7 +257,7 @@ private fun ChosenBlock(timeline: DayTimeline, slot: Scheduling.Slot, width: Dp,
     }
 }
 
-/** Where the lesson could go before it has a start — dashed, and booked there by a tap. */
+/** Where the lesson could go before it has a start — dashed, with a plus, and booked there by a tap. */
 @Composable
 private fun Suggestion(timeline: DayTimeline, suggestion: Scheduling.Slot, width: Dp, onStart: (Instant) -> Unit) {
     val primary = MaterialTheme.colorScheme.primary
@@ -292,7 +283,9 @@ private fun Suggestion(timeline: DayTimeline, suggestion: Scheduling.Slot, width
                 )
             }
             .clickable(onClickLabel = label, role = Role.Button) { onStart(suggestion.start) },
-    )
+    ) { span ->
+        if (span >= GripMinWidth) Icon(KlasIcons.Filled.Add, contentDescription = null, tint = primary)
+    }
 }
 
 /** [slot]'s stretch of a bar [width] wide — clipped where it runs off either end — told how wide it is. */
@@ -322,26 +315,6 @@ private fun DrawScope.hourLines(timeline: DayTimeline, color: Color) {
     for (hour in 1 until timeline.minutes / MINUTES_PER_HOUR) {
         val x = size.width * timeline.fractionAt(timeline.start + hour.hours)
         drawLine(color, Offset(x, 0f), Offset(x, size.height), strokeWidth = 1.dp.toPx())
-    }
-}
-
-/**
- * What a screen reader is told of the bar — the day's lessons — and what it can do instead of a slide:
- * move this lesson's start a step earlier or later.
- */
-private fun Modifier.barReading(
-    described: String,
-    movable: Boolean,
-    earlier: String,
-    later: String,
-    onNudge: (Duration) -> Unit,
-): Modifier = semantics {
-    contentDescription = described
-    if (movable) {
-        customActions = listOf(
-            CustomAccessibilityAction(earlier) { onNudge(-STEP); true },
-            CustomAccessibilityAction(later) { onNudge(STEP); true },
-        )
     }
 }
 
@@ -382,6 +355,7 @@ internal fun lessonColors(assignee: Assignee): Pair<Color, Color> = when (assign
 
 internal const val TIMELINE_TAG = "booking_timeline"
 internal const val SUGGESTION_TAG = "booking_timeline_suggestion"
+internal const val MINE_TAG = "booking_timeline_mine"
 
 private val STEP = DayTimeline.SNAP_MINUTES.minutes
 
@@ -389,7 +363,6 @@ private val STEP = DayTimeline.SNAP_MINUTES.minutes
 private const val SLIDE_SPEED = 0.5f
 private const val SUGGESTION_FILL = 0.08f
 private const val HOUR_LINE_ALPHA = 0.6f
-private const val FADED = 0.45f
 private const val MINUTES_PER_HOUR = 60
 private val BarHeight = 48.dp
 private val BarShape = RoundedCornerShape(12.dp)

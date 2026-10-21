@@ -15,6 +15,7 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.Dp
 import com.seblful.klas.format.formatDateTime
+import com.seblful.klas.format.formatHour
 import com.seblful.klas.format.formatTime
 import kotlinx.datetime.LocalTime
 import kotlin.time.Instant
@@ -27,6 +28,11 @@ private fun hour12(): Boolean = !DateFormat.is24HourFormat(LocalContext.current.
 @Composable
 @ReadOnlyComposable
 fun Instant.timeText(): String = formatTime(hour12())
+
+/** A whole hour as a scale marks it: "9:00", or "9 AM" on a 12-hour phone. */
+@Composable
+@ReadOnlyComposable
+fun Instant.hourText(): String = formatHour(hour12())
 
 /** [timeText] for a caller already holding a wall-clock time — a booking form's from/to. */
 @Composable

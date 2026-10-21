@@ -131,15 +131,18 @@ Build screens from shared state and controls. Feature rules belong in the domain
   that is missing (`rateNeeded`). It alone saves from a bottom `BookingSaveBar`, not the bar's
   `SaveAction`: the bar shows the booking it will make, or names what is missing or in the way
   (`ClassFormState.saveBar`, `Ready` exactly when `canSave`). When picks the day from the schedule's
-  `WeekNavigator`/`WeekStrip` and draws it as one `BookingTimeline` bar with a line on every hour:
+  `WeekNavigator`/`WeekStrip` — saying to pick a day until one is — and draws it as one
+  `BookingTimeline` bar with a line on every hour, labelled every three in short hours (`hourText`):
   lessons as blocks in their student's avatar colour with their initial (groups in the group avatar's);
+  once someone is chosen, their own lessons that day are outlined — nobody else's is faded;
   a tap on one names who, when and where in a bubble above, a second tap hides it. A tap on free time
-  starts the lesson there (`DayTimeline.place`). A slide anywhere on the bar moves the lesson from where
+  starts the lesson there (`DayTimeline.place`); a tap on the lesson itself leaves it. A slide anywhere on the bar moves the lesson from where
   it is at half the finger's speed — about 2 dp per five minutes at full speed was too fine to land —
   with a haptic tick per step, hopping over other lessons (`DayTimeline.nearestFree`); its start and end
   are written over its edges, and it is booked when the finger lifts. Before a start is chosen it offers
-  the first free time as a dashed frame (`DayTimeline.firstFree`, never booked by itself). Screen readers
-  move it by the bar's 5-minutes earlier/later actions. Length folds to one line that opens its chips.
+  the first free time as a dashed frame with a plus (`DayTimeline.firstFree`, never booked by itself).
+  Under a chosen lesson, «5 minutes earlier/later» buttons move it exactly — past a lesson in the way
+  rather than back onto itself (`DayTimeline.shifted`) — and are what screen readers use. Length folds to one line that opens its chips.
 - Lesson context opens homework, payment entry and profiles for the named student/group. Group payments
   first ask who paid; completing a lesson never creates a payment. Profiles book through the same form.
 - Setup detours push over the unfinished booking/group form and return created IDs through its navigation

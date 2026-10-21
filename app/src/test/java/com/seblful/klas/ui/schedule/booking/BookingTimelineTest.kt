@@ -1,7 +1,6 @@
 package com.seblful.klas.ui.schedule.booking
 
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.click
@@ -10,7 +9,6 @@ import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performCustomAccessibilityActionWithLabel
 import androidx.compose.ui.test.performTouchInput
 import com.seblful.klas.domain.model.Assignee
 import com.seblful.klas.domain.model.ClassMode
@@ -47,16 +45,22 @@ class BookingTimelineTest {
 
     private var placed: Instant? = null
 
-    private fun show(chosen: Scheduling.Slot? = null, suggestion: Scheduling.Slot? = null) {
+    private fun show(
+        chosen: Scheduling.Slot? = null,
+        suggestion: Scheduling.Slot? = null,
+        mine: Assignee? = null,
+        lessons: DayTimeline = timeline,
+    ) {
         compose.setContent {
             KlasTheme {
                 BookingTimeline(
-                    timeline = timeline,
+                    timeline = lessons,
                     chosen = chosen,
                     length = 60,
                     clashes = false,
                     onStart = { placed = it },
                     suggestion = suggestion,
+                    mine = mine,
                 )
             }
         }
@@ -138,14 +142,58 @@ class BookingTimelineTest {
         assertEquals(at(18), placed)
     }
 
-    @OptIn(ExperimentalTestApi::class)
     @Test
-    fun `a screen reader moves the lesson five minutes at a time`() {
+    fun `the buttons under a chosen lesson move it five minutes at a time`() {
         show(chosen = Scheduling.Slot(at(13), 60))
 
-        compose.onNodeWithTag(TIMELINE_TAG).performCustomAccessibilityActionWithLabel("5 minutes later")
-
+        compose.onNodeWithText("5 minutes later").performClick()
         assertEquals(at(13, 5), placed)
+
+        compose.onNodeWithText("5 minutes earlier").performClick()
+        assertEquals(at(12, 55), placed)
+    }
+
+    @Test
+    fun `the buttons hop a lesson over the next one in the way`() {
+        // 14:00 for an hour already ends as Мария starts at 15:00; five minutes later puts it after her.
+        show(chosen = Scheduling.Slot(at(14), 60))
+
+        compose.onNodeWithText("5 minutes later").performClick()
+
+        assertEquals(at(18), placed)
+    }
+
+    @Test
+    fun `without a chosen lesson there is nothing to move`() {
+        show(suggestion = Scheduling.Slot(at(10), 60))
+
+        compose.onNodeWithText("5 minutes later").assertDoesNotExist()
+    }
+
+    @Test
+    fun `a tap on the chosen lesson leaves it where it is`() {
+        // 11:00–14:00 under the finger at 12:30 — the bar's eighth of the way in from 11:00.
+        show(chosen = Scheduling.Slot(at(11), 180))
+
+        compose.onNodeWithTag(TIMELINE_TAG).performTouchInput { click(Offset(width * 0.3f, centerY)) }
+        compose.waitForIdle()
+
+        assertNull(placed)
+    }
+
+    @Test
+    fun `only the lessons of whoever this one is for are outlined`() {
+        val ivan = DayTimeline.Lesson(Scheduling.Slot(at(10), 60), "Иван", Assignee.Student(2), ClassMode.IN_PERSON)
+        show(mine = Assignee.Student(1), lessons = DayTimeline.of(day, TimeZone.UTC, listOf(maria, ivan)))
+
+        compose.onAllNodesWithTag(MINE_TAG).assertCountEquals(1)
+    }
+
+    @Test
+    fun `before anyone is chosen no lesson is outlined`() {
+        show()
+
+        compose.onAllNodesWithTag(MINE_TAG).assertCountEquals(0)
     }
 
     @Test

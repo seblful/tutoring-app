@@ -10,8 +10,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -28,7 +30,9 @@ import com.seblful.klas.domain.schedule.DayTimeline
 import com.seblful.klas.domain.schedule.Scheduling
 import com.seblful.klas.format.bulletJoin
 import com.seblful.klas.ui.common.classModeLabel
+import com.seblful.klas.ui.common.hourText
 import com.seblful.klas.ui.common.timeText
+import com.seblful.klas.ui.theme.KlasIcons
 import kotlin.math.roundToInt
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes
@@ -123,10 +127,25 @@ internal fun Ticks(timeline: DayTimeline) {
     CenteredOver(hours.map { timeline.fractionAt(timeline.start + it.hours) }) {
         hours.forEach { hour ->
             Text(
-                (timeline.start + hour.hours).timeText(),
+                (timeline.start + hour.hours).hourText(),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+        }
+    }
+}
+
+/** Under a chosen lesson: a button either side that moves it five minutes earlier, or later. */
+@Composable
+internal fun Nudges(onEarlier: () -> Unit, onLater: () -> Unit) {
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+        TextButton(onEarlier) {
+            Icon(KlasIcons.Filled.ChevronLeft, contentDescription = null, Modifier.size(NudgeIcon))
+            Text(stringResource(R.string.class_timeline_earlier))
+        }
+        TextButton(onLater) {
+            Text(stringResource(R.string.class_timeline_later))
+            Icon(KlasIcons.Filled.ChevronRight, contentDescription = null, Modifier.size(NudgeIcon))
         }
     }
 }
@@ -166,3 +185,4 @@ internal const val PEEK_TAG = "booking_timeline_peek"
 private const val MINUTES_PER_HOUR = 60
 private const val TICK_HOURS = 3
 private val PeekHeight = 32.dp
+private val NudgeIcon = 18.dp

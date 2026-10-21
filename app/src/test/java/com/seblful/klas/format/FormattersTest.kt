@@ -6,8 +6,11 @@ import com.seblful.klas.testutil.AppLocaleRule
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
+import kotlinx.datetime.TimeZone
 import kotlinx.datetime.YearMonth
+import kotlinx.datetime.atTime
 import kotlinx.datetime.number
+import kotlinx.datetime.toInstant
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNull
@@ -99,6 +102,17 @@ class FormattersTest {
         assertEquals("12:00 AM", LocalTime(0, 0).formatTime(hour12 = true))
         assertEquals("12:30 PM", LocalTime(12, 30).formatTime(hour12 = true))
         assertEquals("11:59 PM", LocalTime(23, 59).formatTime(hour12 = true))
+    }
+
+    @Test
+    fun `an hour on a scale is unpadded, and without minutes on a 12-hour clock`() {
+        val zone = TimeZone.currentSystemDefault()
+        val at = { hour: Int -> LocalDate(2026, 7, 29).atTime(hour, 0).toInstant(zone) }
+
+        assertEquals("9:00", at(9).formatHour(hour12 = false))
+        assertEquals("21:00", at(21).formatHour(hour12 = false))
+        assertEquals("9 AM", at(9).formatHour(hour12 = true))
+        assertEquals("12 PM", at(12).formatHour(hour12 = true))
     }
 
     @Test

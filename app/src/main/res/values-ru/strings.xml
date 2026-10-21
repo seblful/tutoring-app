@@ -183,6 +183,7 @@
     <string name="class_book_action">Записать</string>
     <string name="class_still_needed">Осталось указать</string>
     <string name="class_timeline_hint">Коснитесь свободного места, ведите — сдвинуть</string>
+    <string name="class_timeline_pick_day">Выберите день, чтобы увидеть свободное время</string>
     <string name="class_timeline_earlier">На 5 минут раньше</string>
     <string name="class_timeline_later">На 5 минут позже</string>
     <string name="class_timeline_suggestion">Нажмите, чтобы поставить сюда · %1$s</string>
