@@ -3,16 +3,21 @@ package com.seblful.klas.ui.schedule
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
@@ -27,6 +32,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -41,21 +47,25 @@ import com.seblful.klas.domain.schedule.ScheduleEmpty
 import com.seblful.klas.domain.schedule.TimeConflict
 import com.seblful.klas.ui.common.ConfirmDialog
 import com.seblful.klas.ui.common.EmptyState
+import com.seblful.klas.ui.common.FabClearance
 import com.seblful.klas.ui.common.FabListPadding
 import com.seblful.klas.ui.common.FilterChipRow
 import com.seblful.klas.ui.common.FilterMenuAction
 import com.seblful.klas.ui.common.KlasScreen
 import com.seblful.klas.ui.common.ListSkeleton
+import com.seblful.klas.ui.common.MaxContentWidth
 import com.seblful.klas.ui.common.NoticeDialog
 import com.seblful.klas.ui.common.SegmentedPage
 import com.seblful.klas.ui.common.ShowMessagesFor
 import com.seblful.klas.ui.common.Spacing
+import com.seblful.klas.ui.common.SupportingPaneMaxWidth
 import com.seblful.klas.ui.common.animateInPlace
 import com.seblful.klas.ui.common.plusInset
 import com.seblful.klas.ui.common.rememberColumnTimeWidth
 import com.seblful.klas.ui.common.rememberConfirmFeedback
 import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.rememberRejectFeedback
+import com.seblful.klas.ui.common.roomForSupportingPane
 import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.common.state.valueOrNull
 import com.seblful.klas.ui.common.timeText
@@ -186,10 +196,13 @@ fun ScheduleScreen(
     val cannotBookMsg = stringResource(R.string.schedule_need_setup)
     val addStudentLabel = stringResource(R.string.schedule_add_student)
 
+    // On an expanded window the month is Material's supporting pane: the grid beside the day it picks.
+    val monthBeside = viewMode == ScheduleViewMode.MONTH && roomForSupportingPane()
     KlasScreen(
         title = stringResource(R.string.schedule_title),
         page = viewMode,
         messages = messages,
+        maxContentWidth = if (monthBeside) SupportingPaneMaxWidth else MaxContentWidth,
         actions = {
             // Offered only once there is somebody to narrow to — a menu whose every entry is «Все
             // ученики» is a control that cannot do anything.
@@ -248,6 +261,9 @@ fun ScheduleScreen(
             onSelect = viewModel::setViewMode,
             label = { mode -> stringResource(viewModeLabel(mode)) },
             modifier = modifier,
+            // Beside the day, the month's pager sits over the grid it turns.
+            headerAlignment = if (monthBeside) Alignment.Start else Alignment.CenterHorizontally,
+            headerMaxWidth = if (monthBeside) CalendarPaneWidth else MaxContentWidth,
             header = {
                 // **The chip is what makes the filter honest.** A narrowed schedule and a genuinely quiet
                 // week look identical, so for as long as one student's lessons are what is on screen their
@@ -301,6 +317,56 @@ fun ScheduleScreen(
             // a full day of classes doesn't fit a landscape phone.
             // Measured here, once for every card in the list — see [ColumnTime].
             val timeWidth = rememberColumnTimeWidth(MaterialTheme.typography.titleMedium)
+            if (monthBeside) {
+                Row(Modifier.fillMaxSize()) {
+                    // The grid keeps its phone width, scrolling alone if a short window cuts it off.
+                    MonthCalendar(
+                        grid = grid,
+                        loads = loads,
+                        selected = date,
+                        today = today,
+                        onSelect = viewModel::selectDate,
+                        modifier = Modifier
+                            .width(CalendarPaneWidth)
+                            .fillMaxHeight()
+                            .verticalScroll(rememberScrollState())
+                            .padding(Spacing.gutter)
+                            .padding(bottomInset),
+                    )
+                    LazyColumn(
+                        Modifier.weight(1f).fillMaxHeight(),
+                        state = listState,
+                        // The grid's gutter and this make Material's 24 dp between panes.
+                        contentPadding = PaddingValues(
+                            start = Spacing.sectionGap - Spacing.gutter,
+                            top = Spacing.gutter,
+                            end = Spacing.gutter,
+                            bottom = FabClearance,
+                        ).plusInset(bottomInset),
+                        verticalArrangement = Arrangement.spacedBy(Spacing.itemGap),
+                    ) {
+                        item(key = "selected-day", contentType = "day-header") {
+                            SelectedDayHeader(
+                                date = dayContent.valueOrNull()?.date ?: date,
+                                summary = dayContent.valueOrNull()?.summary ?: DaySummary.NONE,
+                            )
+                        }
+                        dayList(
+                            view = ScheduleViewMode.MONTH,
+                            state = dayContent,
+                            emptyReason = emptyReason,
+                            nowMark = nowMark,
+                            running = running,
+                            timeWidth = timeWidth,
+                            onRowClick = { sheetFor = it },
+                            onComplete = { viewModel.setStatus(it.session, LessonStatus.COMPLETED) },
+                            onAddClass = addClass,
+                            onAddStudent = onAddStudent,
+                        )
+                    }
+                }
+                return@SegmentedPage
+            }
             LazyColumn(
                 Modifier.fillMaxSize(),
                 state = listState,
@@ -658,3 +724,6 @@ private fun viewModeLabel(mode: ScheduleViewMode): Int = when (mode) {
     ScheduleViewMode.WEEK -> R.string.schedule_view_week
     ScheduleViewMode.MONTH -> R.string.schedule_view_month
 }
+
+/** A month grid's own width beside the day it opens: Material's fixed supporting pane. */
+private val CalendarPaneWidth = 360.dp

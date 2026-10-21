@@ -113,10 +113,10 @@ class BottomBarLabelTest {
                 KlasTheme {
                     Box(Modifier.width(width.value)) {
                         NavigationSuiteScaffold(
-                            layoutType = NavigationSuiteType.NavigationBar,
-                            navigationSuiteItems = {
-                                klasTabs(tabs = tabs, selected = TopDestination.SCHEDULE, onSelect = {})
+                            navigationItems = {
+                                KlasTabs(tabs = tabs, selected = TopDestination.SCHEDULE, onSelect = {})
                             },
+                            navigationSuiteType = NavigationSuiteType.ShortNavigationBarCompact,
                             content = {},
                         )
                     }

@@ -624,7 +624,10 @@ private fun LazyListScope.paymentsTab(
             supportingContent = { Text(payment.date.formatDate()) },
             trailingContent = {
                 IconButton(onClick = { onDelete(payment) }) {
-                    Icon(KlasIcons.Outlined.Delete, stringResource(R.string.payment_delete))
+                    Icon(
+                        KlasIcons.Outlined.Delete,
+                        stringResource(R.string.payment_delete, payment.amount.text(), payment.date.formatDate()),
+                    )
                 }
             },
             // Tapping the row corrects it; the bin still removes it. Editing is the commoner of the

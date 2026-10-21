@@ -2,16 +2,17 @@ package com.seblful.klas.ui.common
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentWidth
+import androidx.compose.material3.adaptive.currentWindowAdaptiveInfoV2
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.window.core.layout.WindowSizeClass
 
 /*
  * The app's non-negotiable measurements: how wide content may get, how small a target may be, and how far a
@@ -35,6 +36,28 @@ val MaxContentWidth = 600.dp
  */
 fun Modifier.constrainedContent(max: Dp = MaxContentWidth): Modifier =
     this.wrapContentWidth(Alignment.CenterHorizontally).widthIn(max = max)
+/**
+ * How wide a body with a supporting pane may grow — the top of Material's readable range on a wide window —
+ * where a single column of rows keeps to [MaxContentWidth].
+ */
+val SupportingPaneMaxWidth = 1040.dp
+
+/**
+ * Whether a supporting pane fits beside a screen's list: an expanded window (840 dp and up) with no fold
+ * down the middle that the split could land on.
+ */
+@Composable
+fun roomForSupportingPane(): Boolean {
+    val info = currentWindowAdaptiveInfoV2()
+    return info.windowSizeClass.isWidthAtLeastBreakpoint(WindowSizeClass.WIDTH_DP_EXPANDED_LOWER_BOUND) &&
+        info.windowPosture.hingeList.none { it.isVertical && it.isSeparating }
+}
+
+/** Whether the window is at least medium (600 dp), where Material's margins grow to 24 dp. */
+@Composable
+fun mediumWindow(): Boolean = currentWindowAdaptiveInfoV2().windowSizeClass
+    .isWidthAtLeastBreakpoint(WindowSizeClass.WIDTH_DP_MEDIUM_LOWER_BOUND)
+
 /** The floor for anything tappable, per the Material accessibility guidance. */
 val MinTouchTarget = 48.dp
 /**

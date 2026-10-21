@@ -108,12 +108,16 @@ fun EmptyState(
             // primaries for one action, and the louder of them the one that disappears as soon as the
             // list has a row. The add button is the screen's primary; this points at the same door.
             if (compact) {
-                OutlinedButton(onClick = onAction) {
+                OutlinedButton(onClick = onAction, contentPadding = ButtonDefaults.ButtonWithIconContentPadding) {
                     Icon(KlasIcons.Filled.Add, contentDescription = null, Modifier.size(ButtonDefaults.IconSize))
                     Text(actionLabel, Modifier.padding(start = Spacing.inline))
                 }
             } else {
-                FilledTonalButton(onClick = onAction, modifier = Modifier.padding(top = Spacing.tight)) {
+                FilledTonalButton(
+                    onClick = onAction,
+                    modifier = Modifier.padding(top = Spacing.tight),
+                    contentPadding = ButtonDefaults.ButtonWithIconContentPadding,
+                ) {
                     Icon(KlasIcons.Filled.Add, contentDescription = null, Modifier.size(ButtonDefaults.IconSize))
                     Text(actionLabel, Modifier.padding(start = Spacing.inline))
                 }

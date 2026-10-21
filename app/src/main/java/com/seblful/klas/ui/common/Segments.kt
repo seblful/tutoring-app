@@ -5,6 +5,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.LocalTextStyle
@@ -19,16 +21,19 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.takeOrElse
+import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.state.map
 import kotlin.math.abs
 
@@ -93,10 +98,10 @@ fun <T> SegmentedChoice(
  */
 const val MaxSegments = 4
 
-/** hether a choice of [optionCount] values is asked with segments, or with a field instead. */
+/** Whether a choice of [optionCount] values is asked with segments, or with a field instead. */
 fun fitsInSegments(optionCount: Int): Boolean = optionCount <= MaxSegments
 
-/**  labelled row for **picking one of a fixed few** — the shape a *setting* takes. */
+/** A labelled row for **picking one of a fixed few** — the shape a *setting* takes. */
 @Composable
 fun <T> ChoiceRow(
     title: String,
@@ -151,10 +156,10 @@ fun <T> ChoiceRow(
     }
 }
 
-/**  segment's label on **one line**, shrinking a step at a time rather than wrapping. */
+/** A segment's label on **one line**, shrinking a step at a time rather than wrapping. */
 @Composable
 fun SegmentLabel(text: String) {
-    OneLineLabel(text, floor = MinSegmentLabelSize, fallbackSize = FallbackSegmentFontSize)
+    OneLineLabel(text, floor = MinSegmentLabelSize, fallbackSize = MaterialTheme.typography.labelLarge.fontSize)
 }
 
 /**
@@ -181,8 +186,6 @@ fun OneLineLabel(text: String, floor: Dp, fallbackSize: TextUnit) {
 
 private val MinSegmentLabelSize = 10.dp
 
-private val FallbackSegmentFontSize = 14.sp
-
 /**
  * A screen whose body is **one of a fixed few views**, picked by tabs pinned under the bar — «Люди»'s
  * two sides, «Задания»'s current and archive, the schedule's day, week and month.
@@ -200,13 +203,16 @@ fun <T> SegmentedPage(
     onSelect: (T) -> Unit,
     label: @Composable (T) -> String,
     modifier: Modifier = Modifier,
+    headerAlignment: Alignment.Horizontal = Alignment.CenterHorizontally,
+    headerMaxWidth: Dp = MaxContentWidth,
     header: @Composable ColumnScope.() -> Unit = {},
     content: @Composable ColumnScope.() -> Unit,
 ) {
     Column(modifier.swipeBetweenSegments(options, selected, onSelect)) {
         ScreenHeader {
-            // Held to a column's width even over a body that grows wider, so the tabs do not spread apart.
-            Column(Modifier.fillMaxWidth().constrainedContent()) {
+            // Held to a column's width even over a body that grows wider, so the tabs do not spread apart —
+            // or, over two panes, to the pane the header's pager turns ([headerAlignment], [headerMaxWidth]).
+            Column(Modifier.fillMaxWidth().wrapContentWidth(headerAlignment).widthIn(max = headerMaxWidth)) {
                 ViewTabs(options, selected, onSelect, label)
                 header()
             }
@@ -271,6 +277,7 @@ fun <T> Modifier.swipeBetweenSegments(
     val current by rememberUpdatedState(selected)
     val choices by rememberUpdatedState(options)
     val select by rememberUpdatedState(onSelect)
+    val direction by rememberUpdatedState(LocalLayoutDirection.current)
 
     return this.pointerInput(Unit) {
         val threshold = SegmentSwipeDistance.toPx()
@@ -287,9 +294,7 @@ fun <T> Modifier.swipeBetweenSegments(
                 travelled += delta
                 if (abs(travelled) < threshold) return@detectHorizontalDragGestures
                 decided = true
-                // Dragging **left** is negative and moves forward: the page being pulled off to the left
-                // is the next one arriving, which is the direction the app is read in.
-                segmentAfterSwipe(choices, current, forward = travelled < 0f)?.let { next ->
+                segmentAfterSwipe(choices, current, forward = swipeIsForward(travelled, direction))?.let { next ->
                     tick()
                     select(next)
                 }
@@ -297,6 +302,13 @@ fun <T> Modifier.swipeBetweenSegments(
         )
     }
 }
+
+/**
+ * Dragging toward the **start** moves forward: the page pulled off that way is the next one arriving,
+ * which is the direction the app is read in — leftward, or rightward in a right-to-left language.
+ */
+internal fun swipeIsForward(travelled: Float, direction: LayoutDirection): Boolean =
+    if (direction == LayoutDirection.Ltr) travelled < 0f else travelled > 0f
 
 internal fun <T> segmentAfterSwipe(options: List<T>, selected: T, forward: Boolean): T? {
     val at = options.indexOf(selected)

@@ -1,5 +1,6 @@
 package com.seblful.klas.ui.schedule.booking
 
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -17,7 +18,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -34,31 +35,33 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithCache
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.compositeOver
+import androidx.compose.ui.graphics.drawOutline
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.lerp
 import com.seblful.klas.R
 import com.seblful.klas.domain.model.Assignee
 import com.seblful.klas.domain.schedule.DayTimeline
 import com.seblful.klas.domain.schedule.Scheduling
+import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.avatarColors
 import com.seblful.klas.ui.common.rememberStepTickFeedback
 import com.seblful.klas.ui.common.timeText
 import com.seblful.klas.ui.theme.KlasIcons
+import com.seblful.klas.ui.theme.KlasMotion
 import kotlin.math.roundToInt
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.hours
@@ -101,7 +104,7 @@ internal fun BookingTimeline(
     val shown = peeked?.takeIf { it in timeline.booked }
     val red = !lifted && clashes
     val nudge = { by: Duration -> chosen?.let { timeline.shifted(it.start, by, length) }?.let(onStart) }
-    Column(modifier, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(Spacing.inline)) {
         Peek(timeline, shown, drawn, red)
         Bar(
             timeline = timeline,
@@ -172,7 +175,7 @@ private fun Bar(
             .testTag(TIMELINE_TAG)
             .fillMaxWidth()
             .height(BarHeight)
-            .clip(BarShape)
+            .clip(MaterialTheme.shapes.small)
             .background(colors.surfaceContainerHigh)
             .drawBehind { hourLines(timeline, colors.outlineVariant.copy(alpha = HOUR_LINE_ALPHA)) }
             .semantics { contentDescription = described }
@@ -213,7 +216,7 @@ private fun ChosenOrSuggestion(
 
 /**
  * A lesson already on the day: a block in its colour, with the first letter of who it is for if it fits —
- * outlined, with the letter bold, if it is [mine] — for whoever this lesson is for.
+ * outlined if it is [mine] — for whoever this lesson is for.
  */
 @Composable
 private fun BookedBlock(
@@ -224,6 +227,7 @@ private fun BookedBlock(
     mine: Boolean,
 ) {
     val (fill, letter) = lessonColors(lesson.assignee)
+    val shape = MaterialTheme.shapes.extraSmall
     val outline = when {
         peeked -> MaterialTheme.colorScheme.onSurface
         mine -> letter
@@ -234,18 +238,17 @@ private fun BookedBlock(
         lesson.slot,
         width,
         Modifier
-            .padding(vertical = 6.dp, horizontal = 1.dp)
+            .padding(vertical = Spacing.inline, horizontal = BlockSeparation)
             .fillMaxHeight()
             .then(if (mine) Modifier.testTag(MINE_TAG) else Modifier)
-            .clip(BlockShape)
+            .clip(shape)
             .background(fill)
-            .then(if (outline != null) Modifier.border(2.dp, outline, BlockShape) else Modifier),
+            .then(if (outline != null) Modifier.border(OutlineWidth, outline, shape) else Modifier),
     ) { span ->
         if (span >= LetterMinWidth) {
             Text(
                 lesson.who.take(1),
                 style = MaterialTheme.typography.labelMedium,
-                fontWeight = if (mine) FontWeight.Bold else null,
                 color = letter,
                 maxLines = 1,
             )
@@ -253,24 +256,35 @@ private fun BookedBlock(
     }
 }
 
-/** This lesson: indigo — red on a clash — with a grip to say it slides, raised while it does. */
+/**
+ * This lesson: indigo — red on a clash — with a grip to say it slides, raised while it does: from Material's
+ * resting level to its dragged one, and a little larger, in the draw phase alone.
+ */
 @Composable
 private fun ChosenBlock(timeline: DayTimeline, slot: Scheduling.Slot, width: Dp, clashes: Boolean, lifted: Boolean) {
     val colors = MaterialTheme.colorScheme
     val grip = if (clashes) colors.onError else colors.onPrimary
+    val shape = MaterialTheme.shapes.extraSmall
+    val lift = animateFloatAsState(if (lifted) 1f else 0f, KlasMotion.fastSpatial(), label = "lift")
     Segment(
         timeline,
         slot,
         width,
         Modifier
-            .padding(vertical = if (lifted) 1.dp else 3.dp)
+            .padding(vertical = Spacing.tight)
             .fillMaxHeight()
-            .shadow(if (lifted) 6.dp else 1.dp, BlockShape)
-            .background(if (clashes) colors.error else colors.primary, BlockShape),
+            .graphicsLayer {
+                val raised = lift.value
+                shadowElevation = lerp(RestingElevation, DraggedElevation, raised).toPx()
+                this.shape = shape
+                scaleX = 1f + LiftedGrowth * raised
+                scaleY = 1f + LiftedGrowth * raised
+            }
+            .background(if (clashes) colors.error else colors.primary, shape),
     ) { span ->
         if (span >= GripMinWidth) {
-            Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-                repeat(2) { Box(Modifier.size(width = 2.dp, height = 14.dp).background(grip, GripShape)) }
+            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.tight)) {
+                repeat(2) { Box(Modifier.size(width = GripWidth, height = GripHeight).background(grip, CircleShape)) }
             }
         }
     }
@@ -280,26 +294,29 @@ private fun ChosenBlock(timeline: DayTimeline, slot: Scheduling.Slot, width: Dp,
 @Composable
 private fun Suggestion(timeline: DayTimeline, suggestion: Scheduling.Slot, width: Dp, onStart: (Instant) -> Unit) {
     val primary = MaterialTheme.colorScheme.primary
+    val shape = MaterialTheme.shapes.extraSmall
     val label = stringResource(R.string.class_timeline_suggestion, suggestion.start.timeText())
     Segment(
         timeline,
         suggestion,
         width,
         Modifier
-            .padding(vertical = 3.dp)
+            .padding(vertical = Spacing.tight)
             .fillMaxHeight()
             .testTag(SUGGESTION_TAG)
             .drawWithCache {
-                val corner = CornerRadius(BlockRadius.toPx())
+                val outline = shape.createOutline(size, layoutDirection, this)
                 val dashed = Stroke(
-                    width = 2.dp.toPx(),
-                    pathEffect = PathEffect.dashPathEffect(floatArrayOf(5.dp.toPx(), 3.dp.toPx())),
+                    width = OutlineWidth.toPx(),
+                    pathEffect = PathEffect.dashPathEffect(floatArrayOf(DashOn.toPx(), DashOff.toPx())),
                 )
                 onDrawBehind {
-                    drawRoundRect(color = primary.copy(alpha = SUGGESTION_FILL), cornerRadius = corner)
-                    drawRoundRect(color = primary, cornerRadius = corner, style = dashed)
+                    drawOutline(outline, color = primary.copy(alpha = SUGGESTION_FILL))
+                    drawOutline(outline, color = primary, style = dashed)
                 }
             }
+            // Named, not only labelled: the plus drawn inside is hidden, and a narrow frame drops it.
+            .semantics { contentDescription = label }
             .clickable(onClickLabel = label, role = Role.Button) { onStart(suggestion.start) },
     ) { span ->
         if (span >= GripMinWidth) Icon(KlasIcons.Filled.Add, contentDescription = null, tint = primary)
@@ -383,9 +400,16 @@ private const val SUGGESTION_FILL = 0.08f
 private const val HOUR_LINE_ALPHA = 0.6f
 private const val MINUTES_PER_HOUR = 60
 private val BarHeight = 48.dp
-private val BarShape = RoundedCornerShape(12.dp)
-private val BlockRadius = 6.dp
-private val BlockShape = RoundedCornerShape(BlockRadius)
-private val GripShape = RoundedCornerShape(1.dp)
+
+/** A hairline of bar between neighbouring blocks, so two lessons back to back read as two. */
+private val BlockSeparation = 1.dp
+private val OutlineWidth = 2.dp
+private val DashOn = 5.dp
+private val DashOff = 3.dp
+private val GripWidth = 2.dp
+private val GripHeight = 14.dp
+private val RestingElevation = 1.dp
+private val DraggedElevation = 6.dp
+private const val LiftedGrowth = 0.08f
 private val LetterMinWidth = 16.dp
 private val GripMinWidth = 20.dp

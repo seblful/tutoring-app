@@ -1,7 +1,10 @@
 package com.seblful.klas.ui.common
 
+import androidx.compose.ui.unit.LayoutDirection
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class SegmentSwipeTest {
@@ -19,6 +22,14 @@ class SegmentSwipeTest {
     fun `dragging right goes to the previous one`() {
         assertEquals("Неделя", segmentAfterSwipe(three, "Месяц", forward = false))
         assertEquals("День", segmentAfterSwipe(three, "Неделя", forward = false))
+    }
+
+    @Test
+    fun `forward is toward the reading start in either direction`() {
+        assertTrue(swipeIsForward(-1f, LayoutDirection.Ltr))
+        assertFalse(swipeIsForward(1f, LayoutDirection.Ltr))
+        assertTrue(swipeIsForward(1f, LayoutDirection.Rtl))
+        assertFalse(swipeIsForward(-1f, LayoutDirection.Rtl))
     }
 
     @Test

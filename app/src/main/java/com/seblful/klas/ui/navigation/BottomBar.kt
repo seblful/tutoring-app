@@ -1,11 +1,11 @@
 package com.seblful.klas.ui.navigation
 
 import androidx.compose.material3.Icon
-import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScope
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteItem
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.seblful.klas.ui.common.HoldToName
 import com.seblful.klas.ui.common.OneLineLabel
 
@@ -19,14 +19,15 @@ import com.seblful.klas.ui.common.OneLineLabel
  * outline and took the pill away, so the bar visibly went dead on its way out. A pushed screen belongs
  * to the tab it was opened from, and that tab keeps its mark until another one is chosen.
  */
-fun NavigationSuiteScope.klasTabs(
+@Composable
+fun KlasTabs(
     tabs: List<TopDestination>,
     selected: TopDestination?,
     onSelect: (TopDestination) -> Unit,
 ) {
     tabs.forEach { dest ->
         val isSelected = selected == dest
-        item(
+        NavigationSuiteItem(
             selected = isSelected,
             onClick = { onSelect(dest) },
             icon = { TabIcon(dest, selected = isSelected) },
@@ -49,9 +50,11 @@ private fun TabIcon(dest: TopDestination, selected: Boolean) {
 
 @Composable
 private fun TabLabel(dest: TopDestination) {
-    OneLineLabel(stringResource(dest.labelRes), floor = MinLabelSize, fallbackSize = FallbackLabelFontSize)
+    OneLineLabel(
+        stringResource(dest.labelRes),
+        floor = MinLabelSize,
+        fallbackSize = MaterialTheme.typography.labelMedium.fontSize,
+    )
 }
 
 private val MinLabelSize = 9.dp
-
-private val FallbackLabelFontSize = 12.sp

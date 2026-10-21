@@ -70,6 +70,25 @@ val md_onSurfaceVariant = Color(0xFF46464F)
 val md_outline = Color(0xFF777680)
 val md_outlineVariant = Color(0xFFC7C5D0)
 
+// Left unset, these fell back to Material's baseline purple: the snackbar's action was lavender.
+val md_inverseSurface = Color(0xFF303035)
+val md_inverseOnSurface = Color(0xFFF2F0F7)
+val md_inversePrimary = Color(0xFFBCC3FF)
+
+// Fixed accents are the same in both themes, by Material's definition.
+val md_primaryFixed = Color(0xFFDFE0FF)
+val md_primaryFixedDim = Color(0xFFBCC3FF)
+val md_onPrimaryFixed = Color(0xFF000C60)
+val md_onPrimaryFixedVariant = Color(0xFF2B3AA4)
+val md_secondaryFixed = Color(0xFFDFE1FA)
+val md_secondaryFixedDim = Color(0xFFC3C5DD)
+val md_onSecondaryFixed = Color(0xFF171A2C)
+val md_onSecondaryFixedVariant = Color(0xFF42465A)
+val md_tertiaryFixed = Color(0xFFA9EDFF)
+val md_tertiaryFixedDim = Color(0xFF86D2E5)
+val md_onTertiaryFixed = Color(0xFF001F26)
+val md_onTertiaryFixedVariant = Color(0xFF004E5B)
+
 /*
  * The tonal ladder — the surfaces a card is drawn on, from the page upward.
  *
@@ -133,6 +152,10 @@ val md_surfaceVariant_d = Color(0xFF46464F)
 val md_onSurfaceVariant_d = Color(0xFFC7C5D0)
 val md_outline_d = Color(0xFF918F9A)
 val md_outlineVariant_d = Color(0xFF46464F)
+
+val md_inverseSurface_d = Color(0xFFE3E1EA)
+val md_inverseOnSurface_d = Color(0xFF2F3036)
+val md_inversePrimary_d = Color(0xFF545A90)
 
 /** The same ladder in the dark scheme, climbing away from the page rather than towards white. */
 val md_surfaceDim_d = Color(0xFF121318)

@@ -57,3 +57,6 @@ iosApp/DerivedData/
 
 # Play policy audit scratch output (android-skills:play-policy-insights).
 .scratch/
+
+# Python (art/ scripts)
+__pycache__/

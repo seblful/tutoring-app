@@ -3,11 +3,9 @@ package com.seblful.klas.ui.schedule
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
@@ -17,6 +15,8 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
@@ -25,9 +25,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -44,6 +46,7 @@ import com.seblful.klas.domain.model.TutoringClass
 import com.seblful.klas.format.bulletJoin
 import com.seblful.klas.format.toLocalDate
 import com.seblful.klas.format.toLocalTime
+import com.seblful.klas.ui.common.Avatar
 import com.seblful.klas.ui.common.DatePickerModal
 import com.seblful.klas.ui.common.LessonKindIcon
 import com.seblful.klas.ui.common.MinTouchTarget
@@ -58,6 +61,7 @@ import com.seblful.klas.ui.common.outsetRowPress
 import com.seblful.klas.ui.common.rememberToggleFeedback
 import com.seblful.klas.ui.common.timeText
 import com.seblful.klas.ui.theme.KlasIcons
+import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import kotlin.time.Instant
@@ -82,12 +86,16 @@ internal fun ClassActionsSheet(
     onCorrectCompletion: () -> Unit = {},
 ) {
     val klass = row.klass
+    val scope = rememberCoroutineScope()
     // No `dragHandle`: Material wraps whatever is passed there in a clickable, tooltipped box of its own,
     // so even a plain pill lit grey when held. The pill is the sheet's first row instead — see
     // [SheetHandle]; the whole sheet drags, not only the handle.
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState, dragHandle = null) {
         Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(bottom = SheetGutter)) {
-            SheetHandle(Modifier.align(Alignment.CenterHorizontally))
+            SheetHandle(
+                Modifier.align(Alignment.CenterHorizontally),
+                onDismiss = { scope.launch { sheetState.hide() }.invokeOnCompletion { onDismiss() } },
+            )
             // Header: which lesson these actions apply to — laid out as the card that was tapped is, the
             // icon beside the name and the status line under both, not the icon centred on the two lines.
             Column(Modifier.fillMaxWidth().padding(horizontal = SheetGutter, vertical = Spacing.tight)) {
@@ -160,12 +168,20 @@ internal fun LessonPayerDialog(row: ScheduleRow, onSelect: (Long) -> Unit, onDis
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.payment_choose_student)) },
         text = {
+            // A simple dialog's list: rows to pick from, not a stack of buttons.
             Column(Modifier.verticalScroll(rememberScrollState())) {
                 row.classes.forEachIndexed { index, klass ->
-                    TextButton(
-                        onClick = { onSelect(klass.studentId); onDismiss() },
-                        modifier = Modifier.fillMaxWidth(),
-                    ) { Text(row.members.getOrNull(index).orEmpty()) }
+                    val name = row.members.getOrNull(index).orEmpty()
+                    ListItem(
+                        headlineContent = { Text(name) },
+                        leadingContent = { Avatar(name, klass.studentId) },
+                        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                        modifier = Modifier.outsetRowPress { source ->
+                            Modifier.clickable(source, indication = null, role = Role.Button) {
+                                onSelect(klass.studentId); onDismiss()
+                            }
+                        },
+                    )
                 }
             }
         },
@@ -251,18 +267,19 @@ private fun SheetAction(
     destructive: Boolean = false,
 ) {
     val color = if (destructive) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
-    Row(
-        Modifier
-            .fillMaxWidth()
+    ListItem(
+        headlineContent = { Text(label) },
+        leadingContent = { Icon(icon, contentDescription = null) },
+        colors = ListItemDefaults.colors(
+            containerColor = Color.Transparent,
+            headlineColor = color,
+            leadingIconColor = if (destructive) color else MaterialTheme.colorScheme.onSurfaceVariant,
+        ),
+        // The list item's own 16 dp inset finishes the sheet's gutter, so the label lines up with the header.
+        modifier = Modifier
             .insetRowPress { Modifier.clickable(it, indication = null, role = Role.Button) { onClick() } }
-            .heightIn(min = MinTouchTarget)
-            .padding(horizontal = SheetGutter, vertical = Spacing.itemGap),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Icon(icon, contentDescription = null, tint = color)
-        Spacer(Modifier.width(Spacing.leading))
-        Text(label, color = color, style = MaterialTheme.typography.bodyLarge)
-    }
+            .padding(horizontal = SheetGutter - Spacing.gutter),
+    )
 }
 
 @Composable

@@ -5,6 +5,7 @@ import androidx.compose.material3.Text
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
@@ -15,6 +16,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performSemanticsAction
 import com.seblful.klas.ui.theme.KlasTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -61,5 +63,17 @@ class SurfacesTest {
 
         compose.onNodeWithText("Completed").assertIsDisplayed()
         compose.onNodeWithTag("handle").assertHasNoClickAction()
+    }
+
+    @Test
+    fun `a sheet handle given a way to close names itself and dismisses`() {
+        var dismissed = 0
+        compose.setContent { KlasTheme { SheetHandle(Modifier.testTag("handle"), onDismiss = { dismissed++ }) } }
+
+        compose.onNodeWithTag("handle")
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.ContentDescription, listOf("Drag handle")))
+            .performSemanticsAction(SemanticsActions.Dismiss)
+
+        assertEquals(1, dismissed)
     }
 }

@@ -2,15 +2,22 @@ package com.seblful.klas.ui
 
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
-import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
 import androidx.compose.material3.adaptive.currentWindowAdaptiveInfoV2
 import androidx.compose.material3.adaptive.layout.calculatePaneScaffoldDirective
 import androidx.compose.material3.adaptive.navigation3.rememberListDetailSceneStrategy
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffold
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffoldDefaults
+import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffoldValue
+import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteType
 import androidx.compose.material3.adaptive.navigationsuite.rememberNavigationSuiteScaffoldState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -18,11 +25,16 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
+import androidx.navigation3.runtime.NavEntry
+import androidx.navigation3.runtime.NavEntryDecorator
 import androidx.navigation3.runtime.rememberDecoratedNavEntries
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.runtime.result.rememberResultEventBusNavEntryDecorator
@@ -32,17 +44,21 @@ import com.seblful.klas.data.settings.SettingsRepository
 import com.seblful.klas.domain.model.Currency
 import com.seblful.klas.domain.model.ThemeChoice
 import com.seblful.klas.ui.common.LocalCurrency
+import com.seblful.klas.ui.common.LocalRailAction
 import com.seblful.klas.ui.common.ProvideClockFormat
 import com.seblful.klas.ui.common.ProvideLocalizedResources
+import com.seblful.klas.ui.common.RailAction
 import com.seblful.klas.ui.navigation.Arrival
 import com.seblful.klas.ui.navigation.KlasGraph
+import com.seblful.klas.ui.navigation.KlasNavigator
+import com.seblful.klas.ui.navigation.KlasTabs
 import com.seblful.klas.ui.navigation.OpensWhatTheTrayNames
 import com.seblful.klas.ui.navigation.Screen
 import com.seblful.klas.ui.navigation.TopDestination
-import com.seblful.klas.ui.navigation.crossFade
-import com.seblful.klas.ui.navigation.klasTabs
+import com.seblful.klas.ui.navigation.fadeThrough
 import com.seblful.klas.ui.navigation.listBesideDetail
 import com.seblful.klas.ui.navigation.owningTab
+import com.seblful.klas.ui.navigation.predictiveBackPop
 import com.seblful.klas.ui.navigation.rememberKlasNavigator
 import com.seblful.klas.ui.onboarding.OnboardingScreen
 import com.seblful.klas.ui.schedule.ScheduleTarget
@@ -152,18 +168,19 @@ private fun MainApp() {
             debtsArrival = { id -> debtsArrival?.takeIf { it.first == id }?.second },
         )
     }
+    // Material's current components for the width: the short bar on a phone (a landscape one included), the
+    // wide rail from medium width on.
+    val suiteType = NavigationSuiteScaffoldDefaults.navigationSuiteType(currentWindowAdaptiveInfoV2())
+    val railLayout by rememberUpdatedState(suiteType in RailTypes)
+    // Beside a tab the rail carries the tab's add button in its header; a bar leaves it to the screen. Whether
+    // a screen is a tab's is the entry's own fact, asked once: a tab fading out under a pushed form keeps its
+    // button in the rail, and a pushed screen fading out over a tab never offers one.
+    val railAction = remember { RailAction() }
+    val railOffer = rememberRailOffer(navigator, railAction) { railLayout }
+
     // Decorated over every live screen, not only the shown ones: a tab's screens set aside while another
     // tab shows keep their view models and saved state, as `NavHost`'s saved tabs did.
-    val decorated = rememberDecoratedNavEntries(
-        backStack = navigator.live,
-        entryDecorators = listOf(
-            rememberSaveableStateHolderNavEntryDecorator(),
-            rememberViewModelStoreNavEntryDecorator(),
-            rememberResultEventBusNavEntryDecorator(),
-        ),
-        entryProvider = graph::entry,
-    ).associateBy { it.contentKey }
-    val entries = backStack.map { decorated.getValue(it.id) }
+    val entries = rememberEntries(navigator, graph, railOffer)
 
     // **The chrome leaves with the screen, not ahead of it.** Whether the tabs apply is settled the
     // instant `navigate` is called, but the screen they belong to takes the length of a fade to go
@@ -179,29 +196,100 @@ private fun MainApp() {
     // it holds and then goes in one step — so this is a matter of *when* rather than of added motion.
     // Worth knowing before anyone tries to make it prettier.
     //
-    // It also puts `layoutType` back to being *only* about the window's width — bar on a phone, rail
-    // once there is room — which is the question it was always meant to answer.
-    val chrome = rememberNavigationSuiteScaffoldState()
+    // It also leaves the suite's type to be *only* about the window's width — bar on a phone, rail once
+    // there is room — which is the question it was always meant to answer.
+    val shiftInset = with(LocalDensity.current) { PredictiveShiftInset.roundToPx() }
+    // Starting as it should be: a pushed screen restored after the process died does not flash the tabs.
+    val chrome = rememberNavigationSuiteScaffoldState(
+        if (onTab) NavigationSuiteScaffoldValue.Visible else NavigationSuiteScaffoldValue.Hidden,
+    )
     LaunchedEffect(onTab) { if (onTab) chrome.show() else chrome.hide() }
 
     NavigationSuiteScaffold(
-        navigationSuiteItems = {
-            klasTabs(tabs = TopDestination.entries, selected = selectedTab, onSelect = navigator::navigateToTab)
+        // A camera cutout at the side is the whole app's to clear, once: the rail would sit under it, and the
+        // screens beside the rail would pad for it again.
+        modifier = Modifier.windowInsetsPadding(WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal)),
+        navigationItems = {
+            KlasTabs(tabs = TopDestination.entries, selected = selectedTab, onSelect = navigator::navigateToTab)
         },
         // Hidden on a pushed screen, which owns the whole window: a card or a form is not somewhere the
         // tabs apply — unless the card shares the window with the People list. Still one call site,
         // because a second would be a second composable identity and would rebuild the `NavDisplay`.
         state = chrome,
-        layoutType = NavigationSuiteScaffoldDefaults.calculateFromAdaptiveInfo(currentWindowAdaptiveInfo()),
+        navigationSuiteType = suiteType,
+        // Always a button's height, so the tabs below stay put between a tab with one and a tab without.
+        primaryActionContent = { if (railLayout) RailHeader(railAction) },
     ) {
         NavDisplay(
             entries = entries,
             modifier = Modifier.fillMaxSize(),
             sceneStrategies = listOf(listDetail, SinglePaneSceneStrategy()),
-            transitionSpec = { crossFade() },
-            popTransitionSpec = { crossFade() },
-            predictivePopTransitionSpec = { crossFade() },
+            transitionSpec = { fadeThrough() },
+            popTransitionSpec = { fadeThrough() },
+            predictivePopTransitionSpec = { edge -> predictiveBackPop(edge, shiftInset) },
             onBack = navigator::goBack,
         )
     }
 }
+
+/** The shown screens, each decorated over every live one — see `MainApp`. */
+@Composable
+private fun rememberEntries(
+    navigator: KlasNavigator,
+    graph: KlasGraph,
+    railOffer: NavEntryDecorator<Screen>,
+): List<NavEntry<Screen>> {
+    val decorated = rememberDecoratedNavEntries(
+        backStack = navigator.live,
+        entryDecorators = listOf(
+            rememberSaveableStateHolderNavEntryDecorator(),
+            rememberViewModelStoreNavEntryDecorator(),
+            rememberResultEventBusNavEntryDecorator(),
+            railOffer,
+        ),
+        entryProvider = graph::entry,
+    ).associateBy { it.contentKey }
+    return navigator.backStack.map { decorated.getValue(it.id) }
+}
+
+/**
+ * Gives a tab's screen the rail to hand its add button to, while [railLayout] — asked once per entry, so a
+ * screen fading out keeps the answer it arrived with.
+ */
+@Composable
+private fun rememberRailOffer(
+    navigator: KlasNavigator,
+    railAction: RailAction,
+    railLayout: () -> Boolean,
+): NavEntryDecorator<Screen> = remember(navigator, railAction) {
+    NavEntryDecorator(
+        decorate = { entry ->
+            val tab = remember(entry.contentKey) {
+                val screen = navigator.live.firstOrNull { it.id == entry.contentKey }
+                screen?.let { TopDestination.of(it.route) } != null
+            }
+            CompositionLocalProvider(LocalRailAction provides railAction.takeIf { tab && railLayout() }) {
+                entry.Content()
+            }
+        },
+    )
+}
+
+/** The rail's header: the tab's add button, in a slot a button's height whether or not there is one. */
+@Composable
+private fun RailHeader(railAction: RailAction) {
+    Box(Modifier.defaultMinSize(minHeight = RailActionHeight), contentAlignment = Alignment.Center) {
+        railAction.content?.invoke()
+    }
+}
+
+/** The suite's types that are rails, whose header carries a tab's add button. */
+private val RailTypes = setOf(
+    NavigationSuiteType.WideNavigationRailCollapsed,
+    NavigationSuiteType.WideNavigationRailExpanded,
+)
+
+/** A FAB's height, which the rail's header keeps whether or not the tab has one. */
+private val RailActionHeight = 56.dp
+
+private val PredictiveShiftInset = 8.dp

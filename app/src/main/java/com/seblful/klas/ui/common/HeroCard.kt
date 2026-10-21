@@ -12,8 +12,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import com.seblful.klas.ui.common.Spacing
 
 /**
  * **The one number a screen exists to answer**, in the loudest colour the palette has.
@@ -49,7 +50,6 @@ fun HeroCard(
                 MaterialTheme.colorScheme.onPrimaryContainer
             },
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
         Column(
             Modifier.padding(HeroInset),
@@ -64,7 +64,7 @@ fun HeroCard(
                 style = MaterialTheme.typography.headlineMedium,
                 maxLines = 1,
                 autoSize = TextAutoSize.StepBased(
-                    minFontSize = HeroMinFontSize,
+                    minFontSize = with(LocalDensity.current) { HeroMinSize.toSp() },
                     maxFontSize = MaterialTheme.typography.headlineMedium.fontSize,
                 ),
             )
@@ -73,6 +73,6 @@ fun HeroCard(
     }
 }
 
-private val HeroInset = 20.dp
+private val HeroInset = Spacing.sectionGap
 
-private val HeroMinFontSize = 20.sp
+private val HeroMinSize = 20.dp

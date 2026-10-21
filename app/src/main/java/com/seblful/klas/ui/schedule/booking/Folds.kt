@@ -38,6 +38,7 @@ import com.seblful.klas.ui.common.SectionTitle
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.outsetRowPress
 import com.seblful.klas.ui.theme.KlasIcons
+import com.seblful.klas.ui.theme.KlasMotion
 
 /*
  * The booking form's folded rows — Length, Repeat, Terms: one line saying what each is set to, opened in
@@ -76,7 +77,11 @@ internal fun Fold(
     content: @Composable ColumnScope.() -> Unit,
 ) {
     var opened by rememberSaveable { mutableStateOf(false) }
-    val turn by animateFloatAsState(if (opened) HALF_TURN else 0f, label = "fold chevron")
+    val turn by animateFloatAsState(
+        if (opened) HALF_TURN else 0f,
+        animationSpec = KlasMotion.defaultSpatial(),
+        label = "fold chevron",
+    )
     Column {
         Row(
             Modifier
@@ -93,7 +98,11 @@ internal fun Fold(
             horizontalArrangement = Arrangement.spacedBy(Spacing.inline),
         ) {
             Box(Modifier.weight(1f)) { label() }
-            AnimatedVisibility(!opened, enter = fadeIn(), exit = fadeOut()) {
+            AnimatedVisibility(
+                !opened,
+                enter = fadeIn(KlasMotion.defaultEffects()),
+                exit = fadeOut(KlasMotion.defaultEffects()),
+            ) {
                 Text(
                     summary,
                     style = MaterialTheme.typography.bodyMedium,
@@ -111,8 +120,10 @@ internal fun Fold(
         }
         AnimatedVisibility(
             opened,
-            enter = expandVertically(expandFrom = Alignment.Top) + fadeIn(),
-            exit = shrinkVertically(shrinkTowards = Alignment.Top) + fadeOut(),
+            enter = expandVertically(KlasMotion.defaultSpatial(), expandFrom = Alignment.Top) +
+                fadeIn(KlasMotion.defaultEffects()),
+            exit = shrinkVertically(KlasMotion.defaultSpatial(), shrinkTowards = Alignment.Top) +
+                fadeOut(KlasMotion.defaultEffects()),
         ) {
             Column(
                 Modifier.padding(top = Spacing.tight, bottom = Spacing.inline),

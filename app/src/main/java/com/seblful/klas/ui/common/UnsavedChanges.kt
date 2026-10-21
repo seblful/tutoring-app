@@ -1,7 +1,6 @@
 package com.seblful.klas.ui.common
 
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -43,7 +42,7 @@ enum class LeaveIntent {
     ASK_DISCARD,
 }
 
-/**  form whose state can answer both halves of [leaveIntent]. */
+/** A form whose state can answer both halves of [leaveIntent]. */
 interface LeavableForm {
 
     /** Whether the form differs from what it was opened with. */
@@ -145,7 +144,7 @@ private fun UnsavedChangesDialog(
 
 @Composable
 private fun DiscardButton(onDiscard: () -> Unit) {
-    TextButton(onClick = onDiscard) {
-        Text(stringResource(R.string.unsaved_discard), color = MaterialTheme.colorScheme.error)
+    TextButton(onClick = onDiscard, colors = destructiveTextButtonColors()) {
+        Text(stringResource(R.string.unsaved_discard))
     }
 }

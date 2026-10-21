@@ -14,15 +14,20 @@ import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.contentColorFor
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.dismiss
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.seblful.klas.R
 import com.seblful.klas.ui.theme.KlasIcons
 
 /*
@@ -64,8 +69,11 @@ fun ContentCard(
         modifier = modifier
             .fillMaxWidth()
             .then(if (selected) Modifier.semantics { this.selected = true } else Modifier),
-        colors = CardDefaults.cardColors(containerColor = surface.copy(alpha = if (dimmed) DimmedAlpha else 1f)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        // The content colour is named: a translucent container matches no role for `contentColorFor` to find.
+        colors = CardDefaults.cardColors(
+            containerColor = surface.copy(alpha = if (dimmed) DimmedAlpha else 1f),
+            contentColor = MaterialTheme.colorScheme.contentColorFor(surface),
+        ),
     ) {
         Column(
             Modifier.fillMaxWidth().padding(horizontal = Spacing.gutter, vertical = CardInsetY),
@@ -86,7 +94,6 @@ fun SectionCard(
     Card(
         modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.sectionSurface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         content = content,
     )
 }
@@ -111,7 +118,7 @@ fun SectionTitle(text: String, modifier: Modifier = Modifier, color: Color = Col
     )
 }
 
-/** oney at the trailing edge of a nested row — what a taught lesson was billed. */
+/** Money at the trailing edge of a nested row — what a taught lesson was billed. */
 @Composable
 fun TrailingAmount(text: String, modifier: Modifier = Modifier) {
     Text(
@@ -128,20 +135,31 @@ fun TrailingAmount(text: String, modifier: Modifier = Modifier) {
  * group's member.
  */
 @Composable
-fun OpensScreenMark() {
-    Icon(KlasIcons.Filled.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+fun OpensScreenMark(tint: Color = MaterialTheme.colorScheme.onSurfaceVariant) {
+    Icon(KlasIcons.Filled.ChevronRight, contentDescription = null, tint = tint)
 }
 
-/**  bottom sheet's handle: the pill, and nothing behind it when it is held. */
+/**
+ * A bottom sheet's handle: the pill, and nothing behind it when it is held.
+ *
+ * @param onDismiss closes the sheet for a screen reader, the action Material's own handle carries.
+ */
 @Composable
-fun SheetHandle(modifier: Modifier = Modifier) {
+fun SheetHandle(modifier: Modifier = Modifier, onDismiss: (() -> Unit)? = null) {
+    val handleLabel = stringResource(R.string.sheet_drag_handle)
+    val dismissLabel = stringResource(R.string.sheet_dismiss)
     Box(
         modifier
             .padding(vertical = HandleInsetY)
             .size(width = HandleWidth, height = HandleHeight)
             .clip(CircleShape)
             .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = HandleAlpha))
-            .clearAndSetSemantics { },
+            .clearAndSetSemantics {
+                if (onDismiss != null) {
+                    contentDescription = handleLabel
+                    dismiss(dismissLabel) { onDismiss(); true }
+                }
+            },
     )
 }
 

@@ -11,7 +11,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.res.stringResource
 import com.seblful.klas.R
 import com.seblful.klas.ui.theme.klasColors
@@ -26,10 +28,12 @@ import com.seblful.klas.ui.theme.klasColors
 /** A small tonal pill — e.g. a class status. The tint is derived from [color]. */
 @Composable
 fun StatusBadge(text: String, color: Color, modifier: Modifier = Modifier) {
+    // Judged on the highest card surface a pill sits on: every lower one leaves it more contrast.
+    val pill = color.copy(alpha = PillAlpha).compositeOver(MaterialTheme.colorScheme.surfaceContainerHighest)
     Box(
         modifier
             .clip(MaterialTheme.shapes.small)
-            .background(color.copy(alpha = 0.15f))
+            .background(color.copy(alpha = PillAlpha))
             .padding(horizontal = Spacing.inline, vertical = Spacing.tight),
     ) {
         Text(
@@ -38,11 +42,34 @@ fun StatusBadge(text: String, color: Color, modifier: Modifier = Modifier) {
             // beside it is the primary one, so when the two compete for a phone's width the pill is
             // what gives — a status read at 11sp is still read; a name cut short is not.
             style = MaterialTheme.typography.labelSmall,
-            color = if (klasColors.isDark) color else lerp(color, Color.Black, 0.1f),
+            color = readableOn(pill, color, klasColors.isDark),
             maxLines = 1,
         )
     }
 }
+
+/** [color], deepened (lightened after dark) only as far as text needs to read on [background]. */
+internal fun readableOn(background: Color, color: Color, dark: Boolean): Color {
+    val toward = if (dark) Color.White else Color.Black
+    var step = 0
+    var text = color
+    while (contrastRatio(text, background) < TextContrast && step < Steps) {
+        step++
+        text = lerp(color, toward, step / Steps.toFloat())
+    }
+    return text
+}
+
+internal fun contrastRatio(a: Color, b: Color): Float {
+    val (light, dark) = listOf(a.luminance(), b.luminance()).sortedDescending()
+    return (light + LuminanceFlare) / (dark + LuminanceFlare)
+}
+
+/** WCAG's allowance for ambient light on a screen, added to both luminances. */
+private const val LuminanceFlare = 0.05f
+private const val PillAlpha = 0.15f
+private const val TextContrast = 4.5f
+private const val Steps = 20
 
 /** «в архиве» — a retired student, a retired group, or a member who has left. */
 @Composable

@@ -59,6 +59,9 @@
     <!-- Two different buttons: the ✕ inside the field empties it, this closes search altogether. -->
     <string name="search_clear">Clear</string>
     <string name="search_close">Close search</string>
+    <!-- The sheet handle, as Material's own reads to a screen reader. -->
+    <string name="sheet_drag_handle">Drag handle</string>
+    <string name="sheet_dismiss">Close sheet</string>
     <string name="search_no_results">Nothing found</string>
     <string name="search_no_results_detail">Try a different search</string>
     <!-- Closes a long menu (every student, say), which shows only its first matches. -->
@@ -118,6 +121,9 @@
     <string name="schedule_view_month">Month</string>
     <!-- A calendar day's spoken breakdown: one status and how many lessons are in it. -->
     <string name="calendar_status_tally">%1$s: %2$d</string>
+    <string name="calendar_selected">Selected</string>
+    <string name="time_picker_to_keyboard">Switch to text input</string>
+    <string name="time_picker_to_dial">Switch to clock dial</string>
     <string name="schedule_today">Today</string>
     <string name="schedule_previous_day">Previous day</string>
     <string name="schedule_next_day">Next day</string>
@@ -354,7 +360,7 @@
     <string name="payment_add_title">New payment</string>
     <string name="payment_edit_title">Edit payment</string>
     <string name="payment_amount_label">Amount</string>
-    <string name="payment_delete">Delete payment</string>
+    <string name="payment_delete">Delete payment of %1$s on %2$s</string>
     <string name="payment_deleted">Payment deleted</string>
     <!-- A payment is recorded when the tutor gets round to it, not when it was handed over. -->
     <string name="payment_date_label">Payment date</string>

@@ -29,9 +29,10 @@ import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.semantics.Role
 import com.seblful.klas.format.bulletJoin
 import com.seblful.klas.ui.theme.KlasIcons
+import com.seblful.klas.ui.theme.KlasMotion
 import kotlinx.coroutines.launch
 
-/**  header that **stays** while a list scrolls under it — and only looks like a band while it does. */
+/** A header that **stays** while a list scrolls under it — and only looks like a band while it does. */
 @Composable
 fun PinnedHeader(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
     // Written at placement, so read only off the composition: read by it, a placement that pinned the header
@@ -41,7 +42,7 @@ fun PinnedHeader(modifier: Modifier = Modifier, content: @Composable ColumnScope
     val background = remember { Animatable(colors.surface) }
     LaunchedEffect(colors) {
         snapshotFlow { if (pinned) colors.surfaceContainer else colors.surface }
-            .collect { target -> launch { background.animateTo(target) } }
+            .collect { target -> launch { background.animateTo(target, KlasMotion.defaultEffects()) } }
     }
     Column(
         modifier

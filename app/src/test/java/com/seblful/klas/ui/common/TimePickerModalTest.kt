@@ -2,7 +2,10 @@ package com.seblful.klas.ui.common
 
 import android.content.Context
 import android.provider.Settings
+import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ApplicationProvider
@@ -37,6 +40,19 @@ class TimePickerModalTest {
         show("12") { saved = it }
 
         compose.onNodeWithText("PM").assertExists()
+        compose.onNodeWithText("Done").performClick()
+
+        assertEquals(LocalTime(21, 0), saved)
+    }
+
+    @Test
+    fun `the time can be typed instead of dialled`() {
+        var saved: LocalTime? = null
+        show("24") { saved = it }
+
+        compose.onNodeWithContentDescription("Switch to text input", substring = true).performClick()
+        compose.onAllNodes(hasSetTextAction()).assertCountEquals(2)
+        compose.onNodeWithContentDescription("Switch to clock", substring = true).assertExists()
         compose.onNodeWithText("Done").performClick()
 
         assertEquals(LocalTime(21, 0), saved)

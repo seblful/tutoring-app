@@ -1,15 +1,15 @@
 package com.seblful.klas.ui.common
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.indication
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -24,12 +24,14 @@ import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.SearchBarDefaults
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -37,7 +39,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
@@ -45,6 +46,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.KeyboardType
@@ -243,13 +245,14 @@ fun PickerField(
                 .heightIn(min = OutlinedTextFieldDefaults.MinHeight)
                 .clickable(
                     interactionSource = interactions,
-                    indication = ripple(),
+                    indication = null,
                     enabled = enabled,
                     role = Role.Button,
                     onClick = onClick,
                 ),
             propagateMinConstraints = true,
         ) {
+            PressInsideBorder(interactions)
             OutlinedTextFieldDefaults.DecorationBox(
                 value = value,
                 innerTextField = {
@@ -359,6 +362,20 @@ fun <T> PresetChips(
         )
     }
 }
+/**
+ * A [PickerField]'s press inside its rounded border, on a layer of its own: clipping the field itself would cut
+ * the floated label, which sits across its top edge.
+ */
+@Composable
+private fun BoxScope.PressInsideBorder(interactions: MutableInteractionSource) {
+    Box(
+        Modifier
+            .matchParentSize()
+            .clip(OutlinedTextFieldDefaults.shape)
+            .indication(interactions, ripple()),
+    )
+}
+
 /** One tappable person in a roster picker — a group's members, or who was at a lesson. */
 @Composable
 fun MemberPickRow(
@@ -368,31 +385,28 @@ fun MemberPickRow(
     modifier: Modifier = Modifier,
 ) {
     val toggleFeedback = rememberToggleFeedback()
-    Row(
-        modifier
+    // Material's checkbox list row: the tick says it is chosen, and the row adds no tint of its own. It
+    // reaches into the form's padding by the list item's extra inset, so avatar and tick keep the form's edge.
+    ListItem(
+        headlineContent = { Text(student.name) },
+        leadingContent = { Avatar(student.name, student.id) },
+        trailingContent = { Checkbox(checked = selected, onCheckedChange = null) },
+        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+        modifier = modifier
             .fillMaxWidth()
-            .clip(MaterialTheme.shapes.medium)
-            .background(
-                if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
-                else Color.Transparent,
-            )
+            .bleed(Spacing.gutter - Spacing.inline)
+            .clip(MaterialTheme.shapes.small)
             .toggleable(value = selected, role = Role.Checkbox, onValueChange = { on ->
                 toggleFeedback(on); onToggle(on)
-            })
-            .heightIn(min = MinTouchTarget)
-            .padding(horizontal = Spacing.inline, vertical = Spacing.tight),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Avatar(student.name, student.id)
-        Text(
-            student.name,
-            style = MaterialTheme.typography.bodyLarge,
-            modifier = Modifier.weight(1f).padding(start = Spacing.leading),
-        )
-        Checkbox(checked = selected, onCheckedChange = null)
-    }
+            }),
+    )
 }
-/** The search field the list screens carry in place of their title while searching. */
+/**
+ * The search field the list screens carry in place of their title while searching: Material's search bar
+ * input on its own rounded container. Not `SearchBar` itself, whose 360 dp minimum does not fit a phone's
+ * title beside the bar's icons.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SearchField(
     query: String,
@@ -402,26 +416,29 @@ fun SearchField(
 ) {
     // Opening search and then having to tap the box would make the icon a two-tap affordance.
     val focusRequester = rememberRevealedFocus()
-    TextField(
-        value = query,
-        onValueChange = onQueryChange,
-        modifier = modifier.fillMaxWidth().focusRequester(focusRequester),
-        placeholder = { Text(placeholder) },
-        singleLine = true,
-        trailingIcon = {
-            if (query.isNotEmpty()) {
-                IconButton(onClick = { onQueryChange("") }) {
-                    Icon(KlasIcons.Filled.Close, stringResource(R.string.search_clear))
+    val keyboard = LocalSoftwareKeyboardController.current
+    Surface(
+        shape = SearchBarDefaults.inputFieldShape,
+        color = SearchBarDefaults.colors().containerColor,
+        modifier = modifier.fillMaxWidth(),
+    ) {
+        SearchBarDefaults.InputField(
+            query = query,
+            onQueryChange = onQueryChange,
+            // The list filters as it is typed, so the keyboard's search key only puts the keyboard away.
+            onSearch = { keyboard?.hide() },
+            expanded = false,
+            onExpandedChange = {},
+            modifier = Modifier.fillMaxWidth().focusRequester(focusRequester),
+            placeholder = { Text(placeholder, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+            leadingIcon = { Icon(KlasIcons.Filled.Search, contentDescription = null) },
+            trailingIcon = {
+                if (query.isNotEmpty()) {
+                    IconButton(onClick = { onQueryChange("") }) {
+                        Icon(KlasIcons.Filled.Close, stringResource(R.string.search_clear))
+                    }
                 }
-            }
-        },
-        colors = TextFieldDefaults.colors(
-            // Transparent, so the field reads as the app bar's title rather than as a control
-            // dropped into it.
-            focusedContainerColor = Color.Transparent,
-            unfocusedContainerColor = Color.Transparent,
-            focusedIndicatorColor = Color.Transparent,
-            unfocusedIndicatorColor = Color.Transparent,
-        ),
-    )
+            },
+        )
+    }
 }

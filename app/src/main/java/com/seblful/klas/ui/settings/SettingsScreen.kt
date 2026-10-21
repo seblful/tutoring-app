@@ -19,7 +19,6 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.seblful.klas.R
 import com.seblful.klas.data.settings.AppSettings
@@ -157,12 +156,21 @@ private fun SettingsCategoryRow(
     selected: Boolean,
 ) {
     ListItem(
-        leadingContent = { IconAvatar(icon) },
-        headlineContent = { Text(title, fontWeight = FontWeight.Medium) },
-        supportingContent = { Text(summary, color = MaterialTheme.colorScheme.onSurfaceVariant) },
-        trailingContent = { OpensScreenMark() },
+        leadingContent = { IconAvatar(icon, selected = selected) },
+        headlineContent = { Text(title) },
+        supportingContent = { Text(summary) },
+        trailingContent = {
+            val colors = MaterialTheme.colorScheme
+            OpensScreenMark(if (selected) colors.onSecondaryContainer else colors.onSurfaceVariant)
+        },
         colors = if (selected) {
-            ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
+            val onSelected = MaterialTheme.colorScheme.onSecondaryContainer
+            ListItemDefaults.colors(
+                containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                headlineColor = onSelected,
+                supportingColor = onSelected,
+                trailingIconColor = onSelected,
+            )
         } else {
             settingsRowColors()
         },

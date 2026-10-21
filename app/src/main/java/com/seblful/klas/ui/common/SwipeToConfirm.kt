@@ -1,6 +1,5 @@
 package com.seblful.klas.ui.common
 
-import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
@@ -40,6 +39,7 @@ import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
+import com.seblful.klas.ui.theme.KlasMotion
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlin.math.abs
@@ -200,4 +200,4 @@ internal fun swipeArmed(dragged: Float, width: Float): Boolean =
 
 private const val CommitFraction = 0.33f
 
-private val SpringHome = spring<Float>(stiffness = Spring.StiffnessMediumLow)
+private val SpringHome = KlasMotion.defaultSpatial<Float>()

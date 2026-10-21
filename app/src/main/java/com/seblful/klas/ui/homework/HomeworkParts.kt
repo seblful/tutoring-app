@@ -58,6 +58,7 @@ import com.seblful.klas.ui.common.SwipeToConfirmBox
 import com.seblful.klas.ui.common.SwipeToward
 import com.seblful.klas.ui.common.animateInPlace
 import com.seblful.klas.ui.common.dateTimeText
+import com.seblful.klas.ui.common.destructiveTextButtonColors
 import com.seblful.klas.ui.common.insetRowPress
 import com.seblful.klas.ui.common.rememberExternalApps
 import com.seblful.klas.ui.common.rememberRevealedFocus
@@ -378,8 +379,8 @@ fun HomeworkDialog(
         dismissButton = {
             Row {
                 if (editing != null && onDelete != null) {
-                    TextButton(onClick = { onDelete(); onDismiss() }) {
-                        Text(stringResource(R.string.action_delete), color = MaterialTheme.colorScheme.error)
+                    TextButton(onClick = { onDelete(); onDismiss() }, colors = destructiveTextButtonColors()) {
+                        Text(stringResource(R.string.action_delete))
                     }
                 }
                 TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }

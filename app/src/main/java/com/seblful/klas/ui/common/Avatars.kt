@@ -68,21 +68,24 @@ fun Avatar(name: String, studentId: Long, modifier: Modifier = Modifier, size: D
 /**
  * The 40dp disc a top-level list row leads with, holding a glyph rather than a monogram — a group, a
  * subject.
+ *
+ * @param selected for a row tinted as selected, whose `secondaryContainer` the usual disc would vanish into.
  */
 @Composable
-fun IconAvatar(icon: ImageVector, modifier: Modifier = Modifier, size: Dp = 40.dp) {
+fun IconAvatar(icon: ImageVector, modifier: Modifier = Modifier, size: Dp = 40.dp, selected: Boolean = false) {
+    val colors = MaterialTheme.colorScheme
     Box(
         modifier
             .size(size)
             .clip(CircleShape)
-            .background(MaterialTheme.colorScheme.secondaryContainer)
+            .background(if (selected) colors.surfaceContainerLowest else colors.secondaryContainer)
             .clearAndSetSemantics { },
         contentAlignment = Alignment.Center,
     ) {
         Icon(
             icon,
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSecondaryContainer,
+            tint = if (selected) colors.onSurfaceVariant else colors.onSecondaryContainer,
             modifier = Modifier.size(AvatarGlyph),
         )
     }
@@ -93,7 +96,7 @@ private val AvatarGlyph = 22.dp
 /** A student's avatar colours, disc then letter — also what their lessons are drawn in on a timeline. */
 @Composable
 internal fun avatarColors(studentId: Long): Pair<Color, Color> {
-    val base = AvatarHues[AvatarPalette.indexFor(studentId, AvatarHues.size)]
+    val base = klasColors.harmonized(AvatarHues[AvatarPalette.indexFor(studentId, AvatarHues.size)])
     return if (klasColors.isDark) {
         base.copy(alpha = 0.35f) to lerp(base, Color.White, 0.55f)
     } else {

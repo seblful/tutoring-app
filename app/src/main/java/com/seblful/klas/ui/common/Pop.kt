@@ -1,6 +1,5 @@
 package com.seblful.klas.ui.common
 
-import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -17,6 +16,7 @@ import androidx.compose.ui.node.LayoutModifierNode
 import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.platform.InspectorInfo
 import androidx.compose.ui.unit.Constraints
+import com.seblful.klas.ui.theme.KlasMotion
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
@@ -34,7 +34,7 @@ import kotlinx.coroutines.launch
  * dragged.
  */
 
-/** eld enlarged while [armed] — a drag past its mark, which letting go would act on. */
+/** Held enlarged while [armed] — a drag past its mark, which letting go would act on. */
 @Composable
 fun Modifier.armedPop(armed: Boolean): Modifier {
     val scale by animateFloatAsState(
@@ -105,10 +105,7 @@ private class PopOnChangeNode(private var value: Any?) : Modifier.Node(), Layout
     }
 }
 
-private val PopSpring = spring<Float>(
-    dampingRatio = Spring.DampingRatioMediumBouncy,
-    stiffness = Spring.StiffnessMediumLow,
-)
+private val PopSpring = KlasMotion.bouncySpatial<Float>()
 
 private const val ArmedScale = 1.3f
 

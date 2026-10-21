@@ -11,7 +11,11 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TimeInput
 import androidx.compose.material3.TimePicker
+import androidx.compose.material3.TimePickerDialog
+import androidx.compose.material3.TimePickerDialogDefaults
+import androidx.compose.material3.TimePickerDisplayMode
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
@@ -23,6 +27,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import com.seblful.klas.R
+import com.seblful.klas.ui.theme.KlasIcons
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
@@ -76,6 +81,8 @@ fun DatePickerModal(
  * Time picker. As with [DatePickerModal], [onConfirm] and [onDismiss] are separate and the caller
  * is responsible for closing the dialog, so confirming one step of a flow never triggers the
  * flow's cancel path.
+ *
+ * Material's time dialog: the dial, or the keyboard for whoever would rather type the time.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -88,7 +95,9 @@ fun TimePickerModal(
         initialHour = initial.hour,
         initialMinute = initial.minute,
     )
-    AlertDialog(
+    var typing by rememberSaveable { mutableStateOf(false) }
+    val mode = if (typing) TimePickerDisplayMode.Input else TimePickerDisplayMode.Picker
+    TimePickerDialog(
         onDismissRequest = onDismiss,
         confirmButton = {
             TextButton(onClick = {
@@ -96,8 +105,19 @@ fun TimePickerModal(
             }) { Text(stringResource(R.string.action_done)) }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },
-        text = { TimePicker(state = state) },
-    )
+        title = { TimePickerDialogDefaults.Title(displayMode = mode) },
+        // The app's own toggle: Material's draws its icon for the mode it is in but names the one it leads to,
+        // so one of the two always disagreed. This shows and says where a tap leads.
+        modeToggleButton = {
+            NamedIconButton(
+                if (typing) KlasIcons.Outlined.Schedule else KlasIcons.Outlined.Keyboard,
+                stringResource(if (typing) R.string.time_picker_to_dial else R.string.time_picker_to_keyboard),
+                onClick = { typing = !typing },
+            )
+        },
+    ) {
+        if (typing) TimeInput(state = state) else TimePicker(state = state)
+    }
 }
 
 /** How long something lasts, in hours and minutes — the booking form's «Другая» length. */

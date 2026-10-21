@@ -23,7 +23,6 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.CornerSize
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
@@ -54,15 +53,14 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawOutline
 import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.seblful.klas.R
 import com.seblful.klas.domain.reports.ReportCsv
@@ -74,6 +72,7 @@ import com.seblful.klas.ui.common.EmptyState
 import com.seblful.klas.ui.common.HeroCard
 import com.seblful.klas.ui.common.KlasScreen
 import com.seblful.klas.ui.common.ListSkeleton
+import com.seblful.klas.ui.common.MaxContentWidth
 import com.seblful.klas.ui.common.MinTouchTarget
 import com.seblful.klas.ui.common.NamedIconButton
 import com.seblful.klas.ui.common.PageStepper
@@ -82,7 +81,9 @@ import com.seblful.klas.ui.common.SectionCard
 import com.seblful.klas.ui.common.SectionTitle
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.StatRow
+import com.seblful.klas.ui.common.SupportingPaneMaxWidth
 import com.seblful.klas.ui.common.TickedMenuItem
+import com.seblful.klas.ui.common.constrainedContent
 import com.seblful.klas.ui.common.hoursStat
 import com.seblful.klas.ui.common.lessonKindFill
 import com.seblful.klas.ui.common.lessonKindLabel
@@ -92,6 +93,7 @@ import com.seblful.klas.ui.common.plusInset
 import com.seblful.klas.ui.common.rememberCreateDocument
 import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.rememberSkeletonPulse
+import com.seblful.klas.ui.common.roomForSupportingPane
 import com.seblful.klas.ui.common.sectionSurface
 import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.common.text
@@ -166,9 +168,11 @@ fun ReportsScreen(
     // Names the period, so a report arriving in somebody's mail says which month it is.
     val shareSubject = stringResource(R.string.reports_share_subject, periodTitle(period))
 
+    val twoPane = roomForSupportingPane()
     KlasScreen(
         title = stringResource(R.string.reports_title),
         messages = messages,
+        maxContentWidth = if (twoPane) SupportingPaneMaxWidth else MaxContentWidth,
         actions = {
             // A backup is JSON meant to be read back by this app. What a tutor totalling their
             // year — or an accountant — needs is a file that opens in a spreadsheet, and there was
@@ -222,14 +226,17 @@ fun ReportsScreen(
             // below means, and changing it is the main thing this screen is driven by.
             // Painted with the bar rather than ruled off under it — see [ScreenHeader].
             ScreenHeader {
-                PeriodNavigator(
-                    period = period,
-                    onPrevious = { viewModel.shift(-1) },
-                    onNext = { viewModel.shift(1) },
-                    onKind = viewModel::setKind,
-                )
+                // At a column's width even beside two panes: its arrows belong either side of the title.
+                Box(Modifier.fillMaxWidth().constrainedContent()) {
+                    PeriodNavigator(
+                        period = period,
+                        onPrevious = { viewModel.shift(-1) },
+                        onNext = { viewModel.shift(1) },
+                        onKind = viewModel::setKind,
+                    )
+                }
             }
-            ReportBody(report, onStudentClick, listState, bottomInset, Modifier.weight(1f))
+            ReportBody(report, onStudentClick, listState, bottomInset, twoPane, Modifier.weight(1f))
         }
     }
 }
@@ -263,51 +270,89 @@ private fun csvHeadings(period: ReportPeriod): ReportCsv.Headings = ReportCsv.He
     outstanding = stringResource(R.string.reports_total_outstanding),
 )
 
+/**
+ * The report as one list, or on an expanded window as Material's supporting pane: what the period came to
+ * (the income, its stats and shape) beside where it came from and who still owes, each scrolling alone.
+ *
+ * @param listState the list holding the breakdowns and debts, the one the debt digest scrolls.
+ */
 @Composable
 private fun ReportBody(
     state: Reports.Report,
     onStudentClick: (Long) -> Unit,
     listState: LazyListState,
     bottomInset: PaddingValues,
+    twoPane: Boolean,
     modifier: Modifier = Modifier,
 ) {
-    // Resolved here (composable scope) so the LazyListScope blocks below stay string-free.
-    val byGroupTitle = stringResource(R.string.reports_by_group)
-    val bySubjectTitle = stringResource(R.string.reports_by_subject)
-    val byStudentTitle = stringResource(R.string.reports_by_student)
+    val titles = BreakdownTitles(
+        byGroup = stringResource(R.string.reports_by_group),
+        bySubject = stringResource(R.string.reports_by_subject),
+        byStudent = stringResource(R.string.reports_by_student),
+    )
+    val padding = PaddingValues(Spacing.gutter).plusInset(bottomInset)
 
     // No arrangement: a card's rows are list items of their own (see [CardSlice]), so the gap between
     // cards is each card's own, and its rows sit as close as they did inside one card.
-    LazyColumn(
-        modifier = modifier.fillMaxWidth(),
-        state = listState,
-        contentPadding = PaddingValues(Spacing.gutter).plusInset(bottomInset),
-    ) {
-        item(key = "income", contentType = "income") { IncomeCard(state) }
-
-        if (state.noIncome) {
-            standalone("no-income") {
-                Text(
-                    stringResource(R.string.reports_no_income),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        } else {
-            standalone("stats") { StatRow(listOf(lessonsStat(state.taught), hoursStat(state.taught.minutes))) }
-            // The one breakdown ordered by time rather than by size, so it is drawn as a timeline.
-            if (!state.trend.isEmpty) standalone("trend") { TrendCard(state.trend) }
-            // Where the money came from, by *kind* of teaching — the one split the per-student and
-            // per-subject lines below cannot show, since both kinds are mixed inside each of them.
-            if (state.byKind.isNotEmpty()) standalone("kinds") { KindSplitCard(state.byKind) }
-            rankedSection("group", byGroupTitle, state.byGroup)
-            rankedSection("subject", bySubjectTitle, state.bySubject)
-            rankedSection("student", byStudentTitle, state.byStudent)
+    if (!twoPane) {
+        LazyColumn(modifier = modifier.fillMaxWidth(), state = listState, contentPadding = padding) {
+            summaryItems(state)
+            breakdownItems(state, titles, onStudentClick)
         }
-
-        // Last, and it has to stay last: the debt digest's tap scrolls to it — see [debtsItemCount].
-        debtsSection(state, onStudentClick)
+        return
     }
+    Row(modifier.fillMaxWidth()) {
+        LazyColumn(Modifier.weight(1f), contentPadding = padding) { summaryItems(state) }
+        // Its first card's own gap above, taken off the top, so the two panes' first cards line up.
+        LazyColumn(
+            Modifier.weight(1f),
+            state = listState,
+            // The summary's gutter and this make Material's 24 dp between panes.
+            contentPadding = PaddingValues(
+                start = Spacing.sectionGap - Spacing.gutter,
+                top = Spacing.gutter - Spacing.itemGap,
+                end = Spacing.gutter,
+            ).plusInset(bottomInset).plusInset(PaddingValues(bottom = Spacing.gutter)),
+        ) { breakdownItems(state, titles, onStudentClick) }
+    }
+}
+
+private class BreakdownTitles(val byGroup: String, val bySubject: String, val byStudent: String)
+
+/** What the period came to: the income, then — if there was any — its stats, its shape and its kinds. */
+private fun LazyListScope.summaryItems(state: Reports.Report) {
+    item(key = "income", contentType = "income") { IncomeCard(state) }
+    if (state.noIncome) {
+        standalone("no-income") {
+            Text(
+                stringResource(R.string.reports_no_income),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        return
+    }
+    standalone("stats") { StatRow(listOf(lessonsStat(state.taught), hoursStat(state.taught.minutes))) }
+    // The one breakdown ordered by time rather than by size, so it is drawn as a timeline.
+    if (!state.trend.isEmpty) standalone("trend") { TrendCard(state.trend) }
+    // Where the money came from, by *kind* of teaching — the one split the per-student and
+    // per-subject lines below cannot show, since both kinds are mixed inside each of them.
+    if (state.byKind.isNotEmpty()) standalone("kinds") { KindSplitCard(state.byKind) }
+}
+
+/** Where it came from, ranked, and who still owes — the debts last, where the digest's tap scrolls to. */
+private fun LazyListScope.breakdownItems(
+    state: Reports.Report,
+    titles: BreakdownTitles,
+    onStudentClick: (Long) -> Unit,
+) {
+    if (!state.noIncome) {
+        rankedSection("group", titles.byGroup, state.byGroup)
+        rankedSection("subject", titles.bySubject, state.bySubject)
+        rankedSection("student", titles.byStudent, state.byStudent)
+    }
+    // Last, and it has to stay last: the debt digest's tap scrolls to it — see [debtsItemCount].
+    debtsSection(state, onStudentClick)
 }
 
 /** An item standing on its own, [Spacing.itemGap] below the one before it — its [key] is its kind too. */
@@ -398,7 +443,6 @@ private fun IncomeCard(state: Reports.Report) {
         Text(
             stringResource(R.string.reports_earned_hint),
             style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
 }
@@ -477,7 +521,10 @@ private fun TrendCard(trend: Reports.Trend) {
 private fun IncomeTrendChart(trend: Reports.Trend, labelOf: (Reports.Trend.Bar) -> String) {
     val peak = trend.peak ?: return
     val filled = MaterialTheme.colorScheme.primary
+    val others = MaterialTheme.colorScheme.secondary
     val track = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+    // Only the bars' tops are rounded: they stand on the axis.
+    val barShape = MaterialTheme.shapes.extraSmall.copy(bottomStart = CornerSize(0), bottomEnd = CornerSize(0))
     Row(
         // Not read: twelve bare month names and no amounts. The rows under the chart are its text, with
         // the amounts, and a screen reader reads those instead.
@@ -487,14 +534,15 @@ private fun IncomeTrendChart(trend: Reports.Trend, labelOf: (Reports.Trend.Bar) 
         trend.bars.forEach { bar ->
             // Against the peak already in hand: [Reports.Trend.shareOf] would find it again for every bar.
             val share = bar.total.minor.toFloat() / peak.total.minor
-            val fill = if (bar.key == peak.key) filled else filled.copy(alpha = 0.45f)
+            // The peak in the accent, the rest in the secondary role: both stand 3:1 off the track.
+            val fill = if (bar.key == peak.key) filled else others
             Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
                 // The track and its fill on one node, with the outlines kept until the bar is resized.
                 Spacer(
                     Modifier.fillMaxWidth().weight(1f).drawWithCache {
-                        val trackOutline = BarShape.createOutline(size, layoutDirection, this)
+                        val trackOutline = barShape.createOutline(size, layoutDirection, this)
                         val height = (size.height * share).roundToInt().toFloat()
-                        val fillOutline = BarShape.createOutline(Size(size.width, height), layoutDirection, this)
+                        val fillOutline = barShape.createOutline(Size(size.width, height), layoutDirection, this)
                         onDrawBehind {
                             drawOutline(trackOutline, track)
                             if (height > 0f) translate(top = size.height - height) { drawOutline(fillOutline, fill) }
@@ -509,7 +557,10 @@ private fun IncomeTrendChart(trend: Reports.Trend, labelOf: (Reports.Trend.Bar) 
                     maxLines = 1,
                     softWrap = false,
                     textAlign = TextAlign.Center,
-                    autoSize = TextAutoSize.StepBased(minFontSize = AxisMinFontSize, maxFontSize = AxisFontSize),
+                    autoSize = TextAutoSize.StepBased(
+                        minFontSize = with(LocalDensity.current) { AxisMinSize.toSp() },
+                        maxFontSize = MaterialTheme.typography.labelSmall.fontSize,
+                    ),
                     modifier = Modifier.padding(top = Spacing.tight),
                 )
             }
@@ -545,8 +596,7 @@ private fun KindSplitCard(lines: List<Reports.KindLine>) {
                 Spacer(Modifier.width(Spacing.itemGap))
                 Text(
                     stringResource(R.string.reports_amount_share, line.amount.text(), line.percent),
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium,
+                    style = MaterialTheme.typography.titleSmall,
                 )
             }
         }
@@ -757,8 +807,7 @@ private fun AmountRow(
         Spacer(Modifier.width(Spacing.itemGap))
         Text(
             amount,
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = if (bold) FontWeight.Bold else FontWeight.Medium,
+            style = if (bold) MaterialTheme.typography.titleMedium else MaterialTheme.typography.titleSmall,
             color = color,
         )
         if (onClick != null) {
@@ -774,10 +823,10 @@ private fun AmountRow(
     }
 }
 
-private val BarGap = 3.dp
+private val BarGap = Spacing.tight
 
 private val ChartHeight = 116.dp
-private val BarShape = RoundedCornerShape(topStart = 3.dp, topEnd = 3.dp)
-private val AxisFontSize = 9.sp
-private val AxisMinFontSize = 6.sp
+
+// A floor in dp, so a large font scale still leaves the month names room to shrink.
+private val AxisMinSize = 9.dp
 private val ChevronSize = 18.dp

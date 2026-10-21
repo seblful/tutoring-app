@@ -92,8 +92,12 @@ fun PeopleScreen(
             // A toggle, and said as one: the tint alone told a screen reader nothing about whether the
             // archive was showing — «Показать архив» was read the same either way.
             HoldToName(stringResource(R.string.students_show_archived)) {
+                // Selected as Material's toggle icon button is: the filled glyph, in the accent.
                 IconToggleButton(checked = archived, onCheckedChange = { side.toggleArchived() }) {
-                    Icon(KlasIcons.Outlined.Inventory2, stringResource(R.string.students_show_archived))
+                    Icon(
+                        if (archived) KlasIcons.Filled.Inventory2 else KlasIcons.Outlined.Inventory2,
+                        stringResource(R.string.students_show_archived),
+                    )
                 }
             }
         },

@@ -1,17 +1,25 @@
 package com.seblful.klas.ui.common
 
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.FastOutLinearInEasing
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.union
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.LargeTopAppBar
@@ -34,8 +42,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.layout.layout
+import androidx.compose.ui.layout.onPlaced
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -43,8 +58,10 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.offset
 import com.seblful.klas.R
 import com.seblful.klas.ui.theme.KlasIcons
+import com.seblful.klas.ui.theme.KlasMotion
 
 /**
  * Every screen in the app, from the app bar down.
@@ -82,7 +99,7 @@ fun KlasScreen(
     page: Any? = null,
     maxContentWidth: Dp = MaxContentWidth,
     actions: @Composable RowScope.() -> Unit = {},
-    floatingActionButton: @Composable () -> Unit = {},
+    floatingActionButton: (@Composable () -> Unit)? = null,
     content: @Composable (modifier: Modifier, bottomInset: PaddingValues) -> Unit,
 ) {
     var searching by rememberSaveable { mutableStateOf(false) }
@@ -175,38 +192,85 @@ fun KlasScreen(
     }
     val barColor = animateColorAsState(
         if (overlapped) defaultBarColors.scrolledContainerColor else defaultBarColors.containerColor,
+        animationSpec = KlasMotion.defaultEffects(),
         label = "bar colour",
     )
     val readBarColor = remember(barColor) { { barColor.value } }
+    // A large bar tints as it collapses, as Material's own does; painted here for the same reason.
+    val largeBarColors = TopAppBarDefaults.largeTopAppBarColors()
+    val readLargeBarColor = remember(scrollBehavior, largeBarColors) {
+        {
+            lerp(
+                largeBarColors.containerColor,
+                largeBarColors.scrolledContainerColor,
+                FastOutLinearInEasing.transform(scrollBehavior.state.collapsedFraction),
+            )
+        }
+    }
+
+    // The rail carries a tab's add button in its header, when there is a rail beside it.
+    val rail = LocalRailAction.current
+    if (rail != null && floatingActionButton != null) OfferToRail(rail, floatingActionButton)
+    val frame = remember { ScreenFrame() }
+    val medium = mediumWindow()
+    val headerPaint = remember(readBarColor, titleSize) {
+        BarPaint(readBarColor, frame).takeIf { titleSize == TitleSize.Compact }
+    }
 
     Scaffold(
-        modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+        modifier = modifier
+            .onPlaced { frame.coordinates = it }
+            .nestedScroll(scrollBehavior.nestedScrollConnection),
         snackbarHost = { if (messages != null) SnackbarHost(messages.hostState) },
         topBar = {
-            when (titleSize) {
-                // Painted behind a see-through bar, from the draw phase: given as the bar's colour, the tint
-                // recomposed the whole bar on every frame of its fade.
-                TitleSize.Compact -> TopAppBar(
-                    title = barTitle,
-                    modifier = Modifier.drawBehind { drawRect(readBarColor()) },
-                    navigationIcon = barNavigation,
-                    actions = barActions,
-                    scrollBehavior = scrollBehavior,
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = Color.Transparent,
-                        scrolledContainerColor = Color.Transparent,
-                    ),
-                )
+            // The tint spans the window; the bar's title and actions line up over the capped column, and
+            // its sides keep clear of a camera cutout in landscape.
+            val paint = if (titleSize == TitleSize.Compact) readBarColor else readLargeBarColor
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .drawBehind { drawRect(paint()) }
+                    .windowInsetsPadding(BarInsets.only(WindowInsetsSides.Horizontal)),
+            ) {
+                val barModifier = Modifier.fillMaxWidth().windowMargins(medium).constrainedContent(maxContentWidth)
+                val transparent = Color.Transparent
+                when (titleSize) {
+                    // Painted behind a see-through bar, from the draw phase: given as the bar's colour, the
+                    // tint recomposed the whole bar on every frame of its fade.
+                    TitleSize.Compact -> TopAppBar(
+                        title = barTitle,
+                        modifier = barModifier,
+                        navigationIcon = barNavigation,
+                        actions = barActions,
+                        windowInsets = BarInsets.only(WindowInsetsSides.Top),
+                        scrollBehavior = scrollBehavior,
+                        colors = TopAppBarDefaults.topAppBarColors(
+                            containerColor = transparent,
+                            scrolledContainerColor = transparent,
+                        ),
+                    )
 
-                TitleSize.Large -> LargeTopAppBar(
-                    title = barTitle,
-                    navigationIcon = barNavigation,
-                    actions = barActions,
-                    scrollBehavior = scrollBehavior,
-                )
+                    TitleSize.Large -> LargeTopAppBar(
+                        title = barTitle,
+                        modifier = barModifier,
+                        navigationIcon = barNavigation,
+                        actions = barActions,
+                        windowInsets = BarInsets.only(WindowInsetsSides.Top),
+                        scrollBehavior = scrollBehavior,
+                        colors = TopAppBarDefaults.largeTopAppBarColors(
+                            containerColor = transparent,
+                            scrolledContainerColor = transparent,
+                        ),
+                    )
+                }
             }
         },
-        floatingActionButton = floatingActionButton,
+        floatingActionButton = {
+            if (rail == null && floatingActionButton != null) {
+                Box(Modifier.besideColumn(maxContentWidth, medium)) { floatingActionButton() }
+            }
+        },
+        contentWindowInsets = ContentInsets,
     ) { insets ->
         val density = LocalDensity.current
         val ime = WindowInsets.ime
@@ -215,7 +279,7 @@ fun KlasScreen(
             BottomInset(insets, keyboard = ime.takeIf { imeAware }, density)
         }
         CompositionLocalProvider(
-            LocalBarColor provides readBarColor.takeIf { titleSize == TitleSize.Compact },
+            LocalBarPaint provides headerPaint,
         ) {
             content(
                 Modifier
@@ -228,6 +292,7 @@ fun KlasScreen(
                     .then(if (imeAware) Modifier.imePadding() else Modifier)
                     // The bottom is the body's now (`bottomInset`); nothing under it pads by it again.
                     .consumeWindowInsets(insets)
+                    .windowMargins(medium)
                     .constrainedContent(maxContentWidth),
                 bottomInset,
             )
@@ -241,16 +306,41 @@ fun KlasScreen(
  */
 @Composable
 fun ScreenHeader(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
-    val barColor = LocalBarColor.current
+    val paint = LocalBarPaint.current
+    val own = remember { ScreenFrame() }
     Column(
         modifier
             .fillMaxWidth()
-            .then(if (barColor != null) Modifier.drawBehind { drawRect(barColor()) } else Modifier),
+            .then(
+                if (paint != null) {
+                    Modifier.onPlaced { own.coordinates = it }.drawBehind { with(paint) { under(own) } }
+                } else {
+                    Modifier
+                },
+            ),
         content = content,
     )
 }
 
-private val LocalBarColor = staticCompositionLocalOf<(() -> Color)?> { null }
+/** The bar's tint and the screen it spans, for a [ScreenHeader] narrower than its screen to paint as wide. */
+private class BarPaint(val color: () -> Color, val screen: ScreenFrame) {
+    /** Edge to edge of the screen, as the bar is tinted: a capped column's header is no narrower than its bar. */
+    fun DrawScope.under(header: ScreenFrame) {
+        val screenCoordinates = screen.coordinates?.takeIf { it.isAttached }
+        val headerCoordinates = header.coordinates?.takeIf { it.isAttached }
+        if (screenCoordinates == null || headerCoordinates == null) {
+            drawRect(color())
+            return
+        }
+        val left = screenCoordinates.localPositionOf(headerCoordinates, Offset.Zero).x
+        drawRect(color(), topLeft = Offset(-left, 0f), size = Size(screenCoordinates.size.width.toFloat(), size.height))
+    }
+}
+
+/** Where a layout was last placed — kept out of snapshot state, as it is only read to draw. */
+private class ScreenFrame(var coordinates: LayoutCoordinates? = null)
+
+private val LocalBarPaint = staticCompositionLocalOf<BarPaint?> { null }
 
 /** The page [KlasScreen] last drew, kept out of snapshot state — see its `page`. */
 private class ShownPage(var value: Any?)
@@ -295,7 +385,39 @@ private class SumOfPaddings(private val first: PaddingValues, private val second
 
 private const val OverlapThreshold = 0.01f
 
-/** Сохранить», in the app bar — the one way a form commits. */
+/** The system bars and, in landscape, a camera cutout: what a screen keeps its content clear of. */
+private val ContentInsets: WindowInsets
+    @Composable get() = WindowInsets.systemBars.union(WindowInsets.displayCutout)
+
+/** The bar's own insets, with the cutout it would otherwise draw its back arrow under. */
+private val BarInsets: WindowInsets
+    @Composable get() = TopAppBarDefaults.windowInsets.union(WindowInsets.displayCutout)
+
+/**
+ * Material's margins: 16 dp on a compact window, 24 dp from [medium] on — by the window's class, so a pane or
+ * a body beside the rail keeps them too. The body's own gutter is the 16, so it is narrowed by the difference.
+ */
+internal fun Modifier.windowMargins(medium: Boolean): Modifier = layout { measurable, constraints ->
+    val extra = if (medium && constraints.hasBoundedWidth) (MediumMargin - Spacing.gutter).roundToPx() else 0
+    val placeable = measurable.measure(constraints.offset(horizontal = -2 * extra))
+    layout(placeable.width + 2 * extra, placeable.height) { placeable.placeRelative(extra, 0) }
+}
+
+/**
+ * The FAB at the end of the capped column rather than in the window's corner. Scaffold measures it against
+ * the whole window, so the room either side of the column is known here, where it is laid out.
+ */
+private fun Modifier.besideColumn(cap: Dp, medium: Boolean): Modifier = layout { measurable, constraints ->
+    val placeable = measurable.measure(constraints.copy(minWidth = 0))
+    val width = constraints.maxWidth
+    val margin = if (medium) (MediumMargin - Spacing.gutter).roundToPx() else 0
+    val beside = maxOf((width - cap.roundToPx()) / 2, margin).coerceAtLeast(0)
+    layout(placeable.width + beside, placeable.height) { placeable.placeRelative(0, 0) }
+}
+
+private val MediumMargin = 24.dp
+
+/** «Сохранить», in the app bar — the one way a form commits. */
 @Composable
 fun SaveAction(enabled: Boolean, onSave: () -> Unit) {
     TextButton(onClick = onSave, enabled = enabled) {

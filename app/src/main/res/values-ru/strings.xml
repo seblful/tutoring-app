@@ -87,6 +87,8 @@
     -->
     <string name="search_clear">Очистить</string>
     <string name="search_close">Закрыть поиск</string>
+    <string name="sheet_drag_handle">Ручка перетаскивания</string>
+    <string name="sheet_dismiss">Закрыть панель</string>
     <string name="search_no_results">Ничего не найдено</string>
     <string name="search_no_results_detail">Попробуйте изменить запрос</string>
     <plurals name="menu_more_matches">
@@ -160,6 +162,9 @@
     <string name="schedule_view_month">Месяц</string>
     <!-- A calendar day's spoken breakdown: one status and how many lessons are in it. -->
     <string name="calendar_status_tally">%1$s: %2$d</string>
+    <string name="calendar_selected">Выбрано</string>
+    <string name="time_picker_to_keyboard">Ввести время с клавиатуры</string>
+    <string name="time_picker_to_dial">Выбрать время на циферблате</string>
     <string name="schedule_today">Сегодня</string>
     <string name="schedule_previous_day">Предыдущий день</string>
     <string name="schedule_next_day">Следующий день</string>
@@ -428,7 +433,7 @@
     <string name="payment_add_title">Новый платёж</string>
     <string name="payment_edit_title">Изменить платёж</string>
     <string name="payment_amount_label">Сумма</string>
-    <string name="payment_delete">Удалить платёж</string>
+    <string name="payment_delete">Удалить платёж %1$s от %2$s</string>
     <string name="payment_deleted">Платёж удалён</string>
     <!--
       A payment is recorded when the tutor gets round to it, not when it was handed over — «она

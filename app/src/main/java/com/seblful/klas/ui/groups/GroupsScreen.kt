@@ -103,7 +103,7 @@ internal fun GroupCard(
             },
         ),
         onClick = onClick,
-        leading = { IconAvatar(KlasIcons.Outlined.Groups) },
+        leading = { IconAvatar(KlasIcons.Outlined.Groups, selected = selected) },
         modifier = modifier,
         selected = selected,
     ) {

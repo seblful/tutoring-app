@@ -18,6 +18,9 @@ private val AppFontFamily = FontFamily(
 /**
  * The type scale: **every** style stated, none left to the M3 baseline.
  *
+ * Weights run a step above the baseline's — display and headline Bold, labels SemiBold — a deliberate
+ * choice for this face, held across the whole scale rather than overridden at the point of use.
+ *
  * Tracking is Golos's, not Roboto's: M3's body and label values (0.25–0.5 sp) open up a face that is
  * already wide, and set every description and badge visibly loose. Small sizes keep a little more air.
  */

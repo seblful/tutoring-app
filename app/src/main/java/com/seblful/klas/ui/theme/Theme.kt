@@ -1,8 +1,10 @@
 package com.seblful.klas.ui.theme
 
+import android.app.UiModeManager
 import android.os.Build
 import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
@@ -10,10 +12,14 @@ import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
@@ -53,6 +59,21 @@ private val LightColorScheme = lightColorScheme(
     surfaceContainer = md_surfaceContainer,
     surfaceContainerHigh = md_surfaceContainerHigh,
     surfaceContainerHighest = md_surfaceContainerHighest,
+    inverseSurface = md_inverseSurface,
+    inverseOnSurface = md_inverseOnSurface,
+    inversePrimary = md_inversePrimary,
+    primaryFixed = md_primaryFixed,
+    primaryFixedDim = md_primaryFixedDim,
+    onPrimaryFixed = md_onPrimaryFixed,
+    onPrimaryFixedVariant = md_onPrimaryFixedVariant,
+    secondaryFixed = md_secondaryFixed,
+    secondaryFixedDim = md_secondaryFixedDim,
+    onSecondaryFixed = md_onSecondaryFixed,
+    onSecondaryFixedVariant = md_onSecondaryFixedVariant,
+    tertiaryFixed = md_tertiaryFixed,
+    tertiaryFixedDim = md_tertiaryFixedDim,
+    onTertiaryFixed = md_onTertiaryFixed,
+    onTertiaryFixedVariant = md_onTertiaryFixedVariant,
 )
 
 private val DarkColorScheme = darkColorScheme(
@@ -87,6 +108,21 @@ private val DarkColorScheme = darkColorScheme(
     surfaceContainer = md_surfaceContainer_d,
     surfaceContainerHigh = md_surfaceContainerHigh_d,
     surfaceContainerHighest = md_surfaceContainerHighest_d,
+    inverseSurface = md_inverseSurface_d,
+    inverseOnSurface = md_inverseOnSurface_d,
+    inversePrimary = md_inversePrimary_d,
+    primaryFixed = md_primaryFixed,
+    primaryFixedDim = md_primaryFixedDim,
+    onPrimaryFixed = md_onPrimaryFixed,
+    onPrimaryFixedVariant = md_onPrimaryFixedVariant,
+    secondaryFixed = md_secondaryFixed,
+    secondaryFixedDim = md_secondaryFixedDim,
+    onSecondaryFixed = md_onSecondaryFixed,
+    onSecondaryFixedVariant = md_onSecondaryFixedVariant,
+    tertiaryFixed = md_tertiaryFixed,
+    tertiaryFixedDim = md_tertiaryFixedDim,
+    onTertiaryFixed = md_onTertiaryFixed,
+    onTertiaryFixedVariant = md_onTertiaryFixedVariant,
 )
 
 /**
@@ -109,7 +145,32 @@ data class KlasColors(
      * drew its monograms for the dark.
      */
     val isDark: Boolean,
-)
+    /** The wallpaper's primary while dynamic color is on: the hue the app's own colours lean toward. */
+    val harmonizeWith: Color? = null,
+) {
+    /** [color] turned toward the wallpaper's primary under dynamic color, as Material harmonizes custom colours. */
+    fun harmonized(color: Color): Color = harmonizeWith?.let { harmonize(color, toward = it) } ?: color
+}
+
+/** Material's three contrast levels, chosen in the phone's settings (Android 14+). */
+enum class ContrastLevel {
+    Standard,
+    Medium,
+    High,
+    ;
+
+    companion object {
+        /** `UiModeManager.getContrast()`'s 0…1, split where Material's generated themes split it. */
+        fun of(contrast: Float): ContrastLevel = when {
+            contrast >= HighFrom -> High
+            contrast >= MediumFrom -> Medium
+            else -> Standard
+        }
+
+        private const val MediumFrom = 0.5f
+        private const val HighFrom = 1f
+    }
+}
 
 private val LightKlasColors = KlasColors(
     success = md_success,
@@ -127,6 +188,18 @@ private val DarkKlasColors = KlasColors(
     isDark = true,
 )
 
+internal fun klasColorScheme(darkTheme: Boolean, contrast: ContrastLevel): ColorScheme = when (contrast) {
+    ContrastLevel.Standard -> if (darkTheme) DarkColorScheme else LightColorScheme
+    ContrastLevel.Medium -> if (darkTheme) DarkMediumContrastScheme else LightMediumContrastScheme
+    ContrastLevel.High -> if (darkTheme) DarkHighContrastScheme else LightHighContrastScheme
+}
+
+internal fun klasColors(darkTheme: Boolean, contrast: ContrastLevel): KlasColors = when (contrast) {
+    ContrastLevel.Standard -> if (darkTheme) DarkKlasColors else LightKlasColors
+    ContrastLevel.Medium -> if (darkTheme) DarkMediumKlasColors else LightMediumKlasColors
+    ContrastLevel.High -> if (darkTheme) DarkHighKlasColors else LightHighKlasColors
+}
+
 private val LocalKlasColors = staticCompositionLocalOf { LightKlasColors }
 
 /**
@@ -143,26 +216,54 @@ val klasColors: KlasColors
  */
 val dynamicColorAvailable: Boolean get() = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
 
+/** The phone's contrast setting, followed live: it changes without a configuration change. */
+@Composable
+fun systemContrast(): ContrastLevel {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) return ContrastLevel.Standard
+    val context = LocalContext.current
+    val manager = remember(context) { context.getSystemService(UiModeManager::class.java) }
+    var contrast by remember(manager) { mutableFloatStateOf(manager.contrast) }
+    DisposableEffect(manager) {
+        val listener = UiModeManager.ContrastChangeListener { contrast = it }
+        manager.addContrastChangeListener(context.mainExecutor, listener)
+        onDispose { manager.removeContrastChangeListener(listener) }
+    }
+    return ContrastLevel.of(contrast)
+}
+
 @Composable
 fun KlasTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     // Off by default so the app keeps its own identity; opt in to follow the wallpaper (Android 12+).
     dynamicColor: Boolean = false,
+    contrast: ContrastLevel = systemContrast(),
     content: @Composable () -> Unit,
 ) {
-    val colorScheme = when {
-        // Remembered: some sixty colour lookups, and a new scheme each pass would recompose the whole app with
-        // every change of a setting. The configuration is a key because a new wallpaper arrives as one.
-        dynamicColor && dynamicColorAvailable -> {
-            val context = LocalContext.current
-            val configuration = LocalConfiguration.current
-            remember(context, configuration, darkTheme) {
-                if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-            }
+    val dynamic = dynamicColor && dynamicColorAvailable
+    // Remembered: some sixty colour lookups, and a new scheme each pass would recompose the whole app with
+    // every change of a setting. The configuration is a key because a new wallpaper arrives as one; the
+    // wallpaper scheme already follows the phone's contrast setting.
+    val colorScheme = if (dynamic) {
+        val context = LocalContext.current
+        val configuration = LocalConfiguration.current
+        remember(context, configuration, darkTheme, contrast) {
+            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         }
-
-        darkTheme -> DarkColorScheme
-        else -> LightColorScheme
+    } else {
+        klasColorScheme(darkTheme, contrast)
+    }
+    val customColors = remember(darkTheme, contrast, dynamic, colorScheme.primary) {
+        klasColors(darkTheme, contrast).let { colors ->
+            if (!dynamic) return@let colors
+            val accent = colorScheme.primary
+            colors.copy(
+                success = harmonize(colors.success, accent),
+                successContainer = harmonize(colors.successContainer, accent),
+                onSuccessContainer = harmonize(colors.onSuccessContainer, accent),
+                live = harmonize(colors.live, accent),
+                harmonizeWith = accent,
+            )
+        }
     }
 
     /*
@@ -189,7 +290,7 @@ fun KlasTheme(
     }
 
     CompositionLocalProvider(
-        LocalKlasColors provides if (darkTheme) DarkKlasColors else LightKlasColors,
+        LocalKlasColors provides customColors,
     ) {
         MaterialTheme(
             colorScheme = colorScheme,

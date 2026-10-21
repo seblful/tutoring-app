@@ -30,8 +30,8 @@ class TabReselectFadeTest {
             Box(Modifier.fillMaxSize().background(Color.Red)) {
                 NavDisplay(
                     backStack = navigator.backStack,
-                    transitionSpec = { crossFade() },
-                    popTransitionSpec = { crossFade() },
+                    transitionSpec = { fadeThrough() },
+                    popTransitionSpec = { fadeThrough() },
                     onBack = navigator::goBack,
                 ) { screen ->
                     NavEntry(screen, contentKey = screen.id) {

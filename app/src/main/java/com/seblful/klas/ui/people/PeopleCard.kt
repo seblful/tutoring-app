@@ -56,7 +56,10 @@ internal fun PeopleCard(
                 Text(
                     supporting,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    // Paired with the card's own fill: the selected one is a container with its own ink.
+                    color = MaterialTheme.colorScheme.let {
+                        if (selected) it.onSecondaryContainer else it.onSurfaceVariant
+                    },
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )

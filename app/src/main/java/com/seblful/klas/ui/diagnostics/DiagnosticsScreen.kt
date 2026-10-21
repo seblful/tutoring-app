@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -30,6 +29,8 @@ import com.seblful.klas.ui.common.KlasScreen
 import com.seblful.klas.ui.common.SectionCard
 import com.seblful.klas.ui.common.ShowMessagesFor
 import com.seblful.klas.ui.common.Spacing
+import com.seblful.klas.ui.common.destructiveOutlinedButtonBorder
+import com.seblful.klas.ui.common.destructiveOutlinedButtonColors
 import com.seblful.klas.ui.common.rememberCreateDocument
 import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.theme.KlasIcons
@@ -90,7 +91,12 @@ fun DiagnosticsScreen(
                     OutlinedButton(onClick = { export(exportFilename) }) {
                         Text(stringResource(R.string.diagnostics_export))
                     }
-                    OutlinedButton(onClick = { confirmingClear = true }) {
+                    // Clearing loses the log, so it is said in red like every other loss.
+                    OutlinedButton(
+                        onClick = { confirmingClear = true },
+                        colors = destructiveOutlinedButtonColors(),
+                        border = destructiveOutlinedButtonBorder(),
+                    ) {
                         Text(stringResource(R.string.diagnostics_clear))
                     }
                 }
@@ -120,7 +126,8 @@ fun DiagnosticsScreen(
                 // entry appear above. Never present in a release build (gated by the debuggable flag).
                 OutlinedButton(
                     onClick = { throw RuntimeException("Test crash from Diagnostics screen") },
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                    colors = destructiveOutlinedButtonColors(),
+                    border = destructiveOutlinedButtonBorder(),
                 ) {
                     Text(stringResource(R.string.diagnostics_test_crash))
                 }

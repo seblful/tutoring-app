@@ -29,7 +29,9 @@ Build screens from shared state and controls. Feature rules belong in the domain
 - One `KlasScreen`/`Scaffold` owns insets, width cap, snackbar, back arrow and scroll behavior. The cap
   (`MaxContentWidth`, 600 dp) holds a column of rows to a readable width; a body that lays items out in
   columns lifts it (`maxContentWidth`) — homework cards are an adaptive grid — while `SegmentedPage`
-  keeps its tabs at the cap.
+  keeps its tabs at the cap. The bar's title and actions and the FAB line up with the capped column; the
+  bar's tint, and a `ScreenHeader`'s, still span the screen. From a medium window on the margins are
+  Material's 24 dp (`windowMargins`), panes included, and content and bar keep clear of a camera cutout.
   `ScreenHeader` joins pinned controls to the bar: page-colored at rest, tinted together on scroll,
   no divider. Pass `page` when replacing a non-scrolling body to reset bar tint.
 - Edge to edge: `KlasScreen` pads its body's top and sides and hands the bottom inset over as
@@ -43,6 +45,8 @@ Build screens from shared state and controls. Feature rules belong in the domain
   search and draws the first 30 matches, since a dropdown composes every item when it opens.
 - A card that can hold hundreds of rows (a report's per-student lines, its debts) is one list item per
   row, drawn as `CardSlice`s of one surface, not one item composing them all.
+- Shapes are Material's baseline scale (`Shape.kt`); search opens Material's search input in place of the
+  bar's title (`SearchField`).
 - Follow `Spacing`; page sides use `gutter`. A row gets ripple room from card padding, keeping text
   aligned. Use top-level `ContentCard`, nested `ListItem`; top-level cards lead with a 40 dp `Avatar`
   or `IconAvatar`. Detail cards share `detailCard`: identity → `StatRow` → pinned `StickyViewMenu`.
@@ -50,12 +54,16 @@ Build screens from shared state and controls. Feature rules belong in the domain
   both above the `surfaceContainer` the bar tints to. Settings and More group rows on cards too
   (`SettingsGroup`), their `ListItem`s transparent (`settingsRowColors`).
 - Cards press within their shape; full-width rows use `insetRowPress` (`outsetRowPress` for flush
-  controls). Sheets draw `SheetHandle` with `dragHandle = null`, avoiding Material's tooltipped button.
+  controls). Sheets draw `SheetHandle` with `dragHandle = null`, avoiding Material's tooltipped button;
+  given `onDismiss`, it keeps the handle's spoken name and dismiss action.
 - Indigo marks what is tapped or selected (tabs, switches, links, the selected day, "now", status
   badges); times, amounts, values, counts and decorative icons are ink or `onSurfaceVariant`.
 - `SectionTitle` uses `titleSmall` and heading semantics; color only for meaning. Full-screen empty
   actions are tonal because the screen's add button is primary. Destructive confirmations use
-  `ConfirmDialog(destructive = true)`; single-input dialogs focus via `rememberRevealedFocus`.
+  `ConfirmDialog(destructive = true)`, and any text button that loses something
+  `destructiveTextButtonColors`; single-input dialogs focus via `rememberRevealedFocus`. A button with an
+  icon uses Material's 18 dp icon and icon padding. Times are picked in Material's time dialog, whose
+  toggle switches the dial for typing.
 - `OneLineLabel`, bar/page titles and stat values shrink before ellipsizing (`TextAutoSize`). Floor
   sizes in **dp**, not sp, so font scaling leaves room to shrink. Tests cover 1.3×/1.5×; 2× is not guaranteed.
 - Use `EmptyState` with a way out, `NoSearchResults`, `ArchivedBadge` and `FabListPadding` consistently.
@@ -87,7 +95,12 @@ Build screens from shared state and controls. Feature rules belong in the domain
   context. `ProvideClockFormat` at the root asks for the clock once, and again on every resume. Use `WallClock.days()` for midnight rollover, `DayBounds` for day boundaries. Timezone changes
   re-query open calendars; form endings and booking use the same elapsed-time slots across DST.
 - Indigo/teal Material 3, dynamic color off by default; app-owned amber means “on now”, green “taught”.
-  Dark containers keep the dark accents' chroma, not the seed's (`DarkPaletteTest`).
+  Dark containers keep the dark accents' chroma, not the seed's (`DarkPaletteTest`). Every scheme role is
+  set, inverse and fixed ones included. The phone's contrast setting (Android 14+) picks Material's
+  medium or high scheme, generated from the standard palettes into `ContrastColors.kt` by
+  `uv run art/contrast_schemes.py` — rerun it after editing `Color.kt`. Under dynamic color the app-owned
+  hues and avatar colours are harmonized toward the wallpaper's primary (`harmonize`). Text tinted below
+  full strength, a status pill's included (`readableOn`), keeps 4.5:1 (`ContrastSchemesTest`).
   Golos Text supports Cyrillic/Latin, with body/label tracking tightened from M3's Roboto values;
   avatar colors depend on ID.
 - Material Symbols live in `KlasIcons`: filled only for selection and state (the selected tab, a done tick);
@@ -101,8 +114,12 @@ Build screens from shared state and controls. Feature rules belong in the domain
 ## Motion, navigation and accessibility
 
 - Tabs are People, Homework, Schedule, Reports, More; Schedule opens first, Students/Groups share People.
-  Selection follows the back stack. Destinations cross-fade; predictive back is enabled. The tabs are a
-  bottom bar on a phone and a rail once the window is medium width (`NavigationSuiteScaffold`).
+  Selection follows the back stack. Destinations arrive by Material's fade through; predictive back
+  shrinks the leaving screen over the one beneath (`predictiveBackPop`). The tabs are Material's short
+  navigation bar on a phone, a landscape one included, and its wide rail from medium width
+  (`NavigationSuiteScaffold`). The rail's header carries a tab's FAB (`RailAction`, decided per entry so a
+  fading screen keeps its own) and keeps a FAB's height without one; a pushed screen keeps its own FAB.
+  Side camera cutouts are cleared once, around the whole suite.
 - Navigation 3 shows one flat back stack of `Screen`s (`KlasNavigator`): a route plus an id, so the same
   card opened twice is two entries. Per-tab stacks were rejected: a tray tap may put a tab over a form from
   another tab. `KlasGraph` is one exhaustive `when` over the sealed `Route`.
@@ -120,9 +137,14 @@ Build screens from shared state and controls. Feature rules belong in the domain
   one scene per list): a student or group card beside the People list, a settings page beside the index. A
   detail opened from its list replaces the one shown, is marked on the list and has no back arrow; opened
   elsewhere it fills the window. The tabs stay beside People, a tab, and not beside Settings, a pushed
-  screen, whose back arrow leaves with the page. Other screens stay one pane.
+  screen, whose back arrow leaves with the page. On an expanded, unfolded window (`roomForSupportingPane`)
+  Schedule's month
+  and Reports are supporting-pane layouts up to `SupportingPaneMaxWidth`: the month grid beside the day it
+  opens, the period's summary beside its breakdowns and debts. Other screens stay one pane.
 - Lazy items use `animateInPlace`: movement only, no fade overlay. Key items by page when replacing views.
   Every lazy item has a key and a `contentType`.
+- Motion uses Material's standard springs and easings from `KlasMotion` (spatial for movement, effects
+  for colour and fades); material3 1.4 keeps `MotionScheme` internal. Pops use its one bouncy spring.
 - State that moves every frame — a back gesture's progress, a tint or pop animating, a drag — is read in
   layout or draw (`graphicsLayer`, `drawBehind`, `offset {}`), not in composition. A list row does no work
   that every row shares (a measured width, the clock format, a pulse): it is done once above the list.

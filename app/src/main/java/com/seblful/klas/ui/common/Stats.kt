@@ -21,6 +21,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.seblful.klas.ui.common.Spacing
 
 /**
  * One number a card leads with — a debt, a lesson count, an amount earned.
@@ -48,7 +49,6 @@ fun StatRow(stats: List<Stat>, modifier: Modifier = Modifier) {
     Card(
         modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.sectionSurface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
         Row(
             Modifier.fillMaxWidth().padding(vertical = Spacing.itemGap),
@@ -111,7 +111,7 @@ private fun StatTile(stat: Stat, modifier: Modifier = Modifier) {
     }
 }
 
-private val TileInsetX = 6.dp
-private val ValueToLabel = 1.dp
+private val TileInsetX = Spacing.inline
+private val ValueToLabel = 0.dp
 
 private val MinValueSize = 11.dp

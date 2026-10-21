@@ -1,5 +1,6 @@
 package com.seblful.klas.ui.common
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -7,6 +8,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ButtonColors
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
@@ -20,7 +23,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -43,13 +46,29 @@ fun ConfirmDialog(
         onDismissRequest = onDismiss,
         text = { Text(text) },
         confirmButton = {
-            TextButton(onClick = { onConfirm(); onDismiss() }) {
-                Text(confirmLabel, color = if (destructive) MaterialTheme.colorScheme.error else Color.Unspecified)
-            }
+            TextButton(
+                onClick = { onConfirm(); onDismiss() },
+                colors = if (destructive) destructiveTextButtonColors() else ButtonDefaults.textButtonColors(),
+            ) { Text(confirmLabel) }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },
     )
 }
+
+/** A text button that loses something: red label, and a red press, not only red words. */
+@Composable
+fun destructiveTextButtonColors(): ButtonColors =
+    ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+
+/** [destructiveTextButtonColors] for an outlined button. */
+@Composable
+fun destructiveOutlinedButtonColors(): ButtonColors =
+    ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
+
+/** An outlined button's border in the colour of what it loses, so the whole button says it. */
+@Composable
+fun destructiveOutlinedButtonBorder(): BorderStroke =
+    ButtonDefaults.outlinedButtonBorder().copy(brush = SolidColor(MaterialTheme.colorScheme.error))
 
 internal val KeepTypedInput = DialogProperties(dismissOnClickOutside = false)
 /**

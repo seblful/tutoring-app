@@ -24,13 +24,11 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.seblful.klas.R
 import com.seblful.klas.domain.schedule.DaySummary
-import com.seblful.klas.domain.schedule.NowMarker
 import com.seblful.klas.format.daySummaryText
 import com.seblful.klas.format.formatDay
 import com.seblful.klas.format.formatMonth
@@ -114,7 +112,6 @@ internal fun PageNavigator(
             // A heading, so a screen reader can jump between the page's title and its days.
             modifier = Modifier.weight(1f, fill = false).semantics { heading() },
             style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             textAlign = TextAlign.Center,

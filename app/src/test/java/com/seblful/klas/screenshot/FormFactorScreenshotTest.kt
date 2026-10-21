@@ -97,13 +97,23 @@ class FormFactorScreenshotTest {
     // showing follows a return to them: the last one is a pushed page, which hides them.
     private fun tour(formFactor: String) {
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
-            // The schedule is not captured: its day is one column at any width, and its «now» line arrives
-            // on its own flow, at a moment Robolectric does not pin down.
+            // Today is not captured: its «now» line arrives on its own flow, at a moment Robolectric does
+            // not pin down. A later day of the month has none — and on a wide window the month is where the
+            // schedule has two panes, the grid beside the day it opens.
             waitFor(string(R.string.class_status_in_progress))
+            click(R.string.schedule_view_month)
+            compose.onAllNodesWithText(LATER_DAY).filterToOne(isSelectable()).performClick()
+            settle()
+            capture(formFactor, "schedule-month")
 
             tab(R.string.nav_homework)
             waitFor(tutor.group.homework)
             capture(formFactor, "homework")
+
+            tab(R.string.nav_reports)
+            // The income heads the report at every width; the debts are below the fold on a phone.
+            waitFor(string(R.string.reports_total_income))
+            capture(formFactor, "reports")
 
             tab(R.string.nav_people)
             waitFor(tutor.debtor.name)
@@ -162,5 +172,8 @@ class FormFactorScreenshotTest {
     private companion object {
         const val TIMEOUT_MS = 60_000L
         const val SETTLE_MS = 2_000L
+
+        /** A day of the demo tutor's month after its pinned today, the 14th. */
+        const val LATER_DAY = "20"
     }
 }

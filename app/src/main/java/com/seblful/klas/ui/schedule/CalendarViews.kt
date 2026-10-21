@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.ripple
@@ -31,13 +32,14 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.seblful.klas.R
 import com.seblful.klas.domain.schedule.CalendarLayout
 import com.seblful.klas.format.formatDay
 import com.seblful.klas.format.shortName
+import com.seblful.klas.ui.common.Spacing
+import com.seblful.klas.ui.common.bleed
 import com.seblful.klas.ui.common.classStatusColor
 import com.seblful.klas.ui.common.classStatusLabel
 import com.seblful.klas.ui.common.rememberPlaceholderShown
@@ -47,7 +49,13 @@ import com.seblful.klas.ui.common.state.valueOrNull
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
 
-private val CellHeight = 46.dp
+private val CellHeight = 48.dp
+
+/**
+ * How far the grid reaches into the gutter either side: seven 48 dp days across a 360 dp phone, as on
+ * Material's date picker, where the gutter alone left each a little short of a thumb.
+ */
+private val GridBleed = 4.dp
 
 private val NumberDiscSize = 28.dp
 
@@ -55,8 +63,9 @@ private const val DiscToLineHeight = 1.4f
 
 private val TallyRowHeight = 16.dp
 
-private val TallySpacing = 3.dp
-private val DiscToTally = 1.dp
+private val TallySpacing = Spacing.tight
+// Disc, gap and tallies: 28 + 4 + 16, the 48 dp a cell is.
+private val DiscToTally = Spacing.tight
 
 private val TallyPlaceholderWidth = 10.dp
 private val TallyPlaceholderHeight = 4.dp
@@ -77,7 +86,7 @@ fun MonthCalendar(
 ) {
     // One for the grid, not one per cell — see [DayTallies].
     val placeholderShown = rememberPlaceholderShown(waiting = loads is Loadable.Loading)
-    Column(modifier.fillMaxWidth()) {
+    Column(modifier.fillMaxWidth().bleed(GridBleed)) {
         WeekdayHeader(grid.weeks.first())
         grid.weeks.forEach { week ->
             Row(Modifier.fillMaxWidth()) {
@@ -114,7 +123,7 @@ fun WeekStrip(
     modifier: Modifier = Modifier,
 ) {
     val placeholderShown = rememberPlaceholderShown(waiting = loads is Loadable.Loading)
-    Column(modifier.fillMaxWidth()) {
+    Column(modifier.fillMaxWidth().bleed(GridBleed)) {
         WeekdayHeader(days)
         Row(Modifier.fillMaxWidth()) {
             days.forEach { date ->
@@ -142,7 +151,7 @@ private fun WeekdayHeader(week: List<LocalDate>) {
                 modifier = Modifier.weight(1f),
                 textAlign = TextAlign.Center,
                 style = MaterialTheme.typography.labelMedium,
-                color = weekdayColor(date.dayOfWeek),
+                color = weekdayColor(MaterialTheme.colorScheme, date.dayOfWeek),
             )
         }
     }
@@ -160,14 +169,7 @@ private fun DayCell(
     modifier: Modifier = Modifier,
 ) {
     val scheme = MaterialTheme.colorScheme
-    // Selection fills the disc, so the number inside it switches to the on-primary colour.
-    val numberColor = when {
-        isSelected -> scheme.onPrimary
-        isToday -> scheme.primary
-        inMonth -> scheme.onSurface
-        // Padding days from the neighbouring months stay legible but clearly secondary.
-        else -> scheme.onSurfaceVariant.copy(alpha = 0.5f)
-    }
+    val numberColor = dayNumberColor(scheme, isSelected = isSelected, isToday = isToday, inMonth = inMonth)
     // Spoken as «Четверг, 15 октября, 2 занятия, В плане: 1, Отменено: 1» — the tallies carry that
     // breakdown visually through colour alone, which a screen reader cannot convey, so it must be said,
     // and the day is said in full rather than as a bare «15». A cell whose counts have not arrived says
@@ -182,6 +184,7 @@ private fun DayCell(
         (listOf(day, total) + breakdown).joinToString(", ")
     } ?: day
     val todayLabel = stringResource(R.string.schedule_today)
+    val selectedLabel = stringResource(R.string.calendar_selected)
 
     // The whole cell is the touch target, not just the disc drawn inside it — but press feedback
     // bounded to that rectangle reads as a grey square behind the day, so the cell hands its
@@ -205,7 +208,8 @@ private fun DayCell(
             )
             .semantics {
                 contentDescription = cellDescription
-                if (isToday) stateDescription = todayLabel
+                // Said in one: a state of its own replaces the «selected» a selectable would say.
+                if (isToday) stateDescription = if (isSelected) "$todayLabel, $selectedLabel" else todayLabel
             },
         contentAlignment = Alignment.Center,
     ) {
@@ -233,7 +237,6 @@ private fun DayCell(
                 Text(
                     text = date.day.toString(),
                     style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = if (isToday || isSelected) FontWeight.Bold else FontWeight.Normal,
                     color = numberColor,
                 )
             }
@@ -273,7 +276,6 @@ private fun DayTallies(load: Loadable<CalendarLayout.DayLoad?>, placeholderShown
             Text(
                 text = tally.count.toString(),
                 style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.SemiBold,
                 color = classStatusColor(tally.status),
                 maxLines = 1,
             )
@@ -281,10 +283,16 @@ private fun DayTallies(load: Loadable<CalendarLayout.DayLoad?>, placeholderShown
     }
 }
 
-@Composable
-private fun weekdayColor(day: DayOfWeek): Color =
-    if (day == DayOfWeek.SATURDAY || day == DayOfWeek.SUNDAY) {
-        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-    } else {
-        MaterialTheme.colorScheme.onSurfaceVariant
+/** Selection fills the disc, so the number inside it switches to the on-primary colour. */
+internal fun dayNumberColor(scheme: ColorScheme, isSelected: Boolean, isToday: Boolean, inMonth: Boolean): Color =
+    when {
+        isSelected -> scheme.onPrimary
+        isToday -> scheme.primary
+        inMonth -> scheme.onSurface
+        // Padding days from the neighbouring months are secondary, yet tappable, so they keep text contrast.
+        else -> scheme.onSurfaceVariant
     }
+
+/** Weekdays in ink as on Material's date picker; the weekend recedes to the variant, which still reads as text. */
+internal fun weekdayColor(scheme: ColorScheme, day: DayOfWeek): Color =
+    if (day == DayOfWeek.SATURDAY || day == DayOfWeek.SUNDAY) scheme.onSurfaceVariant else scheme.onSurface

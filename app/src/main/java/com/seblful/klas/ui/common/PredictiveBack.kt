@@ -11,8 +11,10 @@ import androidx.compose.ui.unit.dp
 import androidx.navigationevent.NavigationEvent
 import androidx.navigationevent.NavigationEventTransitionState
 import androidx.navigationevent.compose.NavigationEventState
+import com.seblful.klas.ui.theme.KlasMotion
 import kotlinx.coroutines.launch
 import kotlin.math.abs
+import kotlin.math.sign
 
 /**
  * Material's in-app predictive back, for back that `NavDisplay` does not animate (a step inside one screen):
@@ -28,11 +30,21 @@ import kotlin.math.abs
 fun Modifier.predictiveBack(state: NavigationEventState<*>): Modifier {
     val pull = remember { Animatable(0f) }
     LaunchedEffect(state) {
-        // A launch per target, as `animateFloatAsState` does: each takes over the last one's velocity.
-        snapshotFlow { backPull(state.transitionState) }.collect { target -> launch { pull.animateTo(target) } }
+        // Held, the content follows the finger exactly; let go or cancelled, it settles on a spring that takes
+        // over the gesture's velocity.
+        snapshotFlow { state.transitionState }.collect { transition ->
+            val target = backPull(transition)
+            launch {
+                if (transition is NavigationEventTransitionState.InProgress) {
+                    pull.snapTo(target)
+                } else {
+                    pull.animateTo(target, KlasMotion.defaultSpatial())
+                }
+            }
+        }
     }
     return this.graphicsLayer {
-        val amount = pull.value
+        val amount = pull.value.let { sign(it) * KlasMotion.PredictiveBack.transform(abs(it)) }
         val scale = 1f - MaxScaleDrop * abs(amount)
         scaleX = scale
         scaleY = scale

@@ -3,13 +3,16 @@ package com.seblful.klas.ui.schedule.booking
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -21,6 +24,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -29,6 +33,7 @@ import com.seblful.klas.R
 import com.seblful.klas.domain.schedule.DayTimeline
 import com.seblful.klas.domain.schedule.Scheduling
 import com.seblful.klas.format.bulletJoin
+import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.classModeLabel
 import com.seblful.klas.ui.common.hourText
 import com.seblful.klas.ui.common.timeText
@@ -74,11 +79,12 @@ internal fun Peek(
                 Row(
                     Modifier
                         .testTag(PEEK_TAG)
-                        .clip(RoundedCornerShape(10.dp))
+                        // Material's plain tooltip: its shape, inverse colours and padding.
+                        .clip(MaterialTheme.shapes.extraSmall)
                         .background(MaterialTheme.colorScheme.inverseSurface)
-                        .padding(horizontal = 10.dp, vertical = 6.dp),
+                        .padding(horizontal = Spacing.inline, vertical = Spacing.tight),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.inline),
                 ) {
                     Box(Modifier.size(10.dp).clip(CircleShape).background(lessonColors(lesson.assignee).first))
                     Text(
@@ -100,7 +106,7 @@ internal fun Peek(
  */
 @Composable
 internal fun StartAndEnd(timeline: DayTimeline, slot: Scheduling.Slot, color: Color) {
-    val gap = with(LocalDensity.current) { 4.dp.roundToPx() }
+    val gap = with(LocalDensity.current) { Spacing.tight.roundToPx() }
     Layout(
         {
             listOf(slot.start, slot.end).forEach { edge ->
@@ -146,13 +152,24 @@ internal fun Ticks(timeline: DayTimeline) {
 @Composable
 internal fun Nudges(onEarlier: () -> Unit, onLater: () -> Unit) {
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-        TextButton(onEarlier) {
-            Icon(KlasIcons.Filled.ChevronLeft, contentDescription = null, Modifier.size(NudgeIcon))
-            Text(stringResource(R.string.class_timeline_earlier))
+        val padding = ButtonDefaults.TextButtonWithIconContentPadding
+        val direction = LocalLayoutDirection.current
+        TextButton(onEarlier, contentPadding = padding) {
+            Icon(KlasIcons.Filled.ChevronLeft, contentDescription = null, Modifier.size(ButtonDefaults.IconSize))
+            Text(stringResource(R.string.class_timeline_earlier), Modifier.padding(start = Spacing.inline))
         }
-        TextButton(onLater) {
-            Text(stringResource(R.string.class_timeline_later))
-            Icon(KlasIcons.Filled.ChevronRight, contentDescription = null, Modifier.size(NudgeIcon))
+        // The icon trails here, so the icon side's narrower padding moves to the end.
+        TextButton(
+            onLater,
+            contentPadding = PaddingValues(
+                start = padding.calculateEndPadding(direction),
+                top = padding.calculateTopPadding(),
+                end = padding.calculateStartPadding(direction),
+                bottom = padding.calculateBottomPadding(),
+            ),
+        ) {
+            Text(stringResource(R.string.class_timeline_later), Modifier.padding(end = Spacing.inline))
+            Icon(KlasIcons.Filled.ChevronRight, contentDescription = null, Modifier.size(ButtonDefaults.IconSize))
         }
     }
 }
@@ -192,4 +209,3 @@ internal const val PEEK_TAG = "booking_timeline_peek"
 private const val MINUTES_PER_HOUR = 60
 private const val TICK_HOURS = 3
 private val PeekHeight = 32.dp
-private val NudgeIcon = 18.dp
