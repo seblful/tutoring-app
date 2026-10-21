@@ -123,8 +123,19 @@ class ClassEditSaveTest : ClassEditTestFixture() {
         vm.fillFor(ann, subject, env.clock.today().plus(3, DateTimeUnit.DAY), LocalTime(10, 0), minutes = 60)
         advanceUntilIdle()
         var done = 0
-        vm.save { done++ }
-        vm.save { done++ }
+        val before = env.transactor.count
+        val gate = env.transactor.pauseNextTransaction()
+        try {
+            vm.save { done++ }
+            gate.awaitEntry()
+            vm.save { done++ }
+            advanceUntilIdle()
+            assertEquals(before + 1, env.transactor.count)
+            assertEquals(0, done)
+            assertTrue(env.classes().isEmpty())
+        } finally {
+            gate.release()
+        }
         advanceUntilIdle()
 
         assertEquals(1, env.classes().size)

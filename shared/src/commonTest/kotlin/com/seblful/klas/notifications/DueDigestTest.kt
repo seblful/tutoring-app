@@ -3,35 +3,32 @@ package com.seblful.klas.notifications
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Payment
 import com.seblful.klas.domain.reminders.Digests
-import com.seblful.klas.testutil.MainDispatcherRule
 import com.seblful.klas.testutil.TestEnv
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDate
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
-import org.junit.Rule
-import org.junit.Test
-import org.junit.runner.RunWith
-import org.robolectric.RobolectricTestRunner
+import kotlinx.datetime.atTime
+import kotlinx.datetime.toInstant
+import kotlin.test.AfterTest
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.Instant
 
 @OptIn(ExperimentalCoroutinesApi::class)
-@RunWith(RobolectricTestRunner::class)
 class DueDigestTest {
 
-    @get:Rule(order = 1)
-    val mainRule = MainDispatcherRule()
+    private val env = TestEnv()
 
-    @get:Rule(order = 0)
-    val env = TestEnv()
+    @AfterTest
+    fun close() = env.close()
 
     private val morning: Instant = Instant.parse("2026-06-15T06:00:00Z")
 
-    private fun at(hour: Int): Instant = Instant.parse("2026-06-15T%02d:00:00Z".format(hour - 3))
+    private fun at(hour: Int): Instant = LocalDate(2026, 6, 15).atTime(hour, 0).toInstant(env.clock.zone)
 
     private suspend fun enableAgenda() =
         env.settingsRepo.update { it.copy(dailyAgendaEnabled = true) }
@@ -45,7 +42,7 @@ class DueDigestTest {
     private val evening: Instant = at(21)
 
     @Test
-    fun `the agenda names the day's lessons in order, with who and what`() = runTest(mainRule.dispatcher) {
+    fun `the agenda names the day's lessons in order - with who and what`() = runTest {
         enableAgenda()
         val algebra = env.fixtures.subject("Алгебра")
         val physics = env.fixtures.subject("Физика")
@@ -63,7 +60,7 @@ class DueDigestTest {
             agenda.lessons.map { it.start to it.subject },
         )
         assertEquals(listOf("Аня Петрова", "Боря Иванов"), agenda.lessons.map { it.who })
-        assertEquals("the day a tap on it opens", LocalDate(2026, 6, 15), agenda.day)
+        assertEquals(LocalDate(2026, 6, 15), agenda.day, "the day a tap on it opens")
     }
 
     /**
@@ -71,7 +68,7 @@ class DueDigestTest {
      * tutor is being told about one hour they will teach, and four lines about it would be noise.
      */
     @Test
-    fun `a group lesson is one line, named by the group`() = runTest(mainRule.dispatcher) {
+    fun `a group lesson is one line - named by the group`() = runTest {
         enableAgenda()
         val subject = env.fixtures.subject("Химия")
         val members = listOf("Аня", "Боря", "Вера").map { env.fixtures.pricedStudent(it, subject) }
@@ -83,7 +80,7 @@ class DueDigestTest {
         val agenda = env.notifier.agendas.single()
         assertEquals(1, agenda.lessons.size)
         assertEquals("11 «А»", agenda.lessons.single().who)
-        assertEquals("one lesson of the tutor's", 1, agenda.summary.lessons)
+        assertEquals(1, agenda.summary.lessons, "one lesson of the tutor's")
     }
 
     /**
@@ -91,7 +88,7 @@ class DueDigestTest {
      * the same [com.seblful.klas.domain.schedule.DaySummary]. Two arithmetics for one morning would both look right.
      */
     @Test
-    fun `the summary is what the day comes to`() = runTest(mainRule.dispatcher) {
+    fun `the summary is what the day comes to`() = runTest {
         enableAgenda()
         val subject = env.fixtures.subject("Алгебра")
         val anya = env.fixtures.pricedStudent("Аня", subject, rate = Money.ofMajor(30))
@@ -103,7 +100,7 @@ class DueDigestTest {
         val summary = env.notifier.agendas.single().summary
         assertEquals(2, summary.lessons)
         assertEquals(150, summary.minutes)
-        assertEquals("30 an hour, for two and a half hours", Money.ofMajor(75), summary.money)
+        assertEquals(Money.ofMajor(75), summary.money, "30 an hour, for two and a half hours")
     }
 
     /**
@@ -112,7 +109,7 @@ class DueDigestTest {
      * which. An 08:00 lesson is over by the time the digest goes out and still belongs to today.
      */
     @Test
-    fun `a lesson earlier than the digest is still part of the day`() = runTest(mainRule.dispatcher) {
+    fun `a lesson earlier than the digest is still part of the day`() = runTest {
         enableAgenda()
         val subject = env.fixtures.subject("Алгебра")
         val anya = env.fixtures.pricedStudent("Аня", subject)
@@ -129,7 +126,7 @@ class DueDigestTest {
      * as one more thing to do.
      */
     @Test
-    fun `a cancelled lesson is summarised but not listed`() = runTest(mainRule.dispatcher) {
+    fun `a cancelled lesson is summarised but not listed`() = runTest {
         enableAgenda()
         val subject = env.fixtures.subject("Алгебра")
         val anya = env.fixtures.pricedStudent("Аня", subject)
@@ -139,13 +136,13 @@ class DueDigestTest {
         env.dueDigest.postAgenda(morning)
 
         val agenda = env.notifier.agendas.single()
-        assertEquals("only the lesson that is on", 1, agenda.lessons.size)
+        assertEquals(1, agenda.lessons.size, "only the lesson that is on")
         assertEquals(1, agenda.summary.lessons)
         assertEquals(1, agenda.summary.cancelled)
     }
 
     @Test
-    fun `an empty day is not announced at all`() = runTest(mainRule.dispatcher) {
+    fun `an empty day is not announced at all`() = runTest {
         enableAgenda()
 
         assertFalse(env.dueDigest.postAgenda(morning))
@@ -154,7 +151,7 @@ class DueDigestTest {
 
     /** A day whose only lesson was called off says nothing: the tutor is the one who cancelled it. */
     @Test
-    fun `a day of nothing but cancellations is not announced`() = runTest(mainRule.dispatcher) {
+    fun `a day of nothing but cancellations is not announced`() = runTest {
         enableAgenda()
         val subject = env.fixtures.subject("Алгебра")
         val anya = env.fixtures.pricedStudent("Аня", subject)
@@ -164,7 +161,7 @@ class DueDigestTest {
     }
 
     @Test
-    fun `tomorrow's lesson is not today's business`() = runTest(mainRule.dispatcher) {
+    fun `tomorrow's lesson is not today's business`() = runTest {
         enableAgenda()
         val subject = env.fixtures.subject("Алгебра")
         val anya = env.fixtures.pricedStudent("Аня", subject)
@@ -179,19 +176,19 @@ class DueDigestTest {
      * agreeing — the same argument `Reminders.shouldPost` makes for a lesson cancelled since.
      */
     @Test
-    fun `nothing is posted while the agenda is switched off`() = runTest(mainRule.dispatcher) {
+    fun `nothing is posted while the agenda is switched off`() = runTest {
         val subject = env.fixtures.subject("Алгебра")
         val anya = env.fixtures.pricedStudent("Аня", subject)
         env.fixtures.lesson(subject, listOf(anya), start = at(11))
 
-        assertFalse("off by default", env.dueDigest.postAgenda(morning))
+        assertFalse(env.dueDigest.postAgenda(morning), "off by default")
         assertTrue(env.notifier.agendas.isEmpty())
     }
 
     // --- The evening list of unmarked lessons -------------------------------------------------------
 
     @Test
-    fun `the evening digest names the lessons still not marked`() = runTest(mainRule.dispatcher) {
+    fun `the evening digest names the lessons still not marked`() = runTest {
         enableUnfinished()
         val algebra = env.fixtures.subject("Алгебра")
         val physics = env.fixtures.subject("Физика")
@@ -204,9 +201,9 @@ class DueDigestTest {
 
         val digest = env.notifier.unfinished.single()
         assertEquals(
-            "in start order, like the morning's",
             listOf(at(11) to "Аня Петрова", at(17) to "Боря Иванов"),
             digest.lessons.map { it.start to it.who },
+            "in start order, like the morning's",
         )
         // Carried rather than read when tapped: a tap after midnight is still about Monday.
         assertEquals(LocalDate(2026, 6, 15), digest.day)
@@ -214,7 +211,7 @@ class DueDigestTest {
 
     /** A lesson the tutor already marked is not something to be asked about at nine in the evening. */
     @Test
-    fun `a lesson already marked is not listed`() = runTest(mainRule.dispatcher) {
+    fun `a lesson already marked is not listed`() = runTest {
         enableUnfinished()
         val subject = env.fixtures.subject("Алгебра")
         val anya = env.fixtures.pricedStudent("Аня", subject)
@@ -233,19 +230,19 @@ class DueDigestTest {
      * they are in the middle of. This is the boundary `LessonPhase` exists to state once.
      */
     @Test
-    fun `a lesson still in progress is not asked about`() = runTest(mainRule.dispatcher) {
+    fun `a lesson still in progress is not asked about`() = runTest {
         enableUnfinished()
         val subject = env.fixtures.subject("Алгебра")
         val anya = env.fixtures.pricedStudent("Аня", subject)
         env.fixtures.lesson(subject, listOf(anya), start = at(20), minutes = 90)
 
-        assertFalse("nothing to say yet", env.dueDigest.postUnfinished(evening))
+        assertFalse(env.dueDigest.postUnfinished(evening), "nothing to say yet")
         assertTrue(env.notifier.unfinished.isEmpty())
     }
 
     /** A lesson later this evening has not happened, so there is nothing to mark about it either. */
     @Test
-    fun `a lesson still to come is not asked about`() = runTest(mainRule.dispatcher) {
+    fun `a lesson still to come is not asked about`() = runTest {
         enableUnfinished()
         val subject = env.fixtures.subject("Алгебра")
         val anya = env.fixtures.pricedStudent("Аня", subject)
@@ -256,7 +253,7 @@ class DueDigestTest {
 
     /** A group's hour is one lesson of the tutor's to mark, named by the group — as in the morning. */
     @Test
-    fun `a group lesson is one entry, named by the group`() = runTest(mainRule.dispatcher) {
+    fun `a group lesson is one entry - named by the group`() = runTest {
         enableUnfinished()
         val subject = env.fixtures.subject("Химия")
         val members = listOf("Аня", "Боря", "Вера").map { env.fixtures.pricedStudent(it, subject) }
@@ -272,7 +269,7 @@ class DueDigestTest {
 
     /** An evening with everything marked says nothing at all — the ordinary evening. */
     @Test
-    fun `an evening with nothing unmarked posts nothing`() = runTest(mainRule.dispatcher) {
+    fun `an evening with nothing unmarked posts nothing`() = runTest {
         enableUnfinished()
         val subject = env.fixtures.subject("Алгебра")
         val anya = env.fixtures.pricedStudent("Аня", subject)
@@ -288,7 +285,7 @@ class DueDigestTest {
      * clear it.
      */
     @Test
-    fun `a lesson left unmarked on another day is not dragged in`() = runTest(mainRule.dispatcher) {
+    fun `a lesson left unmarked on another day is not dragged in`() = runTest {
         enableUnfinished()
         val subject = env.fixtures.subject("Алгебра")
         val anya = env.fixtures.pricedStudent("Аня", subject)
@@ -299,7 +296,7 @@ class DueDigestTest {
 
     /** The switch is authoritative at the moment of posting, as it is for the other two. */
     @Test
-    fun `nothing is posted while the evening digest is switched off`() = runTest(mainRule.dispatcher) {
+    fun `nothing is posted while the evening digest is switched off`() = runTest {
         val subject = env.fixtures.subject("Алгебра")
         val anya = env.fixtures.pricedStudent("Аня", subject)
         env.fixtures.lesson(subject, listOf(anya), start = at(11))
@@ -311,7 +308,7 @@ class DueDigestTest {
     // --- The weekly debt summary --------------------------------------------------------------------
 
     @Test
-    fun `the debt digest counts who owes and what it comes to`() = runTest(mainRule.dispatcher) {
+    fun `the debt digest counts who owes and what it comes to`() = runTest {
         enableDebts()
         val subject = env.fixtures.subject("Алгебра")
         val anya = env.fixtures.pricedStudent("Аня", subject, rate = Money.ofMajor(30))
@@ -326,7 +323,7 @@ class DueDigestTest {
     }
 
     @Test
-    fun `a settled week says nothing`() = runTest(mainRule.dispatcher) {
+    fun `a settled week says nothing`() = runTest {
         enableDebts()
         val subject = env.fixtures.subject("Алгебра")
         val anya = env.fixtures.pricedStudent("Аня", subject, rate = Money.ofMajor(30))
@@ -338,7 +335,7 @@ class DueDigestTest {
     }
 
     @Test
-    fun `an archived student's debt is not chased`() = runTest(mainRule.dispatcher) {
+    fun `an archived student's debt is not chased`() = runTest {
         enableDebts()
         val subject = env.fixtures.subject("Алгебра")
         val anya = env.fixtures.pricedStudent("Аня", subject, rate = Money.ofMajor(30))
@@ -354,7 +351,7 @@ class DueDigestTest {
      * "the tutor's net position".
      */
     @Test
-    fun `credit is not netted off against another student's debt`() = runTest(mainRule.dispatcher) {
+    fun `credit is not netted off against another student's debt`() = runTest {
         enableDebts()
         val subject = env.fixtures.subject("Алгебра")
         val anya = env.fixtures.pricedStudent("Аня", subject, rate = Money.ofMajor(30))
@@ -369,7 +366,7 @@ class DueDigestTest {
     }
 
     @Test
-    fun `nothing is posted while the debt digest is switched off`() = runTest(mainRule.dispatcher) {
+    fun `nothing is posted while the debt digest is switched off`() = runTest {
         val subject = env.fixtures.subject("Алгебра")
         val anya = env.fixtures.pricedStudent("Аня", subject, rate = Money.ofMajor(30))
         env.fixtures.completedLesson(subject, listOf(anya), start = at(11))

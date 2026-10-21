@@ -2,7 +2,8 @@
 
 Choose tests by the behavior they prove. Quick build commands are in the [README](../README.md#build--test).
 Run `./gradlew testQuick` during development: domain and shared JVM tests, Android behavior tests and
-`node --test store/`, without screenshot rendering. Node 22+ is required for the store tooling suite.
+`node --test store/` plus the Android host-script tests, without screenshot rendering. Node 22+ is
+required for the tooling suites.
 `./gradlew verify` also runs screenshot comparisons, Android lint, ktlint, detekt and debug app/test
 builds used by CI. Device and iOS simulator execution are separate checks.
 
@@ -24,9 +25,15 @@ builds used by CI. Device and iOS simulator execution are separate checks.
 - Portable port doubles, fixtures and a pinned `MutableClock` are compiled only into test source sets.
   Give repositories and view models the same clock and zone. Tests of system clock changes explicitly
   opt into the device clock.
+- Digest and maintenance behavior belongs in shared common tests; Android tests cover notifier and
+  scheduling adapters. Generated invariant tests use fixed seeds and include the seed/case in failures;
+  keep their assertions independent of the rule they exercise.
 - Wrap manually constructed view models in `mainRule.own(...)`. The dispatcher rule clears them and
   cancels its application scope before the database rule closes; use rule order 1 for the dispatcher
-  and order 0 for the database environment.
+  and order 0 for the database environment. `clearViewModels()` models leaving the screen without
+  cancelling application writes. For save races, use `pauseNextTransaction()`, await its entry, perform
+  the competing action, then release it in `finally`; assert both the paused state and the final rows.
+  Use queued test dispatchers for lifecycle tests rather than relying on immediate execution.
 - `PilotWorkflowTest` closes and reopens a temporary file database to prove persistence; each platform
   supplies file creation and cleanup. In-memory tests cannot prove this contract.
 - `RecordingTransactor` counts real transactions and `failAt` forces rollback. Queries use
@@ -84,14 +91,28 @@ without startup scheduling; activity/receiver injection works even before a test
 `KlasGraphTest` covers runtime graph discovery separately on the JVM.
 
 - Each migration validates against exported schemas through `migrationTestHelper` in
-  `androidTest/.../data/local/MigrationTesting.kt`, using the bundled driver.
+  `androidTest/.../data/local/MigrationTesting.kt`, using the bundled driver. `SupportedUpgradeTest`
+  also opens populated v5–v9 files through the production factory with destructive fallback off,
+  checking final repository queries and foreign keys.
 - [Device CI](../.github/workflows/device-tests.yml) runs the whole suite on API 35 and the data package
-  on minSdk/API 24. Tags run it automatically; any branch can run it manually. To run only data locally,
+  on minSdk/API 24 for releases and manual runs. Relevant pull requests run the data suite on both
+  levels, including populated old-schema upgrades. Both modes also force-stop and relaunch the debug
+  app, then verify its persisted lesson, payment and balance in a new process. To run only data locally,
   add `-Pandroid.testInstrumentationRunnerArguments.package=com.seblful.klas.data` to the connected task.
 - If a crashed run locks Gradle's results folder on Windows, bypass that folder:
   `./gradlew :app:installDebug :app:installDebugAndroidTest`, then
   `adb shell am instrument -w -e class <class> com.seblful.klas.debug.test/com.seblful.klas.KlasTestRunner`.
   Repeat from a stopped app (`am force-stop`) to distinguish startup races from test failures.
+- To run the cold-relaunch probe on a connected device, install both APKs with
+  `./gradlew :app:installDebug :app:installDebugAndroidTest`, then run
+  `node scripts/android-relaunch.mjs`. Use `--serial <device>` to select a device and `--adb <path>`
+  when adb is outside PATH and the SDK environment variables. It force-stops the debug app, seeds
+  temporary records through the production graph, checks a different process ID after relaunch and
+  removes its records. `ColdRelaunchTest` is intentionally skipped outside this host-driven sequence;
+  running its phases in one instrumentation invocation cannot prove a process restart.
+- Payment, duration and repeat-count dialogs have saved-state restoration tests that confirm the
+  restored value, rather than only checking that their controls reappear.
+- `./gradlew testDeviceTools` tests the host runner's failure detection and cleanup without a device.
 - Notification display and real calendar writes need observation on a device.
 
 ## Static analysis

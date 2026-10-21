@@ -1,21 +1,27 @@
 name: Device tests
 
-# The instrumented suite (src/androidTest) on emulators, so a release no longer depends on a phone being
-# plugged in. CI only compiles these tests; this runs them. It is too slow for every push to main, so it
-# runs where a broken migration or backup would reach users: release.yml calls it on every tag, and it can
-# be run by hand on any branch from the Actions tab.
-#
-# Two emulators, in parallel:
-# - API 35, the whole suite — the platform the app's users are mostly on.
-# - API 24 (minSdk), the data layer only. The database runs on the bundled SQLite, the same on every API
-#   level, so what this proves is that its native library loads and runs on the oldest Android the app
-#   supports. The UI tests are left out: they measure text and frames, which an old image renders differently
-#   from any device the goldens and tolerances were set on.
-#
-# Notification display and real calendar sync can still only be judged on a phone (docs/testing.md).
+# Pull requests run the data suite and cold-relaunch probe on both supported test API levels.
+# Release calls and manual runs retain the full API 35 suite plus minSdk data checks.
 on:
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'app/src/main/**'
+      - 'app/src/debug/**'
+      - 'app/src/androidTest/**'
+      - 'app/build.gradle.kts'
+      - 'shared/**'
+      - 'domain/**'
+      - 'gradle/**'
+      - '*.gradle.kts'
+      - 'scripts/**'
+      - '.github/workflows/device-tests.yml'
   workflow_call:
   workflow_dispatch:
+
+concurrency:
+  group: device-tests-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
@@ -31,7 +37,7 @@ jobs:
         include:
           - api-level: 35
             target: google_apis
-            scope: all
+            scope: ${{ github.event_name == 'pull_request' && 'data' || 'all' }}
           - api-level: 24
             target: default
             scope: data
@@ -59,6 +65,11 @@ jobs:
         with:
           distribution: temurin
           java-version: '21'
+
+      - name: Set up Node for the relaunch probe
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
@@ -91,7 +102,10 @@ jobs:
           profile: pixel_6
           disable-animations: false
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
-          script: ./gradlew :app:connectedDebugAndroidTest --stacktrace ${{ matrix.scope == 'data' && '-Pandroid.testInstrumentationRunnerArguments.package=com.seblful.klas.data' || '' }}
+          script: |
+            ./gradlew :app:connectedDebugAndroidTest --stacktrace ${{ matrix.scope == 'data' && '-Pandroid.testInstrumentationRunnerArguments.package=com.seblful.klas.data' || '' }}
+            ./gradlew :app:installDebug :app:installDebugAndroidTest --stacktrace
+            node scripts/android-relaunch.mjs
 
       - name: Upload test reports
         if: failure()

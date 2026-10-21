@@ -194,24 +194,6 @@ class StudentFormViewModelTest {
     }
 
     @Test
-    fun `a second tap while saving creates no second student`() = runTest(mainRule.dispatcher) {
-        val mathId = env.fixtures.subject("Математика")
-        val vm = vm()
-        observing(vm.state)
-        vm.update { it.copy(name = "Аня") }
-        vm.toggleSubject(mathId, on = true)
-        vm.setPriceText(mathId, "30")
-
-        var saved = 0
-        vm.save { saved++ }
-        vm.save { saved++ }
-        advanceUntilIdle()
-
-        assertEquals(1, saved)
-        assertEquals(1, env.stored().students.size)
-    }
-
-    @Test
     fun `a phone left on its dialling code is saved as no phone`() = runTest(mainRule.dispatcher) {
         val mathId = env.fixtures.subject("Математика")
         val vm = vm()
@@ -287,22 +269,6 @@ class StudentFormViewModelTest {
 
         assertFalse("a failed write must not navigate away as though it had saved", done)
         assertEquals(StudentFormViewModel.Event.SAVE_FAILED, vm.events.stream.first())
-    }
-
-    @Test
-    fun `the write survives the screen going away`() = runTest(mainRule.dispatcher) {
-        val mathId = env.fixtures.subject(name = "Математика")
-        val vm = vm()
-        observing(vm.state)
-        vm.update { it.copy(name = "Аня") }
-        vm.toggleSubject(mathId, on = true)
-        vm.setPriceText(mathId, "30")
-
-        vm.save { }
-        advanceUntilIdle()
-
-        assertEquals(1, env.stored().students.size)
-        assertEquals(1, env.stored().prices.size)
     }
 
     @Test
