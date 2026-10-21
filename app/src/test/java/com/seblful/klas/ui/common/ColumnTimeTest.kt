@@ -30,9 +30,11 @@ class ColumnTimeTest {
     fun `one- and two-digit hours take one width, so the text beside them starts on one edge`() {
         compose.setContent {
             KlasTheme {
+                val style = MaterialTheme.typography.titleMedium
+                val width = rememberColumnTimeWidth(style)
                 Column {
-                    ColumnTime("1:00 PM", MaterialTheme.typography.titleMedium, Modifier.testTag("short"))
-                    ColumnTime("10:00 PM", MaterialTheme.typography.titleMedium, Modifier.testTag("widest"))
+                    ColumnTime("1:00 PM", style, width, Modifier.testTag("short"))
+                    ColumnTime("10:00 PM", style, width, Modifier.testTag("widest"))
                 }
             }
         }

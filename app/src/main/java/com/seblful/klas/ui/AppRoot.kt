@@ -32,6 +32,7 @@ import com.seblful.klas.data.settings.SettingsRepository
 import com.seblful.klas.domain.model.Currency
 import com.seblful.klas.domain.model.ThemeChoice
 import com.seblful.klas.ui.common.LocalCurrency
+import com.seblful.klas.ui.common.ProvideClockFormat
 import com.seblful.klas.ui.common.ProvideLocalizedResources
 import com.seblful.klas.ui.navigation.Arrival
 import com.seblful.klas.ui.navigation.KlasGraph
@@ -85,16 +86,19 @@ fun AppRoot(rootViewModel: RootViewModel = metroViewModel()) {
             // in this state (the splash is still up), and `SettingsRepository` is the one place that knows
             // what an unwritten row means on this device.
             CompositionLocalProvider(LocalCurrency provides (settings?.currency ?: Currency.BYN)) {
-                when (rootViewModel.routeFor(settings)) {
-                    // Reached only if the splash has already been lifted — `MainActivity` holds it until
-                    // this row arrives, precisely so this state is not something the tutor sees. Kept as
-                    // the honest answer for the frame in which it is still true.
-                    RootRoute.LOADING -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator()
+                // Whether the phone counts hours to 12 or 24, asked once for every time printed below.
+                ProvideClockFormat {
+                    when (rootViewModel.routeFor(settings)) {
+                        // Reached only if the splash has already been lifted — `MainActivity` holds it until
+                        // this row arrives, precisely so this state is not something the tutor sees. Kept as
+                        // the honest answer for the frame in which it is still true.
+                        RootRoute.LOADING -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator()
+                        }
+                        RootRoute.ONBOARDING ->
+                            OnboardingScreen(onFinished = { /* settings flip re-renders into MainApp */ })
+                        RootRoute.MAIN -> MainApp()
                     }
-                    RootRoute.ONBOARDING ->
-                        OnboardingScreen(onFinished = { /* settings flip re-renders into MainApp */ })
-                    RootRoute.MAIN -> MainApp()
                 }
             }
         }

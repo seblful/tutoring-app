@@ -17,6 +17,7 @@ import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -106,6 +107,8 @@ fun <T> ChoiceRow(
     /** See [SegmentedChoice]'s `onReselect`. A field already offers every option, so only segments need it. */
     onReselect: ((T) -> Unit)? = null,
 ) {
+    // Remembered: a new list each pass would keep the control below from ever skipping.
+    val values = remember(options) { options.map { it.first } }
     if (!fitsInSegments(options.size)) {
         // A field, whose own label and supporting slot carry the two lines the segmented version draws
         // above itself — «everything that qualifies a field goes in that field's `supportingText`».
@@ -113,7 +116,7 @@ fun <T> ChoiceRow(
             ChoiceField(
                 label = title,
                 selected = selected,
-                options = options.map { it.first },
+                options = values,
                 optionLabel = { value -> options.first { it.first == value }.second },
                 onSelect = onSelect,
                 supportingText = description,
@@ -138,7 +141,7 @@ fun <T> ChoiceRow(
         // Through [SegmentedChoice], so every one of these gets the one-line shrink rule the schedule's
         // segments already had; «Как в системе» in a third of a phone is exactly the label that needed it.
         SegmentedChoice(
-            options = options.map { it.first },
+            options = values,
             selected = selected,
             onSelect = onSelect,
             modifier = Modifier.padding(top = Spacing.inline),

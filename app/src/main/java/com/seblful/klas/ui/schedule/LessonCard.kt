@@ -16,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import com.seblful.klas.R
 import com.seblful.klas.domain.lesson.LessonKind
 import com.seblful.klas.domain.model.LessonStatus
@@ -43,12 +44,13 @@ import com.seblful.klas.ui.theme.klasColors
 internal fun LazyItemScope.SwipeToCompleteCard(
     row: ScheduleRow,
     running: Boolean,
+    timeWidth: Dp,
     onClick: () -> Unit,
     onComplete: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     if (!row.canSwipeComplete) {
-        ScheduleCard(row, running, onClick, animateInPlace(modifier))
+        ScheduleCard(row, running, timeWidth, onClick, animateInPlace(modifier))
         return
     }
     SwipeToConfirmBox(
@@ -74,6 +76,7 @@ internal fun LazyItemScope.SwipeToCompleteCard(
         ScheduleCard(
             row,
             running,
+            timeWidth,
             onClick,
             Modifier.swipeAction(stringResource(R.string.class_mark_completed), onComplete),
         )
@@ -84,6 +87,7 @@ internal fun LazyItemScope.SwipeToCompleteCard(
 private fun ScheduleCard(
     row: ScheduleRow,
     running: Boolean,
+    timeWidth: Dp,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -97,6 +101,7 @@ private fun ScheduleCard(
             ColumnTime(
                 row.klass.start.timeText(),
                 style = MaterialTheme.typography.titleMedium,
+                width = timeWidth,
                 color = if (cancelled) MaterialTheme.colorScheme.onSurfaceVariant
                 else MaterialTheme.colorScheme.onSurface,
                 // Struck through, so the hour reads as one that was given back.

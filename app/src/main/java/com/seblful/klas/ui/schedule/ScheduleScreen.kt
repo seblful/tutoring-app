@@ -17,6 +17,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -51,6 +52,7 @@ import com.seblful.klas.ui.common.ShowMessagesFor
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.animateInPlace
 import com.seblful.klas.ui.common.plusInset
+import com.seblful.klas.ui.common.rememberColumnTimeWidth
 import com.seblful.klas.ui.common.rememberConfirmFeedback
 import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.rememberRejectFeedback
@@ -297,6 +299,8 @@ fun ScheduleScreen(
         ) {
             // The grid scrolls with the classes rather than sitting above them: six week rows plus
             // a full day of classes doesn't fit a landscape phone.
+            // Measured here, once for every card in the list — see [ColumnTime].
+            val timeWidth = rememberColumnTimeWidth(MaterialTheme.typography.titleMedium)
             LazyColumn(
                 Modifier.fillMaxSize(),
                 state = listState,
@@ -314,6 +318,7 @@ fun ScheduleScreen(
                         emptyReason = emptyReason,
                         nowMark = nowMark,
                         running = running,
+                        timeWidth = timeWidth,
                         onRowClick = { sheetFor = it },
                         onComplete = { viewModel.setStatus(it.session, LessonStatus.COMPLETED) },
                         onAddClass = addClass,
@@ -338,9 +343,9 @@ fun ScheduleScreen(
                         }
                         val week = contentState.valueOrNull()
                         if (week == null) {
-                            item(key = "loading") { LessonsSkeleton() }
+                            item(key = "loading", contentType = "loading") { LessonsSkeleton() }
                         } else if (week.sections.isEmpty()) {
-                            item(key = "empty") {
+                            item(key = "empty", contentType = "empty") {
                                 // The same three answers the day list gets, from the same place — this
                                 // branch used to weigh two of them itself and offer nothing either way.
                                 ScheduleEmptyState(
@@ -368,6 +373,7 @@ fun ScheduleScreen(
                                     SwipeToCompleteCard(
                                         row = row,
                                         running = row.session.lessonId in running,
+                                        timeWidth = timeWidth,
                                         onClick = { sheetFor = row },
                                         onComplete = {
                                             viewModel.setStatus(row.session, LessonStatus.COMPLETED)
@@ -412,6 +418,7 @@ fun ScheduleScreen(
                             emptyReason = emptyReason,
                             nowMark = nowMark,
                             running = running,
+                            timeWidth = timeWidth,
                             onRowClick = { sheetFor = it },
                             onComplete = { viewModel.setStatus(it.session, LessonStatus.COMPLETED) },
                             onAddClass = addClass,
@@ -591,6 +598,7 @@ private fun LazyListScope.dayList(
     emptyReason: Loadable<ScheduleEmpty>,
     nowMark: Int?,
     running: Set<Long>,
+    timeWidth: Dp,
     onRowClick: (ScheduleRow) -> Unit,
     onComplete: (ScheduleRow) -> Unit,
     onAddClass: () -> Unit,
@@ -598,14 +606,14 @@ private fun LazyListScope.dayList(
 ) {
     val day = when (state) {
         Loadable.Loading -> {
-            item(key = "loading") { LessonsSkeleton() }
+            item(key = "loading", contentType = "loading") { LessonsSkeleton() }
             return
         }
         is Loadable.Ready -> state.value
     }
     val rows = day.rows
     if (rows.isEmpty()) {
-        item(key = "empty") {
+        item(key = "empty", contentType = "empty") {
             ScheduleEmptyState(
                 reason = emptyReason,
                 whole = ScheduleEmptySpan.DAY,
@@ -620,17 +628,18 @@ private fun LazyListScope.dayList(
         // is no card left to draw it above — and an item with two roots would take [animateInPlace] off
         // the card, which is what keeps a re-sorted list from teleporting.
         rows.forEachIndexed { index, row ->
-            if (index == nowMark) item(key = nowKey(view, day.date)) { NowLine(animateInPlace()) }
+            if (index == nowMark) item(key = nowKey(view, day.date), contentType = "now") { NowLine(animateInPlace()) }
             item(key = lessonKey(view, row, day.date), contentType = "lesson") {
                 SwipeToCompleteCard(
                     row = row,
                     running = row.session.lessonId in running,
+                    timeWidth = timeWidth,
                     onClick = { onRowClick(row) },
                     onComplete = { onComplete(row) },
                 )
             }
         }
-        if (nowMark == rows.size) item(key = nowKey(view, day.date)) { NowLine(animateInPlace()) }
+        if (nowMark == rows.size) item(key = nowKey(view, day.date), contentType = "now") { NowLine(animateInPlace()) }
     }
 }
 

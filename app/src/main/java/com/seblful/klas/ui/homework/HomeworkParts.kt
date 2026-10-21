@@ -21,6 +21,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -82,7 +83,7 @@ fun LazyListScope.homeworkItems(
     onDone: (Homework, Boolean) -> Unit,
 ) {
     if (lists.current.isEmpty() && lists.archive.isEmpty()) {
-        item(key = HomeworkItemKeys.EMPTY) {
+        item(key = HomeworkItemKeys.EMPTY, contentType = HomeworkItemKeys.EMPTY) {
             EmptyState(
                 title = stringResource(R.string.student_homework_empty),
                 icon = KlasIcons.Outlined.Assignment,
@@ -93,8 +94,14 @@ fun LazyListScope.homeworkItems(
         }
         return
     }
-    item(key = HomeworkItemKeys.ADD) { AddRow(stringResource(R.string.homework_add), onAdd) }
-    items(lists.current, key = { HomeworkItemKeys.row(it.homework.id) }) { row ->
+    item(key = HomeworkItemKeys.ADD, contentType = HomeworkItemKeys.ADD) {
+        AddRow(stringResource(R.string.homework_add), onAdd)
+    }
+    items(
+        lists.current,
+        key = { HomeworkItemKeys.row(it.homework.id) },
+        contentType = { HomeworkItemKeys.ROW_TYPE },
+    ) { row ->
         SwipeableHomework(
             row = row,
             onSwipe = { onDone(row.homework, true) },
@@ -106,7 +113,7 @@ fun LazyListScope.homeworkItems(
         )
     }
     if (lists.archive.isNotEmpty()) {
-        item(key = HomeworkItemKeys.DONE) {
+        item(key = HomeworkItemKeys.DONE, contentType = HomeworkItemKeys.DONE) {
             // A section of the tab, so a section title — and a heading a reader can jump to, which it
             // was not while it was a `Text` styled to look like one.
             SectionTitle(
@@ -118,7 +125,11 @@ fun LazyListScope.homeworkItems(
             )
         }
     }
-    items(lists.archive, key = { HomeworkItemKeys.row(it.homework.id) }) { row ->
+    items(
+        lists.archive,
+        key = { HomeworkItemKeys.row(it.homework.id) },
+        contentType = { HomeworkItemKeys.ROW_TYPE },
+    ) { row ->
         SwipeableHomework(
             row = row,
             onSwipe = { onDone(row.homework, false) },
@@ -140,6 +151,9 @@ object HomeworkItemKeys {
     const val EMPTY = "homework:empty"
     const val ADD = "homework:add"
     const val DONE = "homework:done"
+
+    /** Every row's content type — the empty state, add row and heading are each their own. */
+    const val ROW_TYPE = "homework:row"
 
     fun row(id: Long): String = "homework:$id"
 }
@@ -398,10 +412,16 @@ class HomeworkUndo internal constructor(
         messages.show(words.deleted, words.undo) { restore(item) }
     }
 
-    internal class Words(val done: String, val restored: String, val deleted: String, val undo: String)
+    internal data class Words(val done: String, val restored: String, val deleted: String, val undo: String)
 }
 
-/** A [HomeworkUndo] over a view model's homework writes, saying itself through [messages]. */
+/**
+ * A [HomeworkUndo] over a view model's homework writes, saying itself through [messages].
+ *
+ * The same instance across recompositions: every card's swipe captures it, so a new one each pass would
+ * recompose every visible card with the screen. The writes are read at the call, so a caller's new
+ * function references need not keep their identity.
+ */
 @Composable
 fun homeworkUndo(
     messages: Messages,
@@ -409,19 +429,28 @@ fun homeworkUndo(
     putBack: (Homework) -> Unit,
     delete: (Homework) -> Unit,
     restore: (Homework) -> Unit,
-): HomeworkUndo = HomeworkUndo(
-    messages = messages,
-    words = HomeworkUndo.Words(
+): HomeworkUndo {
+    val words = HomeworkUndo.Words(
         done = stringResource(R.string.homework_done_message),
         restored = stringResource(R.string.homework_restored_message),
         deleted = stringResource(R.string.homework_deleted),
         undo = stringResource(R.string.action_undo),
-    ),
-    setDone = setDone,
-    putBack = putBack,
-    delete = delete,
-    restore = restore,
-)
+    )
+    val currentSetDone by rememberUpdatedState(setDone)
+    val currentPutBack by rememberUpdatedState(putBack)
+    val currentDelete by rememberUpdatedState(delete)
+    val currentRestore by rememberUpdatedState(restore)
+    return remember(messages, words) {
+        HomeworkUndo(
+            messages = messages,
+            words = words,
+            setDone = { item, done -> currentSetDone(item, done) },
+            putBack = { currentPutBack(it) },
+            delete = { currentDelete(it) },
+            restore = { currentRestore(it) },
+        )
+    }
+}
 
 /**
  * A student's or a group's card's homework dialogs: giving a new piece to whoever the card is about, and

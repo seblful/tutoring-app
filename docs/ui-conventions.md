@@ -10,7 +10,7 @@ Build screens from shared state and controls. Feature rules belong in the domain
   decisions use injected `WallClock`, never direct system clock/zone reads in composables.
 - Booking changes go through `BookingForm.change(intent, context)`; required reads return as `Lookup`.
 - Use `Loadable<T>` (`Loading|Ready`) and skeletons, including forms. `rememberPlaceholderShown` delays
-  placeholders 150 ms. `readyOrLoadingAfter` keeps previous content briefly during paging; label it
+  placeholders 150 ms; a skeleton's blocks share one `SkeletonPulse`. `readyOrLoadingAfter` keeps previous content briefly during paging; label it
   with its own key/date, never the newly requested one.
 - Collect with `collectAsStateWithLifecycle`, so a backgrounded screen stops its flows. End flows with
   `derive`/`hold`; a table several flows combine is read once through `shared`. Events use
@@ -63,7 +63,7 @@ Build screens from shared state and controls. Feature rules belong in the domain
   baseline (`BadgeLine`): centred, they give `ListItem` two baselines and a three-line row. Nested trailing
   money uses `TrailingAmount`; ordinary amounts stay ink, red means debt; a settled student shows no
   balance. Lesson rows lead with their date; card times use `ColumnTime`
-  (tabular, widest-time width). A kind icon prefixes a name; the lines below start on the icon's edge, not
+  (tabular, widest-time width, measured once per list by `rememberColumnTimeWidth`). A kind icon prefixes a name; the lines below start on the icon's edge, not
   hung under the name. The lesson sheet's header repeats the card's layout.
 - Forms have one field style: tapped fields (`PickerField`) draw the outlined text field's own decoration,
   so labels float alike and fields space alike. Ticks in a form sit on its edge, not centred in 48 dp.
@@ -84,7 +84,7 @@ Build screens from shared state and controls. Feature rules belong in the domain
   checks resource parity; language changes re-sync baked calendar text. Setup and Settings share
   `LanguageChoices`: System first, followed by English and Русский in autonym order.
 - Phone settings govern 12/24-hour time and week start, independent of app language; ask the application
-  context. Use `WallClock.days()` for midnight rollover, `DayBounds` for day boundaries. Timezone changes
+  context. `ProvideClockFormat` at the root asks for the clock once, and again on every resume. Use `WallClock.days()` for midnight rollover, `DayBounds` for day boundaries. Timezone changes
   re-query open calendars; form endings and booking use the same elapsed-time slots across DST.
 - Indigo/teal Material 3, dynamic color off by default; app-owned amber means “on now”, green “taught”.
   Dark containers keep the dark accents' chroma, not the seed's (`DarkPaletteTest`).
@@ -122,6 +122,10 @@ Build screens from shared state and controls. Feature rules belong in the domain
   elsewhere it fills the window. The tabs stay beside People, a tab, and not beside Settings, a pushed
   screen, whose back arrow leaves with the page. Other screens stay one pane.
 - Lazy items use `animateInPlace`: movement only, no fade overlay. Key items by page when replacing views.
+  Every lazy item has a key and a `contentType`.
+- State that moves every frame — a back gesture's progress, a tint or pop animating, a drag — is read in
+  layout or draw (`graphicsLayer`, `drawBehind`, `offset {}`), not in composition. A list row does no work
+  that every row shares (a measured width, the clock format, a pulse): it is done once above the list.
 - A row swipe claims only its own direction (`SwipeToward`); the other way turns a `SegmentedPage`.
   Homework slides toward the tab it moves to — current right, done left — the way its tab cannot turn.
 - Every swipe has a `swipeAction` on the same semantic node; background actions are not read. Use

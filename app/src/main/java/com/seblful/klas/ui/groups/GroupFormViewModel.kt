@@ -126,9 +126,10 @@ class GroupFormViewModel @AssistedInject constructor(
          * a tick on someone no longer eligible; they are not silently counted as members here, and
          * `GroupRepository.save` drops them for real. Everything downstream reads this, not
          * [Form.memberIds], so what the form validates is what gets written.
+         *
+         * Worked out once per state, not per read: the screen reads it several times a keystroke.
          */
-        val selectedMemberIds: Set<Long>
-            get() = form.memberIds intersect candidates.map { it.id }.toSet()
+        val selectedMemberIds: Set<Long> = form.memberIds intersect candidates.mapTo(HashSet()) { it.id }
 
         /**
          * Members the form is holding but will **not** save: ticked, or loaded with the group, and no

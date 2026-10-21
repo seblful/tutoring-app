@@ -13,8 +13,10 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
@@ -149,9 +151,14 @@ fun KlasTheme(
     content: @Composable () -> Unit,
 ) {
     val colorScheme = when {
+        // Remembered: some sixty colour lookups, and a new scheme each pass would recompose the whole app with
+        // every change of a setting. The configuration is a key because a new wallpaper arrives as one.
         dynamicColor && dynamicColorAvailable -> {
             val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+            val configuration = LocalConfiguration.current
+            remember(context, configuration, darkTheme) {
+                if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+            }
         }
 
         darkTheme -> DarkColorScheme

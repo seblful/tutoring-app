@@ -344,7 +344,7 @@ private fun LazyListScope.studentsTab(
         }
         return
     }
-    items(state.members, key = { GroupDetailKeys.member(it.student.id) }) { row ->
+    items(state.members, key = { GroupDetailKeys.member(it.student.id) }, contentType = { "member" }) { row ->
         val openMemberLabel = stringResource(R.string.group_member_open)
         ListItem(
             leadingContent = { Avatar(row.student.name, row.student.id) },
@@ -389,7 +389,7 @@ private fun LazyListScope.lessonsTab(state: GroupDetailState, onLessonClick: (Lo
         }
         return
     }
-    items(state.lessons, key = { GroupDetailKeys.lesson(it.session.first.id) }) { row ->
+    items(state.lessons, key = { GroupDetailKeys.lesson(it.session.first.id) }, contentType = { "lesson" }) { row ->
         val status = row.session.status
         ListItem(
             headlineContent = { Text(row.session.start.dateTimeText()) },

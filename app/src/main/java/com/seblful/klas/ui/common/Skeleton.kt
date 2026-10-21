@@ -38,6 +38,7 @@ fun ListSkeleton(
     rows: Int = 5,
     rowHeight: Dp = SkeletonRowHeight,
     contentPadding: PaddingValues = PaddingValues(Spacing.gutter),
+    pulse: SkeletonPulse = rememberSkeletonPulse(),
 ) {
     Column(
         modifier
@@ -46,7 +47,7 @@ fun ListSkeleton(
             .padding(contentPadding),
         verticalArrangement = Arrangement.spacedBy(Spacing.itemGap),
     ) {
-        repeat(rows) { SkeletonBlock(rowHeight) }
+        repeat(rows) { SkeletonBlock(rowHeight, pulse = pulse) }
     }
 }
 
@@ -61,10 +62,11 @@ fun SkeletonBlock(
     height: Dp,
     modifier: Modifier = Modifier,
     shape: Shape = MaterialTheme.shapes.medium,
+    pulse: SkeletonPulse = rememberSkeletonPulse(),
 ) {
     val tint = MaterialTheme.colorScheme.onSurfaceVariant
-    val alpha = placeholderAlpha()
-    val shown = rememberPlaceholderShown()
+    val alpha = pulse.alpha
+    val shown = pulse.shown
     Column(
         modifier
             .fillMaxWidth()
@@ -74,6 +76,20 @@ fun SkeletonBlock(
             // every skeleton on every frame of the wait, to repaint one colour.
             .drawBehind { if (shown.value) drawRect(tint.copy(alpha = alpha.value)) },
     ) {}
+}
+
+/**
+ * What every block of one skeleton draws by: one pulse and one delay, shared — each block keeping its own ran
+ * a transition and a timer per block, all saying the same.
+ */
+class SkeletonPulse internal constructor(internal val alpha: State<Float>, internal val shown: State<Boolean>)
+
+/** A [SkeletonPulse] for the blocks of one skeleton to share. */
+@Composable
+fun rememberSkeletonPulse(): SkeletonPulse {
+    val alpha = placeholderAlpha()
+    val shown = rememberPlaceholderShown()
+    return remember(alpha, shown) { SkeletonPulse(alpha, shown) }
 }
 
 /**
@@ -135,9 +151,10 @@ fun LoadingDetailScreen(onBack: (() -> Unit)?) {
             modifier.padding(bottomInset).padding(horizontal = Spacing.gutter, vertical = Spacing.itemGap),
             verticalArrangement = Arrangement.spacedBy(Spacing.itemGap),
         ) {
-            SkeletonBlock(StatRowHeight)
-            SkeletonBlock(TabRowHeight, shape = MaterialTheme.shapes.extraSmall)
-            ListSkeleton(rows = 4, rowHeight = DetailRowHeight, contentPadding = PaddingValues(0.dp))
+            val pulse = rememberSkeletonPulse()
+            SkeletonBlock(StatRowHeight, pulse = pulse)
+            SkeletonBlock(TabRowHeight, shape = MaterialTheme.shapes.extraSmall, pulse = pulse)
+            ListSkeleton(rows = 4, rowHeight = DetailRowHeight, contentPadding = PaddingValues(0.dp), pulse = pulse)
         }
     }
 }
@@ -154,7 +171,8 @@ fun LoadingFormScreen(title: String, onBack: () -> Unit, fields: Int = 4) {
             modifier.padding(bottomInset).padding(Spacing.gutter),
             verticalArrangement = Arrangement.spacedBy(Spacing.gutter),
         ) {
-            repeat(fields) { SkeletonBlock(FieldHeight) }
+            val pulse = rememberSkeletonPulse()
+            repeat(fields) { SkeletonBlock(FieldHeight, pulse = pulse) }
         }
     }
 }
