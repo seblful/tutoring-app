@@ -52,6 +52,7 @@ and pure rules in `:domain`.
 ./gradlew :app:verifyRoborazziDebug     # app unit tests + preview screenshot comparisons
 ./gradlew :app:lintDebug ktlintCheck detekt
 ./gradlew :app:connectedDebugAndroidTest # instrumented tests; needs a device/emulator
+./gradlew :app:generateBaselineProfile  # regenerate the release baseline profile; needs an API 33+ phone
 ```
 
 Debug APK: `app/build/outputs/apk/debug/app-debug.apk`. Its `.debug` app ID keeps its database separate

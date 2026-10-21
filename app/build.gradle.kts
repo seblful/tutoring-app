@@ -8,6 +8,7 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.metro)
     alias(libs.plugins.roborazzi)
+    alias(libs.plugins.baselineprofile)
 }
 
 // Configure release signing only when keystore.properties exists.
@@ -49,6 +50,10 @@ android {
             applicationIdSuffix = ".debug"
             versionNameSuffix = "-debug"
         }
+        // The Baseline Profile plugin's builds of release — the one profiled, the one benchmarked — under an id
+        // of their own: as `com.seblful.klas` they would install over the app a phone actually uses.
+        create("nonMinifiedRelease") { applicationIdSuffix = ".benchmark" }
+        create("benchmarkRelease") { applicationIdSuffix = ".benchmark" }
         release {
             signingConfig = signingConfigs.findByName("release")
             isMinifyEnabled = true
@@ -157,6 +162,10 @@ dependencies {
     implementation(libs.androidx.navigation3.ui)
     implementation(libs.androidx.lifecycle.viewmodel.navigation3)
     implementation(libs.androidx.navigationevent.compose)
+
+    // Applies the baseline profile to an APK installed from outside Play (the GitHub release, `adb install`).
+    implementation(libs.androidx.profileinstaller)
+    baselineProfile(project(":baselineprofile"))
 
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.sqlite.bundled)

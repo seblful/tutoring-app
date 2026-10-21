@@ -2,7 +2,8 @@
 
 Room is the source of truth. Calendar events and notifications are best-effort mirrors, never inputs.
 MVVM and Android integrations live in `:app`. Shared persistence and workflows live in `:shared`;
-pure rules live in `:domain`. Both libraries use Kotlin Multiplatform with iOS targets. Shared common
+pure rules live in `:domain`. Both libraries use Kotlin Multiplatform with iOS targets. `:baselineprofile`
+drives the app to collect its baseline profile and ships nothing. Shared common
 sources reject Android/JDK APIs. Dates use kotlinx-datetime; instants/durations use `kotlin.time`.
 Device preferences cross as BCP 47 tags and ISO currency codes.
 

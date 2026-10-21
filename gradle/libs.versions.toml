@@ -50,6 +50,12 @@ desugar = "2.1.5"
 # themselves run on 36 (see src/test/resources/robolectric.properties).
 robolectric = "4.17"
 roborazzi = "1.76.0"
+# The app's baseline profile: the Gradle plugin and Macrobenchmark that collect it (`:baselineprofile`), and
+# the installer that applies it to an APK installed from outside Play. 1.5.0 is the first plugin that runs on
+# AGP 9 without `android.newDsl=false`.
+benchmark = "1.5.0"
+profileinstaller = "1.4.1"
+uiautomator = "2.4.0"
 composablePreviewScanner = "0.9.3"
 # Linters, applied to every module from the root build.gradle.kts.
 #
@@ -110,6 +116,9 @@ androidx-sqlite-bundled = { group = "androidx.sqlite", name = "sqlite-bundled", 
 # unit tests' classpath for that reason).
 androidx-sqlite-bundled-jvm = { group = "androidx.sqlite", name = "sqlite-bundled-jvm", version.ref = "sqlite" }
 androidx-test-core = { group = "androidx.test", name = "core", version.ref = "androidxTestCore" }
+androidx-benchmark-macro-junit4 = { group = "androidx.benchmark", name = "benchmark-macro-junit4", version.ref = "benchmark" }
+androidx-profileinstaller = { group = "androidx.profileinstaller", name = "profileinstaller", version.ref = "profileinstaller" }
+androidx-uiautomator = { group = "androidx.test.uiautomator", name = "uiautomator", version.ref = "uiautomator" }
 
 # `metroViewModel()` and the ViewModel multibindings behind it; brings `metrox-viewmodel` with it.
 metrox-viewmodel-compose = { group = "dev.zacsweers.metro", name = "metrox-viewmodel-compose", version.ref = "metro" }
@@ -128,6 +137,8 @@ desugar-jdk-libs = { group = "com.android.tools", name = "desugar_jdk_libs", ver
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 android-multiplatform-library = { id = "com.android.kotlin.multiplatform.library", version.ref = "agp" }
+android-test = { id = "com.android.test", version.ref = "agp" }
+baselineprofile = { id = "androidx.baselineprofile", version.ref = "benchmark" }
 # The `:domain` module: Kotlin Multiplatform, so no Android plugin to compile it. Same `kotlin` as the
 # app's built-in Kotlin — it is the one KGP pinned in the root build.gradle.kts.
 kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }

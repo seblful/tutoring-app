@@ -41,6 +41,8 @@ output.json
 
 # KSP / annotation processing
 **/generated/
+# …but not the baseline profile, which is generated on a phone and committed (docs/releasing.md).
+!app/src/release/generated/
 
 # Kotlin build session cache (Kotlin 2.x)
 .kotlin/
