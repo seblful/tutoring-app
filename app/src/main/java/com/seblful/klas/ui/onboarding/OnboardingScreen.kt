@@ -27,6 +27,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -113,7 +114,9 @@ fun OnboardingScreen(
     val messages = rememberMessages()
     val noPickerMsg = stringResource(R.string.student_contact_failed)
 
-    val context = LocalContext.current
+    // The newest: the language step swaps the context's resources, and a failure after it is worded in the
+    // language just picked, not the one the screen opened in.
+    val context by rememberUpdatedState(LocalContext.current)
     // Only a failure needs saying — a successful restore leaves this screen behind. It says which
     // failure: someone restoring on a fresh install has the least context for a bare «Не удалось».
     LaunchedEffect(backupViewModel, messages) {
