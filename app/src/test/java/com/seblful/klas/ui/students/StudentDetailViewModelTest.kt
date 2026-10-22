@@ -249,6 +249,31 @@ class StudentDetailViewModelTest : StudentDetailTestFixture() {
     }
 
     @Test
+    fun `a payment correction is offered back, and its undo restores the payment`() =
+        runTest(mainRule.dispatcher) {
+            val sid = seedStudent()
+            val vm = vm(sid)
+            observing(vm.state)
+            runCurrent()
+            val recordedOn = today.minus(3, DateTimeUnit.DAY)
+            vm.addPayment(Money.ofMajor(40), recordedOn)
+            runCurrent()
+            val original = env.stored().payments.single()
+            val events = mutableListOf<StudentDetailViewModel.Event>()
+            backgroundScope.launch { vm.events.stream.collect { events += it } }
+
+            vm.editPayment(original.toDomain(), Money.ofMajor(45), recordedOn)
+            runCurrent()
+            val corrected = events.single() as StudentDetailViewModel.Event.PaymentCorrected
+
+            vm.undoPaymentCorrection(corrected)
+            runCurrent()
+
+            assertEquals(original, env.stored().payments.single())
+            assertEquals("the undo went through, so nothing more is said", 1, events.size)
+        }
+
+    @Test
     fun `restoring a deleted payment is launched into the application scope`() = runTest(mainRule.dispatcher) {
         val sid = seedStudent()
         val payment = Payment(studentId = sid, date = Instant.fromEpochMilliseconds(10), amount = Money.ofMajor(50))

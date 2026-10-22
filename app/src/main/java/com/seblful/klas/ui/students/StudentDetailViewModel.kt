@@ -86,6 +86,12 @@ class StudentDetailViewModel @AssistedInject constructor(
         /** An archive was taken back, but [count] of its lessons stayed cancelled — changed, or their hour taken. */
         data class ArchiveUndoKept(val count: Int) : Event
 
+        /** A payment was corrected — said with Undo ([undoPaymentCorrection]), which puts [original] back. */
+        data class PaymentCorrected(val original: Payment, val corrected: Payment) : Event
+
+        /** An undo found the payment changed or deleted since, so the correction stands. */
+        data object PaymentChangedSince : Event
+
         /** A write failed — a database error rather than a rule. */
         data object WriteFailed : Event
     }
@@ -175,10 +181,21 @@ class StudentDetailViewModel @AssistedInject constructor(
     /** The day the payment dialog opens on — off the same clock that will stamp the save. */
     fun paymentDay(): LocalDate = payments.today()
 
-    /** Corrects a payment already recorded, keeping its id. */
+    /** Corrects a payment already recorded, keeping its id, and offers the correction back. */
     fun editPayment(payment: Payment, amount: Money, day: LocalDate) {
         if (amount.isZero) return
-        write { payments.correct(payment, amount, day) }
+        write(
+            onWritten = { corrected: Payment ->
+                if (corrected != payment) events.send(Event.PaymentCorrected(payment, corrected))
+            },
+        ) { payments.correct(payment, amount, day) }
+    }
+
+    /** Takes [correction] back while the payment still reads as corrected — see [PaymentRepository.undoCorrection]. */
+    fun undoPaymentCorrection(correction: Event.PaymentCorrected) {
+        write(onWritten = { undone: Boolean -> if (!undone) events.send(Event.PaymentChangedSince) }) {
+            payments.undoCorrection(correction.original, correction.corrected)
+        }
     }
 
     fun deletePayment(payment: Payment) {

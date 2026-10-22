@@ -1,5 +1,6 @@
 package com.seblful.klas.ui.students
 
+import android.content.res.Resources
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Row
 import androidx.compose.material3.Icon
@@ -26,6 +27,7 @@ import com.seblful.klas.ui.common.LessonKindIcon
 import com.seblful.klas.ui.common.Messages
 import com.seblful.klas.ui.common.StatusBadge
 import com.seblful.klas.ui.common.TrailingAmount
+import com.seblful.klas.ui.common.archivedMessage
 import com.seblful.klas.ui.common.classStatusColor
 import com.seblful.klas.ui.common.classStatusLabel
 import com.seblful.klas.ui.common.dateTimeText
@@ -193,5 +195,30 @@ internal fun paymentDeleteWithUndo(viewModel: StudentDetailViewModel, messages: 
     return { payment ->
         viewModel.deletePayment(payment)
         messages.show(deleted, undo) { viewModel.restorePayment(payment) }
+    }
+}
+
+/**
+ * Says [event] in [this] — the card's words on every page of it, Undo included. The card says
+ * [StudentDetailViewModel.Event.RemoveBlockedHasClasses] itself first, with the way to the lessons only it
+ * can offer.
+ */
+internal fun Messages.showStudentEvent(
+    event: StudentDetailViewModel.Event,
+    resources: Resources,
+    viewModel: StudentDetailViewModel,
+) {
+    val undo = resources.getString(R.string.action_undo)
+    when (event) {
+        StudentDetailViewModel.Event.RemoveBlockedHasClasses ->
+            show(resources.getString(R.string.student_subject_remove_blocked))
+        is StudentDetailViewModel.Event.Archived ->
+            show(resources.archivedMessage(event.cancelled.size), undo) { viewModel.undoArchive(event) }
+        is StudentDetailViewModel.Event.ArchiveUndoKept ->
+            show(resources.getQuantityString(R.plurals.archive_undo_kept, event.count, event.count))
+        is StudentDetailViewModel.Event.PaymentCorrected ->
+            show(resources.getString(R.string.payment_corrected), undo) { viewModel.undoPaymentCorrection(event) }
+        StudentDetailViewModel.Event.PaymentChangedSince -> show(resources.getString(R.string.payment_undo_changed))
+        StudentDetailViewModel.Event.WriteFailed -> show(resources.getString(R.string.action_failed))
     }
 }

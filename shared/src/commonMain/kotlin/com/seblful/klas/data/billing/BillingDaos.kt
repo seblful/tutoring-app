@@ -82,6 +82,17 @@ interface PaymentDao {
     @Update
     suspend fun update(payment: PaymentEntity)
 
+    /**
+     * Writes the payment back to [toMillis]/[toAmount] only while it still reads [fromMillis]/[fromAmount]
+     * — one statement, so an undo can never overwrite a correction made after the one it takes back.
+     * Returns how many rows it changed: 0 when the payment changed or was deleted since.
+     */
+    @Query(
+        "UPDATE payments SET dateMillis = :toMillis, amountMinor = :toAmount " +
+            "WHERE id = :id AND dateMillis = :fromMillis AND amountMinor = :fromAmount",
+    )
+    suspend fun updateIfUnchanged(id: Long, fromMillis: Long, fromAmount: Long, toMillis: Long, toAmount: Long): Int
+
     @Delete
     suspend fun delete(payment: PaymentEntity)
 }

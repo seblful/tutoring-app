@@ -6,6 +6,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -29,10 +30,8 @@ import com.seblful.klas.ui.common.EmptyState
 import com.seblful.klas.ui.common.KlasScreen
 import com.seblful.klas.ui.common.LoadingDetailScreen
 import com.seblful.klas.ui.common.Messages
-import com.seblful.klas.ui.common.ShowMessagesFor
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.animateInPlace
-import com.seblful.klas.ui.common.archivedMessage
 import com.seblful.klas.ui.common.plusInset
 import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.state.Loadable
@@ -128,19 +127,12 @@ private fun StudentList(
     )
 }
 
-/** Only a failed write reaches this page; the other events follow the card's own actions. */
+/** The card's events, in the card's words — a payment corrected on this page is offered back here. */
 @Composable
 private fun ShowStudentMessages(viewModel: StudentDetailViewModel, messages: Messages) {
     val resources by rememberUpdatedState(LocalContext.current.resources)
-    ShowMessagesFor(viewModel.events, messages) { event ->
-        when (event) {
-            StudentDetailViewModel.Event.WriteFailed -> resources.getString(R.string.action_failed)
-            StudentDetailViewModel.Event.RemoveBlockedHasClasses ->
-                resources.getString(R.string.student_subject_remove_blocked)
-            is StudentDetailViewModel.Event.Archived -> resources.archivedMessage(event.cancelled.size)
-            is StudentDetailViewModel.Event.ArchiveUndoKept ->
-                resources.getQuantityString(R.plurals.archive_undo_kept, event.count, event.count)
-        }
+    LaunchedEffect(viewModel) {
+        viewModel.events.stream.collect { messages.showStudentEvent(it, resources, viewModel) }
     }
 }
 

@@ -460,6 +460,8 @@
     <string name="payment_amount_label">Сумма</string>
     <string name="payment_delete">Удалить платёж %1$s от %2$s</string>
     <string name="payment_deleted">Платёж удалён</string>
+    <string name="payment_corrected">Платёж изменён</string>
+    <string name="payment_undo_changed">Платёж уже изменился, поэтому ничего не вернули.</string>
     <!--
       A payment is recorded when the tutor gets round to it, not when it was handed over — «она
       заплатила во вторник» had no way in, and a wrong amount could only be deleted and re-entered.
@@ -482,7 +484,7 @@
     <string name="subject_name_label">Название</string>
     <string name="subject_name_taken">Предмет с таким названием уже есть</string>
     <string name="subject_delete_named">Удалить предмет «%1$s»</string>
-    <string name="subject_delete_confirm">Удалить этот предмет?</string>
+    <string name="subject_deleted">Предмет удалён</string>
     <string name="subject_delete_blocked">Нельзя удалить предмет: по нему есть занятия. Сначала удалите эти занятия.</string>
     <!-- A group is taught the subject. A different fix from removing lessons — the group may have none. -->
     <string name="subject_delete_blocked_group">Нельзя удалить предмет: его изучает группа. Сначала измените предмет группы.</string>

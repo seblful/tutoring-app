@@ -21,6 +21,11 @@ Build screens from shared state and controls. Feature rules belong in the domain
   in a snackbar. Only system-settings links and permission prompts carry Android `Intent`/`Uri` details.
 - Use `Messages` snackbars, never `Toast`. Forms that close on save ask beforehand when confirmation
   is needed: their snackbar would disappear with them.
+- A change that can be reversed is said with Undo instead of confirmed first: lesson status, moves and
+  attendance, archiving, payment edits and deletions, homework, deleting an unused subject. Undo is
+  guarded — it applies only while the thing is as the change left it, and says so when it is not. The
+  calendar settles after `UndoWindow` (`settleAfterUndoWindow`). Confirms stay where the docs require them
+  (deleting a taught lesson, forms that drop members) or where nothing can be undone (restore a backup).
 - Rotation/resizing is handled in place by `MainActivity.configChanges`; dialog text still uses
   `rememberSaveable`. Save a `MoneyTextField`'s text and derive `MoneyField` from it.
 

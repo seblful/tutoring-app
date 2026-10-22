@@ -389,6 +389,8 @@
     <string name="payment_amount_label">Amount</string>
     <string name="payment_delete">Delete payment of %1$s on %2$s</string>
     <string name="payment_deleted">Payment deleted</string>
+    <string name="payment_corrected">Payment changed</string>
+    <string name="payment_undo_changed">The payment changed since, so nothing was undone.</string>
     <!-- A payment is recorded when the tutor gets round to it, not when it was handed over. -->
     <string name="payment_date_label">Payment date</string>
 
@@ -408,7 +410,7 @@
     <string name="subject_name_label">Name</string>
     <string name="subject_name_taken">A subject with this name already exists</string>
     <string name="subject_delete_named">Delete %1$s</string>
-    <string name="subject_delete_confirm">Delete this subject?</string>
+    <string name="subject_deleted">Subject deleted</string>
     <string name="subject_delete_blocked">Cannot delete the subject: it has lessons. Delete those first.</string>
     <!-- A group is taught the subject. A different fix from removing lessons — the group may have none. -->
     <string name="subject_delete_blocked_group">Cannot delete the subject: a group studies it. Change the group\'s subject first.</string>

@@ -13,6 +13,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -25,7 +26,6 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.seblful.klas.R
 import com.seblful.klas.domain.model.Subject
-import com.seblful.klas.ui.common.ConfirmDialog
 import com.seblful.klas.ui.common.ContentCard
 import com.seblful.klas.ui.common.EmptyState
 import com.seblful.klas.ui.common.FabListPadding
@@ -53,7 +53,6 @@ fun SubjectsScreen(
     val query by viewModel.query.collectAsStateWithLifecycle()
     var editing by remember { mutableStateOf<Subject?>(null) } // non-null while dialog open
     var adding by remember { mutableStateOf(false) }
-    var deleting by remember { mutableStateOf<Subject?>(null) }
 
     val messages = rememberMessages()
     val deleteBlockedMsg = stringResource(R.string.subject_delete_blocked)
@@ -68,6 +67,14 @@ fun SubjectsScreen(
             SubjectsViewModel.Event.DELETE_BLOCKED_TAKEN_BY_STUDENTS -> takenMsg
             SubjectsViewModel.Event.NAME_TAKEN -> takenNameMsg
             SubjectsViewModel.Event.WRITE_FAILED -> failedMsg
+        }
+    }
+    // No confirm: only an unused subject can be deleted, so the Undo can always put it back.
+    val deletedMsg = stringResource(R.string.subject_deleted)
+    val undoLabel = stringResource(R.string.action_undo)
+    LaunchedEffect(viewModel, deletedMsg, undoLabel) {
+        viewModel.deletions.stream.collect { subject ->
+            messages.show(deletedMsg, undoLabel) { viewModel.restore(subject) }
         }
     }
 
@@ -134,7 +141,7 @@ fun SubjectsScreen(
                                         // The bin stays a row control here, deliberately: a subject has
                                         // no card of its own to put a lifecycle action on. Renaming is
                                         // the card's tap, so the pencil is gone.
-                                        IconButton(onClick = { deleting = subject }) {
+                                        IconButton(onClick = { viewModel.delete(subject) }) {
                                             Icon(
                                                 KlasIcons.Outlined.Delete,
                                                 // Named, so a screen reader says which one it deletes.
@@ -163,14 +170,6 @@ fun SubjectsScreen(
             onConfirm = { viewModel.save(subject.id, it) },
             onDismiss = { editing = null },
             renaming = subject.name,
-        )
-    }
-    deleting?.let { subject ->
-        ConfirmDialog(
-            text = stringResource(R.string.subject_delete_confirm),
-            destructive = true,
-            onConfirm = { viewModel.delete(subject) },
-            onDismiss = { deleting = null },
         )
     }
 }

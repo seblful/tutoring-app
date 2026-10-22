@@ -6,6 +6,7 @@ import com.seblful.klas.testutil.MainDispatcherRule
 import com.seblful.klas.testutil.TestEnv
 import com.seblful.klas.testutil.observing
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
@@ -53,6 +54,41 @@ class SubjectsViewModelTest {
         advanceUntilIdle()
 
         assertTrue(env.stored().subjects.isEmpty())
+    }
+
+    @Test
+    fun `a deleted subject is offered back and its undo restores it under its id`() = runTest(mainRule.dispatcher) {
+        val id = env.fixtures.subject(name = "Математика")
+        val vm = vm()
+        observing(vm.subjects)
+        advanceUntilIdle()
+
+        vm.delete(Subject(id = id, name = "Математика"))
+        advanceUntilIdle()
+        val deleted = vm.deletions.stream.first()
+
+        vm.restore(deleted)
+        advanceUntilIdle()
+
+        assertEquals(listOf(id to "Математика"), env.stored().subjects.map { it.id to it.name })
+    }
+
+    @Test
+    fun `an undo whose name was taken since is refused and said`() = runTest(mainRule.dispatcher) {
+        val id = env.fixtures.subject(name = "Математика")
+        val vm = vm()
+        val seen = mutableListOf<SubjectsViewModel.Event>()
+        backgroundScope.launch { vm.events.stream.collect { seen += it } }
+        vm.delete(Subject(id = id, name = "Математика"))
+        advanceUntilIdle()
+        val deleted = vm.deletions.stream.first()
+        env.fixtures.subject(name = "математика")
+
+        vm.restore(deleted)
+        advanceUntilIdle()
+
+        assertEquals(listOf(SubjectsViewModel.Event.NAME_TAKEN), seen)
+        assertEquals(1, env.stored().subjects.size)
     }
 
     @Test

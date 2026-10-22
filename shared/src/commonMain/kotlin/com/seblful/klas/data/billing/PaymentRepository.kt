@@ -38,9 +38,25 @@ class PaymentRepository @Inject constructor(
             ).toEntity(),
         )
 
-    /** Corrects a payment already recorded — its amount, its date, or both — **keeping its id**. */
-    suspend fun correct(payment: Payment, amount: Money, day: LocalDate) =
-        dao.update(payment.copy(amount = amount, date = PaymentDate.instantFor(day, clock)).toEntity())
+    /**
+     * Corrects a payment already recorded — its amount, its date, or both — **keeping its id**. Returns
+     * the payment as corrected, which [undoCorrection] checks is still what is stored.
+     */
+    suspend fun correct(payment: Payment, amount: Money, day: LocalDate): Payment {
+        val corrected = payment.copy(amount = amount, date = PaymentDate.instantFor(day, clock))
+        dao.update(corrected.toEntity())
+        return corrected
+    }
+
+    /**
+     * Takes [correct] back: [corrected] becomes [original] again, but only while nothing has changed or
+     * deleted it since. True when it did.
+     */
+    suspend fun undoCorrection(original: Payment, corrected: Payment): Boolean {
+        val from = corrected.toEntity()
+        val to = original.toEntity()
+        return dao.updateIfUnchanged(to.id, from.dateMillis, from.amountMinor, to.dateMillis, to.amountMinor) > 0
+    }
 
     /** Puts [payment] back exactly as it was, id, instant and all — the undo behind a just-deleted row. */
     suspend fun restore(payment: Payment): Long = dao.insert(payment.toEntity())

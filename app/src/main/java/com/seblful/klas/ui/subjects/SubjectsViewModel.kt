@@ -54,6 +54,9 @@ class SubjectsViewModel @Inject constructor(
 
     val events = UiEvents<Event>()
 
+    /** Subjects just deleted — each said with Undo ([restore]). */
+    val deletions = UiEvents<Subject>()
+
     private val _query = MutableStateFlow("")
     val query: StateFlow<String> = _query.asStateFlow()
 
@@ -81,13 +84,23 @@ class SubjectsViewModel @Inject constructor(
         write(
             onWritten = { outcome ->
                 when (outcome) {
-                    SubjectRepository.Delete.Ok -> Unit
+                    SubjectRepository.Delete.Ok -> deletions.send(subject)
                     SubjectRepository.Delete.HasClasses -> events.send(Event.DELETE_BLOCKED_HAS_CLASSES)
                     SubjectRepository.Delete.TaughtToGroup -> events.send(Event.DELETE_BLOCKED_TAUGHT_TO_GROUP)
                     SubjectRepository.Delete.TakenByStudents -> events.send(Event.DELETE_BLOCKED_TAKEN_BY_STUDENTS)
                 }
             },
         ) { repository.delete(subject) }
+    }
+
+    /**
+     * Puts a just-deleted [subject] back under its id. Safe without asking first: only a subject nothing
+     * referenced could be deleted. Refused as [Event.NAME_TAKEN] if its name was given to another since.
+     */
+    fun restore(subject: Subject) {
+        write(onWritten = { restored -> if (!restored) events.send(Event.NAME_TAKEN) }) {
+            repository.saveUnlessTaken(subject)
+        }
     }
 
     private fun <T> write(onWritten: suspend (T) -> Unit = {}, block: suspend () -> T) =
