@@ -47,7 +47,8 @@ internal fun OpensWhatTheTrayNames(
                 navigator.openTabFromTray(TopDestination.REPORTS)
                 onDebts()
             }
-            TrayNavigation.Destination.Today -> toSchedule(ScheduleTarget.Today)
+            // The day as Today shows it — what is on, what is left to mark — rather than the schedule's list.
+            TrayNavigation.Destination.Today -> navigator.openTabFromTray(TopDestination.TODAY)
             is TrayNavigation.Destination.Day -> toSchedule(ScheduleTarget.Day(destination.date))
             TrayNavigation.Destination.NewLesson -> navigator.openOnTop(Routes.classEdit(0))
             TrayNavigation.Destination.NewStudent -> navigator.openOnTop(Routes.StudentAdd)

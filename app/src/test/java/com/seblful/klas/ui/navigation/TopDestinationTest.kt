@@ -8,16 +8,16 @@ import org.junit.Test
 class TopDestinationTest {
 
     @Test
-    fun `the tabs read who, then what they were set, then when, then the money`() {
+    fun `the tabs read the day, then the week, then who, what they were set, and the money`() {
         assertEquals(
-            listOf(Routes.People, Routes.Homework, Routes.Schedule, Routes.Reports, Routes.More),
+            listOf(Routes.Today, Routes.Schedule, Routes.People, Routes.Homework, Routes.Reports),
             TopDestination.entries.map { it.route },
         )
     }
 
     @Test
-    fun `the tab the app opens on sits in the middle of the bar`() {
-        assertEquals(TopDestination.entries.size / 2, TopDestination.SCHEDULE.ordinal)
+    fun `the app opens on the first tab`() {
+        assertEquals(TopDestination.entries.first(), TopDestination.START)
     }
 
     @Test

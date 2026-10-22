@@ -27,7 +27,6 @@ import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -60,6 +59,8 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.offset
 import com.seblful.klas.R
+import com.seblful.klas.ui.designsystem.component.ButtonKind
+import com.seblful.klas.ui.designsystem.component.KlasButton
 import com.seblful.klas.ui.theme.KlasIcons
 import com.seblful.klas.ui.theme.KlasMotion
 
@@ -421,7 +422,7 @@ private val MediumMargin = 24.dp
 /** «Сохранить», in the app bar — the one way a form commits. */
 @Composable
 fun SaveAction(enabled: Boolean, onSave: () -> Unit) {
-    TextButton(onClick = onSave, enabled = enabled) {
+    KlasButton(onClick = onSave, enabled = enabled, kind = ButtonKind.Text) {
         Text(stringResource(R.string.action_save))
     }
 }

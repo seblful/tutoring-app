@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -37,6 +36,7 @@ import com.seblful.klas.ui.common.LessonKindIcon
 import com.seblful.klas.ui.common.ListSkeleton
 import com.seblful.klas.ui.common.Messages
 import com.seblful.klas.ui.common.SegmentedPage
+import com.seblful.klas.ui.common.SettingsGear
 import com.seblful.klas.ui.common.ShowMessagesFor
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.animateInPlace
@@ -44,6 +44,7 @@ import com.seblful.klas.ui.common.constrainedContent
 import com.seblful.klas.ui.common.plusInset
 import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.state.Loadable
+import com.seblful.klas.ui.designsystem.component.KlasFab
 import com.seblful.klas.ui.theme.KlasIcons
 import dev.zacsweers.metrox.viewmodel.metroViewModel
 import kotlinx.coroutines.launch
@@ -58,6 +59,7 @@ private enum class HomeworkSide(val labelRes: Int) {
 fun HomeworkScreen(
     /** The way out of «Сначала добавьте ученика» — the step it names, as the schedule's message carries. */
     onAddStudent: () -> Unit,
+    onSettings: () -> Unit = {},
     viewModel: HomeworkViewModel = metroViewModel(),
 ) {
     var side by rememberSaveable { mutableStateOf(HomeworkSide.CURRENT) }
@@ -106,13 +108,12 @@ fun HomeworkScreen(
                     },
                 )
             }
+            SettingsGear(onSettings)
         },
         // The cards lay themselves out in columns (see [HomeworkList]); the tabs above them keep a column's width.
         maxContentWidth = Dp.Infinity,
         floatingActionButton = {
-            FloatingActionButton(onClick = ::add) {
-                Icon(KlasIcons.Filled.Add, stringResource(R.string.homework_add))
-            }
+            KlasFab(stringResource(R.string.homework_add), onClick = ::add)
         },
     ) { modifier, bottomInset ->
         // The same two-sided shape as «Люди»: segments on the page, and a drag across the body turns it.

@@ -12,9 +12,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -35,6 +33,8 @@ import com.seblful.klas.ui.common.MinTouchTarget
 import com.seblful.klas.ui.common.NoticeDialog
 import com.seblful.klas.ui.common.SectionCard
 import com.seblful.klas.ui.common.Spacing
+import com.seblful.klas.ui.designsystem.component.ButtonKind
+import com.seblful.klas.ui.designsystem.component.KlasButton
 import com.seblful.klas.ui.theme.KlasIcons
 
 /** What the app is and which build of it this is. */
@@ -93,9 +93,10 @@ fun AboutScreen(onBack: () -> Unit, onBackup: () -> Unit) {
                     )
                     // Outlined, not filled: this screen has no primary action — it is a statement —
                     // and the button is the way to act on one sentence of it.
-                    OutlinedButton(
+                    KlasButton(
                         onClick = onBackup,
                         modifier = Modifier.align(Alignment.End),
+                        kind = ButtonKind.Outlined,
                     ) {
                         // Filled: it is a button's glyph, and the app's rule is filled for actions,
                         // outlined for art. «Ещё»'s row uses the outlined one for the same screen,
@@ -116,11 +117,12 @@ fun AboutScreen(onBack: () -> Unit, onBackup: () -> Unit) {
             // A button rather than a caption, because it does something and has to look like it does —
             // `labelSmall` keeps it the smallest text on the screen while the primary colour says it is
             // a control, and the minimum height is the same 48dp everything tappable in this app gets.
-            TextButton(
+            KlasButton(
                 onClick = { showingLicence = true },
                 modifier = Modifier
                     .padding(top = Spacing.itemGap)
                     .heightIn(min = MinTouchTarget),
+                kind = ButtonKind.Text,
             ) {
                 Text(
                     stringResource(R.string.about_typeface),

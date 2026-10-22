@@ -66,6 +66,7 @@ import com.seblful.klas.ui.homework.HomeworkSection
 import com.seblful.klas.ui.homework.homeworkUndo
 import com.seblful.klas.ui.people.NextLessonCard
 import com.seblful.klas.ui.theme.KlasIcons
+import com.seblful.klas.ui.theme.klasSemantics
 import dev.zacsweers.metrox.viewmodel.assistedMetroViewModel
 
 private data class GroupNavigation(
@@ -402,14 +403,14 @@ private fun GroupOverflowMenu(archived: Boolean, onArchive: () -> Unit, onDelete
                 text = {
                     Text(
                         stringResource(R.string.action_delete),
-                        color = MaterialTheme.colorScheme.error,
+                        color = klasSemantics.destructive,
                     )
                 },
                 leadingIcon = {
                     Icon(
                         KlasIcons.Outlined.Delete,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.error,
+                        tint = klasSemantics.destructive,
                     )
                 },
                 onClick = { close(); onDelete() },

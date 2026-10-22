@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -25,6 +24,7 @@ import com.seblful.klas.ui.common.MinTouchTarget
 import com.seblful.klas.ui.common.OverflowMenu
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.classModeLabel
+import com.seblful.klas.ui.designsystem.component.KlasDivider
 import com.seblful.klas.ui.theme.KlasIcons
 
 /**
@@ -107,7 +107,7 @@ internal fun StudentOverflowMenu(
             )
         }
         if (phone != null || student.email.isNotBlank()) {
-            HorizontalDivider()
+            KlasDivider()
         }
         ArchiveMenuItem(student.archived) { close(); onArchive() }
     }

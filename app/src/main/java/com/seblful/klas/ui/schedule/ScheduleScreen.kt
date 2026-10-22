@@ -19,8 +19,6 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -57,6 +55,7 @@ import com.seblful.klas.ui.common.ListSkeleton
 import com.seblful.klas.ui.common.MaxContentWidth
 import com.seblful.klas.ui.common.NoticeDialog
 import com.seblful.klas.ui.common.SegmentedPage
+import com.seblful.klas.ui.common.SettingsGear
 import com.seblful.klas.ui.common.ShowMessagesFor
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.SupportingPaneMaxWidth
@@ -70,6 +69,8 @@ import com.seblful.klas.ui.common.roomForSupportingPane
 import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.common.state.valueOrNull
 import com.seblful.klas.ui.common.timeText
+import com.seblful.klas.ui.designsystem.component.KlasDivider
+import com.seblful.klas.ui.designsystem.component.KlasFab
 import com.seblful.klas.ui.navigation.Arrival
 import com.seblful.klas.ui.theme.KlasIcons
 import dev.zacsweers.metrox.viewmodel.metroViewModel
@@ -88,6 +89,7 @@ fun ScheduleScreen(
     onSetStudentHomework: (Long) -> Unit = {},
     onSetGroupHomework: (Long) -> Unit = {},
     onRecordPayment: (Long) -> Unit = {},
+    onSettings: () -> Unit = {},
     /**
      * The latest tap in the tray that asked for the schedule — a day, or a lesson's sheet — or null when
      * nothing has, the launcher's ordinary case. See `AppRoot`.
@@ -226,6 +228,7 @@ fun ScheduleScreen(
                     narrowed = studentFilter != null,
                 )
             }
+            SettingsGear(onSettings)
         },
         floatingActionButton = {
             // **It stays put, and says why instead.** It was hidden while nothing could be booked, which
@@ -239,7 +242,8 @@ fun ScheduleScreen(
             // carries «Добавить ученика», which is the step that unblocks booking, so the refusal and the
             // way out arrive together. The empty state below still offers the same step for a tutor who
             // reads the page instead of reaching for the button.
-            FloatingActionButton(
+            KlasFab(
+                label = stringResource(R.string.schedule_add_class),
                 onClick = {
                     // Before the setup has been read there is no answer yet, and the tap waits for it.
                     when (canAddClass.valueOrNull()) {
@@ -248,9 +252,7 @@ fun ScheduleScreen(
                         null -> Unit
                     }
                 },
-            ) {
-                Icon(KlasIcons.Filled.Add, stringResource(R.string.schedule_add_class))
-            }
+            )
         },
     ) { modifier, bottomInset ->
         // **The view also turns by dragging the page sideways** — see [swipeBetweenSegments]. It reaches the
@@ -413,7 +415,7 @@ fun ScheduleScreen(
                                     onSelect = viewModel::selectDate,
                                 )
                                 Spacer(Modifier.height(Spacing.itemGap))
-                                HorizontalDivider()
+                                KlasDivider()
                             }
                         }
                         val week = contentState.valueOrNull()
@@ -475,7 +477,7 @@ fun ScheduleScreen(
                                 // always divides the calendar from the agenda and the day's heading sits
                                 // with the lessons it names, not above a line cutting it off from them.
                                 Spacer(Modifier.height(Spacing.itemGap))
-                                HorizontalDivider()
+                                KlasDivider()
                                 // The gap the week list's own spacing puts between its rule and heading.
                                 Spacer(Modifier.height(Spacing.itemGap))
                                 // Named by the day the list below *is*, which for the frames a tap on

@@ -5,10 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -28,13 +25,15 @@ import com.seblful.klas.format.toAmountInput
 import com.seblful.klas.queries.students.SubjectPrice
 import com.seblful.klas.ui.common.DatePickerModal
 import com.seblful.klas.ui.common.DialogRadioRow
-import com.seblful.klas.ui.common.KeepTypedInput
 import com.seblful.klas.ui.common.MoneyTextField
 import com.seblful.klas.ui.common.PickerField
 import com.seblful.klas.ui.common.RateHistory
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.rememberRevealedFocus
 import com.seblful.klas.ui.common.text
+import com.seblful.klas.ui.designsystem.component.DialogAction
+import com.seblful.klas.ui.designsystem.component.FormDialog
+import com.seblful.klas.ui.designsystem.component.KlasDivider
 import kotlinx.datetime.LocalDate
 
 /** A dialog to edit a student's name, phone, email, optional note and default class mode. */
@@ -56,40 +55,36 @@ fun StudentEditDialog(
     var email by rememberSaveable { mutableStateOf(initialEmail) }
     var note by rememberSaveable { mutableStateOf(initialNote) }
     var mode by rememberSaveable { mutableStateOf(initialMode) }
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        properties = KeepTypedInput,
-        title = { Text(title) },
-        text = {
-            // Five controls is the tallest dialog in the app, so it scrolls: with the keyboard up — or at
-            // a large font scale — «Место» and the note fell off the bottom with no way to reach them,
-            // an `AlertDialog`'s text slot having no scroll of its own.
-            Column(
-                Modifier.verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(Spacing.inline),
-            ) {
-                StudentContactFields(
-                    name = name,
-                    onName = { name = it },
-                    phone = phone,
-                    onPhone = { phone = it },
-                    email = email,
-                    onEmail = { email = it },
-                    note = note,
-                    onNote = { note = it },
-                    mode = mode,
-                    onMode = { mode = it },
-                )
-            }
-        },
-        confirmButton = {
-            TextButton(
-                onClick = { onConfirm(name.trim(), phone.trim(), email.trim(), note.trim(), mode); onDismiss() },
-                enabled = name.isNotBlank(),
-            ) { Text(stringResource(R.string.action_save)) }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },
-    )
+    FormDialog(
+        title = title,
+        confirm = DialogAction(
+            label = stringResource(R.string.action_save),
+            onClick = { onConfirm(name.trim(), phone.trim(), email.trim(), note.trim(), mode); onDismiss() },
+            enabled = name.isNotBlank(),
+        ),
+        onDismiss = onDismiss,
+    ) {
+        // Five controls is the tallest dialog in the app, so it scrolls: with the keyboard up — or at
+        // a large font scale — «Место» and the note fell off the bottom with no way to reach them,
+        // an `AlertDialog`'s text slot having no scroll of its own.
+        Column(
+            Modifier.verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(Spacing.inline),
+        ) {
+            StudentContactFields(
+                name = name,
+                onName = { name = it },
+                phone = phone,
+                onPhone = { phone = it },
+                email = email,
+                onEmail = { email = it },
+                note = note,
+                onNote = { note = it },
+                mode = mode,
+                onMode = { mode = it },
+            )
+        }
+    }
 }
 
 @Composable
@@ -104,31 +99,26 @@ internal fun RepriceDialog(
     val field = MoneyField(text, MoneyField.Kind.RATE)
     // Opened to type one number, so it opens with the caret in it.
     val focus = rememberRevealedFocus()
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        // As every dialog the tutor types into: a stray tap outside must not discard the amount.
-        properties = KeepTypedInput,
-        title = { Text(subjectPrice.subject.name) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(Spacing.itemGap)) {
-                MoneyTextField(
-                    field = field,
-                    onValueChange = { text = it },
-                    label = stringResource(R.string.price_label),
-                    modifier = Modifier.focusRequester(focus),
-                )
-                HorizontalDivider()
-                RateHistory(subjectPrice.history)
-            }
-        },
-        confirmButton = {
-            TextButton(
-                onClick = { field.amount?.let(onConfirm); onDismiss() },
-                enabled = field.isValid,
-            ) { Text(stringResource(R.string.action_save)) }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },
-    )
+    FormDialog(
+        title = subjectPrice.subject.name,
+        confirm = DialogAction(
+            label = stringResource(R.string.action_save),
+            onClick = { field.amount?.let(onConfirm); onDismiss() },
+            enabled = field.isValid,
+        ),
+        onDismiss = onDismiss,
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(Spacing.itemGap)) {
+            MoneyTextField(
+                field = field,
+                onValueChange = { text = it },
+                label = stringResource(R.string.price_label),
+                modifier = Modifier.focusRequester(focus),
+            )
+            KlasDivider()
+            RateHistory(subjectPrice.history)
+        }
+    }
 }
 
 @Composable
@@ -148,38 +138,34 @@ internal fun PaymentDialog(
     // today. A correction does not: what is wrong with it may be the date.
     val focus = if (initialAmount == null) rememberRevealedFocus() else null
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        properties = KeepTypedInput,
-        title = { Text(title) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(Spacing.itemGap)) {
-                MoneyTextField(
-                    field = field,
-                    onValueChange = { text = it },
-                    label = stringResource(R.string.payment_amount_label),
-                    modifier = if (focus != null) Modifier.focusRequester(focus) else Modifier,
-                )
-                PickerField(
-                    value = date.formatDate(),
-                    label = stringResource(R.string.payment_date_label),
-                    onClick = { picking = true },
-                )
-            }
-        },
-        confirmButton = {
-            TextButton(
-                onClick = {
-                    // The day, not an instant: which hour a payment lands at is `PaymentDate`'s,
-                    // and it needs the injected clock this composable has no way to hold.
-                    field.amount?.let { onConfirm(it, date) }
-                    onDismiss()
-                },
-                enabled = field.isValid,
-            ) { Text(stringResource(R.string.action_save)) }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },
-    )
+    FormDialog(
+        title = title,
+        confirm = DialogAction(
+            label = stringResource(R.string.action_save),
+            onClick = {
+                // The day, not an instant: which hour a payment lands at is `PaymentDate`'s,
+                // and it needs the injected clock this composable has no way to hold.
+                field.amount?.let { onConfirm(it, date) }
+                onDismiss()
+            },
+            enabled = field.isValid,
+        ),
+        onDismiss = onDismiss,
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(Spacing.itemGap)) {
+            MoneyTextField(
+                field = field,
+                onValueChange = { text = it },
+                label = stringResource(R.string.payment_amount_label),
+                modifier = if (focus != null) Modifier.focusRequester(focus) else Modifier,
+            )
+            PickerField(
+                value = date.formatDate(),
+                label = stringResource(R.string.payment_date_label),
+                onClick = { picking = true },
+            )
+        }
+    }
 
     if (picking) {
         DatePickerModal(
@@ -203,52 +189,47 @@ internal fun AddSubjectPriceDialog(
     var selectedId by rememberSaveable { mutableStateOf(initialSubjectId) }
     var priceText by rememberSaveable { mutableStateOf("") }
     val price = MoneyField(priceText, MoneyField.Kind.RATE)
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        // A stray tap beside the dialog must not throw away the price just typed.
-        properties = KeepTypedInput,
-        title = { Text(title ?: stringResource(R.string.student_add_subject)) },
-        text = {
-            // Scrolls, as the student's edit dialog does: an `AlertDialog`'s text slot has no scroll of its
-            // own, and with a handful of subjects the keyboard for the price covered the field being typed.
-            Column(Modifier.verticalScroll(rememberScrollState())) {
-                if (addableSubjects.isEmpty()) {
-                    Text(
-                        stringResource(
-                            if (noSubjectsYet) {
-                                R.string.student_form_no_subjects
-                            } else {
-                                R.string.student_all_subjects_added
-                            },
-                        ),
-                    )
-                } else {
-                    addableSubjects.forEach { subject ->
-                        DialogRadioRow(
-                            label = subject.name,
-                            selected = selectedId == subject.id,
-                            onClick = { selectedId = subject.id },
-                        )
-                    }
-                    MoneyTextField(
-                        field = price,
-                        onValueChange = { priceText = it },
-                        label = stringResource(R.string.price_label),
-                        modifier = Modifier.padding(top = Spacing.inline),
+    FormDialog(
+        title = title ?: stringResource(R.string.student_add_subject),
+        confirm = DialogAction(
+            label = stringResource(R.string.action_save),
+            onClick = {
+                val id = selectedId
+                val amount = price.amount
+                if (id != null && amount != null) { onConfirm(id, amount); onDismiss() }
+            },
+            enabled = selectedId != null && price.isValid,
+        ),
+        onDismiss = onDismiss,
+    ) {
+        // Scrolls, as the student's edit dialog does: an `AlertDialog`'s text slot has no scroll of its
+        // own, and with a handful of subjects the keyboard for the price covered the field being typed.
+        Column(Modifier.verticalScroll(rememberScrollState())) {
+            if (addableSubjects.isEmpty()) {
+                Text(
+                    stringResource(
+                        if (noSubjectsYet) {
+                            R.string.student_form_no_subjects
+                        } else {
+                            R.string.student_all_subjects_added
+                        },
+                    ),
+                )
+            } else {
+                addableSubjects.forEach { subject ->
+                    DialogRadioRow(
+                        label = subject.name,
+                        selected = selectedId == subject.id,
+                        onClick = { selectedId = subject.id },
                     )
                 }
+                MoneyTextField(
+                    field = price,
+                    onValueChange = { priceText = it },
+                    label = stringResource(R.string.price_label),
+                    modifier = Modifier.padding(top = Spacing.inline),
+                )
             }
-        },
-        confirmButton = {
-            TextButton(
-                onClick = {
-                    val id = selectedId
-                    val amount = price.amount
-                    if (id != null && amount != null) { onConfirm(id, amount); onDismiss() }
-                },
-                enabled = selectedId != null && price.isValid,
-            ) { Text(stringResource(R.string.action_save)) }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },
-    )
+        }
+    }
 }

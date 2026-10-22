@@ -190,17 +190,17 @@ private fun MainApp() {
     var scheduleArrival by remember { mutableStateOf<Pair<Long, Arrival<ScheduleTarget>>?>(null) }
     var debtsArrival by remember { mutableStateOf<Pair<Long, Arrival<Unit>>?>(null) }
 
-    OpensWhatTheTrayNames(
-        navigator,
-        onSchedule = { target -> scheduleArrival = navigator.top.id to Arrival(target) },
-        onDebts = { debtsArrival = navigator.top.id to Arrival(Unit) },
-    )
+    val arriveAtSchedule: (ScheduleTarget) -> Unit = { target -> scheduleArrival = navigator.top.id to Arrival(target) }
+    val arriveAtDebts = { debtsArrival = navigator.top.id to Arrival(Unit) }
+    OpensWhatTheTrayNames(navigator, onSchedule = arriveAtSchedule, onDebts = arriveAtDebts)
 
     val graph = remember(navigator) {
         KlasGraph(
             navigator,
             scheduleArrival = { id -> scheduleArrival?.takeIf { it.first == id }?.second },
             debtsArrival = { id -> debtsArrival?.takeIf { it.first == id }?.second },
+            arriveAtSchedule = arriveAtSchedule,
+            arriveAtDebts = arriveAtDebts,
         )
     }
     // Material's current components for the width: the short bar on a phone (a landscape one included), the

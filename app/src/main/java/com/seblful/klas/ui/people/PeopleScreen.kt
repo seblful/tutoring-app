@@ -3,7 +3,6 @@ package com.seblful.klas.ui.people
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconToggleButton
 import androidx.compose.material3.MaterialTheme
@@ -24,7 +23,9 @@ import com.seblful.klas.ui.common.KlasScreen
 import com.seblful.klas.ui.common.NamedIconButton
 import com.seblful.klas.ui.common.ScreenSearch
 import com.seblful.klas.ui.common.SegmentedPage
+import com.seblful.klas.ui.common.SettingsGear
 import com.seblful.klas.ui.common.TickedMenuItem
+import com.seblful.klas.ui.designsystem.component.KlasFab
 import com.seblful.klas.ui.groups.GroupsList
 import com.seblful.klas.ui.groups.GroupsViewModel
 import com.seblful.klas.ui.students.StudentSort
@@ -50,6 +51,7 @@ fun PeopleScreen(
     onAddStudent: () -> Unit,
     onGroupClick: (Long) -> Unit,
     onAddGroup: () -> Unit,
+    onSettings: () -> Unit = {},
     open: Assignee? = null,
     studentsViewModel: StudentsViewModel = metroViewModel(),
     groupsViewModel: GroupsViewModel = metroViewModel(),
@@ -100,17 +102,14 @@ fun PeopleScreen(
                     )
                 }
             }
+            SettingsGear(onSettings)
         },
         floatingActionButton = {
-            FloatingActionButton(
+            // Named for what it adds, which the side decides: a bare «Добавить» said neither.
+            KlasFab(
+                label = stringResource(if (tab == PeopleTab.STUDENTS) R.string.students_add else R.string.groups_add),
                 onClick = if (tab == PeopleTab.STUDENTS) onAddStudent else onAddGroup,
-            ) {
-                // Named for what it adds, which the side decides: a bare «Добавить» said neither.
-                Icon(
-                    KlasIcons.Filled.Add,
-                    stringResource(if (tab == PeopleTab.STUDENTS) R.string.students_add else R.string.groups_add),
-                )
-            }
+            )
         },
     ) { modifier, bottomInset ->
         // The segments are the control; the drag is the shortcut — see [swipeBetweenSegments]. On the whole

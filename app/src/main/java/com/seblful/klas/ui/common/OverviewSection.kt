@@ -14,7 +14,6 @@ import androidx.compose.material3.ListItemColors
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -22,6 +21,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.seblful.klas.R
+import com.seblful.klas.ui.designsystem.component.ButtonKind
+import com.seblful.klas.ui.designsystem.component.KlasButton
 import com.seblful.klas.ui.theme.KlasIcons
 
 /*
@@ -63,7 +64,7 @@ fun OverviewSection(
             }
             Spacer(Modifier.weight(1f))
             if (onSeeAll != null) {
-                TextButton(onClick = onSeeAll) {
+                KlasButton(onClick = onSeeAll, kind = ButtonKind.Text) {
                     Text(stringResource(R.string.section_see_all))
                     Icon(
                         KlasIcons.Filled.ChevronRight,

@@ -8,12 +8,9 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -23,6 +20,8 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.seblful.klas.R
+import com.seblful.klas.ui.designsystem.component.ButtonKind
+import com.seblful.klas.ui.designsystem.component.KlasButton
 import com.seblful.klas.ui.theme.KlasIcons
 
 /*
@@ -108,15 +107,16 @@ fun EmptyState(
             // primaries for one action, and the louder of them the one that disappears as soon as the
             // list has a row. The add button is the screen's primary; this points at the same door.
             if (compact) {
-                OutlinedButton(onClick = onAction, contentPadding = ButtonDefaults.ButtonWithIconContentPadding) {
+                KlasButton(onClick = onAction, kind = ButtonKind.Outlined, withIcon = true) {
                     Icon(KlasIcons.Filled.Add, contentDescription = null, Modifier.size(ButtonDefaults.IconSize))
                     Text(actionLabel, Modifier.padding(start = Spacing.inline))
                 }
             } else {
-                FilledTonalButton(
+                KlasButton(
                     onClick = onAction,
                     modifier = Modifier.padding(top = Spacing.tight),
-                    contentPadding = ButtonDefaults.ButtonWithIconContentPadding,
+                    kind = ButtonKind.Tonal,
+                    withIcon = true,
                 ) {
                     Icon(KlasIcons.Filled.Add, contentDescription = null, Modifier.size(ButtonDefaults.IconSize))
                     Text(actionLabel, Modifier.padding(start = Spacing.inline))
@@ -142,11 +142,12 @@ fun NoSearchResults(modifier: Modifier = Modifier) {
 /** The one way to add to a tab's list, sitting at its top where a section header's action used to. */
 @Composable
 fun AddRow(label: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    TextButton(
+    KlasButton(
         onClick = onClick,
         // No inset of its own: the button's content padding already puts the «+» on the rows' text edge
         // below it. An extra step here drew it a column to the right of every row it adds to.
         modifier = modifier.heightIn(min = MinTouchTarget),
+        kind = ButtonKind.Text,
     ) {
         Icon(KlasIcons.Filled.Add, contentDescription = null)
         Text(label, Modifier.padding(start = Spacing.inline))

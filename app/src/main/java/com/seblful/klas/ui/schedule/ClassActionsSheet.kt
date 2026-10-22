@@ -10,17 +10,13 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -62,7 +58,11 @@ import com.seblful.klas.ui.common.insetRowPress
 import com.seblful.klas.ui.common.outsetRowPress
 import com.seblful.klas.ui.common.rememberToggleFeedback
 import com.seblful.klas.ui.common.timeText
+import com.seblful.klas.ui.designsystem.component.ChoiceDialog
+import com.seblful.klas.ui.designsystem.component.KlasDivider
+import com.seblful.klas.ui.designsystem.component.KlasSheet
 import com.seblful.klas.ui.theme.KlasIcons
+import com.seblful.klas.ui.theme.klasSemantics
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
@@ -92,7 +92,7 @@ internal fun ClassActionsSheet(
     // No `dragHandle`: Material wraps whatever is passed there in a clickable, tooltipped box of its own,
     // so even a plain pill lit grey when held. The pill is the sheet's first row instead — see
     // [SheetHandle]; the whole sheet drags, not only the handle.
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState, dragHandle = null) {
+    KlasSheet(onDismiss = onDismiss, state = sheetState) {
         Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(bottom = SheetGutter)) {
             SheetHandle(
                 Modifier.align(Alignment.CenterHorizontally),
@@ -132,7 +132,7 @@ internal fun ClassActionsSheet(
             // grows in rather than lengthening the sheet in one frame.
             Reveal(homework.isNotEmpty()) { AttachedHomework(homework, onHomeworkDone) }
 
-            HorizontalDivider(Modifier.padding(vertical = Spacing.inline))
+            KlasDivider(Modifier.padding(vertical = Spacing.inline))
             SheetAction(stringResource(R.string.homework_add), KlasIcons.Outlined.Assignment, onSetHomework)
             SheetAction(stringResource(R.string.add_payment), KlasIcons.Outlined.Payments, onRecordPayment)
             SheetAction(
@@ -141,7 +141,7 @@ internal fun ClassActionsSheet(
                 onOpenProfile,
             )
 
-            HorizontalDivider(Modifier.padding(vertical = Spacing.inline))
+            KlasDivider(Modifier.padding(vertical = Spacing.inline))
 
             // Editing details (student/subject/price) is allowed in any status; saving a completed
             // class re-bills it so its recognized income tracks the edit (see ClassRules.rebill).
@@ -153,7 +153,7 @@ internal fun ClassActionsSheet(
             // Delete is offered for any status. Deleting a completed class removes its recognized
             // income (the confirm dialog warns about this); the repository deletes the calendar
             // event and refreshes reminders regardless of status.
-            HorizontalDivider(Modifier.padding(vertical = Spacing.inline))
+            KlasDivider(Modifier.padding(vertical = Spacing.inline))
             SheetAction(
                 stringResource(R.string.action_delete),
                 KlasIcons.Outlined.Delete,
@@ -167,30 +167,24 @@ internal fun ClassActionsSheet(
 /** A group's payment belongs to one student, so the tutor names the payer first. */
 @Composable
 internal fun LessonPayerDialog(row: ScheduleRow, onSelect: (Long) -> Unit, onDismiss: () -> Unit) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.payment_choose_student)) },
-        text = {
-            // A simple dialog's list: rows to pick from, not a stack of buttons.
-            Column(Modifier.verticalScroll(rememberScrollState())) {
-                row.classes.forEachIndexed { index, klass ->
-                    val name = row.members.getOrNull(index).orEmpty()
-                    ListItem(
-                        headlineContent = { Text(name) },
-                        leadingContent = { Avatar(name, klass.studentId) },
-                        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-                        modifier = Modifier.outsetRowPress { source ->
-                            Modifier.clickable(source, indication = null, role = Role.Button) {
-                                onSelect(klass.studentId); onDismiss()
-                            }
-                        },
-                    )
-                }
+    ChoiceDialog(title = stringResource(R.string.payment_choose_student), onDismiss = onDismiss) {
+        // A simple dialog's list: rows to pick from, not a stack of buttons.
+        Column(Modifier.verticalScroll(rememberScrollState())) {
+            row.classes.forEachIndexed { index, klass ->
+                val name = row.members.getOrNull(index).orEmpty()
+                ListItem(
+                    headlineContent = { Text(name) },
+                    leadingContent = { Avatar(name, klass.studentId) },
+                    colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                    modifier = Modifier.outsetRowPress { source ->
+                        Modifier.clickable(source, indication = null, role = Role.Button) {
+                            onSelect(klass.studentId); onDismiss()
+                        }
+                    },
+                )
             }
-        },
-        confirmButton = {},
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },
-    )
+        }
+    }
 }
 
 @Composable
@@ -269,7 +263,7 @@ private fun SheetAction(
     onClick: () -> Unit,
     destructive: Boolean = false,
 ) {
-    val color = if (destructive) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
+    val color = if (destructive) klasSemantics.destructive else MaterialTheme.colorScheme.onSurface
     ListItem(
         headlineContent = { Text(label) },
         leadingContent = { Icon(icon, contentDescription = null) },

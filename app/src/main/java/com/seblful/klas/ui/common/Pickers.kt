@@ -1,3 +1,5 @@
+@file:Suppress("ForbiddenImport") // The date, time and choice pickers are the dialog family.
+
 package com.seblful.klas.ui.common
 
 import androidx.compose.foundation.layout.Arrangement
@@ -10,7 +12,6 @@ import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimeInput
 import androidx.compose.material3.TimePicker
 import androidx.compose.material3.TimePickerDialog
@@ -27,6 +28,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import com.seblful.klas.R
+import com.seblful.klas.ui.designsystem.component.ButtonKind
+import com.seblful.klas.ui.designsystem.component.KlasButton
 import com.seblful.klas.ui.theme.KlasIcons
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
@@ -60,7 +63,7 @@ fun DatePickerModal(
     DatePickerDialog(
         onDismissRequest = onDismiss,
         confirmButton = {
-            TextButton(
+            KlasButton(
                 onClick = {
                     state.selectedDateMillis?.let {
                         onConfirm(Instant.fromEpochMilliseconds(it).toLocalDateTime(TimeZone.UTC).date)
@@ -69,9 +72,12 @@ fun DatePickerModal(
                 // Clearing the typed date in the picker's text mode leaves nothing to hand back, and a
                 // «Готово» that then did nothing read as a dead button.
                 enabled = state.selectedDateMillis != null,
+                kind = ButtonKind.Text,
             ) { Text(stringResource(R.string.action_done)) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },
+        dismissButton = {
+            KlasButton(onClick = onDismiss, kind = ButtonKind.Text) { Text(stringResource(R.string.action_cancel)) }
+        },
     ) {
         DatePicker(state = state)
     }
@@ -100,11 +106,13 @@ fun TimePickerModal(
     TimePickerDialog(
         onDismissRequest = onDismiss,
         confirmButton = {
-            TextButton(onClick = {
+            KlasButton(onClick = {
                 onConfirm(LocalTime(state.hour, state.minute))
-            }) { Text(stringResource(R.string.action_done)) }
+            }, kind = ButtonKind.Text) { Text(stringResource(R.string.action_done)) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },
+        dismissButton = {
+            KlasButton(onClick = onDismiss, kind = ButtonKind.Text) { Text(stringResource(R.string.action_cancel)) }
+        },
         title = { TimePickerDialogDefaults.Title(displayMode = mode) },
         // The app's own toggle: Material's draws its icon for the mode it is in but names the one it leads to,
         // so one of the two always disagreed. This shows and says where a tap leads.
@@ -156,12 +164,15 @@ fun DurationPickerModal(
             }
         },
         confirmButton = {
-            TextButton(
+            KlasButton(
                 onClick = { onConfirm(total) },
                 enabled = total > 0,
+                kind = ButtonKind.Text,
             ) { Text(stringResource(R.string.action_done)) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },
+        dismissButton = {
+            KlasButton(onClick = onDismiss, kind = ButtonKind.Text) { Text(stringResource(R.string.action_cancel)) }
+        },
     )
 }
 
@@ -191,13 +202,16 @@ fun CountPickerModal(
             )
         },
         confirmButton = {
-            TextButton(
+            KlasButton(
                 onClick = { onConfirm(total) },
                 // Zero lessons is not a booking, exactly as a lesson of no length is not a lesson.
                 enabled = total > 0,
+                kind = ButtonKind.Text,
             ) { Text(stringResource(R.string.action_done)) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },
+        dismissButton = {
+            KlasButton(onClick = onDismiss, kind = ButtonKind.Text) { Text(stringResource(R.string.action_cancel)) }
+        },
     )
 }
 

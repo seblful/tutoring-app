@@ -5,10 +5,8 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -29,6 +27,7 @@ import com.seblful.klas.ui.common.DurationPickerModal
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.currencyChoiceLabel
 import com.seblful.klas.ui.common.currencyChoices
+import com.seblful.klas.ui.designsystem.component.ChoiceDialog
 import dev.zacsweers.metrox.viewmodel.metroViewModel
 
 @Composable
@@ -145,28 +144,21 @@ private fun CurrencySetting(settings: AppSettings, onUpdate: ((AppSettings) -> A
     if (picking) {
         val locale = LocalResources.current.configuration.locales[0]
         val choices = remember(locale) { currencyChoices(locale) }
-        AlertDialog(
-            onDismissRequest = { picking = false },
-            title = { Text(title) },
-            text = {
-                Column(Modifier.verticalScroll(rememberScrollState())) {
-                    choices.forEach { currency ->
-                        DialogRadioRow(
-                            label = currencyChoiceLabel(currency),
-                            selected = currency == settings.currency,
-                            onClick = {
-                                picking = false
-                                if (currency != settings.currency) pendingCurrency = currency
-                            },
-                        )
-                    }
+        // Picking is the answer, as in the weekday dialogs; the change is confirmed below, not here.
+        ChoiceDialog(title = title, onDismiss = { picking = false }) {
+            Column(Modifier.verticalScroll(rememberScrollState())) {
+                choices.forEach { currency ->
+                    DialogRadioRow(
+                        label = currencyChoiceLabel(currency),
+                        selected = currency == settings.currency,
+                        onClick = {
+                            picking = false
+                            if (currency != settings.currency) pendingCurrency = currency
+                        },
+                    )
                 }
-            },
-            // Picking is the answer, as in the weekday dialogs; the change is confirmed below, not here.
-            confirmButton = {
-                TextButton(onClick = { picking = false }) { Text(stringResource(R.string.action_cancel)) }
-            },
-        )
+            }
+        }
     }
     pendingCurrency?.let { currency ->
         ConfirmDialog(

@@ -9,14 +9,12 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -29,12 +27,14 @@ import androidx.compose.ui.text.input.KeyboardType
 import com.seblful.klas.R
 import com.seblful.klas.ui.common.ChoiceField
 import com.seblful.klas.ui.common.DisabledAlpha
-import com.seblful.klas.ui.common.KeepTypedInput
 import com.seblful.klas.ui.common.KlasMenu
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.TickedMenuItem
 import com.seblful.klas.ui.common.insetRowPress
+import com.seblful.klas.ui.designsystem.component.DialogAction
+import com.seblful.klas.ui.designsystem.component.FormDialog
 import com.seblful.klas.ui.theme.KlasIcons
+import com.seblful.klas.ui.theme.klasSemantics
 
 /** One selected lead time, with presets and a custom amount in minutes, hours or days. */
 @Composable
@@ -120,20 +120,15 @@ internal fun ReminderLeadPickerModal(initialMinutes: Int, onConfirm: (Int) -> Un
     var unit by rememberSaveable { mutableStateOf(ReminderUnit.forMinutes(initialMinutes)) }
     var amount by rememberSaveable { mutableStateOf((initialMinutes / unit.minutes).toString()) }
     val total = unit.totalMinutes(amount)
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        properties = KeepTypedInput,
-        title = { Text(stringResource(R.string.settings_reminder_lead)) },
-        text = { ReminderLeadFields(amount, unit, onAmountChange = { amount = it }, onUnitChange = { unit = it }) },
-        confirmButton = {
-            TextButton(onClick = { total?.let(onConfirm) }, enabled = total != null) {
-                Text(stringResource(R.string.action_done))
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
-        },
-    )
+    FormDialog(
+        title = stringResource(R.string.settings_reminder_lead),
+        confirm = DialogAction(
+            label = stringResource(R.string.action_done),
+            onClick = { total?.let(onConfirm) },
+            enabled = total != null,
+        ),
+        onDismiss = onDismiss,
+    ) { ReminderLeadFields(amount, unit, onAmountChange = { amount = it }, onUnitChange = { unit = it }) }
 }
 
 @Composable
@@ -172,7 +167,7 @@ internal fun ReminderLeadFields(
                 stringResource(R.string.settings_reminder_day_explanation)
             },
             style = MaterialTheme.typography.bodySmall,
-            color = if (invalid) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+            color = if (invalid) klasSemantics.validation else MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.fillMaxWidth(),
         )
     }

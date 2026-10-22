@@ -37,6 +37,7 @@ import com.seblful.klas.ui.common.TimePickerModal
 import com.seblful.klas.ui.common.timeText
 import com.seblful.klas.ui.schedule.timeConflictText
 import com.seblful.klas.ui.theme.KlasIcons
+import com.seblful.klas.ui.theme.klasSemantics
 
 /*
  * The booking form's «When» section — see [WhenSection].
@@ -184,7 +185,7 @@ private fun ConflictLine(conflict: TimeConflict, state: ClassFormState) {
         },
         style = MaterialTheme.typography.bodySmall,
         color = if (state.conflictBlocksSave) {
-            MaterialTheme.colorScheme.error
+            klasSemantics.validation
         } else {
             MaterialTheme.colorScheme.onSurfaceVariant
         },

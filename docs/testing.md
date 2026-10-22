@@ -69,7 +69,7 @@ Roborazzi plugin generate tests; no handwritten test class is needed.
 in dark theme and at 1.5× text), an unfolded foldable, a tablet and a desktop window — bar or rail, People alone and with a card beside it,
 homework in columns, and a settings page beside the index. It ends on the card: a tab tapped before its bar hides and returns may still show a press. Its goldens are recorded and compared by the same tasks.
 
-`ScreenTourScreenshotTest` covers the rest on a phone — lesson sheet, forms, More and every Settings page,
+`ScreenTourScreenshotTest` covers the rest on a phone — lesson sheet, forms, Settings and every page it opens,
 onboarding — in light, dark, 1.5× text and Russian (`Tour.*`). It finds controls by their strings, so one
 tour runs in both languages; a screen that changes by accident during a UI migration shows here.
 
@@ -137,3 +137,5 @@ ktlint reads [.editorconfig](../.editorconfig) and checks all files without a ba
 [its config](../config/detekt/detekt.yml) and per-module `config/detekt/baseline.xml`; new findings fail.
 `./gradlew ktlintCheck detekt` checks every module. `./gradlew ktlintFormat` changes the whole tree:
 review the diff. Run `./gradlew detektBaseline` only after reviewing findings.
+Its `ForbiddenImport` list also keeps Material's dialogs, sheets, cards, FABs, dividers and buttons out of
+feature code: features use the `ui/designsystem` wrappers (see [UI conventions](ui-conventions.md)).

@@ -19,7 +19,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
@@ -27,9 +26,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -74,6 +71,8 @@ import com.seblful.klas.ui.common.predictiveBack
 import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.rememberOpenDocument
 import com.seblful.klas.ui.common.state.valueOrNull
+import com.seblful.klas.ui.designsystem.component.ButtonKind
+import com.seblful.klas.ui.designsystem.component.KlasButton
 import com.seblful.klas.ui.navigation.fadeThrough
 import com.seblful.klas.ui.navigation.predictiveBackRelease
 import com.seblful.klas.ui.settings.LessonLengthSetting
@@ -276,7 +275,7 @@ fun OnboardingScreen(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.spacedBy(Spacing.inline),
                         ) {
-                            Button(
+                            KlasButton(
                                 onClick = { goTo(Step.LOCALE) },
                                 modifier = Modifier.fillMaxWidth(),
                             ) { Text(stringResource(R.string.onboarding_start)) }
@@ -284,10 +283,11 @@ fun OnboardingScreen(
                             // choice is made with the outcome in view rather than after a paragraph
                             // above the buttons that has to describe all three at once.
                             Caption(stringResource(R.string.onboarding_welcome_desc))
-                            OutlinedButton(
+                            KlasButton(
                                 onClick = { restore(BACKUP_MIME_TYPES) },
                                 modifier = Modifier.fillMaxWidth(),
-                                contentPadding = ButtonDefaults.ButtonWithIconContentPadding,
+                                kind = ButtonKind.Outlined,
+                                withIcon = true,
                             ) {
                                 Icon(KlasIcons.Outlined.Download, null, Modifier.size(ButtonDefaults.IconSize))
                                 Text(
@@ -296,9 +296,10 @@ fun OnboardingScreen(
                                 )
                             }
                             Caption(stringResource(R.string.onboarding_restore_desc))
-                            TextButton(
+                            KlasButton(
                                 onClick = { viewModel.complete(); onFinished() },
                                 modifier = Modifier.fillMaxWidth(),
+                                kind = ButtonKind.Text,
                             ) { Text(stringResource(R.string.onboarding_skip)) }
                             Caption(stringResource(R.string.onboarding_skip_desc))
                         }
@@ -339,7 +340,7 @@ fun OnboardingScreen(
                                 )
                             }
                         }
-                        Button(
+                        KlasButton(
                             onClick = { goTo(Step.SUBJECTS) },
                             // Never disabled: both answers are already valid — that is what pre-setting them
                             // from the phone means — so there is nothing here for the tutor to supply.
@@ -361,10 +362,11 @@ fun OnboardingScreen(
                             onRemove = ::removeSubject,
                             modifier = Modifier.padding(horizontal = Spacing.gutter),
                         )
-                        OutlinedButton(
+                        KlasButton(
                             onClick = { addingSubject = true },
                             modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.gutter),
-                            contentPadding = ButtonDefaults.ButtonWithIconContentPadding,
+                            kind = ButtonKind.Outlined,
+                            withIcon = true,
                         ) {
                             Icon(KlasIcons.Filled.Add, null, Modifier.size(ButtonDefaults.IconSize))
                             Text(stringResource(R.string.subjects_add), Modifier.padding(start = Spacing.inline))
@@ -405,7 +407,7 @@ fun OnboardingScreen(
                                 }
                             }
                         }
-                        Button(
+                        KlasButton(
                             onClick = { goTo(Step.STUDENT) },
                             // Disabled while the list has not arrived, as it is when the list is empty: the
                             // step's gate is "at least one subject", and nothing yet says there is one.
@@ -431,7 +433,7 @@ fun OnboardingScreen(
                             modifier = Modifier.weight(1f).fillMaxWidth(),
                             contacts = false,
                         )
-                        Button(
+                        KlasButton(
                             onClick = { studentVm.save { viewModel.complete(); onFinished() } },
                             enabled = studentState.canSave,
                             modifier = Modifier.fillMaxWidth().padding(Spacing.gutter),

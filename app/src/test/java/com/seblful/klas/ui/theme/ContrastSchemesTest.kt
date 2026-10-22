@@ -47,6 +47,42 @@ class ContrastSchemesTest {
     }
 
     @Test
+    fun `every meaning reads as text on every card surface, and its banners on their containers`() {
+        val failures = themes.flatMap { dark ->
+            levels.flatMap { level ->
+                val scheme = klasColorScheme(dark, level)
+                val roles = KlasSemantics.of(scheme)
+                val words = listOf(
+                    "debt" to roles.debt,
+                    "overdue" to roles.overdue,
+                    "destructive" to roles.destructive,
+                    "validation" to roles.validation,
+                    "cancelled" to roles.cancelled,
+                    "attention" to roles.attention,
+                )
+                listOf(scheme.surface, scheme.surfaceContainerHigh, scheme.surfaceContainerHighest).flatMap { surface ->
+                    words.map { (name, color) -> name to contrast(color, surface) }
+                        .filter { it.second < WcagAaText }.map { "$dark $level ${it.first}: ${it.second}" }
+                } + listOf(
+                    "blocking" to contrast(roles.onBlocking, roles.blocking),
+                    "advisory" to contrast(roles.onAdvisory, roles.advisory),
+                ).filter { it.second < minimum(level) }.map { "$dark $level ${it.first}: ${it.second}" }
+            }
+        }
+        assertTrue(failures.joinToString("\n"), failures.isEmpty())
+    }
+
+    @Test
+    fun `advisory never looks like on-now or taught`() {
+        themes.forEach { dark ->
+            val roles = KlasSemantics.of(klasColorScheme(dark, ContrastLevel.Standard))
+            val colors = klasColors(dark, ContrastLevel.Standard)
+            assertNotEquals(colors.live, roles.advisory)
+            assertNotEquals(colors.successContainer, roles.advisory)
+        }
+    }
+
+    @Test
     fun `each level darkens the page's text against it`() {
         themes.forEach { dark ->
             val ratios = levels.map { level ->

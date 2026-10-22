@@ -55,6 +55,7 @@ The database drives both mirrors; neither writes changes back into Klas.
   | Agenda / evening digest | Schedule on the day carried by the notification, even after midnight |
   | Auto-completion report | Latest day settled |
   | Debt digest | Reports, scrolled to debts |
+  | Reminders summary, widget title and its lessons | The Today tab |
 
   A relaunch from Recents (`FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY`) goes nowhere. On Android 11 and
   below, Back finishes the activity, and Recents replays the intent that started the task: an old tap.

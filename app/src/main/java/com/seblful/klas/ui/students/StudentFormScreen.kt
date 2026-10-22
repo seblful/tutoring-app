@@ -14,7 +14,6 @@ import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -51,7 +50,9 @@ import com.seblful.klas.ui.common.outsetRowPress
 import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.common.text
+import com.seblful.klas.ui.designsystem.component.KlasDivider
 import com.seblful.klas.ui.subjects.SubjectNameDialog
+import com.seblful.klas.ui.theme.klasSemantics
 import dev.zacsweers.metrox.viewmodel.metroViewModel
 
 /** Full-screen "add student" with required subjects + prices. */
@@ -136,7 +137,7 @@ fun StudentFormContent(
             StudentNameField(form.name) { v -> viewModel.update { it.copy(name = v) } }
         }
 
-        HorizontalDivider(Modifier.padding(vertical = Spacing.tight))
+        KlasDivider(Modifier.padding(vertical = Spacing.tight))
         SectionTitle(stringResource(R.string.student_form_subjects_title))
         // «Сначала добавьте предметы» is a refusal, and saying it about subjects that have merely not
         // been read yet is the [Loadable] defect — here in the error red, on the screen a tutor reaches
@@ -164,7 +165,7 @@ private fun SubjectPrices(
     if (subjects.isEmpty()) {
         Text(
             stringResource(R.string.student_form_no_subjects),
-            color = MaterialTheme.colorScheme.error,
+            color = klasSemantics.validation,
             style = MaterialTheme.typography.bodyMedium,
         )
     } else {

@@ -67,6 +67,9 @@ class SettingsNavigation(
     val appearance: () -> Unit,
     val privacy: () -> Unit,
     val diagnostics: () -> Unit,
+    val subjects: () -> Unit = {},
+    val backup: () -> Unit = {},
+    val about: () -> Unit = {},
 )
 
 /** The pages the index opens. */
@@ -85,10 +88,32 @@ internal fun SettingsIndex(
 ) {
     Column(modifier.verticalScroll(rememberScrollState()).padding(bottom = Spacing.gutter).padding(bottomInset)) {
         SettingsGroup { SettingsCategories(settings, notifications, reminders, calendar, navigation, open) }
-        // Its own card: secondary to the four above, and the break between them now says so.
+        // Its own card: the app's data and the app itself, which «Ещё» held when it was a tab. Secondary to
+        // the settings above, and the break between them says so.
         SettingsGroup {
             SettingsCategoryRow(
+                KlasIcons.Outlined.MenuBook,
+                stringResource(R.string.more_subjects),
+                stringResource(R.string.settings_subjects_summary),
+                navigation.subjects,
+                selected = false,
+            )
+            SettingsCategoryRow(
+                KlasIcons.Outlined.Save,
+                stringResource(R.string.more_backup),
+                stringResource(R.string.settings_backup_summary),
+                navigation.backup,
+                selected = false,
+            )
+            SettingsCategoryRow(
                 KlasIcons.Outlined.Info,
+                stringResource(R.string.about_title),
+                stringResource(R.string.settings_about_summary),
+                navigation.about,
+                selected = false,
+            )
+            SettingsCategoryRow(
+                KlasIcons.Outlined.QueryStats,
                 stringResource(R.string.diagnostics_title),
                 stringResource(R.string.settings_diagnostics_summary),
                 navigation.diagnostics,

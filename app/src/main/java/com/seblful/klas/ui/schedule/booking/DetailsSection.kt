@@ -2,7 +2,6 @@ package com.seblful.klas.ui.schedule.booking
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -30,6 +29,7 @@ import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.classModeLabel
 import com.seblful.klas.ui.common.durationLabel
 import com.seblful.klas.ui.common.text
+import com.seblful.klas.ui.designsystem.component.KlasDivider
 
 /*
  * The booking form's last card — see [DetailsSection].
@@ -53,12 +53,12 @@ internal fun DetailsSection(state: ClassFormState, viewModel: ClassEditViewModel
         Column(Modifier.padding(horizontal = Spacing.gutter, vertical = Spacing.inline)) {
             LengthRow(state, viewModel, open == Detail.LENGTH) { toggle(Detail.LENGTH, it) }
             if (isNew) {
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                KlasDivider()
                 RepeatRow(state.form, viewModel, open == Detail.REPEAT) { toggle(Detail.REPEAT, it) }
             }
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            KlasDivider()
             PriceRow(state, viewModel, open == Detail.PRICE) { toggle(Detail.PRICE, it) }
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            KlasDivider()
             FormatRow(state.form, viewModel, open == Detail.FORMAT) { toggle(Detail.FORMAT, it) }
         }
     }

@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.TextAutoSize
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -39,6 +38,7 @@ import com.seblful.klas.ui.common.LocalCurrency
 import com.seblful.klas.ui.common.PageStepper
 import com.seblful.klas.ui.common.SectionTitle
 import com.seblful.klas.ui.common.Spacing
+import com.seblful.klas.ui.designsystem.component.KlasDivider
 import com.seblful.klas.ui.theme.KlasIcons
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.YearMonth
@@ -196,7 +196,7 @@ internal fun NowLine(modifier: Modifier = Modifier) {
             color = MaterialTheme.colorScheme.primary,
             modifier = Modifier.padding(horizontal = Spacing.inline),
         )
-        HorizontalDivider(
+        KlasDivider(
             Modifier.weight(1f),
             color = MaterialTheme.colorScheme.primary,
         )

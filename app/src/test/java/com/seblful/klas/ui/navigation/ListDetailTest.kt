@@ -19,7 +19,7 @@ class ListDetailTest {
 
         navigator.replaceAbove(Routes.People, Routes.GroupDetail(2))
 
-        assertEquals(listOf("Schedule", "People", "GroupDetail"), stack())
+        assertEquals(listOf("Today", "People", "GroupDetail"), stack())
     }
 
     @Test
@@ -29,7 +29,7 @@ class ListDetailTest {
 
         navigator.navigate(Routes.StudentDetail(1))
 
-        assertEquals(listOf("Schedule", "People", "GroupDetail", "StudentDetail"), stack())
+        assertEquals(listOf("Today", "People", "GroupDetail", "StudentDetail"), stack())
         assertEquals(Routes.People, listBesideDetail(navigator.backStack))
     }
 
@@ -40,11 +40,11 @@ class ListDetailTest {
 
         navigator.navigate(Routes.StudentList(1, StudentSection.PAYMENTS))
 
-        assertEquals(listOf("Schedule", "People", "StudentDetail", "StudentList"), stack())
+        assertEquals(listOf("Today", "People", "StudentDetail", "StudentList"), stack())
         assertEquals(Routes.People, listBesideDetail(navigator.backStack))
 
         navigator.replaceAbove(Routes.People, Routes.StudentDetail(2))
-        assertEquals(listOf("Schedule", "People", "StudentDetail"), stack())
+        assertEquals(listOf("Today", "People", "StudentDetail"), stack())
     }
 
     @Test
@@ -54,7 +54,7 @@ class ListDetailTest {
 
         navigator.navigate(Routes.GroupList(2, GroupSection.LESSONS))
 
-        assertEquals(listOf("Schedule", "People", "GroupDetail", "GroupList"), stack())
+        assertEquals(listOf("Today", "People", "GroupDetail", "GroupList"), stack())
         assertEquals(Routes.People, listBesideDetail(navigator.backStack))
     }
 
@@ -75,13 +75,13 @@ class ListDetailTest {
 
     @Test
     fun `a settings page opened from the index replaces the one beside it`() {
-        navigator.navigateToTab(TopDestination.MORE)
-        navigator.navigate(Routes.Settings)
+        navigator.navigateToTab(TopDestination.PEOPLE)
+        navigator.openOnTop(Routes.Settings)
         navigator.replaceAbove(Routes.Settings, Routes.LessonSettings)
 
         navigator.replaceAbove(Routes.Settings, Routes.Diagnostics)
 
-        assertEquals(listOf("Schedule", "More", "Settings", "Diagnostics"), stack())
+        assertEquals(listOf("Today", "People", "Settings", "Diagnostics"), stack())
         assertEquals(Routes.Settings, listBesideDetail(navigator.backStack))
     }
 
@@ -95,20 +95,20 @@ class ListDetailTest {
 
     @Test
     fun `the index's back arrow leaves Settings with the page beside it`() {
-        navigator.navigateToTab(TopDestination.MORE)
-        navigator.navigate(Routes.Settings)
+        navigator.navigateToTab(TopDestination.PEOPLE)
+        navigator.openOnTop(Routes.Settings)
         navigator.replaceAbove(Routes.Settings, Routes.CalendarSettings)
 
         navigator.closeFrom(Routes.Settings)
 
-        assertEquals(listOf("Schedule", "More"), stack())
+        assertEquals(listOf("Today", "People"), stack())
     }
 
     @Test
     fun `closing a list that is not open keeps the stack`() {
         navigator.closeFrom(Routes.Settings)
-        navigator.closeFrom(Routes.Schedule)
+        navigator.closeFrom(Routes.Today)
 
-        assertEquals(listOf("Schedule"), stack())
+        assertEquals(listOf("Today"), stack())
     }
 }

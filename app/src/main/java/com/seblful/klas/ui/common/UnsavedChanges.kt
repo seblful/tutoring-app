@@ -1,8 +1,9 @@
+@file:Suppress("ForbiddenImport") // The leave guard is the dialog family's.
+
 package com.seblful.klas.ui.common
 
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -13,6 +14,8 @@ import androidx.navigationevent.NavigationEventInfo
 import androidx.navigationevent.compose.NavigationBackHandler
 import androidx.navigationevent.compose.rememberNavigationEventState
 import com.seblful.klas.R
+import com.seblful.klas.ui.designsystem.component.ButtonKind
+import com.seblful.klas.ui.designsystem.component.KlasButton
 
 /**
  * What leaving a form should do — the rule behind the back arrow and the system back gesture.
@@ -127,7 +130,7 @@ private fun UnsavedChangesDialog(
         },
         confirmButton = {
             if (canSave) {
-                TextButton(onClick = onSave) { Text(stringResource(R.string.action_save)) }
+                KlasButton(onClick = onSave, kind = ButtonKind.Text) { Text(stringResource(R.string.action_save)) }
             } else {
                 DiscardButton(onDiscard)
             }
@@ -136,7 +139,9 @@ private fun UnsavedChangesDialog(
             if (canSave) {
                 DiscardButton(onDiscard)
             } else {
-                TextButton(onClick = onKeepEditing) { Text(stringResource(R.string.action_cancel)) }
+                KlasButton(onClick = onKeepEditing, kind = ButtonKind.Text) {
+                    Text(stringResource(R.string.action_cancel))
+                }
             }
         },
     )
@@ -144,7 +149,7 @@ private fun UnsavedChangesDialog(
 
 @Composable
 private fun DiscardButton(onDiscard: () -> Unit) {
-    TextButton(onClick = onDiscard, colors = destructiveTextButtonColors()) {
+    KlasButton(onClick = onDiscard, kind = ButtonKind.Destructive) {
         Text(stringResource(R.string.unsaved_discard))
     }
 }

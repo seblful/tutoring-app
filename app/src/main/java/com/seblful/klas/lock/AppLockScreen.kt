@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -25,6 +24,7 @@ import androidx.navigationevent.compose.NavigationBackHandler
 import androidx.navigationevent.compose.rememberNavigationEventState
 import com.seblful.klas.R
 import com.seblful.klas.ui.common.Spacing
+import com.seblful.klas.ui.designsystem.component.KlasButton
 import com.seblful.klas.ui.theme.KlasIcons
 
 /**
@@ -74,6 +74,6 @@ internal fun AppLockScreen(onUnlock: (title: String) -> Unit) {
             stringResource(R.string.app_lock_locked, stringResource(R.string.app_name)),
             style = MaterialTheme.typography.titleLarge,
         )
-        Button(onClick = { onUnlock(title) }) { Text(stringResource(R.string.app_lock_unlock)) }
+        KlasButton(onClick = { onUnlock(title) }) { Text(stringResource(R.string.app_lock_unlock)) }
     }
 }

@@ -18,7 +18,7 @@ import org.robolectric.RobolectricTestRunner
 class RouteSavingTest {
 
     private val everyRoute: List<Route> = listOf(
-        Routes.Schedule, Routes.People, Routes.Homework, Routes.Reports, Routes.More, Routes.Subjects,
+        Routes.Today, Routes.Schedule, Routes.People, Routes.Homework, Routes.Reports, Routes.Subjects,
         Routes.Backup, Routes.Settings, Routes.LessonSettings, Routes.NotificationSettings,
         Routes.CalendarSettings, Routes.AppearanceSettings, Routes.Diagnostics, Routes.About, Routes.StudentAdd,
         Routes.StudentAddForSubject(4), Routes.StudentDetail(1, StudentTask.PAYMENT),

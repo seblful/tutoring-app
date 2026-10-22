@@ -1,3 +1,5 @@
+@file:Suppress("ForbiddenImport") // The hero card is a design-system surface.
+
 package com.seblful.klas.ui.common
 
 import androidx.compose.foundation.layout.Arrangement

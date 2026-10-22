@@ -11,11 +11,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -51,7 +49,11 @@ import com.seblful.klas.ui.common.plusInset
 import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.common.supportingTextOf
+import com.seblful.klas.ui.designsystem.component.ButtonKind
+import com.seblful.klas.ui.designsystem.component.KlasButton
+import com.seblful.klas.ui.designsystem.component.KlasDivider
 import com.seblful.klas.ui.students.AddSubjectPriceDialog
+import com.seblful.klas.ui.theme.klasSemantics
 import dev.zacsweers.metrox.viewmodel.assistedMetroViewModel
 
 /** Create or edit one group: **subject**, name, note, hourly rate, default mode and roster. */
@@ -224,7 +226,7 @@ private fun GroupForm(
 
             item(key = "roster-header") {
                 Column(verticalArrangement = Arrangement.spacedBy(Spacing.itemGap)) {
-                    HorizontalDivider(Modifier.padding(vertical = Spacing.tight))
+                    KlasDivider(Modifier.padding(vertical = Spacing.tight))
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         SectionTitle(
                             stringResource(R.string.group_members_title),
@@ -248,7 +250,7 @@ private fun GroupForm(
                                 if (form.subjectId == null) R.string.group_no_students
                                 else R.string.group_no_students_for_subject,
                             ),
-                            color = MaterialTheme.colorScheme.error,
+                            color = klasSemantics.validation,
                             style = MaterialTheme.typography.bodyMedium,
                         )
                         state.selectedMemberIds.isEmpty() -> Text(
@@ -312,7 +314,9 @@ private fun UnpricedMemberRow(student: Student, onSetPrice: () -> Unit) {
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f).padding(start = Spacing.leading),
         )
-        TextButton(onClick = onSetPrice) { Text(stringResource(R.string.group_member_set_price)) }
+        KlasButton(onClick = onSetPrice, kind = ButtonKind.Text) {
+            Text(stringResource(R.string.group_member_set_price))
+        }
     }
 }
 

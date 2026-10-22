@@ -23,6 +23,10 @@ sealed interface Route
  * `SavedStateHandle` (see `routeViewModel`).
  */
 object Routes {
+    /** The working day: what is on now, what is over and still to mark, what is owed. Where the app opens. */
+    @Serializable
+    data object Today : Route
+
     @Serializable
     data object Schedule : Route
 
@@ -36,9 +40,6 @@ object Routes {
 
     @Serializable
     data object Reports : Route
-
-    @Serializable
-    data object More : Route
 
     @Serializable
     data object Subjects : Route
@@ -118,16 +119,13 @@ object Routes {
 }
 
 /**
- * The top-level tabs of the bottom bar, **in the order they appear**: who is taught first («Люди» —
- * students and their groups, which are the same people seen as rosters), then what they were set
- * («Задания»), then when («Расписание»), then the money («Отчёты») and the rest. The app still *opens* on
- * the schedule; this order is only where each tab sits — and with five, it puts that tab in the middle.
+ * The top-level tabs of the bottom bar, **in the order they appear**: the working day first («Сегодня», where
+ * the app opens), then the week around it («Расписание»), then who is taught («Люди»), what they were set
+ * («Задания») and the money («Отчёты»). Settings — with the subjects, the backup and the app's own pages that
+ * «Ещё» used to hold — is the gear on every tab's bar, not a tab: it is visited, not worked in.
  *
- * **Five again**, which is what folding «Группы» into «Люди» got the bar down from, and on purpose: that
- * tab was a second view of the same people, where homework is a question none of the other four answers —
- * "what have I set, and for whom", across every student. `TabLabel` already holds a label to one line and shrinks
- * it where «Расписание» would not fit a fifth of a 360dp screen, and `BottomBarLabelTest` is what proves
- * that on a device.
+ * `TabLabel` holds a label to one line and shrinks it where «Расписание» would not fit a fifth of a 360dp
+ * screen, and `BottomBarLabelTest` is what proves that on a device.
  *
  * **Every entry is a tab, always.** There used to be five, one of which («Группы») could be switched
  * off in Settings — which meant the bar, the route set and «Ещё» all had to be derived from a boolean
@@ -147,6 +145,8 @@ enum class TopDestination(
      */
     val iconOutlined: ImageVector,
 ) {
+    TODAY(Routes.Today, R.string.nav_today, KlasIcons.Filled.Today, KlasIcons.Outlined.Today),
+    SCHEDULE(Routes.Schedule, R.string.nav_schedule, KlasIcons.Filled.CalendarMonth, KlasIcons.Outlined.CalendarMonth),
     PEOPLE(Routes.People, R.string.nav_people, KlasIcons.Filled.Group, KlasIcons.Outlined.Group),
     HOMEWORK(
         Routes.Homework,
@@ -154,12 +154,13 @@ enum class TopDestination(
         KlasIcons.Filled.Assignment,
         KlasIcons.Outlined.Assignment,
     ),
-    SCHEDULE(Routes.Schedule, R.string.nav_schedule, KlasIcons.Filled.CalendarMonth, KlasIcons.Outlined.CalendarMonth),
     REPORTS(Routes.Reports, R.string.nav_reports, KlasIcons.Filled.BarChart, KlasIcons.Outlined.BarChart),
-    MORE(Routes.More, R.string.nav_more, KlasIcons.Filled.MoreHoriz, KlasIcons.Outlined.MoreHoriz),
     ;
 
     companion object {
+        /** The tab the app opens on, always at the bottom of the back stack. */
+        val START = TODAY
+
         /** The tab [route] is, or null for a screen pushed over one. */
         fun of(route: Route): TopDestination? = entries.firstOrNull { it.route == route }
     }

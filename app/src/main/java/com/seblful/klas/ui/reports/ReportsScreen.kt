@@ -27,13 +27,11 @@ import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -51,7 +49,6 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawOutline
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.platform.LocalDensity
@@ -81,6 +78,7 @@ import com.seblful.klas.ui.common.PageStepper
 import com.seblful.klas.ui.common.ScreenHeader
 import com.seblful.klas.ui.common.SectionCard
 import com.seblful.klas.ui.common.SectionTitle
+import com.seblful.klas.ui.common.SettingsGear
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.StatRow
 import com.seblful.klas.ui.common.SupportingPaneMaxWidth
@@ -99,6 +97,12 @@ import com.seblful.klas.ui.common.roomForSupportingPane
 import com.seblful.klas.ui.common.sectionSurface
 import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.common.text
+import com.seblful.klas.ui.designsystem.component.Amount
+import com.seblful.klas.ui.designsystem.component.AmountMeaning
+import com.seblful.klas.ui.designsystem.component.AmountText
+import com.seblful.klas.ui.designsystem.component.ButtonKind
+import com.seblful.klas.ui.designsystem.component.KlasButton
+import com.seblful.klas.ui.designsystem.component.KlasDivider
 import com.seblful.klas.ui.navigation.Arrival
 import com.seblful.klas.ui.theme.KlasIcons
 import com.seblful.klas.ui.theme.KlasMotion
@@ -113,6 +117,7 @@ fun ReportsScreen(
     onStudentClick: (Long) -> Unit,
     /** The debt digest's latest tap, which scrolls to the debts once — see `AppRoot`. */
     debtsArrival: Arrival<Unit>? = null,
+    onSettings: () -> Unit = {},
     viewModel: ReportsViewModel = metroViewModel(),
 ) {
     val listState = rememberLazyListState()
@@ -205,6 +210,7 @@ fun ReportsScreen(
                     },
                 )
             }
+            SettingsGear(onSettings)
         },
     ) { modifier, bottomInset ->
         // «Нет данных» says the tutor has earned nothing, which is a claim about their year — so it
@@ -398,9 +404,9 @@ private fun PeriodNavigator(
     ) {
         Box {
             // Ink like the schedule's page title: the same control in both places, the arrow saying it opens.
-            TextButton(
+            KlasButton(
                 onClick = { expanded = true },
-                colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.onSurface),
+                kind = ButtonKind.Quiet,
             ) {
                 Text(
                     periodTitle(period),
@@ -518,13 +524,13 @@ private fun TrendCard(trend: Reports.Trend) {
                 },
             )
         }
-        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+        KlasDivider()
         // `rows`, not `bars`: newest first and without the empty buckets, which are a gap in the chart
         // above and would only be a row of zeros here. Both halves of that are stated on [Reports.Trend].
         trend.rows.forEach { bar ->
             AmountRow(
                 label = if (isMonths) formatMonthName(bar.key) else bar.key.toString(),
-                amount = bar.total.text(),
+                amount = AmountText(bar.total.text()),
             )
         }
     }
@@ -642,7 +648,7 @@ private fun RankedLine(line: Reports.Line) {
         // Ink, like every other amount on the screen that is not a debt. Colour on this screen
         // means something — the hero's fill, a debt's red — and primary here meant nothing the
         // primary bar under it was not already saying.
-        AmountRow(line.label, line.amount.text())
+        AmountRow(line.label, AmountText(line.amount.text()))
         // The fraction and the single-line rule are the report's own — see [Reports.Line.share].
         line.share?.let { share ->
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -708,7 +714,7 @@ private fun LazyListScope.debtsSection(state: Reports.Report, onStudentClick: (L
         CardSlice(gapAbove = Spacing.itemGap) {
             AmountRow(
                 label = stringResource(R.string.reports_total_outstanding),
-                amount = state.totalOutstanding.text(),
+                amount = AmountText(state.totalOutstanding.text()),
                 bold = true,
                 // In the column the debts below it are in, which their chevron pulls inwards.
                 alignWithLinks = true,
@@ -725,8 +731,7 @@ private fun LazyListScope.debtsSection(state: Reports.Report, onStudentClick: (L
         CardSlice(last = index == state.debts.lastIndex, gapAbove = if (index == 0) Spacing.itemGap else 0.dp) {
             AmountRow(
                 label = debt.label,
-                amount = debt.amount.text(),
-                color = MaterialTheme.colorScheme.error,
+                amount = AmountText(debt.amount.text(), AmountMeaning.Debt),
                 onClick = debt.studentId?.let { id -> { onStudentClick(id) } },
             )
         }
@@ -815,9 +820,8 @@ private fun CardSlice(
 @Composable
 private fun AmountRow(
     label: String,
-    amount: String,
+    amount: AmountText,
     bold: Boolean = false,
-    color: Color = Color.Unspecified,
     onClick: (() -> Unit)? = null,
     /** Leaves the room a linked row's chevron and inset take, so a total lines up over the rows it sums. */
     alignWithLinks: Boolean = false,
@@ -847,10 +851,9 @@ private fun AmountRow(
             modifier = Modifier.weight(1f),
         )
         Spacer(Modifier.width(Spacing.itemGap))
-        Text(
+        Amount(
             amount,
             style = if (bold) MaterialTheme.typography.titleMedium else MaterialTheme.typography.titleSmall,
-            color = color,
         )
         if (onClick != null) {
             Icon(

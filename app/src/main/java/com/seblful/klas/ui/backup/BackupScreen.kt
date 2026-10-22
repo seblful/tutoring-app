@@ -46,6 +46,7 @@ import com.seblful.klas.ui.common.state.valueOrNull
 import com.seblful.klas.ui.settings.SettingsGroup
 import com.seblful.klas.ui.settings.settingsRowColors
 import com.seblful.klas.ui.theme.KlasIcons
+import com.seblful.klas.ui.theme.klasSemantics
 import dev.zacsweers.metrox.viewmodel.metroViewModel
 import kotlin.time.Instant
 
@@ -284,7 +285,7 @@ private fun WeeklyRows(weekly: WeeklyBackupViewModel.Weekly, onPickFolder: () ->
     if (weekly.failed) {
         ListItem(
             leadingContent = {
-                Icon(KlasIcons.Outlined.Warning, contentDescription = null, tint = MaterialTheme.colorScheme.tertiary)
+                Icon(KlasIcons.Outlined.Warning, contentDescription = null, tint = klasSemantics.attention)
             },
             headlineContent = { Text(stringResource(R.string.backup_weekly_failed)) },
             supportingContent = { Text(stringResource(R.string.backup_weekly_failed_desc)) },
@@ -331,7 +332,7 @@ private fun LastExportRow(at: Instant?, stale: Boolean) {
             Icon(
                 if (warn) KlasIcons.Outlined.Warning else KlasIcons.Outlined.Schedule,
                 contentDescription = null,
-                tint = if (warn) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant,
+                tint = if (warn) klasSemantics.attention else MaterialTheme.colorScheme.onSurfaceVariant,
             )
         },
         headlineContent = {

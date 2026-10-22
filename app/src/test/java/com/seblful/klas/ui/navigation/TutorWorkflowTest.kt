@@ -1,6 +1,7 @@
 package com.seblful.klas.ui.navigation
 
 import android.content.Intent
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isSelectable
@@ -109,6 +110,8 @@ class TutorWorkflowTest {
     fun `lesson actions undo a completion and carry the student into the next booking`() {
         ActivityScenario.launch(MainActivity::class.java).use {
             waitForText("Workflow student")
+            compose.onNode(hasText(text(R.string.nav_schedule)) and isSelectable()).performClick()
+            waitForText("Workflow student")
             compose.onNodeWithText("Workflow student").performClick()
             compose.onNode(hasText(text(R.string.class_status_completed)) and isSelectable()).performClick()
             waitFor(R.string.class_completed_message)
@@ -172,6 +175,16 @@ class TutorWorkflowTest {
             .setAction(TrayNavigation.ACTION_OPEN_LESSON)
             .putExtra(TrayNavigation.EXTRA_CLASS_ID, lessonId)
             .addFlags(flags)
+
+    @Test
+    fun `the widget's today opens the Today tab`() {
+        val today = Intent(ApplicationProvider.getApplicationContext(), MainActivity::class.java)
+            .setAction(TrayNavigation.ACTION_OPEN_TODAY)
+        ActivityScenario.launch<MainActivity>(today).use {
+            waitFor(R.string.today_lessons)
+            compose.onNode(hasText(text(R.string.nav_today)) and isSelectable()).assertIsSelected()
+        }
+    }
 
     @Test
     fun `a cold start from the tray opens the lesson it names`() {

@@ -18,6 +18,22 @@ style:
       # The manifest removes WorkManager's foreground service and its permission; a worker calling
       # setForeground would fail at run time. Restore both there before lifting this.
       - 'androidx.work.ForegroundInfo'
+      # The design system's wrappers own these (ui/designsystem, a few ui/common parts), each file marked
+      # with @file:Suppress("ForbiddenImport"). Features use KlasButton, KlasFab, KlasDivider, FormDialog,
+      # ChoiceDialog, ConfirmDialog, AccentCard, SectionCard and KlasSheet — see docs/ui-conventions.md.
+      - 'androidx.compose.material3.AlertDialog'
+      - 'androidx.compose.material3.BasicAlertDialog'
+      - 'androidx.compose.material3.ModalBottomSheet'
+      - 'androidx.compose.material3.Card'
+      - 'androidx.compose.material3.ElevatedCard'
+      - 'androidx.compose.material3.OutlinedCard'
+      - 'androidx.compose.material3.FloatingActionButton'
+      - 'androidx.compose.material3.ExtendedFloatingActionButton'
+      - 'androidx.compose.material3.HorizontalDivider'
+      - 'androidx.compose.material3.Button'
+      - 'androidx.compose.material3.FilledTonalButton'
+      - 'androidx.compose.material3.OutlinedButton'
+      - 'androidx.compose.material3.TextButton'
   MaxLineLength:
     active: false
   NewLineAtEndOfFile:

@@ -13,6 +13,7 @@ import com.seblful.klas.format.MoneyField
 import com.seblful.klas.format.labelRes
 import com.seblful.klas.ui.students.balanceColor
 import com.seblful.klas.ui.theme.klasColors
+import com.seblful.klas.ui.theme.klasSemantics
 
 /*
  * The app's domain vocabulary in words and colours — the one place a `LessonStatus`, a `ClassMode`, a balance
@@ -53,7 +54,7 @@ fun classStatusLabel(status: LessonStatus): String = stringResource(
 fun classStatusColor(status: LessonStatus): Color = when (status) {
     LessonStatus.SCHEDULED -> MaterialTheme.colorScheme.primary
     LessonStatus.COMPLETED -> klasColors.success
-    LessonStatus.CANCELLED -> MaterialTheme.colorScheme.error
+    LessonStatus.CANCELLED -> klasSemantics.cancelled
 }
 
 /** What a lesson's badge **says**: its status, «Идёт» while it is taught, «Не отмечено» once over unmarked. */

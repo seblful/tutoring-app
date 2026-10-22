@@ -31,6 +31,15 @@ Build screens from shared state and controls. Feature rules belong in the domain
 
 ## Layout and controls
 
+- Generic parts live in `ui/designsystem/component` and take no domain types: `KlasRow` (typed
+  `RowStart`/`RowEnd`, so a row has one trailing thing: an `Amount`, a value, a chevron, a switch or one
+  named icon action), `Amount` (an `AmountText` worded with its meaning), `HeaderedCard` (title, count or
+  summary and one `SectionAction` inside the card), `KlasButton` (`ButtonKind`), `KlasFab` (labelled,
+  icon-only from 1.5× text, named once for TalkBack), `KlasDivider`, `FormDialog`/`ChoiceDialog`,
+  `AccentCard` and `KlasSheet`. detekt's `ForbiddenImport` keeps the Material components they wrap out
+  of features; a wrapper file says `@file:Suppress("ForbiddenImport")` and why. New lists use `KlasRow`;
+  older ones move to it one list per change, reviewed in the goldens.
+
 - One `KlasScreen`/`Scaffold` owns insets, width cap, snackbar, back arrow and scroll behavior. The cap
   (`MaxContentWidth`, 600 dp) holds a column of rows to a readable width; a body that lays items out in
   columns lifts it (`maxContentWidth`) — homework cards are an adaptive grid — while `SegmentedPage`
@@ -66,7 +75,7 @@ Build screens from shared state and controls. Feature rules belong in the domain
   latest few rows and «See all» to the full list (`StudentList`/`GroupList` routes, beside People like the
   card). Short lists — a student's subjects, a group's members — are shown in full.
 - Items sit on `itemSurface`, sections (`SectionCard`, `StatRow`, report slices) on `sectionSurface`:
-  both above the `surfaceContainer` the bar tints to. Settings and More group rows on cards too
+  both above the `surfaceContainer` the bar tints to. Settings groups rows on cards too
   (`SettingsGroup`), their `ListItem`s transparent (`settingsRowColors`).
 - Cards press within their shape; full-width rows use `insetRowPress` (`outsetRowPress` for flush
   controls). Sheets draw `SheetHandle` with `dragHandle = null`, avoiding Material's tooltipped button;
@@ -122,6 +131,11 @@ Build screens from shared state and controls. Feature rules belong in the domain
   `uv run art/contrast_schemes.py` — rerun it after editing `Color.kt`. Under dynamic color the app-owned
   hues and avatar colours are harmonized toward the wallpaper's primary (`harmonize`). Text tinted below
   full strength, a status pill's included (`readableOn`), keeps 4.5:1 (`ContrastSchemesTest`).
+- Features ask for a meaning, not a scheme role: `klasSemantics.debt`, `.overdue`, `.destructive`,
+  `.validation`, `.cancelled`, `.attention`, and the `blocking`/`advisory` banner pairs. Each aliases a
+  tested scheme role, so contrast and dynamic color come with it. The error-hued meanings share a hue, so
+  each must come with its word or icon. Feature code does not read `colorScheme.error` or `.tertiary`
+  for meaning; review catches it, since a property read cannot be banned by import.
   Golos Text supports Cyrillic/Latin, with body/label tracking tightened from M3's Roboto values;
   avatar colors depend on ID.
 - Material Symbols (Rounded family, weight 400) live in `KlasIcons`: filled only for selection and state
@@ -134,7 +148,10 @@ Build screens from shared state and controls. Feature rules belong in the domain
 
 ## Motion, navigation and accessibility
 
-- Tabs are People, Homework, Schedule, Reports, More; Schedule opens first, Students/Groups share People.
+- Tabs are Today, Schedule, People, Homework, Reports; Today opens first (`TopDestination.START`),
+  Students/Groups share People. Settings is a gear (`SettingsGear`) last among every tab's actions, pushed over
+  that tab, not a tab: it is visited, not worked in. Today links out rather than repeating a tab: a lesson
+  opens its sheet on the schedule and the debts open on Reports, both the way a tray tap does (`Arrival`).
   Selection follows the back stack. Destinations arrive by Material's fade through; predictive back
   shrinks the leaving screen over the one beneath (`predictiveBackPop`). The tabs are Material's short
   navigation bar on a phone, a landscape one included, and its wide rail from medium width
@@ -187,8 +204,8 @@ Build screens from shared state and controls. Feature rules belong in the domain
 ## Feature conventions
 
 - Settings opens an index with current values, ordered Language & appearance, Notifications,
-  Lessons & billing, Calendar & invitations, then secondary Diagnostics. Backup, About and Subjects stay in
-  More. Each settings destination owns its view model, dialogs and permission launchers. Its loaded
+  Lessons & billing, Calendar & invitations, then a second card of Subjects, Backup, About and Diagnostics —
+  what the «Ещё» tab held. Each settings destination owns its view model, dialogs and permission launchers. Its loaded
   state joins preferences and permission status so the index never shows invented delivery defaults.
 - Notification status covers lesson reminders, all summaries and auto-completion reports. A blocked
   feature keeps its chosen switch state and offers system recovery; exact-alarm access concerns only

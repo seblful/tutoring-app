@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -41,6 +40,7 @@ import com.seblful.klas.ui.common.animateInPlace
 import com.seblful.klas.ui.common.plusInset
 import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.state.Loadable
+import com.seblful.klas.ui.designsystem.component.KlasFab
 import com.seblful.klas.ui.theme.KlasIcons
 import dev.zacsweers.metrox.viewmodel.metroViewModel
 
@@ -88,9 +88,7 @@ fun SubjectsScreen(
             onQueryChange = viewModel::setQuery,
         ),
         floatingActionButton = {
-            FloatingActionButton(onClick = { adding = true }) {
-                Icon(KlasIcons.Filled.Add, stringResource(R.string.subjects_add))
-            }
+            KlasFab(stringResource(R.string.subjects_add), onClick = { adding = true })
         },
     ) { modifier, bottomInset ->
         Box(modifier) {

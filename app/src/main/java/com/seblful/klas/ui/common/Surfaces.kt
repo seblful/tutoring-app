@@ -1,3 +1,5 @@
+@file:Suppress("ForbiddenImport") // ContentCard and SectionCard are the design system's cards.
+
 package com.seblful.klas.ui.common
 
 import androidx.compose.foundation.background

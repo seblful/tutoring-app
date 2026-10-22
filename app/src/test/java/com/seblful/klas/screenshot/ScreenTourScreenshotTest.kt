@@ -109,6 +109,7 @@ class ScreenTourScreenshotTest {
         graph(tutor, seeded = true, theme = theme)
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
             // Today is left alone, as in [FormFactorScreenshotTest]: its «now» line moves on its own.
+            tab(R.string.nav_schedule)
             waitFor(string(R.string.class_status_in_progress))
             click(R.string.schedule_view_month)
             compose.onAllNodesWithText(LATER_DAY).filterToOne(isSelectable()).performClick()
@@ -138,17 +139,9 @@ class ScreenTourScreenshotTest {
             click(R.string.homework_side_archive)
             capture(variant, "homework-done")
 
-            tab(R.string.nav_more)
-            capture(variant, "more")
-            for ((label, name) in MorePages) {
-                click(label)
-                capture(variant, name)
-                back(scenario)
-            }
-
-            click(R.string.settings_title)
+            describedClick(R.string.settings_title)
             capture(variant, "settings")
-            for ((label, name) in SettingsPages) {
+            for ((label, name) in SettingsPages + AppPages) {
                 click(label)
                 capture(variant, name)
                 back(scenario)
@@ -218,7 +211,8 @@ class ScreenTourScreenshotTest {
         /** A day of the demo tutor's month after its pinned today, the 14th. */
         const val LATER_DAY = "20"
 
-        val MorePages = listOf(
+        /** The pages «Ещё» held when it was a tab, now rows of Settings' index. */
+        val AppPages = listOf(
             R.string.more_subjects to "subjects",
             R.string.more_backup to "backup",
             R.string.about_title to "about",

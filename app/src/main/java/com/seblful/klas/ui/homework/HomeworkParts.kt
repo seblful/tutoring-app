@@ -10,13 +10,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -48,7 +46,6 @@ import com.seblful.klas.ui.common.ChoiceField
 import com.seblful.klas.ui.common.ContentCard
 import com.seblful.klas.ui.common.EmptyState
 import com.seblful.klas.ui.common.ExternalTarget
-import com.seblful.klas.ui.common.KeepTypedInput
 import com.seblful.klas.ui.common.LessonKindIcon
 import com.seblful.klas.ui.common.Messages
 import com.seblful.klas.ui.common.NamedIconButton
@@ -59,14 +56,16 @@ import com.seblful.klas.ui.common.SwipeToConfirmBox
 import com.seblful.klas.ui.common.SwipeToward
 import com.seblful.klas.ui.common.animateInPlace
 import com.seblful.klas.ui.common.dateTimeText
-import com.seblful.klas.ui.common.destructiveTextButtonColors
 import com.seblful.klas.ui.common.insetRowPress
 import com.seblful.klas.ui.common.rememberExternalApps
 import com.seblful.klas.ui.common.rememberRevealedFocus
 import com.seblful.klas.ui.common.swipeAction
 import com.seblful.klas.ui.common.timeText
+import com.seblful.klas.ui.designsystem.component.DialogAction
+import com.seblful.klas.ui.designsystem.component.FormDialog
 import com.seblful.klas.ui.theme.KlasIcons
 import com.seblful.klas.ui.theme.klasColors
+import com.seblful.klas.ui.theme.klasSemantics
 
 /**
  * A card's homework, inside the card's own list — a student's or a group's: an add row, the current ones
@@ -308,7 +307,7 @@ private fun DueLine(row: HomeworkRow, prefix: String? = null) {
     Text(
         bulletJoin(prefix.orEmpty(), text),
         style = MaterialTheme.typography.bodySmall,
-        color = if (row.due == HomeworkRules.Due.OVERDUE) MaterialTheme.colorScheme.error
+        color = if (row.due == HomeworkRules.Due.OVERDUE) klasSemantics.overdue
         else MaterialTheme.colorScheme.onSurfaceVariant,
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,
@@ -345,54 +344,49 @@ fun HomeworkDialog(
     // Only a correction opens in the text. A new one opens on nothing: who it is for comes first, and the
     // keyboard it used to raise asked for the homework before that and covered the dialog doing it.
     val focus = if (editing != null) rememberRevealedFocus() else null
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        // A stray tap beside the dialog must not throw away what was just typed.
-        properties = KeepTypedInput,
-        title = { Text(stringResource(if (editing == null) R.string.homework_add else R.string.homework_label)) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(Spacing.itemGap)) {
-                ChoiceField<AssigneeChoice?>(
-                    label = stringResource(R.string.homework_assignee_label),
-                    selected = selected,
-                    options = choices,
-                    optionLabel = { it?.name.orEmpty() },
-                    onSelect = { selected = it },
-                    enabled = canChangeAssignee,
-                )
-                OutlinedTextField(
-                    value = text,
-                    onValueChange = { text = it },
-                    label = { Text(stringResource(R.string.homework_text_label)) },
-                    keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
-                    minLines = HomeworkDialogLines,
-                    supportingText = selected?.takeIf {
-                        editing == null || it.assignee != editing.assignee
-                    }?.let { choice -> { Text(attachedText(choice)) } },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .then(if (focus != null) Modifier.focusRequester(focus) else Modifier),
-                )
-            }
+    val chosen = selected
+    FormDialog(
+        title = stringResource(if (editing == null) R.string.homework_add else R.string.homework_label),
+        confirm = DialogAction(
+            label = stringResource(R.string.action_save),
+            onClick = { if (chosen != null) { onSave(chosen.assignee, text); onDismiss() } },
+            enabled = chosen != null && text.isNotBlank(),
+        ),
+        onDismiss = onDismiss,
+        extra = if (editing != null && onDelete != null) {
+            DialogAction(
+                label = stringResource(R.string.action_delete),
+                onClick = { onDelete(); onDismiss() },
+                destructive = true,
+            )
+        } else {
+            null
         },
-        confirmButton = {
-            val chosen = selected
-            TextButton(
-                onClick = { if (chosen != null) { onSave(chosen.assignee, text); onDismiss() } },
-                enabled = chosen != null && text.isNotBlank(),
-            ) { Text(stringResource(R.string.action_save)) }
-        },
-        dismissButton = {
-            Row {
-                if (editing != null && onDelete != null) {
-                    TextButton(onClick = { onDelete(); onDismiss() }, colors = destructiveTextButtonColors()) {
-                        Text(stringResource(R.string.action_delete))
-                    }
-                }
-                TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
-            }
-        },
-    )
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(Spacing.itemGap)) {
+            ChoiceField<AssigneeChoice?>(
+                label = stringResource(R.string.homework_assignee_label),
+                selected = selected,
+                options = choices,
+                optionLabel = { it?.name.orEmpty() },
+                onSelect = { selected = it },
+                enabled = canChangeAssignee,
+            )
+            OutlinedTextField(
+                value = text,
+                onValueChange = { text = it },
+                label = { Text(stringResource(R.string.homework_text_label)) },
+                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
+                minLines = HomeworkDialogLines,
+                supportingText = selected?.takeIf {
+                    editing == null || it.assignee != editing.assignee
+                }?.let { choice -> { Text(attachedText(choice)) } },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .then(if (focus != null) Modifier.focusRequester(focus) else Modifier),
+            )
+        }
+    }
 }
 
 /**

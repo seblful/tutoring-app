@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -31,7 +30,10 @@ import com.seblful.klas.ui.common.MinHeadlineSize
 import com.seblful.klas.ui.common.SectionCard
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.text
+import com.seblful.klas.ui.designsystem.component.ButtonKind
+import com.seblful.klas.ui.designsystem.component.KlasButton
 import com.seblful.klas.ui.theme.KlasIcons
+import com.seblful.klas.ui.theme.klasSemantics
 
 /**
  * Where they stand — owed in red, as everywhere a debt is said — with when they last paid, what they have
@@ -54,7 +56,7 @@ internal fun BalanceCard(state: StudentDetails, onAddPayment: () -> Unit, modifi
                 Text(
                     balance.amount.text(),
                     style = MaterialTheme.typography.headlineSmall,
-                    color = if (balance is Balance.Owed) MaterialTheme.colorScheme.error else Color.Unspecified,
+                    color = if (balance is Balance.Owed) klasSemantics.debt else Color.Unspecified,
                     maxLines = 1,
                     // «12 450,50 BYN» at a large font scale must not wrap its currency onto a line of its own.
                     autoSize = TextAutoSize.StepBased(
@@ -91,10 +93,11 @@ internal fun BalanceCard(state: StudentDetails, onAddPayment: () -> Unit, modifi
 @Composable
 private fun AddPaymentButton(onClick: () -> Unit) {
     val addPayment = stringResource(R.string.add_payment)
-    FilledTonalButton(
+    KlasButton(
         onClick = onClick,
-        contentPadding = ButtonDefaults.ButtonWithIconContentPadding,
         modifier = Modifier.padding(start = Spacing.inline).semantics { contentDescription = addPayment },
+        kind = ButtonKind.Tonal,
+        withIcon = true,
     ) {
         Icon(KlasIcons.Filled.Add, contentDescription = null, Modifier.size(ButtonDefaults.IconSize))
         Text(stringResource(R.string.payment_add_short), Modifier.padding(start = Spacing.inline))

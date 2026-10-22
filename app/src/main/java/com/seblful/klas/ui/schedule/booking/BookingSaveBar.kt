@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -23,8 +22,10 @@ import com.seblful.klas.format.formatDate
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.text
 import com.seblful.klas.ui.common.timeText
+import com.seblful.klas.ui.designsystem.component.KlasButton
 import com.seblful.klas.ui.schedule.timeConflictText
 import com.seblful.klas.ui.theme.KlasMotion
+import com.seblful.klas.ui.theme.klasSemantics
 
 /**
  * The booking form's save, at the bottom where the thumb is, with what it will book beside it — or, while
@@ -51,7 +52,7 @@ internal fun BookingSaveBar(
         ) {
             // One line or two as what it says changes; the bar grows and shrinks to it rather than jumping.
             Column(Modifier.weight(1f).animateContentSize(KlasMotion.defaultSpatial())) { SaveBarText(state) }
-            Button(onClick = onSave, enabled = state.canSave) {
+            KlasButton(onClick = onSave, enabled = state.canSave) {
                 Text(stringResource(if (isNew) R.string.class_book_action else R.string.action_save))
             }
         }
@@ -60,7 +61,7 @@ internal fun BookingSaveBar(
 
 @Composable
 private fun SaveBarText(state: ClassFormState) {
-    val error = MaterialTheme.colorScheme.error
+    val error = klasSemantics.validation
     when (val bar = state.saveBar) {
         is SaveBar.Missing -> TwoLines(
             stringResource(R.string.class_still_needed),

@@ -57,6 +57,7 @@ import com.seblful.klas.domain.model.ClassMode
 import com.seblful.klas.domain.model.Student
 import com.seblful.klas.format.MoneyField
 import com.seblful.klas.ui.theme.KlasIcons
+import com.seblful.klas.ui.theme.klasSemantics
 
 /*
  * The inline form fields: picking one of a few things, and the search box.
@@ -288,7 +289,7 @@ fun PickerField(
                 supportingText,
                 style = MaterialTheme.typography.bodySmall,
                 color = if (isError) {
-                    MaterialTheme.colorScheme.error
+                    klasSemantics.validation
                 } else {
                     MaterialTheme.colorScheme.onSurfaceVariant
                 },
