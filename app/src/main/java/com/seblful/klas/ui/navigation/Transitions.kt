@@ -19,9 +19,9 @@ import com.seblful.klas.ui.theme.KlasMotion
 /**
  * **Every destination arrives the same way: Material's fade through.** One rule, no direction: the screen
  * leaving fades out first, then the arriving one fades in as it grows from 92%, so the two never show at
- * half strength together.
+ * half strength together. Onboarding's steps and the way into the app arrive by it too.
  */
-fun <T : Any> AnimatedContentTransitionScope<Scene<T>>.fadeThrough(): ContentTransform =
+fun <S> AnimatedContentTransitionScope<S>.fadeThrough(): ContentTransform =
     (
         fadeIn(tween(InMillis, delayMillis = OutMillis, easing = KlasMotion.EmphasizedDecelerate)) +
             scaleIn(tween(InMillis, delayMillis = OutMillis, easing = KlasMotion.EmphasizedDecelerate), ArrivingScale)
@@ -52,6 +52,17 @@ fun <T : Any> AnimatedContentTransitionScope<Scene<T>>.predictiveBackPop(
         targetContentZIndex = -1f,
     )
 }
+
+/**
+ * The end of [predictiveBackPop] for back that `NavDisplay` does not draw (`Modifier.predictiveBack`): once
+ * the gesture lets go, the content beneath is there at once and the leaving one fades from where the finger
+ * left it, above it.
+ */
+fun <S> AnimatedContentTransitionScope<S>.predictiveBackRelease(): ContentTransform = ContentTransform(
+    targetContentEnter = EnterTransition.None,
+    initialContentExit = fadeOut(tween(PopFadeMillis, easing = LinearEasing)),
+    targetContentZIndex = -1f,
+)
 
 private const val OutMillis = 90
 private const val InMillis = 210

@@ -150,6 +150,13 @@ Build screens from shared state and controls. Feature rules belong in the domain
   for colour and fades); material3 1.4 keeps `MotionScheme` internal. Pops use its one bouncy spring.
 - Launch: the splash mark's page turn (`ic_splash_logo`, an animated vector at rest before Android 12),
   then a fade through into the app (`fadeThrough`) once settings load. Neither delays the first screen.
+  Onboarding's steps and the way from setup into the app (`RootSwitch`) fade through too; a step left by a
+  released back gesture fades from where it was dragged (`predictiveBackRelease`).
+- Inside a screen, what comes and goes in a column grows from its top and fades (`Reveal`: folds, a ticked
+  subject's price, a lesson sheet's homework); a bar whose text changes length animates its size; a pinned
+  header reserves a line rather than changing height as pages turn. A moving selection (a calendar day)
+  fades, and report bars move to a new period's values, both drawn from animated state. Page, view and tab
+  bodies still swap in one frame.
 - State that moves every frame — a back gesture's progress, a tint or pop animating, a drag — is read in
   layout or draw (`graphicsLayer`, `drawBehind`, `offset {}`), not in composition. A list row does no work
   that every row shares (a measured width, the clock format, a pulse): it is done once above the list.

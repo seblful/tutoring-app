@@ -1,5 +1,6 @@
 package com.seblful.klas.ui.reports
 
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -37,6 +38,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -99,6 +101,7 @@ import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.common.text
 import com.seblful.klas.ui.navigation.Arrival
 import com.seblful.klas.ui.theme.KlasIcons
+import com.seblful.klas.ui.theme.KlasMotion
 import dev.zacsweers.metrox.viewmodel.metroViewModel
 import kotlinx.coroutines.flow.first
 import kotlin.math.roundToInt
@@ -533,15 +536,15 @@ private fun IncomeTrendChart(trend: Reports.Trend, labelOf: (Reports.Trend.Bar) 
     ) {
         trend.bars.forEach { bar ->
             // Against the peak already in hand: [Reports.Trend.shareOf] would find it again for every bar.
-            val share = bar.total.minor.toFloat() / peak.total.minor
+            val share = animateBarShare(bar.total.minor.toFloat() / peak.total.minor)
             // The peak in the accent, the rest in the secondary role: both stand 3:1 off the track.
             val fill = if (bar.key == peak.key) filled else others
             Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
-                // The track and its fill on one node, with the outlines kept until the bar is resized.
+                // The track and its fill on one node, with the outlines kept until the bar is resized or moves.
                 Spacer(
                     Modifier.fillMaxWidth().weight(1f).drawWithCache {
                         val trackOutline = barShape.createOutline(size, layoutDirection, this)
-                        val height = (size.height * share).roundToInt().toFloat()
+                        val height = (size.height * share.value.coerceIn(0f, 1f)).roundToInt().toFloat()
                         val fillOutline = barShape.createOutline(Size(size.width, height), layoutDirection, this)
                         onDrawBehind {
                             drawOutline(trackOutline, track)
@@ -630,17 +633,26 @@ private fun RankedLine(line: Reports.Line) {
 
 /** Drawn on one node: it is in every ranked row, and a section can run to hundreds of them. */
 @Composable
-private fun RankedBar(fraction: Float, modifier: Modifier = Modifier) {
+internal fun RankedBar(fraction: Float, modifier: Modifier = Modifier) {
     val track = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
     val fill = MaterialTheme.colorScheme.primary
+    val shown = animateBarShare(fraction)
     Spacer(
         modifier.height(6.dp).drawBehind {
             drawRoundRect(track, cornerRadius = CornerRadius(size.height / 2))
-            val filled = Size((size.width * fraction.coerceIn(0f, 1f)).roundToInt().toFloat(), size.height)
+            val filled = Size((size.width * shown.value.coerceIn(0f, 1f)).roundToInt().toFloat(), size.height)
             drawRoundRect(fill, size = filled, cornerRadius = CornerRadius(filled.minDimension / 2))
         },
     )
 }
+
+/**
+ * A bar's share of its track as drawn: a new period's grows or shrinks out of the last one's rather than
+ * replacing it, its spring clamped at the track's ends by whoever draws it. Read it in the draw.
+ */
+@Composable
+private fun animateBarShare(share: Float): State<Float> =
+    animateFloatAsState(share, KlasMotion.defaultSpatial(), label = "bar share")
 
 private fun LazyListScope.debtsSection(state: Reports.Report, onStudentClick: (Long) -> Unit) {
     // «Текущий баланс, за всё время» belongs to the title: it says why this card ignores the period. As

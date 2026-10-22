@@ -1,5 +1,6 @@
 package com.seblful.klas.ui.schedule.booking
 
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -23,6 +24,7 @@ import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.text
 import com.seblful.klas.ui.common.timeText
 import com.seblful.klas.ui.schedule.timeConflictText
+import com.seblful.klas.ui.theme.KlasMotion
 
 /**
  * The booking form's save, at the bottom where the thumb is, with what it will book beside it — or, while
@@ -47,7 +49,8 @@ internal fun BookingSaveBar(
             horizontalArrangement = Arrangement.spacedBy(Spacing.gutter),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Column(Modifier.weight(1f)) { SaveBarText(state) }
+            // One line or two as what it says changes; the bar grows and shrinks to it rather than jumping.
+            Column(Modifier.weight(1f).animateContentSize(KlasMotion.defaultSpatial())) { SaveBarText(state) }
             Button(onClick = onSave, enabled = state.canSave) {
                 Text(stringResource(if (isNew) R.string.class_book_action else R.string.action_save))
             }

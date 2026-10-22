@@ -1,5 +1,9 @@
 package com.seblful.klas.ui
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
@@ -104,21 +108,44 @@ fun AppRoot(rootViewModel: RootViewModel = metroViewModel()) {
             CompositionLocalProvider(LocalCurrency provides (settings?.currency ?: Currency.BYN)) {
                 // Whether the phone counts hours to 12 or 24, asked once for every time printed below.
                 ProvideClockFormat {
-                    when (rootViewModel.routeFor(settings)) {
-                        // Reached only if the splash has already been lifted — `MainActivity` holds it until
-                        // this row arrives, precisely so this state is not something the tutor sees. Kept as
-                        // the honest answer for the frame in which it is still true.
-                        RootRoute.LOADING -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            CircularProgressIndicator()
+                    RootSwitch(rootViewModel.routeFor(settings)) { route ->
+                        when (route) {
+                            // Reached only if the splash has already been lifted — `MainActivity` holds it
+                            // until this row arrives, precisely so this state is not something the tutor
+                            // sees. Kept as the honest answer for the frame in which it is still true.
+                            RootRoute.LOADING -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                CircularProgressIndicator()
+                            }
+                            RootRoute.ONBOARDING ->
+                                OnboardingScreen(onFinished = { /* settings flip re-renders into MainApp */ })
+                            RootRoute.MAIN -> MainApp()
                         }
-                        RootRoute.ONBOARDING ->
-                            OnboardingScreen(onFinished = { /* settings flip re-renders into MainApp */ })
-                        RootRoute.MAIN -> MainApp()
                     }
                 }
             }
         }
     }
+}
+
+/**
+ * Whichever of [RootRoute] is current. Out of loading it cuts: the splash covers that change and makes its own
+ * way out (`SplashHandover.kt`). Setup gives way to the app — finished, skipped or restored — by fade through,
+ * as every screen arrives.
+ */
+@Composable
+internal fun RootSwitch(route: RootRoute, content: @Composable (RootRoute) -> Unit) {
+    AnimatedContent(
+        targetState = route,
+        modifier = Modifier.fillMaxSize(),
+        transitionSpec = {
+            if (initialState == RootRoute.LOADING) {
+                EnterTransition.None togetherWith ExitTransition.None
+            } else {
+                fadeThrough()
+            }
+        },
+        label = "root",
+    ) { content(it) }
 }
 
 @OptIn(ExperimentalMaterial3AdaptiveApi::class)

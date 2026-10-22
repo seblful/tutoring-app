@@ -2,10 +2,8 @@ package com.seblful.klas.ui.schedule.booking
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -33,6 +31,7 @@ import androidx.compose.ui.semantics.expand
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import com.seblful.klas.ui.common.MinTouchTarget
+import com.seblful.klas.ui.common.Reveal
 import com.seblful.klas.ui.common.SectionCard
 import com.seblful.klas.ui.common.SectionTitle
 import com.seblful.klas.ui.common.Spacing
@@ -118,13 +117,7 @@ internal fun Fold(
                 modifier = Modifier.graphicsLayer { rotationZ = turn },
             )
         }
-        AnimatedVisibility(
-            opened,
-            enter = expandVertically(KlasMotion.defaultSpatial(), expandFrom = Alignment.Top) +
-                fadeIn(KlasMotion.defaultEffects()),
-            exit = shrinkVertically(KlasMotion.defaultSpatial(), shrinkTowards = Alignment.Top) +
-                fadeOut(KlasMotion.defaultEffects()),
-        ) {
+        Reveal(opened) {
             Column(
                 Modifier.padding(top = Spacing.tight, bottom = Spacing.inline),
                 verticalArrangement = Arrangement.spacedBy(Spacing.itemGap),

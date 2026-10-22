@@ -14,15 +14,22 @@ internal fun fadeThrough(splash: View, icon: View, content: View, onEnd: () -> U
     content.scaleX = ContentStartScale
     content.scaleY = ContentStartScale
     content.animate().scaleX(1f).scaleY(1f)
-        .setStartDelay(60).setDuration(240).setInterpolator(EmphasizedDecelerate)
-    icon.animate().alpha(0f).scaleX(0.9f).scaleY(0.9f)
-        .setDuration(120).setInterpolator(EmphasizedAccelerate)
+        .setStartDelay(IconLeadMillis).setDuration(ContentGrowMillis).setInterpolator(EmphasizedDecelerate)
+    icon.animate().alpha(0f).scaleX(IconEndScale).scaleY(IconEndScale)
+        .setDuration(IconLeaveMillis).setInterpolator(EmphasizedAccelerate)
     splash.animate().alpha(0f)
-        .setStartDelay(60).setDuration(180).setInterpolator(Standard)
+        .setStartDelay(IconLeadMillis).setDuration(SplashFadeMillis).setInterpolator(Standard)
         .withEndAction(onEnd)
 }
 
 private const val ContentStartScale = 0.92f
+private const val IconEndScale = 0.9f
+
+// The mark starts leaving first; the splash and the app follow once it is under way.
+private const val IconLeadMillis = 60L
+private const val IconLeaveMillis = 120L
+private const val SplashFadeMillis = 180L
+private const val ContentGrowMillis = 240L
 
 // KlasMotion's easings, as View interpolators.
 private val EmphasizedDecelerate = PathInterpolator(0.05f, 0.7f, 0.1f, 1f)

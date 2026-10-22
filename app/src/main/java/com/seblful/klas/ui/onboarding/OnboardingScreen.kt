@@ -1,9 +1,12 @@
 package com.seblful.klas.ui.onboarding
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.EnterExitState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -28,6 +31,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -66,6 +70,8 @@ import com.seblful.klas.ui.common.predictiveBack
 import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.rememberOpenDocument
 import com.seblful.klas.ui.common.state.valueOrNull
+import com.seblful.klas.ui.navigation.fadeThrough
+import com.seblful.klas.ui.navigation.predictiveBackRelease
 import com.seblful.klas.ui.students.StudentFormContent
 import com.seblful.klas.ui.students.StudentFormViewModel
 import com.seblful.klas.ui.subjects.SubjectNameDialog
@@ -108,6 +114,12 @@ fun OnboardingScreen(
 ) {
     // Saveable, so turning the phone on step 3 does not throw the tutor back to the welcome screen.
     var step by rememberSaveable { mutableStateOf(Step.WELCOME) }
+    // Whether the last step change was a back gesture let go, which has drawn half of its own way out.
+    var byGesture by remember { mutableStateOf(false) }
+    fun goTo(next: Step, released: Boolean = false) {
+        byGesture = released
+        step = next
+    }
     val subjects by viewModel.subjects.collectAsStateWithLifecycle()
     val locale by viewModel.locale.collectAsStateWithLifecycle()
     var addingSubject by rememberSaveable { mutableStateOf(false) }
@@ -177,7 +189,7 @@ fun OnboardingScreen(
     NavigationBackHandler(
         state = backState,
         isBackEnabled = previousStep != null,
-        onBackCompleted = { previousStep?.let { step = it } },
+        onBackCompleted = { previousStep?.let { goTo(it, released = true) } },
     )
 
     KlasScreen(
@@ -189,204 +201,217 @@ fun OnboardingScreen(
             Step.SUBJECTS -> stringResource(R.string.onboarding_subjects_title)
             Step.STUDENT -> stringResource(R.string.onboarding_student_title)
         },
-        onBack = previousStep?.let { back -> { step = back } },
+        onBack = previousStep?.let { back -> { goTo(back) } },
         messages = messages,
         // Not only inside the embedded student form: the step's «Готово» button sits *below* the form,
         // so without this the keyboard covers the one control that finishes setup.
         imeAware = true,
     ) { modifier, bottomInset ->
-        Column(modifier.padding(bottomInset).predictiveBack(backState)) {
-            // Which step, and how many are left. Without it the setup was a sequence of screens with
-            // no visible end, which is the difference between "this takes a minute" as a claim and as
-            // something the tutor can see.
-            if (step.number > 0) {
-                Text(
-                    stringResource(R.string.onboarding_step, step.number, Step.total),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(start = Spacing.gutter, top = Spacing.inline),
-                )
-            }
-            when (step) {
-                Step.WELCOME -> {
-                    // The first thing a new tutor sees, and it used to be a grey paragraph of
-                    // instructions with the buttons pushed to the bottom by a spacer — the app
-                    // explaining its setup before saying what it was. The mark and three lines of
-                    // value proposition come first now; the setup is offered underneath them.
-                    //
-                    // Centred while it fits, scrolled when it does not: at a large font scale, or on a phone
-                    // turned sideways, the mark and the three lines drew over the buttons below them.
-                    BoxWithConstraints(Modifier.fillMaxWidth().weight(1f)) {
-                        Column(
-                            Modifier
-                                .fillMaxWidth()
-                                .verticalScroll(rememberScrollState())
-                                .heightIn(min = maxHeight)
-                                .padding(horizontal = Spacing.sectionGap),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(Spacing.itemGap, Alignment.CenterVertically),
-                        ) {
-                            KlasLogo(Modifier.size(96.dp))
-                            KlasWordmark(Modifier.width(160.dp).height(64.dp))
-                            Text(
-                                stringResource(R.string.onboarding_tagline),
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                textAlign = TextAlign.Center,
-                                modifier = Modifier.padding(bottom = Spacing.inline),
-                            )
-                            ValueLine(
-                                KlasIcons.Outlined.CalendarMonth,
-                                stringResource(R.string.onboarding_value_schedule),
-                            )
-                            ValueLine(KlasIcons.Outlined.Payments, stringResource(R.string.onboarding_value_money))
-                            ValueLine(
-                                KlasIcons.Outlined.PhonelinkLock,
-                                stringResource(R.string.onboarding_value_offline),
-                            )
-                        }
-                    }
-                    Column(
-                        Modifier.fillMaxWidth().padding(Spacing.gutter),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(Spacing.inline),
-                    ) {
-                        Button(
-                            onClick = { step = Step.LOCALE },
-                            modifier = Modifier.fillMaxWidth(),
-                        ) { Text(stringResource(R.string.onboarding_start)) }
-                        // Each of the three ways out carries its own one-line consequence, so the
-                        // choice is made with the outcome in view rather than after a paragraph
-                        // above the buttons that has to describe all three at once.
-                        Caption(stringResource(R.string.onboarding_welcome_desc))
-                        OutlinedButton(
-                            onClick = { restore(BACKUP_MIME_TYPES) },
-                            modifier = Modifier.fillMaxWidth(),
-                            contentPadding = ButtonDefaults.ButtonWithIconContentPadding,
-                        ) {
-                            Icon(KlasIcons.Outlined.Download, null, Modifier.size(ButtonDefaults.IconSize))
-                            Text(stringResource(R.string.onboarding_restore), Modifier.padding(start = Spacing.inline))
-                        }
-                        Caption(stringResource(R.string.onboarding_restore_desc))
-                        TextButton(
-                            onClick = { viewModel.complete(); onFinished() },
-                            modifier = Modifier.fillMaxWidth(),
-                        ) { Text(stringResource(R.string.onboarding_skip)) }
-                        Caption(stringResource(R.string.onboarding_skip_desc))
-                    }
-                }
-
-                Step.LOCALE -> {
+        // The steps arrive as screens do, by fade through — except one a released back gesture has already
+        // half drawn away, which fades from where the finger left it over the step it went back to.
+        AnimatedContent(
+            targetState = step,
+            modifier = modifier.padding(bottomInset),
+            transitionSpec = { if (byGesture) predictiveBackRelease() else fadeThrough() },
+            label = "onboarding step",
+        ) { shown ->
+            val leaving = transition.targetState == EnterExitState.PostExit
+            Column(Modifier.fillMaxSize().predictiveBack(backState, following = !leaving)) {
+                // Which step, and how many are left. Without it the setup was a sequence of screens with
+                // no visible end, which is the difference between "this takes a minute" as a claim and as
+                // something the tutor can see.
+                if (shown.number > 0) {
                     Text(
-                        stringResource(R.string.onboarding_locale_desc),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(Spacing.gutter),
+                        stringResource(R.string.onboarding_step, shown.number, Step.total),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(start = Spacing.gutter, top = Spacing.inline),
                     )
-                    // The two rows wait for the row that holds them, like every other screen that is *about*
-                    // a record: the defaults are somebody else's answers, and a currency field that shows
-                    // BYN and then jumps to USD reads as the app changing its mind. See [Loadable].
-                    val chosen = locale.valueOrNull()
-                    Column(Modifier.weight(1f)) {
-                        if (chosen == null) {
-                            ListSkeleton(rows = 2, rowHeight = LocaleRowHeight)
-                        } else {
-                            ChoiceRow(
-                                title = stringResource(R.string.settings_language),
-                                options = LanguageChoices.map { it to languageLabel(it) },
-                                selected = chosen.language,
-                                onSelect = viewModel::setLanguage,
-                            )
-                            CurrencyPicker(
-                                // Setup applies immediately; Settings confirms a change because it also
-                                // relabels existing records. Both explain that no amounts are converted.
-                                description = stringResource(R.string.onboarding_locale_currency_desc),
-                                selected = chosen.currency,
-                                onSelect = viewModel::setCurrency,
-                            )
-                        }
-                    }
-                    Button(
-                        onClick = { step = Step.SUBJECTS },
-                        // Never disabled: both answers are already valid — that is what pre-setting them
-                        // from the phone means — so there is nothing here for the tutor to supply.
-                        modifier = Modifier.fillMaxWidth().padding(Spacing.gutter),
-                    ) { Text(stringResource(R.string.onboarding_continue)) }
                 }
-
-                Step.SUBJECTS -> {
-                    Text(
-                        stringResource(R.string.onboarding_subjects_desc),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(Spacing.gutter),
-                    )
-                    OutlinedButton(
-                        onClick = { addingSubject = true },
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.gutter),
-                        contentPadding = ButtonDefaults.ButtonWithIconContentPadding,
-                    ) {
-                        Icon(KlasIcons.Filled.Add, null, Modifier.size(ButtonDefaults.IconSize))
-                        Text(stringResource(R.string.subjects_add), Modifier.padding(start = Spacing.inline))
-                    }
-                    // «Нет предметов» is usually the truth on this screen — it runs on a fresh install —
-                    // but not always: the step is reachable again once subjects have been added, and it
-                    // must not say that over three the tutor has just typed. See [Loadable].
-                    val added = subjects.valueOrNull()
-                    if (added == null) {
-                        ListSkeleton(Modifier.weight(1f), rows = 3, rowHeight = SubjectRowHeight)
-                    } else if (added.isEmpty()) {
-                        EmptyState(
-                            title = stringResource(R.string.subjects_empty),
-                            icon = KlasIcons.Outlined.MenuBook,
-                            modifier = Modifier.weight(1f),
-                        )
-                    } else {
-                        LazyColumn(Modifier.weight(1f)) {
-                            items(added, key = { it.id }) { subject ->
-                                // Each one can be taken back. The list was read-only, so a typo in the
-                                // step whose only gate is "at least one subject" could be *finished
-                                // with* but not fixed — the tutor had to skip setup to reach the screen
-                                // that deletes one. Removal is undone from the snackbar rather than
-                                // guarded by a dialog: nothing references a subject added here (see
-                                // [OnboardingViewModel.removeSubject]), so there is nothing to warn
-                                // about, and «Вернуть» costs a mis-tap one tap instead of costing every
-                                // deliberate delete a confirmation.
-                                ListItem(
-                                    headlineContent = { Text(subject.name) },
-                                    trailingContent = {
-                                        IconButton(onClick = { removeSubject(subject) }) {
-                                            Icon(
-                                                KlasIcons.Outlined.Delete,
-                                                stringResource(R.string.subject_delete_named, subject.name),
-                                            )
-                                        }
-                                    },
+                when (shown) {
+                    Step.WELCOME -> {
+                        // The first thing a new tutor sees, and it used to be a grey paragraph of
+                        // instructions with the buttons pushed to the bottom by a spacer — the app
+                        // explaining its setup before saying what it was. The mark and three lines of
+                        // value proposition come first now; the setup is offered underneath them.
+                        //
+                        // Centred while it fits, scrolled when it does not: at a large font scale, or on a phone
+                        // turned sideways, the mark and the three lines drew over the buttons below them.
+                        BoxWithConstraints(Modifier.fillMaxWidth().weight(1f)) {
+                            Column(
+                                Modifier
+                                    .fillMaxWidth()
+                                    .verticalScroll(rememberScrollState())
+                                    .heightIn(min = maxHeight)
+                                    .padding(horizontal = Spacing.sectionGap),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(Spacing.itemGap, Alignment.CenterVertically),
+                            ) {
+                                KlasLogo(Modifier.size(96.dp))
+                                KlasWordmark(Modifier.width(160.dp).height(64.dp))
+                                Text(
+                                    stringResource(R.string.onboarding_tagline),
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier.padding(bottom = Spacing.inline),
+                                )
+                                ValueLine(
+                                    KlasIcons.Outlined.CalendarMonth,
+                                    stringResource(R.string.onboarding_value_schedule),
+                                )
+                                ValueLine(KlasIcons.Outlined.Payments, stringResource(R.string.onboarding_value_money))
+                                ValueLine(
+                                    KlasIcons.Outlined.PhonelinkLock,
+                                    stringResource(R.string.onboarding_value_offline),
                                 )
                             }
                         }
+                        Column(
+                            Modifier.fillMaxWidth().padding(Spacing.gutter),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(Spacing.inline),
+                        ) {
+                            Button(
+                                onClick = { goTo(Step.LOCALE) },
+                                modifier = Modifier.fillMaxWidth(),
+                            ) { Text(stringResource(R.string.onboarding_start)) }
+                            // Each of the three ways out carries its own one-line consequence, so the
+                            // choice is made with the outcome in view rather than after a paragraph
+                            // above the buttons that has to describe all three at once.
+                            Caption(stringResource(R.string.onboarding_welcome_desc))
+                            OutlinedButton(
+                                onClick = { restore(BACKUP_MIME_TYPES) },
+                                modifier = Modifier.fillMaxWidth(),
+                                contentPadding = ButtonDefaults.ButtonWithIconContentPadding,
+                            ) {
+                                Icon(KlasIcons.Outlined.Download, null, Modifier.size(ButtonDefaults.IconSize))
+                                Text(
+                                    stringResource(R.string.onboarding_restore),
+                                    Modifier.padding(start = Spacing.inline),
+                                )
+                            }
+                            Caption(stringResource(R.string.onboarding_restore_desc))
+                            TextButton(
+                                onClick = { viewModel.complete(); onFinished() },
+                                modifier = Modifier.fillMaxWidth(),
+                            ) { Text(stringResource(R.string.onboarding_skip)) }
+                            Caption(stringResource(R.string.onboarding_skip_desc))
+                        }
                     }
-                    Button(
-                        onClick = { step = Step.STUDENT },
-                        // Disabled while the list has not arrived, as it is when the list is empty: the
-                        // step's gate is "at least one subject", and nothing yet says there is one.
-                        enabled = !added.isNullOrEmpty(),
-                        modifier = Modifier.fillMaxWidth().padding(Spacing.gutter),
-                    ) { Text(stringResource(R.string.onboarding_continue)) }
-                }
 
-                Step.STUDENT -> {
-                    val studentState by studentVm.state.collectAsStateWithLifecycle()
-                    StudentFormContent(
-                        state = studentState,
-                        viewModel = studentVm,
-                        modifier = Modifier.weight(1f).fillMaxWidth(),
-                    )
-                    Button(
-                        onClick = { studentVm.save { viewModel.complete(); onFinished() } },
-                        enabled = studentState.canSave,
-                        modifier = Modifier.fillMaxWidth().padding(Spacing.gutter),
-                    ) { Text(stringResource(R.string.onboarding_finish)) }
+                    Step.LOCALE -> {
+                        Text(
+                            stringResource(R.string.onboarding_locale_desc),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(Spacing.gutter),
+                        )
+                        // The two rows wait for the row that holds them, like every other screen that is *about*
+                        // a record: the defaults are somebody else's answers, and a currency field that shows
+                        // BYN and then jumps to USD reads as the app changing its mind. See [Loadable].
+                        val chosen = locale.valueOrNull()
+                        Column(Modifier.weight(1f)) {
+                            if (chosen == null) {
+                                ListSkeleton(rows = 2, rowHeight = LocaleRowHeight)
+                            } else {
+                                ChoiceRow(
+                                    title = stringResource(R.string.settings_language),
+                                    options = LanguageChoices.map { it to languageLabel(it) },
+                                    selected = chosen.language,
+                                    onSelect = viewModel::setLanguage,
+                                )
+                                CurrencyPicker(
+                                    // Setup applies immediately; Settings confirms a change because it also
+                                    // relabels existing records. Both explain that no amounts are converted.
+                                    description = stringResource(R.string.onboarding_locale_currency_desc),
+                                    selected = chosen.currency,
+                                    onSelect = viewModel::setCurrency,
+                                )
+                            }
+                        }
+                        Button(
+                            onClick = { goTo(Step.SUBJECTS) },
+                            // Never disabled: both answers are already valid — that is what pre-setting them
+                            // from the phone means — so there is nothing here for the tutor to supply.
+                            modifier = Modifier.fillMaxWidth().padding(Spacing.gutter),
+                        ) { Text(stringResource(R.string.onboarding_continue)) }
+                    }
+
+                    Step.SUBJECTS -> {
+                        Text(
+                            stringResource(R.string.onboarding_subjects_desc),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(Spacing.gutter),
+                        )
+                        OutlinedButton(
+                            onClick = { addingSubject = true },
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.gutter),
+                            contentPadding = ButtonDefaults.ButtonWithIconContentPadding,
+                        ) {
+                            Icon(KlasIcons.Filled.Add, null, Modifier.size(ButtonDefaults.IconSize))
+                            Text(stringResource(R.string.subjects_add), Modifier.padding(start = Spacing.inline))
+                        }
+                        // «Нет предметов» is usually the truth on this screen — it runs on a fresh install —
+                        // but not always: the step is reachable again once subjects have been added, and it
+                        // must not say that over three the tutor has just typed. See [Loadable].
+                        val added = subjects.valueOrNull()
+                        if (added == null) {
+                            ListSkeleton(Modifier.weight(1f), rows = 3, rowHeight = SubjectRowHeight)
+                        } else if (added.isEmpty()) {
+                            EmptyState(
+                                title = stringResource(R.string.subjects_empty),
+                                icon = KlasIcons.Outlined.MenuBook,
+                                modifier = Modifier.weight(1f),
+                            )
+                        } else {
+                            LazyColumn(Modifier.weight(1f)) {
+                                items(added, key = { it.id }) { subject ->
+                                    // Each one can be taken back. The list was read-only, so a typo in the
+                                    // step whose only gate is "at least one subject" could be *finished
+                                    // with* but not fixed — the tutor had to skip setup to reach the screen
+                                    // that deletes one. Removal is undone from the snackbar rather than
+                                    // guarded by a dialog: nothing references a subject added here (see
+                                    // [OnboardingViewModel.removeSubject]), so there is nothing to warn
+                                    // about, and «Вернуть» costs a mis-tap one tap instead of costing every
+                                    // deliberate delete a confirmation.
+                                    ListItem(
+                                        headlineContent = { Text(subject.name) },
+                                        trailingContent = {
+                                            IconButton(onClick = { removeSubject(subject) }) {
+                                                Icon(
+                                                    KlasIcons.Outlined.Delete,
+                                                    stringResource(R.string.subject_delete_named, subject.name),
+                                                )
+                                            }
+                                        },
+                                    )
+                                }
+                            }
+                        }
+                        Button(
+                            onClick = { goTo(Step.STUDENT) },
+                            // Disabled while the list has not arrived, as it is when the list is empty: the
+                            // step's gate is "at least one subject", and nothing yet says there is one.
+                            enabled = !added.isNullOrEmpty(),
+                            modifier = Modifier.fillMaxWidth().padding(Spacing.gutter),
+                        ) { Text(stringResource(R.string.onboarding_continue)) }
+                    }
+
+                    Step.STUDENT -> {
+                        val studentState by studentVm.state.collectAsStateWithLifecycle()
+                        StudentFormContent(
+                            state = studentState,
+                            viewModel = studentVm,
+                            modifier = Modifier.weight(1f).fillMaxWidth(),
+                        )
+                        Button(
+                            onClick = { studentVm.save { viewModel.complete(); onFinished() } },
+                            enabled = studentState.canSave,
+                            modifier = Modifier.fillMaxWidth().padding(Spacing.gutter),
+                        ) { Text(stringResource(R.string.onboarding_finish)) }
+                    }
                 }
             }
         }

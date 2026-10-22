@@ -50,6 +50,7 @@ import com.seblful.klas.ui.common.Avatar
 import com.seblful.klas.ui.common.DatePickerModal
 import com.seblful.klas.ui.common.LessonKindIcon
 import com.seblful.klas.ui.common.MinTouchTarget
+import com.seblful.klas.ui.common.Reveal
 import com.seblful.klas.ui.common.SectionTitle
 import com.seblful.klas.ui.common.SegmentedChoice
 import com.seblful.klas.ui.common.SheetHandle
@@ -126,8 +127,9 @@ internal fun ClassActionsSheet(
             LessonAttendance(row, onAttendance)
 
             // What was set for this lesson, **with its ticks on the sheet**: the start of a lesson is when
-            // the tutor asks for it, and this is the screen they are on.
-            if (homework.isNotEmpty()) AttachedHomework(homework, onHomeworkDone)
+            // the tutor asks for it, and this is the screen they are on. Read once the sheet is open, so it
+            // grows in rather than lengthening the sheet in one frame.
+            Reveal(homework.isNotEmpty()) { AttachedHomework(homework, onHomeworkDone) }
 
             HorizontalDivider(Modifier.padding(vertical = Spacing.inline))
             SheetAction(stringResource(R.string.homework_add), KlasIcons.Outlined.Assignment, onSetHomework)

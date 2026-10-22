@@ -1,7 +1,7 @@
 package com.seblful.klas.ui.schedule
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.indication
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.BasicText
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -26,6 +27,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -46,6 +48,7 @@ import com.seblful.klas.ui.common.rememberPlaceholderShown
 import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.common.state.map
 import com.seblful.klas.ui.common.state.valueOrNull
+import com.seblful.klas.ui.theme.KlasMotion
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
 
@@ -58,6 +61,8 @@ private val CellHeight = 48.dp
 private val GridBleed = 4.dp
 
 private val NumberDiscSize = 28.dp
+
+private val TodayRingWidth = 1.dp
 
 private const val DiscToLineHeight = 1.4f
 
@@ -170,6 +175,10 @@ private fun DayCell(
 ) {
     val scheme = MaterialTheme.colorScheme
     val numberColor = dayNumberColor(scheme, isSelected = isSelected, isToday = isToday, inMonth = inMonth)
+    // The disc fills and empties as the selection moves, as Material's date picker fades its days, rather than
+    // swapping in a frame. Both are read in the draw: a tap would otherwise recompose two cells per frame.
+    val selection = animateFloatAsState(if (isSelected) 1f else 0f, KlasMotion.fastEffects(), label = "day fill")
+    val ink = animateColorAsState(numberColor, KlasMotion.fastEffects(), label = "day number")
     // Spoken as «Четверг, 15 октября, 2 занятия, В плане: 1, Отменено: 1» — the tallies carry that
     // breakdown visually through colour alone, which a screen reader cannot convey, so it must be said,
     // and the day is said in full rather than as a bare «15». A cell whose counts have not arrived says
@@ -221,23 +230,23 @@ private fun DayCell(
                 Modifier
                     .size(discSize)
                     .clip(CircleShape)
-                    .then(if (isSelected) Modifier.background(scheme.primary) else Modifier)
-                    .then(
-                        if (isToday && !isSelected) {
-                            Modifier.border(1.dp, scheme.primary, CircleShape)
-                        } else {
-                            Modifier
-                        },
-                    )
+                    .drawBehind {
+                        // Today's ring lies under the fill, which covers it once today is selected.
+                        if (isToday) {
+                            val ring = TodayRingWidth.toPx()
+                            drawCircle(scheme.primary, radius = (size.minDimension - ring) / 2, style = Stroke(ring))
+                        }
+                        drawRect(scheme.primary.copy(alpha = selection.value.coerceIn(0f, 1f)))
+                    }
                     // Last in the chain so the ripple lands *over* a selected day's fill, and
                     // tinted like the number so it stays visible on every disc state.
                     .indication(interactionSource, ripple(color = numberColor)),
                 contentAlignment = Alignment.Center,
             ) {
-                Text(
+                BasicText(
                     text = date.day.toString(),
                     style = MaterialTheme.typography.bodyMedium,
-                    color = numberColor,
+                    color = { ink.value },
                 )
             }
             DayTallies(load, placeholderShown)

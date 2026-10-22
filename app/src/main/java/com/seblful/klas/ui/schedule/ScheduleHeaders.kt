@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -22,6 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
@@ -156,18 +158,24 @@ internal fun DaySectionHeader(date: LocalDate, isSelected: Boolean, summary: Day
 @Composable
 internal fun DaySummaryLine(summary: DaySummary, modifier: Modifier = Modifier) {
     // Null is "nothing to say about this day" — the empty state below already says it at length, and a
-    // «0 занятий · 0 ч» above that would be the same news twice in a colder voice.
+    // «0 занятий · 0 ч» above that would be the same news twice in a colder voice. The line keeps its height
+    // all the same: the Day view's header is pinned, and paging onto an empty day shrank it and jumped the list.
     val text = daySummaryText(
         LocalContext.current.resources,
         summary,
         LocalCurrency.current,
-    ) ?: return
+    )
 
+    val style = MaterialTheme.typography.bodySmall
     Text(
-        text,
-        style = MaterialTheme.typography.bodySmall,
+        text.orEmpty(),
+        style = style,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = modifier.padding(top = Spacing.tight),
+        modifier = modifier
+            .padding(top = Spacing.tight)
+            // An empty text is not a line tall.
+            .heightIn(min = with(LocalDensity.current) { style.lineHeight.toDp() })
+            .then(if (text == null) Modifier.clearAndSetSemantics { } else Modifier),
     )
 }
 

@@ -37,6 +37,7 @@ import com.seblful.klas.ui.common.KlasScreen
 import com.seblful.klas.ui.common.ListSkeleton
 import com.seblful.klas.ui.common.MinTouchTarget
 import com.seblful.klas.ui.common.MoneyTextField
+import com.seblful.klas.ui.common.Reveal
 import com.seblful.klas.ui.common.SaveAction
 import com.seblful.klas.ui.common.SectionTitle
 import com.seblful.klas.ui.common.ShowMessagesFor
@@ -182,7 +183,7 @@ private fun SubjectPrices(
                     }
                     Text(subject.name, Modifier.padding(start = Spacing.inline))
                 }
-                if (selected) {
+                Reveal(selected) {
                     MoneyTextField(
                         field = price,
                         onValueChange = { viewModel.setPriceText(subject.id, it) },

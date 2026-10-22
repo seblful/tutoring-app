@@ -21,15 +21,17 @@ import kotlin.math.sign
  * while the gesture is held the content shrinks toward 90% and drifts away from the edge it started at, so
  * letting go reads as leaving. A cancelled gesture eases back.
  *
- * [state] must be the one given to the screen's `NavigationBackHandler`.
+ * [state] must be the one given to the screen's `NavigationBackHandler`. Content on its way out passes
+ * [following] false: it stays where the gesture left it while it fades (`predictiveBackRelease`).
  *
  * The gesture is read in a `snapshotFlow` and drawn in `graphicsLayer`, never in composition: it moves every
  * frame it is held, and a read here would recompose the caller's whole content with it.
  */
 @Composable
-fun Modifier.predictiveBack(state: NavigationEventState<*>): Modifier {
+fun Modifier.predictiveBack(state: NavigationEventState<*>, following: Boolean = true): Modifier {
     val pull = remember { Animatable(0f) }
-    LaunchedEffect(state) {
+    LaunchedEffect(state, following) {
+        if (!following) return@LaunchedEffect
         // Held, the content follows the finger exactly; let go or cancelled, it settles on a spring that takes
         // over the gesture's velocity.
         snapshotFlow { state.transitionState }.collect { transition ->
