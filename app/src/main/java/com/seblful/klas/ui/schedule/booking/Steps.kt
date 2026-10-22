@@ -4,7 +4,7 @@ import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.schedule.Recurrence
 
 /**
- * What one press of a −/+ in the booking form's Length, Repeat and Terms rows moves a value to. Null where
+ * What one press of a −/+ in the booking form's Length, Repeat and Price rows moves a value to. Null where
  * that way is already as far as it goes, so the button can say so by being disabled.
  */
 internal object Steps {

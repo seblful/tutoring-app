@@ -31,7 +31,7 @@ import com.seblful.klas.ui.theme.KlasIcons
 
 /*
  * The booking form's steppers: a value between a step less and a step more — the start in When, and the
- * Length, Repeat and Terms rows once opened.
+ * Length, Repeat and Price rows once opened.
  */
 
 /**

@@ -186,15 +186,15 @@ Build screens from shared state and controls. Feature rules belong in the domain
   an undoable green swipe; cancelled lessons recede with a red badge. Book by duration, starting on the
   selected schedule day.
 - The booking form is cards in the order the tutor answers — Who, When, then one details card of
-  Length, Repeat (new bookings only) and Terms. A new booking picks who from one dropdown like the subject's (`TargetChoices`: recently taught
+  Length, Repeat (new bookings only), Price and Format. A new booking picks who from one dropdown like the subject's (`TargetChoices`: recently taught
   first, students and groups together, then adding a student or a group), so there is no Student/Group
   switch; an edit keeps its kind. The details card's rows (`DetailsSection`) are folded to one line saying
-  what each is set to — Terms the rate and place, or in red that the rate is all that is missing
-  (`rateNeeded`) — pressed with a rounded `outsetRowPress` tint and opened in place by growing downwards
+  what each is set to — Price the rate, or in red that the rate is all that is missing
+  (`rateNeeded`); Format in person or remote — pressed with a rounded `outsetRowPress` tint and opened in place by growing downwards
   (`Fold`), one at a time; never a dialog or sheet. Opened, each is a value between tonal −/+ (`StepRow`,
   `Steps`): Length ±15 min, its value tapped to type hours and minutes (`DurationPickerModal`); Repeat as lessons ±1, one being once
-  (`ClassForm.withLessons`), the count tapped to type it (`CountPickerModal`), and weekly/fortnightly segments; Terms the typed rate
-  ± a step that suits its size (5 at 40, 100 at 1 500, so any currency) and the place as segments. It alone saves from a bottom `BookingSaveBar`, not the bar's
+  (`ClassForm.withLessons`), the count tapped to type it (`CountPickerModal`), and weekly/fortnightly segments; Price the typed rate
+  ± a step that suits its size (5 at 40, 100 at 1 500, so any currency); Format as segments. It alone saves from a bottom `BookingSaveBar`, not the bar's
   `SaveAction`: the bar shows the booking it will make, or names what is missing or in the way
   (`ClassFormState.saveBar`, `Ready` exactly when `canSave`). When opens on the schedule's day, where bookings
   start, so it has no calendar: a day row steps a day either way and its date opens the date dialog,

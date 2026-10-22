@@ -162,7 +162,7 @@ data class ClassFormState(
         }
 
     /**
-     * Whether the folded Terms card says in red that the rate is wanted: it is the one thing the booking
+     * Whether the folded Price row says in red that the rate is wanted: it is the one thing the booking
      * still lacks. Not while anything else is missing too — a rate is filled in from whoever is chosen, so
      * an empty one before that is not the tutor's to type yet.
      */

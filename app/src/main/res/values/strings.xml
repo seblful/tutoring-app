@@ -140,7 +140,8 @@
     <!-- The booking form's three sections and the save bar under them. -->
     <string name="class_section_who">Who</string>
     <string name="class_section_when">When</string>
-    <string name="class_section_terms">Terms</string>
+    <string name="class_section_price">Price</string>
+    <string name="class_section_format">Format</string>
     <string name="class_terms_price_needed">Set a price</string>
     <string name="class_who_label">Student or group</string>
     <string name="class_book_action">Book</string>

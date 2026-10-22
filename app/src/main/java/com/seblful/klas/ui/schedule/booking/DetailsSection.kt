@@ -36,14 +36,14 @@ import com.seblful.klas.ui.common.text
  */
 
 /** The rows of [DetailsSection]; the one open, if any, is the card's to keep. */
-private enum class Detail { LENGTH, REPEAT, TERMS }
+private enum class Detail { LENGTH, REPEAT, PRICE, FORMAT }
 
 /**
- * How long, whether it repeats, and the terms: one card of rows folded to what each is set to, opened in
- * place one at a time — never a dialog or a sheet over the form. Opened, each is the same: a value between
- * a step less and a step more ([Steps]), the usual values as chips, and a segmented choice where there is
- * one. Repeat is there only while booking: repeating is a property of the act, not of a lesson already in
- * the database, and offering it on an edit would read as turning one lesson into twelve.
+ * How long, whether it repeats, for how much and where: one card of rows folded to what each is set to,
+ * opened in place one at a time — never a dialog or a sheet over the form. Opened, each is a value between a
+ * step less and a step more ([Steps]), or a segmented choice. Repeat is there only while booking: repeating
+ * is a property of the act, not of a lesson already in the database, and offering it on an edit would read
+ * as turning one lesson into twelve.
  */
 @Composable
 internal fun DetailsSection(state: ClassFormState, viewModel: ClassEditViewModel, isNew: Boolean) {
@@ -57,7 +57,9 @@ internal fun DetailsSection(state: ClassFormState, viewModel: ClassEditViewModel
                 RepeatRow(state.form, viewModel, open == Detail.REPEAT) { toggle(Detail.REPEAT, it) }
             }
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-            TermsRow(state, viewModel, open == Detail.TERMS) { toggle(Detail.TERMS, it) }
+            PriceRow(state, viewModel, open == Detail.PRICE) { toggle(Detail.PRICE, it) }
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            FormatRow(state.form, viewModel, open == Detail.FORMAT) { toggle(Detail.FORMAT, it) }
         }
     }
 }
@@ -164,11 +166,11 @@ private fun RepeatRow(form: ClassForm, viewModel: ClassEditViewModel, opened: Bo
 }
 
 /**
- * The rate — typed, or stepped by an amount that suits it ([Steps.rateStep]) — and where. The rate has no
- * chips: there is no list of usual rates to offer, only the one already filled in from whoever is chosen.
+ * The rate — typed, or stepped by an amount that suits it ([Steps.rateStep]); folded, in red while it is
+ * what the booking still needs ([ClassFormState.rateNeeded]).
  */
 @Composable
-private fun TermsRow(
+private fun PriceRow(
     state: ClassFormState,
     viewModel: ClassEditViewModel,
     opened: Boolean,
@@ -180,16 +182,11 @@ private fun TermsRow(
         viewModel.change(BookingIntent.Edit { it.copy(price = MoneyField.of(to, it.price.kind)) })
     }
     Fold(
-        label = { RowLabel(stringResource(R.string.class_section_terms)) },
+        label = { RowLabel(stringResource(R.string.class_section_price)) },
         summary = if (state.rateNeeded) {
             stringResource(R.string.class_terms_price_needed)
         } else {
-            bulletJoin(
-                rate?.let {
-                    stringResource(R.string.price_per_hour, it.text())
-                }.orEmpty(),
-                classModeLabel(form.mode),
-            )
+            rate?.let { stringResource(R.string.price_per_hour, it.text()) }.orEmpty()
         },
         opened = opened,
         onToggle = onToggle,
@@ -215,6 +212,18 @@ private fun TermsRow(
                 modifier = Modifier.weight(1f),
             )
         }
+    }
+}
+
+/** In person or remote, as segments. */
+@Composable
+private fun FormatRow(form: ClassForm, viewModel: ClassEditViewModel, opened: Boolean, onToggle: (Boolean) -> Unit) {
+    Fold(
+        label = { RowLabel(stringResource(R.string.class_section_format)) },
+        summary = classModeLabel(form.mode),
+        opened = opened,
+        onToggle = onToggle,
+    ) {
         SegmentedChoice(
             options = ClassMode.entries,
             selected = form.mode,

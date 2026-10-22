@@ -183,7 +183,8 @@
     <!-- The booking form's three sections and the save bar under them. -->
     <string name="class_section_who">Кто</string>
     <string name="class_section_when">Когда</string>
-    <string name="class_section_terms">Условия</string>
+    <string name="class_section_price">Цена</string>
+    <string name="class_section_format">Формат</string>
     <string name="class_terms_price_needed">Укажите цену</string>
     <string name="class_who_label">Ученик или группа</string>
     <string name="class_book_action">Записать</string>

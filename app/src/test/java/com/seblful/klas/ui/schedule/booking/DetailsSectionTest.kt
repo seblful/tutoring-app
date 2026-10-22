@@ -8,6 +8,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextReplacement
+import com.seblful.klas.domain.model.ClassMode
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.schedule.Repeat
 import com.seblful.klas.domain.time.today
@@ -23,7 +24,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 
-/** The details card: Length, Repeat and Terms, each opened in place to a stepper. */
+/** The details card: Length, Repeat, Price and Format, each opened in place. */
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
 class DetailsSectionTest : ClassEditTestFixture() {
@@ -148,9 +149,26 @@ class DetailsSectionTest : ClassEditTestFixture() {
         val vm = vm(day = day, studentId = studentId)
         open(vm)
 
-        tapRow("Terms")
+        tapRow("Price")
         press("Raise the rate")
 
         assertEquals(Money.ofMajor(35), vm.state.current.form.price.amount)
+    }
+
+    @Test
+    fun `price and format fold apart, each opening alone`() {
+        val vm = vm(day = day)
+        open(vm)
+
+        tapRow("Price")
+        compose.onNodeWithContentDescription("Raise the rate").assertExists()
+        compose.onNodeWithText("Remote").assertDoesNotExist()
+
+        tapRow("Format")
+        compose.onNodeWithContentDescription("Raise the rate").assertDoesNotExist()
+        compose.onNodeWithText("Remote").performScrollTo().performClick()
+        compose.waitForIdle()
+
+        assertEquals(ClassMode.REMOTE, vm.state.current.form.mode)
     }
 }

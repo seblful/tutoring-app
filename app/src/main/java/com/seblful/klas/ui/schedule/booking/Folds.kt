@@ -35,7 +35,7 @@ import com.seblful.klas.ui.theme.KlasIcons
 import com.seblful.klas.ui.theme.KlasMotion
 
 /*
- * The booking form's folded rows — Length, Repeat, Terms: one line saying what each is set to, opened in
+ * The booking form's folded rows — Length, Repeat, Price, Format: one line saying what each is set to, opened in
  * place by a tap on it.
  */
 

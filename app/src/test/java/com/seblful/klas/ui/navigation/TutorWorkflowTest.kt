@@ -199,8 +199,8 @@ class TutorWorkflowTest {
             waitForText("Workflow student")
             compose.onNodeWithContentDescription(text(R.string.schedule_add_class)).performClick()
             waitFor(R.string.class_add_title)
-            // Terms are folded to a line; the rate is typed once they are opened.
-            compose.onNodeWithText(text(R.string.class_section_terms)).performScrollTo().performClick()
+            // Price is folded to a line; the rate is typed once it is opened.
+            compose.onNodeWithText(text(R.string.class_section_price)).performScrollTo().performClick()
             compose.onNodeWithText(text(R.string.price_label)).performScrollTo().performTextReplacement("35")
             val arrivals = listOf(
                 TrayNavigation.ACTION_OPEN_TODAY,
