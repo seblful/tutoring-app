@@ -73,3 +73,9 @@ Preserve on-device data and existing backup files when changing storage. Before 
   `autoBackupFailed` for the Backup page instead of retrying: a lost grant needs the folder picked again.
   No foreground service: WorkManager may run it late, never early. The Backup page warns after 14 days
   without a copy.
+- A manual export can be sealed with a password (`SealedBackup`): PBKDF2-HMAC-SHA256 (iterations kept
+  per file, capped on read) and AES-256-GCM, through the `BackupCipher` port. `BackupManager.parse`
+  refuses a sealed file as `PasswordNeeded`, so the restore flow asks for the password first; a wrong
+  one fails the GCM tag and reads as `WrongPassword`, not as a broken file. A lost password is a lost
+  backup, and the export dialog says so. Weekly copies are not sealed: that would mean storing the
+  password on the phone they are meant to outlive.

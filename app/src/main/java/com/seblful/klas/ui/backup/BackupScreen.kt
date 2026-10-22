@@ -15,6 +15,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -54,14 +55,17 @@ internal val BACKUP_MIME_TYPES = arrayOf("application/json", "application/octet-
 fun BackupScreen(
     onBack: () -> Unit,
     viewModel: BackupViewModel = metroViewModel(),
+    restoreViewModel: RestoreViewModel = metroViewModel(),
     weeklyViewModel: WeeklyBackupViewModel = metroViewModel(),
 ) {
     val messages = rememberMessages()
     var confirmUndo by rememberSaveable { mutableStateOf(false) }
+    var askPassword by rememberSaveable { mutableStateOf(false) }
+    // Held only until the picker answers — see PasswordDialogs for why it is never saved.
+    var exportPassword by remember { mutableStateOf<String?>(null) }
     val lastExportAt by viewModel.lastExportAt.collectAsStateWithLifecycle()
-    val importing by viewModel.importing.collectAsStateWithLifecycle()
-    val pendingRestore by viewModel.pendingRestore.collectAsStateWithLifecycle()
-    val undoRestoreSince by viewModel.undoRestoreSince.collectAsStateWithLifecycle()
+    val importing by restoreViewModel.importing.collectAsStateWithLifecycle()
+    val undoRestoreSince by restoreViewModel.undoRestoreSince.collectAsStateWithLifecycle()
     val weekly by weeklyViewModel.weekly.collectAsStateWithLifecycle()
 
     val exportSuccess = stringResource(R.string.backup_export_success)
@@ -74,7 +78,7 @@ fun BackupScreen(
     // Named for the day it is made on — see [BackupViewModel.exportDay].
     val backupFilename = stringResource(R.string.backup_filename, viewModel.exportDay().toString())
 
-    ShowMessagesFor(viewModel.events, messages) { result ->
+    val words: (BackupResult) -> String = { result ->
         when (result) {
             BackupResult.ExportOk -> exportSuccess
             BackupResult.ImportOk -> importSuccess
@@ -82,10 +86,15 @@ fun BackupScreen(
             is BackupResult.Failed -> result.failure.messageIn(context)
         }
     }
+    ShowMessagesFor(viewModel.events, messages, words = words)
+    ShowMessagesFor(restoreViewModel.events, messages, words = words)
 
-    val saveBackup = rememberCreateDocument("application/json", noPickerMsg, messages) { viewModel.export(it) }
+    val saveBackup = rememberCreateDocument("application/json", noPickerMsg, messages) {
+        viewModel.export(it, exportPassword)
+        exportPassword = null
+    }
     // Read and described before it replaces everything.
-    val openBackup = rememberOpenDocument(noPickerMsg, messages) { viewModel.preview(it) }
+    val openBackup = rememberOpenDocument(noPickerMsg, messages) { restoreViewModel.open(it) }
     ShowMessagesFor(weeklyViewModel.events, messages) { event ->
         when (event) {
             WeeklyBackupViewModel.Event.SAVED -> weeklySaved
@@ -106,7 +115,7 @@ fun BackupScreen(
             onPickFolder = pickFolder,
             onStopWeekly = weeklyViewModel::stop,
             importing = importing,
-            onExport = { saveBackup(backupFilename) },
+            onExport = { askPassword = true },
             onImport = { openBackup(BACKUP_MIME_TYPES) },
             undoRestoreSince = undoRestoreSince,
             onUndoRestore = { confirmUndo = true },
@@ -115,11 +124,15 @@ fun BackupScreen(
         )
     }
 
-    pendingRestore?.let { pending ->
-        ConfirmRestoreDialog(
-            preview = pending.preview,
-            onConfirm = viewModel::confirmRestore,
-            onDismiss = viewModel::dismissRestore,
+    RestoreDialogs(restoreViewModel)
+
+    if (askPassword) {
+        ExportPasswordDialog(
+            onSave = { password ->
+                exportPassword = password
+                saveBackup(backupFilename)
+            },
+            onDismiss = { askPassword = false },
         )
     }
 
@@ -128,8 +141,28 @@ fun BackupScreen(
             text = stringResource(R.string.backup_undo_restore_confirm),
             confirmLabel = stringResource(R.string.backup_undo_restore_action),
             destructive = true,
-            onConfirm = viewModel::undoRestore,
+            onConfirm = restoreViewModel::undoRestore,
             onDismiss = { confirmUndo = false },
+        )
+    }
+}
+
+/**
+ * What a restore asks on the way: a sealed file's password, then what the file holds. Here and on first run
+ * alike, so the two places a backup can be restored cannot ask differently.
+ */
+@Composable
+fun RestoreDialogs(viewModel: RestoreViewModel) {
+    val locked by viewModel.locked.collectAsStateWithLifecycle()
+    val pending by viewModel.pendingRestore.collectAsStateWithLifecycle()
+    locked?.let {
+        UnlockBackupDialog(wrong = it.wrong, onUnlock = viewModel::unlock, onDismiss = viewModel::dismissUnlock)
+    }
+    pending?.let {
+        ConfirmRestoreDialog(
+            preview = it.preview,
+            onConfirm = viewModel::confirmRestore,
+            onDismiss = viewModel::dismissRestore,
         )
     }
 }

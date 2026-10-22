@@ -55,8 +55,8 @@ import com.seblful.klas.domain.model.Subject
 import com.seblful.klas.domain.people.SubjectNames
 import com.seblful.klas.ui.backup.BACKUP_MIME_TYPES
 import com.seblful.klas.ui.backup.BackupResult
-import com.seblful.klas.ui.backup.BackupViewModel
-import com.seblful.klas.ui.backup.ConfirmRestoreDialog
+import com.seblful.klas.ui.backup.RestoreDialogs
+import com.seblful.klas.ui.backup.RestoreViewModel
 import com.seblful.klas.ui.backup.messageIn
 import com.seblful.klas.ui.common.ChoiceRow
 import com.seblful.klas.ui.common.CurrencyPicker
@@ -117,7 +117,7 @@ private enum class Step(val number: Int) {
 fun OnboardingScreen(
     onFinished: () -> Unit,
     viewModel: OnboardingViewModel = metroViewModel(),
-    backupViewModel: BackupViewModel = metroViewModel(),
+    restoreViewModel: RestoreViewModel = metroViewModel(),
 ) {
     // Saveable, so turning the phone on step 3 does not throw the tutor back to the welcome screen.
     var step by rememberSaveable { mutableStateOf(Step.WELCOME) }
@@ -138,8 +138,8 @@ fun OnboardingScreen(
     val context by rememberUpdatedState(LocalContext.current)
     // Only a failure needs saying — a successful restore leaves this screen behind. It says which
     // failure: someone restoring on a fresh install has the least context for a bare «Не удалось».
-    LaunchedEffect(backupViewModel, messages) {
-        backupViewModel.events.stream.collect { result ->
+    LaunchedEffect(restoreViewModel, messages) {
+        restoreViewModel.events.stream.collect { result ->
             if (result is BackupResult.Failed) messages.show(result.failure.messageIn(context))
         }
     }
@@ -175,8 +175,7 @@ fun OnboardingScreen(
     val restore = rememberOpenDocument(noPickerMsg, messages) { document ->
         // Whether a restore here would destroy anything is `restoreNeedsConfirming`'s — an import is a
         // full replace, and what that costs is a fact about the backup rather than about this screen.
-        if (viewModel.restoreNeedsConfirming()) backupViewModel.preview(document)
-        else backupViewModel.import(document)
+        restoreViewModel.open(document, askFirst = viewModel.restoreNeedsConfirming())
     }
 
     // Every step but the first goes back one, so the welcome step's choices (restore, skip) stay
@@ -447,14 +446,7 @@ fun OnboardingScreen(
         SubjectNameDialog(onConfirm = { viewModel.addSubject(it) }, onDismiss = { addingSubject = false })
     }
 
-    val pendingRestore by backupViewModel.pendingRestore.collectAsStateWithLifecycle()
-    pendingRestore?.let { pending ->
-        ConfirmRestoreDialog(
-            preview = pending.preview,
-            onConfirm = backupViewModel::confirmRestore,
-            onDismiss = backupViewModel::dismissRestore,
-        )
-    }
+    RestoreDialogs(restoreViewModel)
 }
 
 /**

@@ -977,7 +977,7 @@
       the one moment students' contact details leave it, in clear text, to storage of the tutor's
       choosing — a cloud folder included.
     -->
-    <string name="backup_export_desc">Сохранить данные о занятиях в файл. Настройки приложения останутся на телефоне. В файле — имена, телефоны и почта учеников, без шифрования.</string>
+    <string name="backup_export_desc">Сохранить данные о занятиях в файл. Настройки приложения останутся на телефоне. В файле — имена, телефоны и почта учеников. Файл шифруется, только если задать пароль.</string>
     <!--
       The backup screen leads with when the last copy was made. Two states, and the second is the one
       worth having: an app that has never been backed up should say so plainly.
@@ -1034,6 +1034,19 @@
     <string name="backup_weekly_failed_desc">У Klas больше нет доступа к папке. Выберите её снова.</string>
     <string name="backup_weekly_stop">Отключить еженедельные копии</string>
     <string name="backup_weekly_saved">Первая еженедельная копия сохранена</string>
+    <string name="backup_error_password_needed">Эта копия защищена паролем</string>
+    <string name="backup_error_wrong_password">Неверный пароль</string>
+    <string name="backup_export_password_title">Защитить паролем?</string>
+    <string name="backup_export_password_desc">Необязательно. Без пароля любой, у кого есть файл, увидит имена и контакты учеников.</string>
+    <string name="backup_password">Пароль</string>
+    <string name="backup_password_repeat">Повторите пароль</string>
+    <string name="backup_password_mismatch">Пароли не совпадают</string>
+    <string name="backup_password_warning">Если забудете пароль, открыть эту копию будет нельзя. Klas не сможет его восстановить.</string>
+    <string name="backup_export_save">Сохранить</string>
+    <string name="backup_export_save_plain">Сохранить без пароля</string>
+    <string name="backup_unlock_title">Копия защищена</string>
+    <string name="backup_unlock_desc">Введите пароль, с которым она была сохранена.</string>
+    <string name="backup_unlock">Открыть</string>
     <!--
       One message per BackupFailure. A single «Не удалось» told the tutor to check a file that may
       have been perfectly fine — a copy from a newer build needs an app update, not another look.

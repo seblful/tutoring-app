@@ -74,15 +74,20 @@ class BackupManager @Inject constructor(
     fun parse(text: String): BackupData {
         // Decoded straight from the text both times: a whole `JsonElement` tree of a large backup was its
         // biggest copy in memory. Anything [Header] cannot read is left to the decode to refuse.
-        val version = runCatching { json.decodeFromString<Header>(text).version }.getOrNull()
-            .let { (it as? JsonPrimitive)?.intOrNull }
+        val header = runCatching { json.decodeFromString<Header>(text) }.getOrNull()
+        if (header?.klasSealed != null) throw PasswordNeededException()
+        val version = (header?.version as? JsonPrimitive)?.intOrNull
         if (version != null) requireSupported(version)
         return json.decodeFromString(text)
     }
 
-    /** A backup's version alone; every other key is skipped. */
+    /** Whether [text] is a sealed backup ([SealedBackup]) — one to ask the password of before reading. */
+    fun isSealed(text: String): Boolean =
+        runCatching { json.decodeFromString<Header>(text).klasSealed != null }.getOrDefault(false)
+
+    /** A backup's version, and whether it is sealed ([SealedBackup]); every other key is skipped. */
     @Serializable
-    private class Header(val version: JsonElement? = null)
+    private class Header(val version: JsonElement? = null, val klasSealed: JsonElement? = null)
 
     private fun requireSupported(version: Int) {
         if (!BackupData.isSupported(version)) {

@@ -43,6 +43,12 @@ sealed interface BackupFailure {
      */
     data object Malformed : BackupFailure
 
+    /** The file is sealed with a password ([SealedBackup]) and none was given. */
+    data object PasswordNeeded : BackupFailure
+
+    /** The password given does not open the sealed file. */
+    data object WrongPassword : BackupFailure
+
     companion object {
         /**
          * Which failure [error] is. A [SerializationException] means the bytes arrived and did not
@@ -57,6 +63,8 @@ sealed interface BackupFailure {
          */
         fun of(error: Throwable): BackupFailure = when (error) {
             is UnsupportedBackupVersionException -> UnsupportedVersion(error.found, error.supported)
+            is PasswordNeededException -> PasswordNeeded
+            is WrongPasswordException -> WrongPassword
             is MalformedBackupException -> Malformed
             is SerializationException -> Malformed
             else -> FileUnavailable

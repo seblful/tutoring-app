@@ -1,6 +1,6 @@
 # Klas — Privacy Policy
 
-Last updated: 22 October 2026
+Last updated: 23 October 2026
 
 Klas (Android application ID: `com.seblful.klas`) is a tutoring-management app developed by
 **Aliaksei Chymba**. It helps tutors manage students, groups, subjects, lessons, homework, rates,
@@ -67,16 +67,21 @@ You can change reminder settings in Klas and control permissions and lock-screen
 ## Backups, exports, and actions you choose
 
 You can export a JSON backup or CSV report to storage you select, including a cloud-storage provider
-available through Android's file picker. You can also share reports or homework through another app.
-Backup files contain tutoring records and can include student contact information and payment history.
+available through Android's file picker. You can also choose a folder for a weekly backup, which Klas
+then writes to on its own until you turn it off. You can also share reports or homework through another
+app. Backup files contain tutoring records and can include student contact information and payment
+history. Before an import replaces your data, Klas keeps a copy of it in its private storage on this
+device, so the import can be undone; the next import replaces that copy.
 
 Contact buttons can open your dialer, email app, or Telegram using a student's phone number or email
 address. Klas passes the relevant information to the selected app or service when you choose the
 action. Klas does not read your phone's address book.
 
 Recipients, storage providers, calendar providers, and communication services handle information under
-their own policies. Choose destinations and recipients carefully. Exported files are not encrypted by
-Klas; use secure storage and sharing methods.
+their own policies. Choose destinations and recipients carefully. You can protect an exported backup with
+a password: Klas then encrypts it (AES-256), and nobody, including the developer, can open it without that
+password. Backups saved without a password, weekly backups, and CSV reports are not encrypted; use secure
+storage and sharing methods.
 
 ## Crash diagnostics
 

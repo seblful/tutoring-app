@@ -848,7 +848,7 @@
       the one moment students' contact details leave it, in clear text, to storage of the tutor's
       choosing — a cloud folder included.
     -->
-    <string name="backup_export_desc">Save tutoring data to a file. App settings stay on this phone. The file holds students\' names, phone numbers and email addresses, unencrypted.</string>
+    <string name="backup_export_desc">Save tutoring data to a file. App settings stay on this phone. The file holds students\' names, phone numbers and email addresses. It is encrypted only if you set a password.</string>
     <!--
       The backup screen leads with when the last copy was made. Two states, and the second is the one
       worth having: an app that has never been backed up should say so plainly.
@@ -897,6 +897,19 @@
     <string name="backup_weekly_failed_desc">Klas can no longer reach the folder. Choose it again.</string>
     <string name="backup_weekly_stop">Stop weekly copies</string>
     <string name="backup_weekly_saved">The first weekly copy is saved</string>
+    <string name="backup_error_password_needed">This backup is protected with a password</string>
+    <string name="backup_error_wrong_password">Wrong password</string>
+    <string name="backup_export_password_title">Protect with a password?</string>
+    <string name="backup_export_password_desc">Optional. Without one, anyone with the file can read students\' names and contacts.</string>
+    <string name="backup_password">Password</string>
+    <string name="backup_password_repeat">Repeat the password</string>
+    <string name="backup_password_mismatch">The passwords differ</string>
+    <string name="backup_password_warning">If you forget the password, this backup cannot be opened. Klas cannot recover it.</string>
+    <string name="backup_export_save">Save</string>
+    <string name="backup_export_save_plain">Save without password</string>
+    <string name="backup_unlock_title">This backup is protected</string>
+    <string name="backup_unlock_desc">Enter the password it was saved with.</string>
+    <string name="backup_unlock">Open</string>
     <!--
       One message per BackupFailure. A single "Could not read it" told the tutor to check a file that
       may have been perfectly fine — a copy from a newer build needs an app update, not another look.

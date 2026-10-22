@@ -8,6 +8,8 @@ import androidx.compose.ui.unit.dp
 import com.seblful.klas.data.settings.AppSettings
 import com.seblful.klas.ui.backup.BackupContent
 import com.seblful.klas.ui.backup.ConfirmRestoreDialog
+import com.seblful.klas.ui.backup.ExportPasswordDialog
+import com.seblful.klas.ui.backup.UnlockBackupDialog
 import com.seblful.klas.ui.backup.WeeklyBackupViewModel
 import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.settings.AppearanceSettingsContent
@@ -101,6 +103,19 @@ private fun ConfirmRestorePreview() = PreviewSurface {
         onConfirm = {},
         onDismiss = {},
     )
+}
+
+/** Opens empty, offering to save without a password — the warning appears once one is typed. */
+@KlasPreview
+@Composable
+private fun ExportPasswordPreview() = PreviewSurface {
+    ExportPasswordDialog(onSave = {}, onDismiss = {})
+}
+
+@KlasPreview
+@Composable
+private fun UnlockBackupPreview() = PreviewSurface {
+    UnlockBackupDialog(wrong = true, onUnlock = {}, onDismiss = {})
 }
 
 @KlasPreview
