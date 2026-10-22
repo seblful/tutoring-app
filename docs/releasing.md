@@ -55,7 +55,8 @@ it, release builds remain unsigned. Keep the upload key outside the repo and bac
    Enter at keytool's key-password prompt makes both passwords equal.
 
 **Verify backup export/import on a real device with a release build before shipping.** R8 success does
-not prove the round-trip survives minification; keep rules are in `app/proguard-rules.pro`.
+not prove the round-trip survives minification. The backup and navigation models rely on the keep rules
+kotlinx.serialization bundles; `app/proguard-rules.pro` stays empty unless code adds reflection R8 cannot see.
 
 ## Build and sideload
 
