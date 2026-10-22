@@ -103,6 +103,19 @@ class SettingsRepositoryTest {
     }
 
     @Test
+    fun `what stays on screen reads the stored language, which a fresh process has not yet read`() = runTest {
+        repo.update { it.copy(language = AppLanguage.ENGLISH) }
+        val freshProcess = SettingsRepository(dao, RussianMinskPhone.toDevicePreferences())
+        val display = DisplayLocale(freshProcess, RussianMinskPhone.toDevicePreferences())
+
+        assertEquals("nothing has read the row yet", Locale.forLanguageTag("ru"), display.current)
+        assertEquals(Locale.forLanguageTag("en"), display.observe().first())
+
+        freshProcess.update { it.copy(language = AppLanguage.RUSSIAN) }
+        assertEquals(Locale.forLanguageTag("ru"), display.observe().first())
+    }
+
+    @Test
     fun `system resolves against the phone the app is on`() = runTest {
         val american = SettingsRepository(dao, listOf(Locale.forLanguageTag("en-US")).toDevicePreferences())
 

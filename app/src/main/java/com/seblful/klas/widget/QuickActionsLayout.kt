@@ -8,9 +8,12 @@ import androidx.glance.GlanceTheme
 import androidx.glance.Image
 import androidx.glance.ImageProvider
 import androidx.glance.LocalSize
+import androidx.glance.action.Action
 import androidx.glance.action.actionStartActivity
+import androidx.glance.action.clickable
 import androidx.glance.appwidget.components.Scaffold
 import androidx.glance.appwidget.components.TitleBar
+import androidx.glance.appwidget.cornerRadius
 import androidx.glance.layout.Alignment
 import androidx.glance.layout.Box
 import androidx.glance.layout.fillMaxSize
@@ -18,30 +21,39 @@ import androidx.glance.layout.padding
 import androidx.glance.layout.size
 import androidx.glance.preview.ExperimentalGlancePreviewApi
 import androidx.glance.preview.Preview
+import androidx.glance.semantics.contentDescription
+import androidx.glance.semantics.semantics
 import com.seblful.klas.MainActivity
 import com.seblful.klas.R
 
 /**
- * The Glance canonical toolbar layout (Android platform samples): the app's mark, one prominent shortcut
- * ([headerButton]) and four more ([buttons]), arranged by the space the widget has.
+ * The Glance canonical toolbar layout (Android platform samples): the app's mark, which opens the app, one
+ * prominent shortcut ([headerButton]) and four more ([buttons]), arranged by the space the widget has.
  */
 @Composable
 internal fun QuickActionsLayout(
     appName: String,
+    openApp: Action,
     headerButton: ToolBarButton,
     buttons: List<ToolBarButton>,
 ) {
-    val appIconItem: @Composable () -> Unit = { FluidHeaderAppIcon() }
+    val appIconItem: @Composable () -> Unit = { FluidHeaderAppIcon(appName, openApp) }
     val headerButtonItem: @Composable () -> Unit = { FluidHeaderIconButton(headerButton) }
+    val labelled = canLabelGridButtons()
     val buttonItems: List<@Composable () -> Unit> =
-        buttons.map { { FluidContentIconButton(it, filled = canUseFilledButtons()) } }
+        buttons.map { { FluidContentIconButton(it, filled = canUseFilledButtons(), labelled = labelled) } }
 
     when (val layoutSize = ToolBarLayoutSize.fromLocalSize()) {
         ToolBarLayoutSize.HorizontalRow, ToolBarLayoutSize.VerticalColumn -> {
             Scaffold(modifier = GlanceModifier.padding(vertical = WidgetPadding), horizontalPadding = WidgetPadding) {
                 val horizontal = layoutSize == ToolBarLayoutSize.HorizontalRow
-                val items = (listOf(appIconItem, headerButtonItem) + buttonItems)
-                    .take(numberOfItemsThatFit(horizontal))
+                val fit = numberOfItemsThatFit(horizontal)
+                // Room for one: the prominent shortcut, not a mark that only opens the app.
+                val items = if (fit <= 1) {
+                    listOf<@Composable () -> Unit>({ FluidHeaderIconButton(headerButton, filled = true) })
+                } else {
+                    (listOf(appIconItem, headerButtonItem) + buttonItems).take(fit)
+                }
                 if (horizontal) {
                     SpacedRow(items, modifier = GlanceModifier.fillMaxSize())
                 } else {
@@ -86,23 +98,29 @@ private fun Header(title: String, actionButton: ToolBarButton) {
     )
 }
 
-/** The mark where no title bar fits, sized and spaced like a button. */
+/** The mark where no title bar fits, sized and spaced like a button, and like a launcher icon opens the app. */
 @Composable
-private fun FluidHeaderAppIcon() {
-    Box(modifier = GlanceModifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+private fun FluidHeaderAppIcon(appName: String, openApp: Action) {
+    Box(
+        modifier = GlanceModifier
+            .fillMaxSize()
+            .cornerRadius(FullRadius)
+            .semantics { contentDescription = appName }
+            .clickable(openApp),
+        contentAlignment = Alignment.Center,
+    ) {
         Image(
             provider = ImageProvider(R.drawable.ic_logo),
             contentDescription = null,
             modifier = GlanceModifier.size(IconSize),
-            colorFilter = ColorFilter.tint(GlanceTheme.colors.onSurface),
+            colorFilter = ColorFilter.tint(GlanceTheme.colors.primary),
         )
     }
 }
 
-/** The prominent shortcut where no title bar fits: fully rounded, beside the others. */
+/** The prominent shortcut where no title bar fits: fully rounded, beside the others, and filled where it fits. */
 @Composable
-private fun FluidHeaderIconButton(button: ToolBarButton) {
-    val filled = canUseFilledButtons()
+private fun FluidHeaderIconButton(button: ToolBarButton, filled: Boolean = canUseFilledButtons()) {
     RectangularIconButton(
         button = button,
         cornerRadius = FullRadius,
@@ -113,9 +131,10 @@ private fun FluidHeaderIconButton(button: ToolBarButton) {
 }
 
 @Composable
-private fun FluidContentIconButton(button: ToolBarButton, filled: Boolean) {
+private fun FluidContentIconButton(button: ToolBarButton, filled: Boolean, labelled: Boolean) {
     RectangularIconButton(
         button = button,
+        labelled = labelled,
         cornerRadius = MediumRadius,
         backgroundColor = if (filled) GlanceTheme.colors.secondaryContainer else Transparent,
         contentColor = GlanceTheme.colors.onSecondaryContainer,
@@ -156,6 +175,17 @@ private enum class ToolBarLayoutSize {
 @Composable
 private fun canUseFilledButtons(): Boolean = LocalSize.current.let { it.height >= 72.dp && it.width >= 72.dp }
 
+/**
+ * Names under the icons where the title bar's grid has tiles tall enough for a name on two lines: four icons
+ * alone are a guessing game.
+ */
+@Composable
+private fun canLabelGridButtons(): Boolean {
+    if (ToolBarLayoutSize.fromLocalSize() != ToolBarLayoutSize.HeaderTwoRowGrid) return false
+    val tileHeight = (LocalSize.current.height - TitleBarHeight - WidgetPadding - ItemsSpacing) / 2
+    return tileHeight >= LabelledTileHeight
+}
+
 @Composable
 private fun canShowHeaderTitle(): Boolean = LocalSize.current.let { it.width >= 240.dp && it.height >= 172.dp }
 
@@ -181,6 +211,7 @@ private fun QuickActionsPreview() {
     GlanceTheme(colors = KlasWidgetColors) {
         QuickActionsLayout(
             appName = "Klas",
+            openApp = action,
             headerButton = ToolBarButton(R.drawable.widget_icon_add, "Book a lesson", action),
             buttons = listOf(
                 ToolBarButton(R.drawable.widget_icon_today, "Today", action),

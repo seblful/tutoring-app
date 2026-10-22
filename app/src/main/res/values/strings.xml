@@ -910,4 +910,13 @@
     <string name="widget_today_empty">No lessons today</string>
     <string name="widget_quick_actions_name">Klas shortcuts</string>
     <string name="widget_quick_actions_description">Book a lesson, add a student, or open today, homework and debts</string>
+    <!-- The sample day the picker's preview of the Today widget shows: who, then the subject, per lesson. -->
+    <string-array name="widget_preview_lessons">
+        <item>Anna Sokolova</item>
+        <item>Algebra</item>
+        <item>Year 11</item>
+        <item>English</item>
+        <item>Ivan Petrov</item>
+        <item>Physics</item>
+    </string-array>
 </resources>

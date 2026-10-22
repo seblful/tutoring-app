@@ -6,12 +6,11 @@ import androidx.work.WorkerFactory
 import com.seblful.klas.KlasStore
 import com.seblful.klas.diagnostics.CrashLogger
 import com.seblful.klas.domain.reminders.ReminderScheduler
-import com.seblful.klas.format.DisplayLocale
 import com.seblful.klas.notifications.Notifier
 import com.seblful.klas.notifications.ReminderActionReceiver
 import com.seblful.klas.notifications.ReminderReceiver
 import com.seblful.klas.widget.MarkTaughtAction
-import com.seblful.klas.widget.TodayWidgetUpdates
+import com.seblful.klas.widget.WidgetUpdates
 import com.seblful.klas.work.BootReceiver
 import com.seblful.klas.work.ClockChangeReceiver
 import dev.zacsweers.metro.AppScope
@@ -38,10 +37,7 @@ interface AppGraph : ViewModelGraph {
     val scheduler: ReminderScheduler
     val crashLogger: CrashLogger
     val workerFactory: WorkerFactory
-    val todayWidget: TodayWidgetUpdates
-
-    /** The app's language, which widgets speak rather than the phone's. */
-    val displayLocale: DisplayLocale
+    val widgets: WidgetUpdates
 
     /** For the application's startup work that need not hold up its first frame. */
     @ApplicationScope

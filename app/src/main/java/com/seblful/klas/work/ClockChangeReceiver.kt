@@ -7,13 +7,19 @@ import com.seblful.klas.di.ApplicationScope
 import com.seblful.klas.di.appGraph
 import com.seblful.klas.launchAsync
 import com.seblful.klas.maintenance.Maintenance
+import com.seblful.klas.widget.WidgetUpdates
 import dev.zacsweers.metro.Inject
 import kotlinx.coroutines.CoroutineScope
 
-/** Re-plans after the device's timezone or wall clock is changed — travel, or a manual correction. */
+/**
+ * Re-plans after the device's timezone or wall clock is changed — travel, or a manual correction — and redraws
+ * the widgets, whose times and day move with the clock. Toggling 24-hour time sends the same broadcast.
+ */
 class ClockChangeReceiver : BroadcastReceiver() {
 
     @Inject lateinit var maintenance: Maintenance
+
+    @Inject lateinit var widgets: WidgetUpdates
 
     @Inject
     @ApplicationScope
@@ -22,7 +28,10 @@ class ClockChangeReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         context.appGraph.inject(this)
         if (!handles(intent.action)) return
-        launchAsync(appScope) { maintenance.runUnwatched() }
+        launchAsync(appScope) {
+            widgets.refresh()
+            maintenance.runUnwatched()
+        }
     }
 
     companion object {

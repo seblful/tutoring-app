@@ -71,13 +71,14 @@ class KlasGraphTest {
         assertNotNull(ReminderActionReceiver().also { context.appGraph.inject(it) }.actions)
         assertNotNull(BootReceiver().also { context.appGraph.inject(it) }.maintenance)
         assertNotNull(ClockChangeReceiver().also { context.appGraph.inject(it) }.maintenance)
+        assertNotNull(ClockChangeReceiver().also { context.appGraph.inject(it) }.widgets)
     }
 
     @Test
     fun `the widgets' entry points are served by the application's graph`() {
         assertNotNull(MarkTaughtAction().also { context.appGraph.inject(it) }.actions)
-        assertNotNull(graph.todayWidget.lessons)
-        assertNotNull(graph.displayLocale.current)
+        assertNotNull(graph.widgets.lessons)
+        assertNotNull(graph.widgets.displayLocale)
     }
 
     /** Every class in the app's sources extending [supertype] directly: simple name → qualified name. */

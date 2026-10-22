@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Sizes from the Glance canonical check list layout. No previewImage: the picker shows the app icon. -->
+<!--
+  Sizes from the Glance canonical check list layout; Android 11 and below ignore the cell and maximum sizes.
+  No previewImage: Android 15+ pickers show the layout itself (WidgetPreviews), older ones the app icon.
+-->
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:description="@string/widget_today_description"
     android:initialLayout="@layout/glance_default_loading_layout"
     android:maxResizeHeight="@dimen/widget_today_max_resize_height"
@@ -12,4 +16,5 @@
     android:resizeMode="horizontal|vertical"
     android:targetCellHeight="@integer/widget_today_target_cell_height"
     android:targetCellWidth="@integer/widget_today_target_cell_width"
-    android:widgetCategory="home_screen|keyguard" />
+    android:widgetCategory="home_screen|keyguard"
+    tools:ignore="UnusedAttribute" />

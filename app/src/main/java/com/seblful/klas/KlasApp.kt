@@ -35,6 +35,6 @@ class KlasApp : Application(), Configuration.Provider, AppGraph.Holder {
             graph.notifier.ensureChannels()
             graph.scheduler.ensurePeriodicMaintenance()
         }
-        graph.applicationScope.launch { graph.todayWidget.keepCurrent() }
+        graph.applicationScope.launch { graph.widgets.keepCurrent() }
     }
 }

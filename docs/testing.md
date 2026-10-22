@@ -69,6 +69,9 @@ Roborazzi plugin generate tests; no handwritten test class is needed.
 in dark theme and at 1.5× text), an unfolded foldable, a tablet and a desktop window — bar or rail, People alone and with a card beside it,
 homework in columns, and a settings page beside the index. It ends on the card: a tab tapped before its bar hides and returns may still show a press. Its goldens are recorded and compared by the same tasks.
 
+`WidgetScreenshotTest` draws the home-screen widgets as a launcher does: each layout composed to RemoteViews
+at a cell size and applied under an `AppWidgetHostView` (a list fills only there), in Russian, light and dark.
+
 Review PNG changes and commit them with the UI change. Failures leave `*_compare.png` (golden | diff |
 new) in `app/build/outputs/roborazzi/`; CI uploads `screenshot-diffs`. `testQuick` and
 `:app:testDebugBehavior` exclude generated previews, form-factor capture and opt-in store captures.

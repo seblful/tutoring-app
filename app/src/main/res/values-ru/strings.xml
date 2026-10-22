@@ -1041,4 +1041,13 @@
     <string name="widget_today_empty">Сегодня занятий нет</string>
     <string name="widget_quick_actions_name">Быстрые действия Klas</string>
     <string name="widget_quick_actions_description">Записать занятие, добавить ученика, открыть сегодня, задания и долги</string>
+    <!-- The sample day the picker's preview of the Today widget shows: who, then the subject, per lesson. -->
+    <string-array name="widget_preview_lessons">
+        <item>Аня Соколова</item>
+        <item>Алгебра</item>
+        <item>11 «А»</item>
+        <item>Английский</item>
+        <item>Иван Петров</item>
+        <item>Физика</item>
+    </string-array>
 </resources>

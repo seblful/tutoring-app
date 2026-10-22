@@ -25,9 +25,11 @@ import androidx.glance.layout.Spacer
 import androidx.glance.layout.fillMaxSize
 import androidx.glance.layout.fillMaxWidth
 import androidx.glance.layout.height
+import androidx.glance.layout.padding
 import androidx.glance.layout.width
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
+import androidx.glance.text.TextAlign
 import androidx.glance.text.TextStyle
 
 /*
@@ -91,7 +93,7 @@ internal fun NoDataContent(
     @DrawableRes noDataIconRes: Int,
     noDataText: String,
     actionButtonText: String,
-    @DrawableRes actionButtonIcon: Int,
+    @DrawableRes actionButtonIcon: Int?,
     actionButtonOnClick: Action,
 ) {
     Column(
@@ -112,13 +114,16 @@ internal fun NoDataContent(
             style = TextStyle(
                 fontWeight = FontWeight.Medium,
                 color = GlanceTheme.colors.onSurface,
-                fontSize = 16.sp,
+                // A narrow widget's line would wrap a lone word.
+                fontSize = if (LocalSize.current.width < 260.dp) 14.sp else 16.sp,
+                textAlign = TextAlign.Center,
             ),
+            modifier = GlanceModifier.padding(horizontal = 12.dp),
         )
         Spacer(modifier = GlanceModifier.height(8.dp))
         FilledButton(
             text = actionButtonText,
-            icon = ImageProvider(actionButtonIcon),
+            icon = actionButtonIcon?.let(::ImageProvider),
             onClick = actionButtonOnClick,
         )
     }

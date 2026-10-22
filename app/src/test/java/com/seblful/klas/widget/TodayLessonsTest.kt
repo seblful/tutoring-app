@@ -1,6 +1,9 @@
 package com.seblful.klas.widget
 
+import android.content.Context
+import androidx.test.core.app.ApplicationProvider
 import com.seblful.klas.domain.model.LessonStatus
+import com.seblful.klas.format.inLanguage
 import com.seblful.klas.testutil.TestEnv
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
@@ -79,5 +82,17 @@ class TodayLessonsTest {
         val russian = Locale.forLanguageTag("ru")
         assertEquals("09:00 · Алгебра", lesson.toRow(hour12 = false, russian).supportingText)
         assertEquals("09:00", lesson.copy(subject = "").toRow(hour12 = false, russian).supportingText)
+    }
+
+    @Test
+    fun `the picker's sample day is in the app's language, its first lesson taught`() {
+        val russian = Locale.forLanguageTag("ru")
+        val rows = ApplicationProvider.getApplicationContext<Context>().inLanguage(russian)
+            .sampleRows(hour12 = false, russian)
+
+        assertEquals(listOf("Аня Соколова", "11 «А»", "Иван Петров"), rows.map { it.title })
+        assertEquals("09:00 · Алгебра", rows.first().supportingText)
+        assertEquals(listOf(true, false, false), rows.map { it.taught })
+        assertEquals(listOf(false, true, true), rows.map { it.canMarkTaught })
     }
 }

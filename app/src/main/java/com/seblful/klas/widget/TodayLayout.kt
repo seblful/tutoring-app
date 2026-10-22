@@ -9,6 +9,7 @@ import androidx.glance.ImageProvider
 import androidx.glance.LocalSize
 import androidx.glance.action.Action
 import androidx.glance.action.actionStartActivity
+import androidx.glance.action.clickable
 import androidx.glance.appwidget.components.CircleIconButton
 import androidx.glance.appwidget.components.Scaffold
 import androidx.glance.appwidget.components.TitleBar
@@ -45,12 +46,14 @@ internal data class TodayTexts(
 
 /**
  * The Glance canonical check list layout (Android platform samples), as today's lessons: the check marks
- * a lesson taught, a taught lesson stays checked rather than leaving the list, and the row opens it.
+ * a lesson taught, a taught lesson stays checked — in the app's green for taught — rather than leaving the
+ * list, the row opens it, and the title bar opens the day.
  */
 @Composable
 internal fun TodayLayout(
     texts: TodayTexts,
     rows: List<TodayRow>,
+    openToday: Action,
     bookLesson: Action,
     openLesson: (classId: Long) -> Action,
     markTaught: (classId: Long) -> Action,
@@ -67,6 +70,7 @@ internal fun TodayLayout(
                     title = if (isSmall()) "" else texts.title,
                     iconColor = GlanceTheme.colors.primary,
                     textColor = GlanceTheme.colors.onSurface,
+                    modifier = GlanceModifier.clickable(openToday),
                     actions = {
                         CircleIconButton(
                             imageProvider = ImageProvider(R.drawable.widget_icon_add),
@@ -87,7 +91,8 @@ internal fun TodayLayout(
                 noDataIconRes = R.drawable.widget_icon_no_lessons,
                 noDataText = texts.empty,
                 actionButtonText = texts.bookLesson,
-                actionButtonIcon = R.drawable.widget_icon_add,
+                // Beside a narrow widget's wrapped label, the plus only crowds it.
+                actionButtonIcon = if (isSmall()) null else R.drawable.widget_icon_add,
                 actionButtonOnClick = bookLesson,
             )
         } else {
@@ -117,7 +122,7 @@ private fun LessonRow(row: TodayRow, texts: TodayTexts, open: Action, markTaught
                 ),
                 contentDescription = if (row.taught) texts.taught else texts.markTaught,
                 backgroundColor = null,
-                contentColor = GlanceTheme.colors.secondary,
+                contentColor = if (row.taught) TaughtColor else GlanceTheme.colors.secondary,
                 enabled = row.canMarkTaught && !row.taught,
                 onClick = markTaught,
             )
@@ -130,7 +135,8 @@ private fun LessonRow(row: TodayRow, texts: TodayTexts, open: Action, markTaught
                     fontWeight = FontWeight.Medium,
                     // M3 title small on a narrow widget, title medium otherwise.
                     fontSize = if (isSmall()) 14.sp else 16.sp,
-                    color = GlanceTheme.colors.onSurface,
+                    // Done, so it steps back behind what is still to teach.
+                    color = if (row.taught) GlanceTheme.colors.onSurfaceVariant else GlanceTheme.colors.onSurface,
                 ),
             )
         },
@@ -176,6 +182,7 @@ private fun TodayPreview(rows: List<TodayRow>) {
         TodayLayout(
             texts = TodayTexts("Today", "No lessons today", "Book a lesson", "Mark as taught", "Taught"),
             rows = rows,
+            openToday = PreviewAction,
             bookLesson = PreviewAction,
             openLesson = { PreviewAction },
             markTaught = { PreviewAction },
