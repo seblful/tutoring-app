@@ -21,7 +21,9 @@ espressoCore = "3.7.0"
 androidxTestCore = "1.7.0"
 lifecycle = "2.11.0"
 activityCompose = "1.13.0"
-composeBom = "2026.06.01"
+# Compose 1.12 (foundation, ui, runtime): the first stable line with the Styles API (`foundation.style`), still
+# @ExperimentalFoundationStyleApi — the app module opts in. material3 stays 1.4.0.
+composeBom = "2026.09.00"
 navigation3 = "1.2.0"
 # Back handling under Navigation 3's own, declared because the app's in-screen back guards call
 # `NavigationBackHandler` directly. Ahead of the 1.1.1 navigation3 1.2.0 asks for, which it raises: the
