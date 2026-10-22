@@ -59,6 +59,18 @@ The database drives both mirrors; neither writes changes back into Klas.
   A relaunch from Recents (`FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY`) goes nowhere. On Android 11 and
   below, Back finishes the activity, and Recents replays the intent that started the task: an old tap.
 
+## Lock screen
+
+- Private unless chosen (`Privacy`). Every notification is `VISIBILITY_PRIVATE` with a public version
+  that keeps its neutral title and says «unlock to see details». Its channel redacts on a secure lock
+  screen whatever the phone's own setting is: an app can set that only when it creates a channel, so
+  each kind has a `.private` and a `.shown` channel and only the one in force exists. Choosing details
+  swaps the set (`SettingsChange.movesChannels`), carrying over the importance, sound and vibration the
+  tutor gave the old one; before the settings row is read, the set in place is kept.
+- «Taught» from the tray bills the lesson, so it asks for the unlock first (`setAuthenticationRequired`).
+- On a keyguard host the Today widget shows only its title and «unlock», unless
+  `Privacy.lockScreenWidgets` is on (`listsLessons`).
+
 ## Permissions and digests
 
 - Ask for notifications in Settings and once at first booking (`shouldAskForNotifications`), never at

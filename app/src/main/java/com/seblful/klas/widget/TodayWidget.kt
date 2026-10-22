@@ -1,7 +1,10 @@
 package com.seblful.klas.widget
 
+import android.appwidget.AppWidgetManager
+import android.appwidget.AppWidgetProviderInfo
 import android.content.Context
 import android.content.Intent
+import android.os.Bundle
 import android.text.format.DateFormat
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
@@ -13,11 +16,13 @@ import androidx.glance.action.ActionParameters
 import androidx.glance.action.actionParametersOf
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetReceiver
+import androidx.glance.appwidget.LocalAppWidgetOptions
 import androidx.glance.appwidget.SizeMode
 import androidx.glance.appwidget.action.ActionCallback
 import androidx.glance.appwidget.action.actionRunCallback
 import androidx.glance.appwidget.provideContent
 import com.seblful.klas.R
+import com.seblful.klas.data.settings.Privacy
 import com.seblful.klas.di.appGraph
 import com.seblful.klas.format.formatTime
 import com.seblful.klas.format.inLanguage
@@ -66,19 +71,23 @@ class TodayWidget : GlanceAppWidget() {
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val widgets = context.appGraph.widgets
-        val states = combine(widgets.lessons.observe(), widgets.displayLocale.observe(), ::Pair)
+        val states = combine(widgets.lessons.observe(), widgets.displayLocale.observe(), widgets.privacy(), ::Triple)
         val initial = states.first()
         // Re-armed on every render, so a widget that outlived its process still turns the page at midnight.
         widgets.armMidnight()
 
         provideContent {
             val state by produceState(initial) { states.collect { value = it } }
-            val (today, locale) = state
+            val (today, locale, privacy) = state
             val hour12 = !DateFormat.is24HourFormat(context)
+            val words = context.inLanguage(locale)
+            val shown = listsLessons(LocalAppWidgetOptions.current.hostCategory(), privacy)
             GlanceTheme(colors = KlasWidgetColors) {
                 TodayLayout(
-                    texts = context.inLanguage(locale).todayTexts(),
-                    rows = today.map { it.toRow(hour12, locale) },
+                    texts = words.todayTexts().let {
+                        if (shown) it else it.copy(empty = words.getString(R.string.widget_today_locked))
+                    },
+                    rows = if (shown) today.map { it.toRow(hour12, locale) } else emptyList(),
                     openToday = openApp(context, TrayNavigation.ACTION_OPEN_TODAY),
                     bookLesson = openApp(context, TrayNavigation.ACTION_BOOK_LESSON),
                     openLesson = { classId -> openApp(context, TrayNavigation.ACTION_SHOW_LESSON, classId) },
@@ -90,6 +99,16 @@ class TodayWidget : GlanceAppWidget() {
         }
     }
 }
+
+/**
+ * Whether Today may list lessons where it is placed: always on a home screen, on the lock screen only when
+ * the tutor chose so — whose lessons they are is not for whoever picks up the phone.
+ */
+internal fun listsLessons(hostCategory: Int, privacy: Privacy): Boolean =
+    hostCategory != AppWidgetProviderInfo.WIDGET_CATEGORY_KEYGUARD || privacy.lockScreenWidgets
+
+private fun Bundle.hostCategory(): Int =
+    getInt(AppWidgetManager.OPTION_APPWIDGET_HOST_CATEGORY, AppWidgetProviderInfo.WIDGET_CATEGORY_HOME_SCREEN)
 
 /** [TodayTexts] from [this], a context in the app's language. */
 internal fun Context.todayTexts() = TodayTexts(

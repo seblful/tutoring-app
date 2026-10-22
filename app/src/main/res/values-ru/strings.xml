@@ -832,6 +832,7 @@
     -->
     <string name="reminder_channel_name">Напоминания о занятиях</string>
     <string name="reminder_channel_desc">Уведомления перед началом занятия</string>
+    <string name="notification_locked_text">Разблокируйте, чтобы посмотреть</string>
     <string name="reminder_title">Скоро занятие</string>
     <!--
       The expanded reminder's second line. %1$s: the current homework attached to this lesson. An hour
@@ -1082,6 +1083,7 @@
     <!-- Home-screen widgets: the names and descriptions the launcher's widget picker shows. -->
     <string name="widget_today_name">Занятия сегодня</string>
     <string name="widget_today_description">Сегодняшние занятия, отмечаются проведёнными одним касанием</string>
+    <string name="widget_today_locked">Разблокируйте, чтобы увидеть занятия на сегодня</string>
     <string name="widget_today_empty">Сегодня занятий нет</string>
     <string name="widget_quick_actions_name">Быстрые действия Klas</string>
     <string name="widget_quick_actions_description">Записать занятие, добавить ученика, открыть сегодня, задания и долги</string>

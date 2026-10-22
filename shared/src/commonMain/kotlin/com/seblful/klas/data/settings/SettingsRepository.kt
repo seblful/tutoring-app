@@ -76,6 +76,8 @@ data class AppSettings(
     val language: AppLanguage = AppLanguage.SYSTEM,
     /** When a backup was last exported — **null when one never has been.** */
     val lastExportAt: Instant? = null,
+    /** Lock screen, app lock and recent apps — see [Privacy]. */
+    val privacy: Privacy = Privacy(),
 )
 
 /**
@@ -135,6 +137,9 @@ data class SettingsChange(val before: AppSettings, val after: AppSettings) {
      */
     val sweepsDueLessons: Boolean get() = moved { it.autoCompleteEnabled } && after.autoCompleteEnabled
 
+    /** Whether the notification channels must be swapped for the lock-screen choice — see `Notifier.ensureChannels`. */
+    val movesChannels: Boolean get() = moved { it.privacy.lockScreenDetails }
+
     private fun <T> moved(field: (AppSettings) -> T): Boolean = field(before) != field(after)
 }
 
@@ -149,6 +154,14 @@ class SettingsRepository @Inject constructor(
 
     /** Latest language read or written, for host formatting without a global locale mutation. */
     val language = _language.asStateFlow()
+
+    private val _privacy = MutableStateFlow<Privacy?>(null)
+
+    /**
+     * Latest [Privacy] read or written — **null until the row has been read**, for a caller that cannot
+     * suspend (a notification channel, a window flag) and must tell "private" from "not known yet".
+     */
+    val privacy = _privacy.asStateFlow()
 
     fun observe(): Flow<AppSettings> = dao.observe().map { it.toSettings() }
 
@@ -198,11 +211,19 @@ class SettingsRepository @Inject constructor(
             currency = currency,
             language = language,
             lastExportAt = lastExportMillis?.let { Instant.fromEpochMilliseconds(it) },
+            privacy = Privacy(
+                lockScreenDetails = lockScreenDetails,
+                lockScreenWidgets = lockScreenWidgets,
+                appLock = appLock,
+                relockAfterMinutes = relockAfterMinutes,
+                hideInRecents = hideInRecents,
+            ),
         ),
     )
 
     private fun resolved(settings: AppSettings): AppSettings = settings.also {
         _language.value = it.language
+        _privacy.value = it.privacy
     }
 
     private fun AppSettings.toEntity(): SettingsEntity = SettingsEntity(
@@ -226,5 +247,10 @@ class SettingsRepository @Inject constructor(
         currency = currency,
         language = language,
         lastExportMillis = lastExportAt?.toEpochMilliseconds(),
+        lockScreenDetails = privacy.lockScreenDetails,
+        lockScreenWidgets = privacy.lockScreenWidgets,
+        appLock = privacy.appLock,
+        relockAfterMinutes = privacy.relockAfterMinutes,
+        hideInRecents = privacy.hideInRecents,
     )
 }

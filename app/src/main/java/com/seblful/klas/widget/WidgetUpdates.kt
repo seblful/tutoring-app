@@ -6,6 +6,8 @@ import android.content.Context
 import android.content.Intent
 import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.glance.appwidget.updateAll
+import com.seblful.klas.data.settings.Privacy
+import com.seblful.klas.data.settings.SettingsRepository
 import com.seblful.klas.di.ApplicationContext
 import com.seblful.klas.domain.time.WallClock
 import com.seblful.klas.format.DisplayLocale
@@ -14,6 +16,9 @@ import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.atStartOfDayIn
@@ -33,13 +38,18 @@ class WidgetUpdates(
     val lessons: TodayLessons,
     val displayLocale: DisplayLocale,
     private val previews: WidgetPreviews,
+    private val settings: SettingsRepository,
 ) {
+    /** The lock-screen choices, now and on each change — whether Today lists lessons on a keyguard. */
+    fun privacy(): Flow<Privacy> = settings.observe().map { it.privacy }.distinctUntilChanged()
+
     /**
      * Re-renders the widgets whenever what they show changes, for as long as the process lives. The first
      * emissions render too, so a process started for any reason repairs a widget left stale.
      */
     suspend fun keepCurrent(): Unit = coroutineScope {
         launch { lessons.observe().collect { update { TodayWidget().updateAll(context) } } }
+        launch { privacy().collect { update { TodayWidget().updateAll(context) } } }
         launch {
             displayLocale.observe().collect { locale ->
                 refresh()

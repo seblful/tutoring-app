@@ -230,7 +230,18 @@ object Migrations {
         check(orphans.isEmpty()) { "v9 -> v10 left rows pointing at nothing: $orphans" }
     }
 
+    /** v10 → v11 adds the privacy settings, every one starting closed — see `Privacy`. */
+    val MIGRATION_10_11 = object : Migration(10, 11) {
+        override fun migrate(connection: SQLiteConnection) {
+            connection.execSQL("ALTER TABLE settings ADD COLUMN lockScreenDetails INTEGER NOT NULL DEFAULT 0")
+            connection.execSQL("ALTER TABLE settings ADD COLUMN lockScreenWidgets INTEGER NOT NULL DEFAULT 0")
+            connection.execSQL("ALTER TABLE settings ADD COLUMN appLock INTEGER NOT NULL DEFAULT 0")
+            connection.execSQL("ALTER TABLE settings ADD COLUMN relockAfterMinutes INTEGER NOT NULL DEFAULT 1")
+            connection.execSQL("ALTER TABLE settings ADD COLUMN hideInRecents INTEGER NOT NULL DEFAULT 0")
+        }
+    }
+
     /** Everything above, in the order Room should be handed it. See `di/DatabaseModule`. */
     val ALL: Array<Migration> =
-        arrayOf(MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10)
+        arrayOf(MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11)
 }

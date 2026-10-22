@@ -29,7 +29,8 @@ class SettingsDeliveryTest {
 
     private fun vm() = mainRule.own(
         SettingsViewModel(
-            env.settingsRepo, SettingsWorkflow(env.settingsRepo, env.calendarMirror, env.reminders, env.maintenance),
+            env.settingsRepo,
+            SettingsWorkflow(env.settingsRepo, env.calendarMirror, env.reminders, env.maintenance, env.notifier),
             env.calendarPermission, env.notificationPermission, env.exactAlarmPermission, mainRule.appScope,
         ),
     )

@@ -1,5 +1,6 @@
 package com.seblful.klas.notifications
 
+import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -11,6 +12,7 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import com.seblful.klas.MainActivity
 import com.seblful.klas.R
+import com.seblful.klas.data.settings.SettingsRepository
 import com.seblful.klas.di.ApplicationContext
 import com.seblful.klas.domain.model.Currency
 import com.seblful.klas.domain.model.Money
@@ -37,62 +39,67 @@ class AndroidNotifier @Inject constructor(
 
     private val permission: NotificationPermission,
     private val displayLocale: DisplayLocale,
+    private val settings: SettingsRepository,
 ) : Notifier {
 
     private val words: Context get() = context.inLanguage(displayLocale.current)
 
+    /**
+     * Creates the channel set in force and removes the other — see [Kind]. The importances are the
+     * difference between the kinds stated in the platform's own terms: a reminder interrupts because a
+     * lesson is about to start, a digest arrives at an hour the tutor chose, and the upkeep report is news
+     * about something already done.
+     */
     override fun ensureChannels() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
         val manager = context.getSystemService(NotificationManager::class.java)
-        // One localized context and one binder call for all of them: this runs on every cold start and
-        // before every notification, re-labelling the channels after a language change.
+        // One localized context for all of them: this runs on every cold start and before every
+        // notification, re-labelling the channels after a language change.
         val words = words
-        // One channel per kind, so each can be tuned or silenced on its own in system settings. The
-        // importances are the difference between them stated in the platform's own terms: a reminder
-        // interrupts because a lesson is about to start, a digest arrives at an hour the tutor chose, and
-        // the upkeep report is news about something already done.
+        val details = details()
         manager.createNotificationChannels(
-            listOf(
-                words.channel(
-                    CHANNEL_REMINDERS,
-                    R.string.reminder_channel_name,
-                    R.string.reminder_channel_desc,
-                    NotificationManager.IMPORTANCE_HIGH,
-                ),
-                words.channel(
-                    CHANNEL_AGENDA,
-                    R.string.agenda_channel_name,
-                    R.string.agenda_channel_desc,
-                    NotificationManager.IMPORTANCE_DEFAULT,
-                ),
-                words.channel(
-                    CHANNEL_UNFINISHED,
-                    R.string.unfinished_channel_name,
-                    R.string.unfinished_channel_desc,
-                    NotificationManager.IMPORTANCE_DEFAULT,
-                ),
-                words.channel(
-                    CHANNEL_DEBTS,
-                    R.string.debts_channel_name,
-                    R.string.debts_channel_desc,
-                    NotificationManager.IMPORTANCE_DEFAULT,
-                ),
-                words.channel(
-                    CHANNEL_UPKEEP,
-                    R.string.upkeep_channel_name,
-                    R.string.upkeep_channel_desc,
-                    // LOW: no sound, no peek. The tutor is being told what the app did while they were away,
-                    // which is worth being able to read and never worth interrupting anything for.
-                    NotificationManager.IMPORTANCE_LOW,
-                ),
-            ),
+            Kind.entries.map { kind ->
+                words.channel(kind, details).apply {
+                    // What the tutor tuned in system settings survives the swap: the channel this one
+                    // replaces is read before it is deleted.
+                    kind.replaced(details).firstNotNullOfOrNull { manager.getNotificationChannel(it) }
+                        ?.let { carry(it) }
+                }
+            },
         )
+        Kind.entries.flatMap { it.replaced(details) }
+            .filter { manager.getNotificationChannel(it) != null }
+            .forEach { manager.deleteNotificationChannel(it) }
     }
 
     @androidx.annotation.RequiresApi(Build.VERSION_CODES.O)
-    private fun Context.channel(id: String, nameRes: Int, descRes: Int, importance: Int): NotificationChannel =
-        NotificationChannel(id, getString(nameRes), importance)
-            .apply { description = getString(descRes) }
+    private fun Context.channel(kind: Kind, details: Boolean): NotificationChannel =
+        NotificationChannel(kind.id(details), getString(kind.nameRes), kind.importance).apply {
+            description = getString(kind.descRes)
+            // Redacted on a secure lock screen whatever the phone's own setting says — set here because a
+            // channel's lock-screen visibility can only be given as it is created.
+            if (!details) lockscreenVisibility = Notification.VISIBILITY_PRIVATE
+        }
+
+    @androidx.annotation.RequiresApi(Build.VERSION_CODES.O)
+    private fun NotificationChannel.carry(from: NotificationChannel) {
+        importance = from.importance
+        setSound(from.sound, from.audioAttributes)
+        enableVibration(from.shouldVibrate())
+        vibrationPattern = from.vibrationPattern
+        setShowBadge(from.canShowBadge())
+    }
+
+    /**
+     * Whether the shown set is in force: the tutor's choice once the settings row has been read, and
+     * until then whichever set exists — so a cold start never swaps the channels back and forth.
+     */
+    private fun details(): Boolean = settings.privacy.value?.lockScreenDetails
+        ?: (
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
+                context.getSystemService(NotificationManager::class.java)
+                    .getNotificationChannel(Kind.REMINDERS.id(details = true)) != null
+            )
 
     /** No-ops silently if notification permission is missing. */
     override fun showClassReminder(
@@ -115,7 +122,7 @@ class AndroidNotifier @Inject constructor(
             ?.let { "$headline\n${words.getString(R.string.reminder_homework_to_check, it)}" }
             ?: headline
 
-        val notification = builder(CHANNEL_REMINDERS, R.string.reminder_title)
+        val notification = builder(Kind.REMINDERS, R.string.reminder_title)
             .setContentText(headline)
             .setStyle(NotificationCompat.BigTextStyle().bigText(expanded))
             .setPriority(NotificationCompat.PRIORITY_HIGH)
@@ -147,7 +154,7 @@ class AndroidNotifier @Inject constructor(
     }
 
     private fun remindersSummary() {
-        val summary = builder(CHANNEL_REMINDERS, R.string.reminder_title)
+        val summary = builder(Kind.REMINDERS, R.string.reminder_title)
             .setGroup(GROUP_REMINDERS)
             .setGroupSummary(true)
             .setOnlyAlertOnce(true)
@@ -170,7 +177,7 @@ class AndroidNotifier @Inject constructor(
         // null here: `Agenda.isWorthPosting` has already refused an empty day, and it is the only way in.
         val summary = daySummaryText(words.resources, agenda.summary, currency, displayLocale.current).orEmpty()
 
-        val notification = builder(CHANNEL_AGENDA, R.string.agenda_title)
+        val notification = builder(Kind.AGENDA, R.string.agenda_title)
             .setContentText(summary.forSystemFont())
             .setStyle(style)
             .setCategory(NotificationCompat.CATEGORY_REMINDER)
@@ -186,7 +193,7 @@ class AndroidNotifier @Inject constructor(
         // The same list the morning agenda is drawn as, capped the same way — see [TrayContent].
         val style = lessonList(TrayContent.unfinished(unfinished))
 
-        val notification = builder(CHANNEL_UNFINISHED, R.string.unfinished_title)
+        val notification = builder(Kind.UNFINISHED, R.string.unfinished_title)
             // The count, not a total: nothing here has billed, so there is no money to print beside it.
             .setContentText(
                 words.resources.getQuantityString(
@@ -212,7 +219,7 @@ class AndroidNotifier @Inject constructor(
             words.resources.getQuantityString(R.plurals.students_count, debts.students, debts.students),
             debts.total.money(currency, displayLocale.current),
         )
-        val notification = builder(CHANNEL_DEBTS, R.string.debts_title)
+        val notification = builder(Kind.DEBTS, R.string.debts_title)
             .setContentText(body.forSystemFont())
             .setCategory(NotificationCompat.CATEGORY_STATUS)
             // Straight to the report that lists them, where each debt row opens the student — the tray can
@@ -230,7 +237,7 @@ class AndroidNotifier @Inject constructor(
             words.resources.getQuantityString(R.plurals.lessons_count, lessons, lessons),
             billed.money(currency, displayLocale.current),
         )
-        val notification = builder(CHANNEL_UPKEEP, R.string.upkeep_completed_title)
+        val notification = builder(Kind.UPKEEP, R.string.upkeep_completed_title)
             .setContentText(body.forSystemFont())
             .setCategory(NotificationCompat.CATEGORY_STATUS)
             .setContentIntent(openDay(ID_UPKEEP, day))
@@ -245,11 +252,25 @@ class AndroidNotifier @Inject constructor(
         return true
     }
 
-    private fun builder(channel: String, titleRes: Int): NotificationCompat.Builder =
-        NotificationCompat.Builder(context, channel)
+    private fun builder(kind: Kind, titleRes: Int): NotificationCompat.Builder {
+        val channel = kind.id(details())
+        val words = words
+        val title = words.getString(titleRes)
+        return NotificationCompat.Builder(context, channel)
             .setSmallIcon(R.drawable.ic_stat_klas)
-            .setContentTitle(words.getString(titleRes))
+            .setContentTitle(title)
             .setAutoCancel(true)
+            // What a lock screen that hides sensitive content shows instead: the kind of news, never whose
+            // lesson or how much. Every title is already that neutral; the details wait for the unlock.
+            .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
+            .setPublicVersion(
+                NotificationCompat.Builder(context, channel)
+                    .setSmallIcon(R.drawable.ic_stat_klas)
+                    .setContentTitle(title)
+                    .setContentText(words.getString(R.string.notification_locked_text))
+                    .build(),
+            )
+    }
 
     private fun lessonList(posting: TrayContent.AgendaPosting): NotificationCompat.InboxStyle {
         val style = NotificationCompat.InboxStyle()
@@ -294,9 +315,11 @@ class AndroidNotifier @Inject constructor(
         val intent = Intent(context, ReminderActionReceiver::class.java)
             .setAction(ReminderActionReceiver.ACTION_COMPLETE)
             .putExtra(TrayNavigation.EXTRA_CLASS_ID, classId)
+        // It bills the lesson, so from a locked phone it asks for the unlock first (Android 12+).
         return action(
             R.string.class_status_completed,
             PendingIntent.getBroadcast(context, classId.toInt(), intent, FLAGS),
+            authenticated = true,
         )
     }
 
@@ -308,15 +331,56 @@ class AndroidNotifier @Inject constructor(
             },
         )
 
-    private fun action(labelRes: Int, intent: PendingIntent): NotificationCompat.Action =
-        NotificationCompat.Action.Builder(0, words.getString(labelRes), intent).build()
+    private fun action(
+        labelRes: Int,
+        intent: PendingIntent,
+        authenticated: Boolean = false,
+    ): NotificationCompat.Action =
+        NotificationCompat.Action.Builder(0, words.getString(labelRes), intent)
+            .setAuthenticationRequired(authenticated)
+            .build()
+
+    /**
+     * The five kinds of notification, one channel each so each can be tuned or silenced on its own. Every
+     * kind has two channels: a private one that redacts on a secure lock screen, and a shown one that
+     * leaves that to the phone ([com.seblful.klas.data.settings.Privacy.lockScreenDetails]). Only one of the
+     * two exists at a time; [legacyId] is the channel from before the split, replaced once.
+     */
+    private enum class Kind(val legacyId: String, val nameRes: Int, val descRes: Int, val importance: Int) {
+        REMINDERS(
+            "class_reminders", R.string.reminder_channel_name, R.string.reminder_channel_desc,
+            NotificationManager.IMPORTANCE_HIGH,
+        ),
+        AGENDA(
+            "daily_agenda", R.string.agenda_channel_name, R.string.agenda_channel_desc,
+            NotificationManager.IMPORTANCE_DEFAULT,
+        ),
+        UNFINISHED(
+            "unfinished_digest", R.string.unfinished_channel_name, R.string.unfinished_channel_desc,
+            NotificationManager.IMPORTANCE_DEFAULT,
+        ),
+        DEBTS(
+            "debt_digest", R.string.debts_channel_name, R.string.debts_channel_desc,
+            NotificationManager.IMPORTANCE_DEFAULT,
+        ),
+
+        // LOW: no sound, no peek. The tutor is being told what the app did while they were away, which is
+        // worth being able to read and never worth interrupting anything for.
+        UPKEEP(
+            "upkeep_report", R.string.upkeep_channel_name, R.string.upkeep_channel_desc,
+            NotificationManager.IMPORTANCE_LOW,
+        ),
+        ;
+
+        fun id(details: Boolean): String = legacyId + if (details) SHOWN else PRIVATE
+
+        /** The channels the set in force replaces: the other set, and the one from before the split. */
+        fun replaced(details: Boolean): List<String> = listOf(id(!details), legacyId)
+    }
 
     companion object {
-        const val CHANNEL_REMINDERS = "class_reminders"
-        const val CHANNEL_AGENDA = "daily_agenda"
-        const val CHANNEL_UNFINISHED = "unfinished_digest"
-        const val CHANNEL_DEBTS = "debt_digest"
-        const val CHANNEL_UPKEEP = "upkeep_report"
+        private const val PRIVATE = ".private"
+        private const val SHOWN = ".shown"
 
         private const val GROUP_REMINDERS = "com.seblful.klas.REMINDERS"
 

@@ -151,6 +151,20 @@ data class SettingsEntity(
      * and a nullable column carries it without a rule to remember.
      */
     val lastExportMillis: Long? = null,
+    /**
+     * The five [Privacy] choices, added by v10 → v11. Every `defaultValue` matches the migration's
+     * `DEFAULT` and the private start — an upgraded install is as closed as a new one.
+     */
+    @ColumnInfo(defaultValue = "0")
+    val lockScreenDetails: Boolean = false,
+    @ColumnInfo(defaultValue = "0")
+    val lockScreenWidgets: Boolean = false,
+    @ColumnInfo(defaultValue = "0")
+    val appLock: Boolean = false,
+    @ColumnInfo(defaultValue = "1")
+    val relockAfterMinutes: Int = Privacy.DEFAULT_RELOCK_MINUTES,
+    @ColumnInfo(defaultValue = "0")
+    val hideInRecents: Boolean = false,
 ) {
     companion object {
         const val SINGLETON_ID = 0
