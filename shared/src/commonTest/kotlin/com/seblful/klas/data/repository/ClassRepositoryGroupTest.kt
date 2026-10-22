@@ -205,6 +205,43 @@ class ClassRepositoryGroupTest {
     }
 
     @Test
+    fun `archiving a group calls off its planned lessons and leaves taught ones alone`() = runTest {
+        seed()
+        env.settingsRepo.update { it.copy(calendarSyncEnabled = true) }
+        val taught = bookSession(at = start)
+        repo.setStatus(repo.getSessionFor(taught.first())!!, LessonStatus.COMPLETED)
+        val planned = listOf(
+            bookSession(at = start.plus((7 * 24 * 3600).seconds)),
+            bookSession(at = start.plus((14 * 24 * 3600).seconds)),
+        )
+        val events = planned.flatten().map { repo.getById(it)!!.calendarEventId }
+
+        val cancelled = env.groupRepo.setArchived(env.groupRepo.getById(groupId)!!, archived = true)
+
+        assertEquals(2, cancelled, "lessons are counted, not member classes")
+        planned.forEach { ids ->
+            val session = repo.getSessionFor(ids.first())!!
+            assertEquals(LessonStatus.CANCELLED, session.status)
+            assertEquals(2, session.size, "every member's class goes with it")
+        }
+        assertEquals(LessonStatus.COMPLETED, repo.getSessionFor(taught.first())!!.status)
+        assertTrue(env.calendar.deletes.containsAll(events.filterNotNull()), "their events are withdrawn")
+    }
+
+    @Test
+    fun `restoring a group re-plans nothing`() = runTest {
+        seed()
+        val planned = bookSession(at = start.plus((7 * 24 * 3600).seconds))
+        val group = env.groupRepo.getById(groupId)!!
+        env.groupRepo.setArchived(group, archived = true)
+
+        val restored = env.groupRepo.setArchived(env.groupRepo.getById(groupId)!!, archived = false)
+
+        assertEquals(0, restored)
+        assertEquals(LessonStatus.CANCELLED, repo.getSessionFor(planned.first())!!.status)
+    }
+
+    @Test
     fun `moving a group lesson keeps its members in one session`() = runTest {
         seed()
         val ids = bookSession()

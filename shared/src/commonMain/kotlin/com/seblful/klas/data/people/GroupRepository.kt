@@ -99,8 +99,15 @@ class GroupRepository @Inject constructor(
         return memberIds intersect priced
     }
 
-    suspend fun setArchived(group: Group, archived: Boolean) {
+    /**
+     * Archives or restores [group], and returns how many of its planned lessons archiving called off
+     * (zero when restoring) — as students are archived. An archived group can't be booked, so a planned
+     * lesson left standing would still remind, sync and auto-bill a group nobody can see.
+     */
+    suspend fun setArchived(group: Group, archived: Boolean): Int {
+        val cancelled = if (archived) classes.cancelScheduledForGroup(group.id) else 0
         dao.upsert(group.copy(archived = archived).toEntity())
+        return cancelled
     }
 
     /**

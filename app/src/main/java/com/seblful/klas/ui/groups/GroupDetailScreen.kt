@@ -23,6 +23,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -121,6 +122,7 @@ private fun GroupCard(
     val group = state.group
 
     var confirmingDelete by remember { mutableStateOf(false) }
+    var confirmingArchive by remember { mutableStateOf(false) }
     // Taken when the dialog opens — see `GroupDetailViewModel.homeworkChoice`.
     var addingHomework by remember { mutableStateOf<AssigneeChoice?>(null) }
     var openedHomework by remember { mutableStateOf<HomeworkRow?>(null) }
@@ -144,7 +146,12 @@ private fun GroupCard(
             if (group != null) {
                 GroupOverflowMenu(
                     archived = group.archived,
-                    onArchive = { viewModel.setArchived(!group.archived) },
+                    // Archiving calls the planned lessons off, so it asks first when there are any — as a
+                    // student's archive does. Restoring takes nothing away and never asks.
+                    onArchive = {
+                        if (!group.archived && state.plannedLessons > 0) confirmingArchive = true
+                        else viewModel.setArchived(!group.archived)
+                    },
                     onDelete = { confirmingDelete = true }.takeIf { state.canDelete },
                 )
             }
@@ -214,6 +221,19 @@ private fun GroupCard(
         undo = homeworkUndo,
     )
 
+    if (confirmingArchive) {
+        val parts = listOf(
+            pluralStringResource(R.plurals.student_archive_lessons_part, state.plannedLessons, state.plannedLessons),
+            stringResource(R.string.student_archive_question),
+        )
+        ConfirmDialog(
+            text = parts.joinToString(" "),
+            confirmLabel = stringResource(R.string.action_archive),
+            onConfirm = { viewModel.setArchived(true) },
+            onDismiss = { confirmingArchive = false },
+        )
+    }
+
     if (confirmingDelete) {
         ConfirmDialog(
             text = stringResource(R.string.group_delete_confirm),
@@ -239,10 +259,13 @@ private fun HomeworkEntry(requested: Boolean, groupId: Long?, onOpen: () -> Unit
 internal fun ShowGroupMessages(viewModel: GroupDetailViewModel, messages: Messages) {
     val deleteBlockedMsg = stringResource(R.string.group_delete_blocked)
     val writeFailedMsg = stringResource(R.string.action_failed)
+    val resources = LocalResources.current
     ShowMessagesFor(viewModel.events, messages) { event ->
         when (event) {
-            GroupDetailViewModel.Event.DELETE_BLOCKED_HAS_LESSONS -> deleteBlockedMsg
-            GroupDetailViewModel.Event.WRITE_FAILED -> writeFailedMsg
+            GroupDetailViewModel.Event.DeleteBlockedHasLessons -> deleteBlockedMsg
+            is GroupDetailViewModel.Event.ArchiveCancelledLessons ->
+                resources.getQuantityString(R.plurals.student_archive_lessons_cancelled, event.count, event.count)
+            GroupDetailViewModel.Event.WriteFailed -> writeFailedMsg
         }
     }
 }

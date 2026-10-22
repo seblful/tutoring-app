@@ -42,7 +42,7 @@ Paths below are inside `com.seblful.klas`; follow the linked sources for individ
 | `ClassRepository` | Whole-lesson writes (`ClassSession`), overlap refusal, calendar/reminder effects. `bookSeries` reports taken slots instead of refusing the run. |
 | `CalendarMirror` | Event content, sync backfill/withdrawal and restore reconciliation. |
 | `EnrollmentRepository` / `RateHistoryRepository` | Subjects and prices stay paired; rate changes share one log. |
-| `GroupRepository` | Only writer of group membership. |
+| `GroupRepository` | Only writer of group membership; archiving cancels the group's planned lessons. |
 | `HomeworkRepository` | Only writer of homework; refreshes affected calendar descriptions after saving. Phone reminders read homework when firing. |
 | `PaymentRepository` | Payment dates, corrections and derived instants. |
 | `SettingsRepository` | Serialized `update {}` returns required side effects and publishes portable language state. Device currency defaults arrive through `DevicePreferences`. |

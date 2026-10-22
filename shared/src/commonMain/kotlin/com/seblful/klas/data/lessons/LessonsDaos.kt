@@ -168,6 +168,10 @@ interface ClassDao {
     @Query("$CLASS_ROWS WHERE a.studentId = :studentId AND l.status = 'SCHEDULED'")
     suspend fun scheduledForStudent(studentId: Long): List<ClassRow>
 
+    /** Every member's class in [groupId]'s scheduled lessons — what archiving the group calls off. */
+    @Query("$CLASS_ROWS WHERE l.groupId = :groupId AND l.status = 'SCHEDULED'")
+    suspend fun scheduledForGroup(groupId: Long): List<ClassRow>
+
     /** The next class in a scheduled lesson starting after [nowMillis], for the reminder. */
     @Query("$CLASS_ROWS WHERE l.status = 'SCHEDULED' AND l.startMillis > :nowMillis ORDER BY l.startMillis LIMIT 1")
     suspend fun nextScheduledAfter(nowMillis: Long): ClassRow?

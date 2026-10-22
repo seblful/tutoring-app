@@ -21,6 +21,7 @@ import com.seblful.klas.domain.model.Attendance
 import com.seblful.klas.domain.model.ClassSession
 import com.seblful.klas.domain.model.Group
 import com.seblful.klas.domain.model.Homework
+import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Student
 import com.seblful.klas.domain.model.TutoringClass
@@ -94,6 +95,9 @@ data class GroupDetailState(
      */
     val canDelete: Boolean get() = lessons.isEmpty()
 
+    /** How many planned lessons archiving would call off — asked about first when there are any. */
+    val plannedLessons: Int get() = lessons.count { it.session.status == LessonStatus.SCHEDULED }
+
     /** The lesson the tutor next teaches the group — see [CardLessons.next]. */
     fun nextLesson(now: Instant): GroupLessonRow? = CardLessons.next(lessons, now) { it.session.first }
 
@@ -125,17 +129,20 @@ class GroupDetailViewModel @AssistedInject constructor(
         fun create(@Assisted savedStateHandle: SavedStateHandle): GroupDetailViewModel
     }
 
-    /** One-shot signals: a deletion refused because the group already has lessons, or a failed write. */
-    enum class Event {
-        DELETE_BLOCKED_HAS_LESSONS,
+    /** One-shot signals: a refused deletion, the lessons archiving called off, or a failed write. */
+    sealed interface Event {
+        data object DeleteBlockedHasLessons : Event
 
-        /** A homework write failed — a database error rather than a rule. */
-        WRITE_FAILED,
+        /** Archiving called off [count] planned lessons — said, since it changes the schedule. */
+        data class ArchiveCancelledLessons(val count: Int) : Event
+
+        /** A write failed — a database error rather than a rule. */
+        data object WriteFailed : Event
     }
 
     val events = UiEvents<Event>()
 
-    private val homeworkActions = HomeworkActions(homework, appScope, events, Event.WRITE_FAILED)
+    private val homeworkActions = HomeworkActions<Event>(homework, appScope, events, Event.WriteFailed)
 
     val groupId: Long = checkNotNull(savedStateHandle["id"])
 
@@ -209,19 +216,23 @@ class GroupDetailViewModel @AssistedInject constructor(
      * Retires the group, or brings it back. Writes straight through — there is no form here to leave
      * unsaved, which is half the reason this belongs on the card rather than on one.
      */
-    fun setArchived(value: Boolean) = appScope.write(events, Event.WRITE_FAILED) {
-        groups.getById(groupId)?.let { groups.setArchived(it, value) }
+    fun setArchived(value: Boolean) = appScope.write(
+        events,
+        Event.WriteFailed,
+        onWritten = { cancelled: Int -> if (cancelled > 0) events.send(Event.ArchiveCancelledLessons(cancelled)) },
+    ) {
+        groups.getById(groupId)?.let { groups.setArchived(it, value) } ?: 0
     }
 
     /**
-     * Deletes the group and leaves, or reports [Event.DELETE_BLOCKED_HAS_LESSONS] — a group with
+     * Deletes the group and leaves, or reports [Event.DeleteBlockedHasLessons] — a group with
      * lessons is refused (its classes must keep naming it) and the card offers archiving instead.
      */
     fun delete(onDeleted: () -> Unit) {
         viewModelScope.launch {
             appScope.writeAwaited { groups.getById(groupId)?.let { groups.delete(it) } ?: false }
-                .onSuccess { if (it) onDeleted() else events.send(Event.DELETE_BLOCKED_HAS_LESSONS) }
-                .onFailure { events.send(Event.WRITE_FAILED) }
+                .onSuccess { if (it) onDeleted() else events.send(Event.DeleteBlockedHasLessons) }
+                .onFailure { events.send(Event.WriteFailed) }
         }
     }
 

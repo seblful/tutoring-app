@@ -225,6 +225,29 @@ class GroupDetailViewModelTest {
     }
 
     @Test
+    fun `archiving a group with planned lessons calls them off and says how many`() = runTest(mainRule.dispatcher) {
+        val maths = fixtures.subject()
+        val anya = fixtures.pricedStudent("Аня", maths)
+        val id = fixtures.group("Выпускники", subjectId = maths, members = setOf(anya), rate = rate)
+        val tomorrow = env.clock.now() + 24.hours
+        fixtures.lesson(maths, listOf(anya), tomorrow, groupId = id, rate = rate)
+        fixtures.lesson(maths, listOf(anya), tomorrow + 48.hours, groupId = id, rate = rate)
+
+        val vm = vm(id)
+        observing(vm.state)
+        runCurrent()
+        assertEquals("the card knows what archiving would cost", 2, vm.state.current.plannedLessons)
+
+        val events = mutableListOf<GroupDetailViewModel.Event>()
+        backgroundScope.launch { vm.events.stream.collect { events += it } }
+        vm.setArchived(true)
+        runCurrent()
+
+        assertEquals(listOf(GroupDetailViewModel.Event.ArchiveCancelledLessons(2)), events)
+        assertEquals(0, vm.state.current.plannedLessons)
+    }
+
+    @Test
     fun `an unused group can be deleted`() = runTest(mainRule.dispatcher) {
         val anya = fixtures.student("Аня")
         val id = fixtures.group("Ошибка", members = setOf(anya), rate = rate)
@@ -265,7 +288,7 @@ class GroupDetailViewModelTest {
         runCurrent()
 
         assertFalse(deleted)
-        assertEquals(listOf(GroupDetailViewModel.Event.DELETE_BLOCKED_HAS_LESSONS), events)
+        assertEquals(listOf(GroupDetailViewModel.Event.DeleteBlockedHasLessons), events)
         assertNotNull("the group survives so its lessons still name it", env.groupRepo.getById(id))
     }
 

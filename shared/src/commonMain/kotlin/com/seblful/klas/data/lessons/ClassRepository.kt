@@ -496,6 +496,23 @@ class ClassRepository @Inject constructor(
     }
 
     /**
+     * Cancels [groupId]'s scheduled lessons for archiving the group, and returns how many **lessons** it
+     * called off. One transaction, read inside it, for the same reasons as [cancelScheduledFor].
+     */
+    suspend fun cancelScheduledForGroup(groupId: Long): Int {
+        if (dao.scheduledForGroup(groupId).isEmpty()) return 0
+        return write {
+            val lessonsOf = dao.scheduledForGroup(groupId).map { it.toDomain() }.groupBy { it.lessonId }
+            val cancelled = lessonsOf.values.map { classes ->
+                classes.map { ClassRules.applyStatus(it, LessonStatus.CANCELLED) }
+                    .also { rewrite(lesson = it.first(), classes = it) }
+            }
+            val rows = cancelled.flatten()
+            Committed(cancelled.size, mirror = rows)
+        }
+    }
+
+    /**
      * How many **lessons** are waiting to be auto-completed at [now] — what [autoCompleteDue] would
      * settle if it ran, whether or not the setting that lets it run is on.
      */

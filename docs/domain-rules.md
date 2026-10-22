@@ -73,7 +73,8 @@ mirrors and [database and backup](database-and-backup.md) for persistence contra
   differing member rates. Only students priced for that subject may join; save intersects the roster
   with eligible students and the form asks before dropping members.
 - Attendance is independent of roster membership and correctable afterwards. Groups with lessons are
-  archive-only; unused groups can be deleted. Calendar events are per member, reminders per lesson.
+  archive-only; unused groups can be deleted. Archiving a group, like a student, cancels its planned
+  lessons and asks first when there are any. Calendar events are per member, reminders per lesson.
 - `Captions.title` names group lessons by group, individual lessons by student, with a student fallback
   for an unknown group name. Booking and reminders use the same rule.
 
