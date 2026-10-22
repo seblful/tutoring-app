@@ -145,11 +145,15 @@
     <string name="class_who_label">Student or group</string>
     <string name="class_book_action">Book</string>
     <string name="class_still_needed">Still needed</string>
-    <string name="class_timeline_hint">Tap free time, then slide to adjust</string>
-    <string name="class_timeline_pick_day">Pick a day to see when it\'s free</string>
-    <string name="class_timeline_earlier">5 minutes earlier</string>
-    <string name="class_timeline_later">5 minutes later</string>
-    <string name="class_timeline_suggestion">Tap to book here · %1$s</string>
+    <string name="class_day_previous">Previous day</string>
+    <string name="class_day_next">Next day</string>
+    <!-- Where the day goes before there is one, and what tapping the day does: opens the date dialog. -->
+    <string name="class_day_pick">Choose a day</string>
+    <string name="class_day_free">No other lessons</string>
+    <!-- Where the time goes before there is one, and what tapping the time does: opens the time dialog. -->
+    <string name="class_time_pick">Set time</string>
+    <string name="class_step_earlier">15 minutes earlier</string>
+    <string name="class_step_later">15 minutes later</string>
     <string name="class_gap_who">student or group</string>
     <string name="class_gap_subject">subject</string>
     <string name="class_gap_date">date</string>

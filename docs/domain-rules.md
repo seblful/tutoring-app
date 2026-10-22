@@ -42,11 +42,9 @@ mirrors and [database and backup](database-and-backup.md) for persistence contra
 - **One tutor, one lesson at a time:** `Scheduling.conflicts` refuses overlap through
   `LessonWrite.HourTaken`. Back-to-back and past bookings work; cancellation frees the slot. A correction
   that leaves a lesson cancelled reserves no time, even if another lesson has reused its slot.
-- There are no working hours, set or learnt, and no hours are refused. The booking timeline draws every
-  day 09–23, widened to whole hours around any lesson outside that; any free time drawn can be tapped.
-  A tap snaps to five minutes, then moves just enough to fit the free gap, so a finger near a lesson
-  books back to back. A slide lands on the nearest start, either side of a lesson, where the whole
-  lesson fits free. A five-minute step moves that way only, past a lesson in the way.
+- There are no working hours, set or learnt, and no hours are refused. The booking form's step moves a
+  lesson 15 minutes that way only, past a lesson in the way, anywhere in its day; with no start yet it
+  takes the first free time from 09:00 (or from now, today). Any time can be typed in the time dialog.
 - Repeating bookings write ordinary lessons in one transaction (`Recurrence`, `bookSeries`). Taken
   slots are skipped, including the first date; Save requires at least one free occurrence. Results are
   reported as `SeriesWrite`; there is no series entity or bulk “cancel the rest”. See

@@ -10,9 +10,7 @@ import kotlinx.datetime.atTime
 import kotlinx.datetime.toInstant
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertFalse
 import kotlin.test.assertNull
-import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Instant
 
@@ -57,12 +55,6 @@ class DayTimelineTest {
         val elsewhere = Scheduling.Slot(LocalDate(2026, 10, 23).atTime(9, 0).toInstant(utc), 60)
 
         assertEquals(thursday, thursday.including(elsewhere))
-    }
-
-    @Test
-    fun `a lesson clashes only with the day's lessons it runs into`() {
-        assertTrue(thursday.clashesWith(Scheduling.Slot(at(15, 0), 60)))
-        assertFalse(thursday.clashesWith(Scheduling.Slot(at(16, 30), 90)))
     }
 
     @Test
@@ -116,33 +108,6 @@ class DayTimelineTest {
     }
 
     @Test
-    fun `a slide lands on the nearest five minutes`() {
-        assertEquals(at(10, 10), thursday.nearestFree(at(10, 8), minutes = 60))
-        assertEquals(at(10, 5), thursday.nearestFree(at(10, 7), minutes = 60))
-    }
-
-    @Test
-    fun `a slide into a lesson hops to its nearer side`() {
-        // Мария is 15:30–16:30: an hour fits just before her or just after.
-        assertEquals(at(14, 30), thursday.nearestFree(at(15, 10), minutes = 60))
-        assertEquals(at(16, 30), thursday.nearestFree(at(15, 50), minutes = 60))
-    }
-
-    @Test
-    fun `a slide passes over a gap too short for the lesson`() {
-        // 16:30–18:00 holds 90 minutes: two hours go on to 19:30, nearer than 13:30 before Мария.
-        assertEquals(at(19, 30), thursday.nearestFree(at(16, 40), minutes = 120))
-        assertNull(thursday.nearestFree(at(12), minutes = 13 * 60))
-    }
-
-    @Test
-    fun `lessons inside one another are one busy stretch to a slide`() {
-        val timeline = DayTimeline.of(day, utc, listOf(booked(10, 0, 240), booked(11, 0, 60)))
-
-        assertEquals(at(14), timeline.nearestFree(at(12, 30), minutes = 60))
-    }
-
-    @Test
     fun `a step moves a lesson five minutes in free time`() {
         assertEquals(at(12, 5), thursday.shifted(at(12), 5.minutes, minutes = 60))
         assertEquals(at(11, 55), thursday.shifted(at(12), (-5).minutes, minutes = 60))
@@ -160,13 +125,6 @@ class DayTimelineTest {
         // Two hours fit after Мария only past the group, and from 9:00 there is nowhere earlier.
         assertEquals(at(19, 30), thursday.shifted(at(13, 30), 5.minutes, minutes = 120))
         assertNull(thursday.shifted(at(9), (-5).minutes, minutes = 60))
-    }
-
-    @Test
-    fun `a tap on a lesson finds it a tap beside it does not`() {
-        assertEquals("Мария", thursday.lessonAt(at(15, 45))?.who)
-        assertEquals("11 «А»", thursday.lessonAt(at(18, 0))?.who)
-        assertNull(thursday.lessonAt(at(16, 30)))
     }
 
     @Test

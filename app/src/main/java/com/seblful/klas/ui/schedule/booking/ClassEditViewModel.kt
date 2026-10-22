@@ -14,7 +14,6 @@ import com.seblful.klas.data.people.SubjectRepository
 import com.seblful.klas.data.settings.SettingsRepository
 import com.seblful.klas.di.ApplicationScope
 import com.seblful.klas.di.Computation
-import com.seblful.klas.di.FirstDayOfWeek
 import com.seblful.klas.domain.lesson.ClassRules
 import com.seblful.klas.domain.lesson.GroupRules
 import com.seblful.klas.domain.lesson.SessionEdit
@@ -24,7 +23,6 @@ import com.seblful.klas.domain.model.Group
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Student
 import com.seblful.klas.domain.model.Subject
-import com.seblful.klas.domain.schedule.CalendarLayout
 import com.seblful.klas.domain.schedule.DayBounds
 import com.seblful.klas.domain.schedule.DayTimeline
 import com.seblful.klas.domain.schedule.Scheduling
@@ -39,7 +37,6 @@ import com.seblful.klas.ui.common.state.UiEvents
 import com.seblful.klas.ui.common.state.derive
 import com.seblful.klas.ui.common.state.hold
 import com.seblful.klas.ui.common.state.ready
-import com.seblful.klas.ui.common.state.readyOrLoadingAfter
 import com.seblful.klas.ui.common.state.shared
 import com.seblful.klas.ui.common.state.valueOrNull
 import com.seblful.klas.ui.common.state.writeAwaited
@@ -65,7 +62,6 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.datetime.DateTimeUnit
-import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
@@ -86,7 +82,6 @@ class ClassEditViewModel @AssistedInject constructor(
     @param:ApplicationScope private val appScope: CoroutineScope,
     @param:Computation private val computation: CoroutineDispatcher,
     private val clock: WallClock,
-    @param:FirstDayOfWeek private val weekStart: DayOfWeek = DayOfWeek.MONDAY,
 ) : ViewModel() {
 
     /** Hands over the screen's navigation arguments as the [SavedStateHandle]; the rest is injected. */
@@ -242,38 +237,6 @@ class ClassEditViewModel @AssistedInject constructor(
                 }
             }
         }
-
-    /** A week paged to in the When section's strip; null while it follows the form's date. */
-    private val pagedWeek = MutableStateFlow<LocalDate?>(null)
-
-    /** The week the strip shows and how many lessons each of its days has. */
-    val week: StateFlow<BookingWeek> =
-        combine(pagedWeek, form.map { it.date }.distinctUntilChanged()) { paged, _ ->
-            paged ?: CalendarLayout.startOfWeek(datePickerDefault(), weekStart)
-        }.distinctUntilChanged()
-            .flatMapLatest { first -> weekFrom(first) }
-            .derive(this, computation, BookingWeek(CalendarLayout.week(datePickerDefault(), weekStart), clock.today()))
-
-    private fun weekFrom(first: LocalDate): Flow<BookingWeek> {
-        val days = CalendarLayout.week(first, weekStart)
-        val bounds = DayBounds.of(days.first(), days.last().plus(1, DateTimeUnit.DAY), zone)
-        return classes.observeBetween(bounds.start, bounds.end)
-            .map { CalendarLayout.dayLoads(it, zone) }
-            // The days and their counts arrive together, so a page turn never draws last week's numbers
-            // under this week's dates.
-            .readyOrLoadingAfter()
-            .map { loads -> BookingWeek(days, clock.today(), loads) }
-    }
-
-    /** Pages the strip [weeks] forward, or back when negative. */
-    fun showWeek(weeks: Int) {
-        pagedWeek.value = week.value.days.first().plus(weeks * CalendarLayout.DAYS_IN_WEEK, DateTimeUnit.DAY)
-    }
-
-    /** Pages the strip back to this week. */
-    fun showThisWeek() {
-        pagedWeek.value = CalendarLayout.startOfWeek(clock.today(), weekStart)
-    }
 
     /** The chosen date as the timeline draws it, without this lesson in it; null until there is a date. */
     private val timeline: StateFlow<DayTimeline?> =
@@ -511,8 +474,19 @@ class ClassEditViewModel @AssistedInject constructor(
         applied.lookups.forEach { run(it) }
     }
 
-    /** Starts the lesson at [start] exactly — one the timeline has already found free, as a slide's end. */
+    /** Starts the lesson at [start] exactly — one the day's lessons have already left free. */
     fun startAt(start: Instant) = change(BookingIntent.StartAt(start.toLocalDateTime(zone).time))
+
+    /** One press of the When section's stepper — see [ClassFormState.stepped]. */
+    fun step(later: Boolean) {
+        state.value.valueOrNull()?.stepped(later)?.let(::startAt)
+    }
+
+    /** Moves the lesson [days] on, or back when negative, keeping its time; from [datePickerDefault] without a day. */
+    fun moveDay(days: Int) {
+        val to = datePickerDefault().plus(days, DateTimeUnit.DAY)
+        change(BookingIntent.Edit { it.copy(date = to) })
+    }
 
     fun selectCreatedStudent(studentId: Long) {
         viewModelScope.launch {
@@ -560,6 +534,15 @@ class ClassEditViewModel @AssistedInject constructor(
      */
     fun datePickerDefault(today: LocalDate = clock.today()): LocalDate =
         currentForm.date ?: openedOnDay ?: today
+
+    /**
+     * What the time dialog opens on: the start already chosen, else the first free time the stepper would
+     * take, else the hour every day used to be drawn from.
+     */
+    fun timePickerDefault(): LocalTime =
+        currentForm.timeFrom
+            ?: state.value.valueOrNull()?.suggestion?.start?.toLocalDateTime(zone)?.time
+            ?: LocalTime(DayTimeline.FIRST_HOUR, 0)
 
     /**
      * What «Другая» opens on: the length already chosen, otherwise the tutor's default lesson — the same

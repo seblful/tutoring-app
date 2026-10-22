@@ -202,6 +202,13 @@ object KlasIcons {
             )
         }
 
+        val Remove: ImageVector by lazy {
+            symbol(
+                "Filled.Remove",
+                "M200-440v-80h560v80H200Z",
+            )
+        }
+
         val Save: ImageVector by lazy {
             symbol(
                 "Filled.Save",

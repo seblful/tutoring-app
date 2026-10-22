@@ -56,14 +56,6 @@ private class Formats(val locale: Locale) {
 
     val dateTime12: DateTimeFormatter = build { append(dayShortMonth).appendLiteral(", ").append(time12) }
 
-    /** A whole hour as a scale marks it: «9:00», or «9 AM» — unpadded, and without minutes where it can. */
-    val hour: DateTimeFormatter = DateTimeFormatter.ofPattern("H:mm", locale)
-    val hour12: DateTimeFormatter = DateTimeFormatterBuilder()
-        .appendValue(ChronoField.CLOCK_HOUR_OF_AMPM)
-        .appendLiteral(' ')
-        .appendText(ChronoField.AMPM_OF_DAY, mapOf(0L to "AM", 1L to "PM"))
-        .toFormatter(locale)
-
     private fun build(parts: DateTimeFormatterBuilder.() -> Unit): DateTimeFormatter =
         DateTimeFormatterBuilder().apply(parts).toFormatter(locale)
 
@@ -98,9 +90,6 @@ fun Instant.formatDate(): String = javaZoned().format(formats.date)
  */
 fun Instant.formatTime(hour12: Boolean, locale: Locale = AppLocale.current): String =
     formatsFor(locale).let { javaZoned().format(if (hour12) it.time12 else it.time) }
-
-/** [formatTime] for a whole hour on a scale, e.g. the booking timeline's: «9:00», or «9 AM». */
-fun Instant.formatHour(hour12: Boolean): String = javaZoned().format(if (hour12) formats.hour12 else formats.hour)
 
 fun Instant.formatDateTime(hour12: Boolean): String =
     javaZoned().format(if (hour12) formats.dateTime12 else formats.dateTime)

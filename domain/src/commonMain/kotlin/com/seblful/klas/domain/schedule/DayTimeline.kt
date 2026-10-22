@@ -8,17 +8,16 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atTime
 import kotlinx.datetime.toInstant
-import kotlin.math.roundToLong
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Instant
 
 /**
- * One day as the booking form draws it: the stretch from [start] to [end] — whole hours, inside [day] —
- * and the lessons already [booked] in it, which a lesson put there would clash with. Every day is drawn
- * from [FIRST_HOUR] to [END_HOUR], widened to whole hours around any lesson outside them; any free time
- * drawn can be booked.
+ * One day as the booking form steps through it: the stretch from [start] to [end] — whole hours, inside
+ * [day] — and the lessons already [booked] in it, which a lesson put there would clash with. Every day
+ * runs from [FIRST_HOUR] to [END_HOUR], widened to whole hours around any lesson outside them: where the
+ * first free time is looked for. A step reaches the whole [day].
  *
  * Hours are counted in elapsed time from midnight, as booking counts lengths, so a day the clocks change
  * on draws 23 or 25 of them and each line still falls on a whole local hour.
@@ -55,17 +54,10 @@ data class DayTimeline(
         )
     }
 
-    /** The lesson under [at], if one is — what a tap on the timeline shows rather than books over. */
-    fun lessonAt(at: Instant): Lesson? = booked.firstOrNull { at >= it.slot.start && at < it.slot.end }
-
-    /** Whether [slot] runs into one of the day's lessons — what the timeline draws it red for. */
-    fun clashesWith(slot: Scheduling.Slot): Boolean = booked.any { it.slot.overlaps(slot) }
-
     /**
-     * Where a lesson of [minutes] starts when the tutor taps or swipes the timeline to [at]: the
-     * [SNAP_MINUTES] step under the finger, moved just as far as it takes to fit the free stretch around
-     * it — so a finger near a lesson books back to back with it. Null on a booked lesson, outside the
-     * timeline, or in a gap too short for the lesson.
+     * Where a lesson of [minutes] starts if put at [at]: the [SNAP_MINUTES] step under it, moved just as
+     * far as it takes to fit the free stretch around it — so a time near a lesson books back to back with
+     * it. Null on a booked lesson, outside the timeline, or in a gap too short for the lesson.
      */
     fun place(at: Instant, minutes: Int): Instant? {
         val busy = booked.map { it.slot }
@@ -78,24 +70,9 @@ data class DayTimeline(
     }
 
     /**
-     * The start nearest [at] — on its [SNAP_MINUTES] step, or back to back with a lesson — that a lesson of
-     * [minutes] fits at whole in free time: where a slide along the timeline lands, hopping over a lesson
-     * rather than stopping at it. Null when nothing that long is free.
-     */
-    fun nearestFree(at: Instant, minutes: Int): Instant? {
-        val length = minutes.minutes
-        val snapped = start + ((at - start).inWholeMinutes.toDouble() / SNAP_MINUTES).roundToLong()
-            .times(SNAP_MINUTES).minutes
-        return freeGaps()
-            .filter { (from, until) -> until - from >= length }
-            .map { (from, until) -> snapped.coerceIn(from, until - length) }
-            .minByOrNull { (it - at).absoluteValue }
-    }
-
-    /**
      * Where a lesson of [minutes] at [from] goes when moved [by] — a step either way: that far if it fits
      * whole in free time there, else on past the lesson in the way to the nearest start that way that does.
-     * Unlike [nearestFree] it never comes back to [from], so a lesson back to back with another still moves.
+     * It never comes back to [from], so a lesson back to back with another still moves.
      * Null when nothing that way is free.
      */
     fun shifted(from: Instant, by: Duration, minutes: Int): Instant? {
@@ -138,13 +115,13 @@ data class DayTimeline(
     private fun ceilHour(at: Instant): Instant = floorHour(at).let { if (it == at) it else it + 1.hours }
 
     companion object {
-        /** What a tap or a swipe moves a start by. */
+        /** The grid [place] and [firstFree] put starts on. */
         const val SNAP_MINUTES = 5
 
-        /** The hour every day's timeline starts at, before its lessons widen it. */
+        /** The hour every day starts at, before its lessons widen it. */
         const val FIRST_HOUR = 9
 
-        /** The hour every day's timeline ends at, before its lessons widen it. */
+        /** The hour every day ends at, before its lessons widen it. */
         const val END_HOUR = 23
 
         /**

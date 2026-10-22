@@ -105,17 +105,6 @@ class FormattersTest {
     }
 
     @Test
-    fun `an hour on a scale is unpadded, and without minutes on a 12-hour clock`() {
-        val zone = TimeZone.currentSystemDefault()
-        val at = { hour: Int -> LocalDate(2026, 7, 29).atTime(hour, 0).toInstant(zone) }
-
-        assertEquals("9:00", at(9).formatHour(hour12 = false))
-        assertEquals("21:00", at(21).formatHour(hour12 = false))
-        assertEquals("9 AM", at(9).formatHour(hour12 = true))
-        assertEquals("12 PM", at(12).formatHour(hour12 = true))
-    }
-
-    @Test
     fun `a 12-hour date and time keeps the date and gains the marker`() {
         val at = Instant.parse("2026-07-29T09:00:00Z")
 

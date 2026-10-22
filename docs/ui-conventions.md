@@ -187,19 +187,15 @@ Build screens from shared state and controls. Feature rules belong in the domain
   downwards (`Fold`) — Terms still state the rate and place, or in red that the rate is all
   that is missing (`rateNeeded`). It alone saves from a bottom `BookingSaveBar`, not the bar's
   `SaveAction`: the bar shows the booking it will make, or names what is missing or in the way
-  (`ClassFormState.saveBar`, `Ready` exactly when `canSave`). When picks the day from the schedule's
-  `WeekNavigator`/`WeekStrip` — saying to pick a day until one is — and draws it as one
-  `BookingTimeline` bar with a line on every hour, labelled every three in short hours (`hourText`):
-  lessons as blocks in their student's avatar colour with their initial (groups in the group avatar's);
-  once someone is chosen, their own lessons that day are outlined — nobody else's is faded;
-  a tap on one names who, when and where in a bubble above, a second tap hides it. A tap on free time
-  starts the lesson there (`DayTimeline.place`); a tap on the lesson itself leaves it. A slide anywhere on the bar moves the lesson from where
-  it is at half the finger's speed — about 2 dp per five minutes at full speed was too fine to land —
-  with a haptic tick per step, hopping over other lessons (`DayTimeline.nearestFree`); its start and end
-  are written over its edges, and it is booked when the finger lifts. Before a start is chosen it offers
-  the first free time as a dashed frame with a plus (`DayTimeline.firstFree`, never booked by itself).
-  Under a chosen lesson, «5 minutes earlier/later» buttons move it exactly — past a lesson in the way
-  rather than back onto itself (`DayTimeline.shifted`) — and are what screen readers use. Length is the same `Fold` inside When, opening to its chips.
+  (`ClassFormState.saveBar`, `Ready` exactly when `canSave`). When opens on the schedule's day, where bookings
+  start, so it has no calendar: a day row steps a day either way and its date opens the date dialog,
+  over how many other lessons that day holds (or asks for a day). The start is a stepper: the time in
+  large numbers between −15 and +15 tonal buttons, each moving the lesson a quarter hour, past a lesson
+  in the way and anywhere in the day (`ClassFormState.stepped`, `DayTimeline.shifted`). The first press
+  takes the first free time (`DayTimeline.firstFree`); a tap on the time opens the time dialog. The time
+  is red, over a line naming the lesson in the way, only while it is taken. The day's lessons stay data
+  (`DayTimeline`), not drawn: a draggable timeline was more form than setting a time needs. Length is
+  the same `Fold` inside When, opening to its chips.
 - Lesson context opens homework, payment entry and profiles for the named student/group. Group payments
   first ask who paid; completing a lesson never creates a payment. Profiles book through the same form.
 - Setup detours push over the unfinished booking/group form and return created IDs through the result bus

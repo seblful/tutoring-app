@@ -19,7 +19,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 
-/** The When section's day timeline: what it draws, and starting a lesson from a tap on it. */
+/** The When section's day: the lessons it holds, and moving this one through it a step or a day at a time. */
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
 class ClassEditTimelineTest : ClassEditTestFixture() {
@@ -117,5 +117,113 @@ class ClassEditTimelineTest : ClassEditTestFixture() {
         advanceUntilIdle()
 
         assertNull("a start picked replaces the offer", vm.state.current.suggestion)
+    }
+
+    @Test
+    fun `the first step takes the first free time`() = runTest(mainRule.dispatcher) {
+        seedMaria()
+        val vm = vm(day = day)
+        observing(vm.state)
+        advanceUntilIdle()
+
+        vm.step(later = true)
+        advanceUntilIdle()
+
+        assertEquals(LocalTime(9, 0), vm.state.current.form.timeFrom)
+    }
+
+    @Test
+    fun `a step moves the lesson a quarter of an hour`() = runTest(mainRule.dispatcher) {
+        seedMaria()
+        val vm = vm(day = day)
+        observing(vm.state)
+        advanceUntilIdle()
+        vm.startAt(at(13, 0))
+        advanceUntilIdle()
+
+        vm.step(later = true)
+        advanceUntilIdle()
+        assertEquals(LocalTime(13, 15), vm.state.current.form.timeFrom)
+
+        vm.step(later = false)
+        vm.step(later = false)
+        advanceUntilIdle()
+        assertEquals(LocalTime(12, 45), vm.state.current.form.timeFrom)
+    }
+
+    @Test
+    fun `a step past a lesson lands on its far side`() = runTest(mainRule.dispatcher) {
+        seedMaria()
+        val vm = vm(day = day)
+        observing(vm.state)
+        advanceUntilIdle()
+        // Back to back with Мария, who has 15:30–16:30.
+        vm.startAt(at(14, 30))
+        advanceUntilIdle()
+
+        vm.step(later = true)
+        advanceUntilIdle()
+
+        assertEquals(LocalTime(16, 30), vm.state.current.form.timeFrom)
+        assertNull(vm.state.current.conflict)
+    }
+
+    @Test
+    fun `steps reach the whole day, not only the hours once drawn`() = runTest(mainRule.dispatcher) {
+        val vm = vm(day = day)
+        observing(vm.state)
+        advanceUntilIdle()
+        vm.startAt(at(8, 0))
+        advanceUntilIdle()
+
+        vm.step(later = false)
+        advanceUntilIdle()
+        assertEquals(LocalTime(7, 45), vm.state.current.form.timeFrom)
+
+        vm.startAt(at(0, 10))
+        advanceUntilIdle()
+        assertNull("nothing is earlier than midnight", vm.state.current.stepped(later = false))
+    }
+
+    @Test
+    fun `moving a day keeps the time`() = runTest(mainRule.dispatcher) {
+        val vm = vm(day = day)
+        observing(vm.state)
+        advanceUntilIdle()
+        vm.startAt(at(14, 0))
+        advanceUntilIdle()
+
+        vm.moveDay(1)
+        advanceUntilIdle()
+
+        val form = vm.state.current.form
+        assertEquals(day.plus(1, DateTimeUnit.DAY), form.date)
+        assertEquals(LocalTime(14, 0), form.timeFrom)
+    }
+
+    @Test
+    fun `without a day the arrows start from today`() = runTest(mainRule.dispatcher) {
+        val vm = vm()
+        observing(vm.state)
+        advanceUntilIdle()
+
+        vm.moveDay(-1)
+        advanceUntilIdle()
+
+        assertEquals(env.clock.today().plus(-1, DateTimeUnit.DAY), vm.state.current.form.date)
+    }
+
+    @Test
+    fun `the time dialog opens on the first free time until one is chosen`() = runTest(mainRule.dispatcher) {
+        seedMaria()
+        val vm = vm(day = day)
+        observing(vm.state)
+        advanceUntilIdle()
+
+        assertEquals(LocalTime(9, 0), vm.timePickerDefault())
+
+        vm.startAt(at(17, 5))
+        advanceUntilIdle()
+        assertEquals(LocalTime(17, 5), vm.timePickerDefault())
     }
 }

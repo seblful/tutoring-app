@@ -5,14 +5,14 @@ import com.seblful.klas.domain.model.Group
 import com.seblful.klas.domain.model.Student
 import com.seblful.klas.domain.model.Subject
 import com.seblful.klas.domain.model.TutoringClass
-import com.seblful.klas.domain.schedule.CalendarLayout
 import com.seblful.klas.domain.schedule.DayTimeline
 import com.seblful.klas.domain.schedule.Scheduling
 import com.seblful.klas.domain.schedule.TimeConflict
 import com.seblful.klas.ui.common.LeavableForm
-import com.seblful.klas.ui.common.state.Loadable
 import kotlinx.coroutines.flow.map
 import kotlinx.datetime.LocalDate
+import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Instant
 
 /** What, if anything, to say under the subject picker. */
 enum class SubjectNotice {
@@ -71,6 +71,24 @@ data class ClassFormState(
     /** Whether the tutor has changed anything — what leaving without saving would throw away. */
     override val isDirty: Boolean = false,
 ) : LeavableForm {
+    /**
+     * Where one press of the When section's stepper puts the lesson: [STEP_MINUTES] [later] or earlier, on
+     * past a lesson in the way ([DayTimeline.shifted]), anywhere in the day rather than only the hours a
+     * timeline used to draw. With no start yet, the first free time ([suggestion]). Null when that way
+     * holds no free time, or before the day's lessons are read.
+     */
+    fun stepped(later: Boolean): Instant? {
+        val day = timeline ?: return null
+        val from = slot
+        val step = STEP_MINUTES.minutes
+        return if (from == null) {
+            suggestion?.start
+        } else {
+            day.copy(start = day.day.start, end = day.day.end)
+                .shifted(from.start, if (later) step else -step, from.durationMinutes)
+        }
+    }
+
     /** Whether the lesson yet has somebody to be for. Until then most of the form means nothing. */
     val targetChosen: Boolean get() = form.hasTarget
 
@@ -155,6 +173,9 @@ data class ClassFormState(
         get() = billedDrops.let { if (it > 0) SaveIntent.ConfirmBilledDrops(it) else SaveIntent.Save }
 }
 
+/** What one press of the When section's stepper moves a lesson by. */
+const val STEP_MINUTES = 15
+
 /** One thing a booking cannot be saved without — see [ClassFormState.gaps]. */
 enum class BookingGap { WHO, SUBJECT, DATE, START, LENGTH, PRICE }
 
@@ -198,10 +219,3 @@ sealed interface SaveIntent {
 
 /** What a repeating booking came to, when it could not book all of it. */
 data class SeriesOutcome(val booked: Int, val skipped: List<LocalDate>)
-
-/** The week the When section's strip shows, and each day's lessons — see [ClassEditViewModel.week]. */
-data class BookingWeek(
-    val days: List<LocalDate>,
-    val today: LocalDate,
-    val loads: Loadable<Map<LocalDate, CalendarLayout.DayLoad>> = Loadable.Loading,
-)
