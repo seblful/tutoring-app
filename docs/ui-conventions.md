@@ -39,7 +39,7 @@ Build screens from shared state and controls. Feature rules belong in the domain
   (`plusInset`), a scrolling column pads by it inside its scroll, and anything else pads by it.
   It is zero on a tab (the tab bar takes it) and under the keyboard on an `imeAware` form.
 - Use `SegmentedPage` (tabs, no divider) for fixed views, `PageStepper` for successive pages; both
-  page titles are ink. Choices of a value use `SegmentedChoice`, settings-shaped `ChoiceRow` (segments
+  page titles are ink. A held tab tints a rounded shape around its label, not Material's full-cell ripple. Choices of a value use `SegmentedChoice`, settings-shaped `ChoiceRow` (segments
   up to four, then a field), or shortlist chips with an escape hatch. Screen filters share
   `FilterMenuAction`/`FilterChipRow`. Menus draw options through `MenuOptions`: past 12 it adds a
   search and draws the first 30 matches, since a dropdown composes every item when it opens.

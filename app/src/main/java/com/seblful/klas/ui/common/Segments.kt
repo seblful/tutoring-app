@@ -1,6 +1,9 @@
 package com.seblful.klas.ui.common
 
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.indication
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -9,20 +12,25 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.LocalRippleConfiguration
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.PrimaryTabRow
+import androidx.compose.material3.RippleConfiguration
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
@@ -239,21 +247,41 @@ private fun <T> ViewTabs(
     ) {
         options.forEach { option ->
             val isSelected = option == selected
-            Tab(
-                selected = isSelected,
-                onClick = {
-                    if (!isSelected) {
-                        tick()
-                        onSelect(option)
-                    }
-                },
-                selectedContentColor = MaterialTheme.colorScheme.primary,
-                unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                text = { SegmentLabel(label(option)) },
-            )
+            val press = remember { MutableInteractionSource() }
+            // Material's tab ripple fills its whole cell, a hard-edged block from the bar's top to the indicator;
+            // the press is drawn rounded around the label instead, as rows press within an inset shape.
+            CompositionLocalProvider(LocalRippleConfiguration provides null) {
+                Tab(
+                    selected = isSelected,
+                    onClick = {
+                        if (!isSelected) {
+                            tick()
+                            onSelect(option)
+                        }
+                    },
+                    selectedContentColor = MaterialTheme.colorScheme.primary,
+                    unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    interactionSource = press,
+                    text = {
+                        CompositionLocalProvider(LocalRippleConfiguration provides RippleConfiguration()) {
+                            Box(
+                                // Reaching into the tab's own padding, so the label keeps its width.
+                                Modifier
+                                    .bleed(TabPressPadX)
+                                    .clip(MaterialTheme.shapes.small)
+                                    .indication(press, ripple())
+                                    .padding(horizontal = TabPressPadX, vertical = TabPressPadY),
+                            ) { SegmentLabel(label(option)) }
+                        }
+                    },
+                )
+            }
         }
     }
 }
+
+private val TabPressPadX = 12.dp
+private val TabPressPadY = 6.dp
 
 /**
  * **The other way to move between segments: drag the page sideways.**
