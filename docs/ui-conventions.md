@@ -113,9 +113,9 @@ Build screens from shared state and controls. Feature rules belong in the domain
   full strength, a status pill's included (`readableOn`), keeps 4.5:1 (`ContrastSchemesTest`).
   Golos Text supports Cyrillic/Latin, with body/label tracking tightened from M3's Roboto values;
   avatar colors depend on ID.
-- Material Symbols live in `KlasIcons`: filled only for selection and state (the selected tab, a done tick);
-  actions and decoration are outlined, so a bar's or sheet's icons share one stroke weight. Its KDoc
-  explains adding icons. Settings categories lead with a decorative `IconAvatar`; preference controls have
+- Material Symbols (Rounded family, weight 400) live in `KlasIcons`: filled only for selection and state
+  (the selected tab, a done tick); actions and decoration are outlined, so a bar's or sheet's icons share
+  one stroke weight. Its KDoc explains adding icons. Settings categories lead with a decorative `IconAvatar`; preference controls have
   no leading icon. Trailing `OpensScreenMark` names in-app navigation through `onClickLabel`, “open in new”
   marks external links. Lesson-kind icons are a matched pair tested on ink height.
 - Haptics use the five moments in `Haptics`, wired through shared atoms/`ShowMessagesFor(refused = …)`;
