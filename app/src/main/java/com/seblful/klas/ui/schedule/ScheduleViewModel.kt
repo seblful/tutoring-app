@@ -5,6 +5,8 @@ import androidx.lifecycle.viewModelScope
 import com.seblful.klas.data.homework.HomeworkRepository
 import com.seblful.klas.data.lessons.ClassRepository
 import com.seblful.klas.data.lessons.LessonWrite
+import com.seblful.klas.data.lessons.SessionReceipt
+import com.seblful.klas.data.lessons.UndoResult
 import com.seblful.klas.data.people.GroupRepository
 import com.seblful.klas.data.people.StudentRepository
 import com.seblful.klas.data.people.SubjectRepository
@@ -53,6 +55,7 @@ import dev.zacsweers.metrox.viewmodel.ViewModelKey
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -78,6 +81,7 @@ import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
 import kotlin.time.Instant
 
 private fun List<TutoringClass>.shownFor(filter: StudentFilter?): List<TutoringClass> =
@@ -165,10 +169,19 @@ class ScheduleViewModel @Inject constructor(
          */
         LESSON_GONE,
         CORRECTION_CHANGED,
+
+        /** An undo found the lesson changed since, so the change it would have taken back stands. */
+        UNDO_CHANGED,
+    }
+
+    /** A change from the sheet the tutor can take back from its message — see [undo]. */
+    data class Undoable(val change: Change, val receipt: SessionReceipt) {
+        enum class Change { CANCELLED, REPLANNED, MOVED, ATTENDANCE }
     }
 
     val events = UiEvents<Event>()
     val completions = UiEvents<ClassSession>()
+    val undoables = UiEvents<Undoable>()
 
     private val homeworkActions = HomeworkActions(homework, appScope, events, Event.ACTION_FAILED)
 
@@ -418,18 +431,30 @@ class ScheduleViewModel @Inject constructor(
     // closes as the action is tapped, and marking a lesson completed or deleting one must not be cut
     // in half because the screen went away a moment later — see [ApplicationScope].
 
-    /** Changes a whole lesson's status. */
+    /**
+     * Changes a whole lesson's status. Marking it taught is taken back by [correctCompletion]; cancelling
+     * and re-planning by [undo].
+     */
     fun setStatus(session: ClassSession, status: LessonStatus) {
+        if (status == LessonStatus.COMPLETED) return complete(session)
         write {
-            when (val changed = classes.setStatus(session, status)) {
+            when (val changed = classes.setStatusUndoable(session, status)) {
                 is LessonWrite.HourTaken -> reportHourTaken(changed.clash)
-                // Written, or deleted underneath the sheet: either way the schedule already shows it.
-                is LessonWrite.Written -> {
-                    if (status == LessonStatus.COMPLETED && changed.value.isNotEmpty()) {
-                        completions.send(ClassSession(session.groupId, changed.value))
-                    }
-                }
+                is LessonWrite.Written -> offerUndo(
+                    changed.value,
+                    if (status == LessonStatus.CANCELLED) Undoable.Change.CANCELLED else Undoable.Change.REPLANNED,
+                )
+                // Deleted underneath the sheet: the schedule already shows it gone.
                 LessonWrite.Gone -> Unit
+            }
+        }
+    }
+
+    private fun complete(session: ClassSession) {
+        write {
+            val changed = classes.setStatus(session, LessonStatus.COMPLETED)
+            if (changed is LessonWrite.Written && changed.value.isNotEmpty()) {
+                completions.send(ClassSession(session.groupId, changed.value))
             }
         }
     }
@@ -444,7 +469,11 @@ class ScheduleViewModel @Inject constructor(
 
     fun setAttendance(klass: TutoringClass, attended: Attended) {
         write {
-            if (classes.setAttendance(klass, attended).isEmpty()) events.send(Event.LESSON_GONE)
+            when (val marked = classes.setAttendanceUndoable(klass, attended)) {
+                is LessonWrite.Written -> offerUndo(marked.value, Undoable.Change.ATTENDANCE)
+                LessonWrite.Gone -> events.send(Event.LESSON_GONE)
+                is LessonWrite.HourTaken -> Unit
+            }
         }
     }
 
@@ -457,10 +486,37 @@ class ScheduleViewModel @Inject constructor(
     fun moveTo(session: ClassSession, day: LocalDate, at: LocalTime) {
         val newStart = day.atTime(at).toInstant(zone)
         write {
-            when (val moved = classes.move(session, newStart, now = clock.now())) {
+            when (val moved = classes.moveUndoable(session, newStart, now = clock.now())) {
                 is LessonWrite.HourTaken -> reportHourTaken(moved.clash)
-                is LessonWrite.Written, LessonWrite.Gone -> Unit
+                is LessonWrite.Written -> offerUndo(moved.value, Undoable.Change.MOVED)
+                LessonWrite.Gone -> Unit
             }
+        }
+    }
+
+    /**
+     * Takes [change] back while the lesson is still as the change left it, and its hour is free if it
+     * needs one again — see [ClassRepository.undo]. Otherwise the change stands and the tutor is told why.
+     */
+    fun undo(change: Undoable) {
+        write {
+            when (val undone = classes.undo(change.receipt)) {
+                UndoResult.Restored -> Unit
+                UndoResult.ChangedSince -> events.send(Event.UNDO_CHANGED)
+                is UndoResult.HourTaken -> reportHourTaken(undone.clash)
+                UndoResult.Gone -> events.send(Event.LESSON_GONE)
+            }
+        }
+    }
+
+    private suspend fun offerUndo(receipt: SessionReceipt?, change: Undoable.Change) {
+        receipt ?: return
+        undoables.send(Undoable(change, receipt))
+        // Once the message is gone the calendar catches up. Outliving the screen is the point: the
+        // settle must run even if the tutor leaves the schedule inside the window.
+        write {
+            delay(UNDO_WINDOW)
+            classes.settle(receipt)
         }
     }
 
@@ -519,5 +575,8 @@ class ScheduleViewModel @Inject constructor(
     private companion object {
         /** A week's span as a day count, for the bounds of the week being read. */
         const val DAYS_IN_WEEK = CalendarLayout.DAYS_IN_WEEK.toLong()
+
+        /** Longer than a long snackbar, so the calendar waits for as long as Undo is on screen. */
+        val UNDO_WINDOW = 12.seconds
     }
 }

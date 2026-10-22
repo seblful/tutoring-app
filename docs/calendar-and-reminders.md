@@ -7,6 +7,9 @@ The database drives both mirrors; neither writes changes back into Klas.
 - Opt-in, one-way through `CalendarContract`; the device's provider handles cloud sync. No Google
   Calendar REST API, Cloud project or OAuth flow is needed.
 - `ClassRepository.write` mirrors after commit; `CalendarMirror` owns backfill and withdrawal.
+- An undoable write holds its lesson's mirror until `settle` (the undo window closed, ~12 s) or `undo`,
+  so an undone cancel never deletes and re-invites. The hold is in memory: a process killed inside the
+  window leaves the event as it was until the lesson's next write.
 - Completed events are refreshed but never created/re-created (`CalendarSyncPolicy.Action.REFRESH`).
 - Event descriptions include current homework attached to that lesson: the student's own assignments
   and homework for that group lesson, oldest first. Other students' individual assignments are excluded.

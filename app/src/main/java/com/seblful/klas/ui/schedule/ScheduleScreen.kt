@@ -167,11 +167,13 @@ fun ScheduleScreen(
     val actionFailedMsg = stringResource(R.string.action_failed)
     val lessonGoneMsg = stringResource(R.string.class_gone)
     val correctionChangedMsg = stringResource(R.string.class_correction_changed)
+    val undoChangedMsg = stringResource(R.string.class_undo_changed)
     ShowMessagesFor(viewModel.events, messages) { event ->
         when (event) {
             ScheduleViewModel.Event.ACTION_FAILED -> actionFailedMsg
             ScheduleViewModel.Event.LESSON_GONE -> lessonGoneMsg
             ScheduleViewModel.Event.CORRECTION_CHANGED -> correctionChangedMsg
+            ScheduleViewModel.Event.UNDO_CHANGED -> undoChangedMsg
         }
     }
     val completedMsg = stringResource(R.string.class_completed_message)
@@ -179,6 +181,12 @@ fun ScheduleScreen(
     LaunchedEffect(viewModel, completedMsg, undoLabel) {
         viewModel.completions.stream.collect { completed ->
             messages.show(completedMsg, undoLabel) { viewModel.correctCompletion(completed, undo = true) }
+        }
+    }
+    val undoableMsgs = UndoableChange.entries.associateWith { stringResource(it.message) }
+    LaunchedEffect(viewModel, undoableMsgs, undoLabel) {
+        viewModel.undoables.stream.collect { change ->
+            messages.show(undoableMsgs.getValue(change.change), undoLabel) { viewModel.undo(change) }
         }
     }
 
@@ -728,3 +736,13 @@ private fun viewModeLabel(mode: ScheduleViewMode): Int = when (mode) {
 
 /** A month grid's own width beside the day it opens: Material's fixed supporting pane. */
 private val CalendarPaneWidth = 360.dp
+
+private typealias UndoableChange = ScheduleViewModel.Undoable.Change
+
+private val UndoableChange.message: Int
+    get() = when (this) {
+        UndoableChange.CANCELLED -> R.string.class_cancelled_message
+        UndoableChange.REPLANNED -> R.string.class_replanned_message
+        UndoableChange.MOVED -> R.string.class_moved_message
+        UndoableChange.ATTENDANCE -> R.string.class_attendance_message
+    }

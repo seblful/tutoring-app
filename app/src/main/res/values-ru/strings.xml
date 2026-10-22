@@ -1059,6 +1059,11 @@
     <string name="subject_add">Добавить предмет</string>
     <string name="group_price_setup_hint">Чтобы добавить этих учеников, укажите их цену предмета. Групповые занятия оплачиваются по цене группы.</string>
     <string name="class_completed_message">Занятие проведено</string>
+    <string name="class_cancelled_message">Занятие отменено</string>
+    <string name="class_replanned_message">Занятие снова в плане</string>
+    <string name="class_moved_message">Занятие перенесено</string>
+    <string name="class_attendance_message">Отметка изменена</string>
+    <string name="class_undo_changed">Занятие уже изменилось, поэтому ничего не вернули.</string>
     <string name="class_correct_planned">Вернуть в план</string>
     <string name="class_correct_planned_confirm">Вернуть занятие в запланированные и убрать начисления за него? Отметки о пропусках сохранятся.</string>
     <string name="class_correction_changed">Занятие изменилось. Откройте его снова, чтобы исправить статус.</string>

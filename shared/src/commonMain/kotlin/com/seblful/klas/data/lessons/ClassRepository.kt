@@ -25,6 +25,8 @@ import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Instant
@@ -241,16 +243,97 @@ class ClassRepository @Inject constructor(
      */
     private suspend fun <T> write(
         refreshesReminders: Boolean = true,
+        holding: Long? = null,
         rows: suspend () -> Committed<T>,
     ): T {
         val written = transactor.transaction { rows() }
         if (!written.changed) return written.value
-        // Leavers' events go before the survivors are mirrored, mirroring the row order inside (2).
-        written.drop.forEach { calendar.drop(it) }
-        // Deleted lessons can move homework onto a surviving lesson's invitation.
-        calendar.mirror(written.mirror, removed = written.drop)
+        if (holding != null) {
+            // An undoable write leaves the calendar alone until it is settled or undone: a cancellation
+            // mirrored at once would delete the event, and its undo re-create it and invite again.
+            hold(holding)
+        } else {
+            // Leavers' events go before the survivors are mirrored, mirroring the row order inside (2).
+            written.drop.forEach { calendar.drop(it) }
+            // Deleted lessons can move homework onto a surviving lesson's invitation.
+            calendar.mirror(written.mirror, removed = written.drop)
+        }
         if (refreshesReminders) reminderScheduler.refreshNow()
         return written.value
+    }
+
+    // ---- Undo ----------------------------------------------------------------------------------
+    // How many undoable writes of each lesson still hold its calendar mirror. The rows are written at
+    // once; only the device calendar waits, for [settle] or [undo].
+    private val held = mutableMapOf<Long, Int>()
+    private val heldLock = Mutex()
+
+    private suspend fun hold(lessonId: Long) = heldLock.withLock { held[lessonId] = (held[lessonId] ?: 0) + 1 }
+
+    /** Releases one hold on [lessonId]; true when it was the last, so the calendar may catch up. */
+    private suspend fun release(lessonId: Long): Boolean = heldLock.withLock {
+        val left = (held[lessonId] ?: return@withLock false) - 1
+        if (left > 0) held[lessonId] = left else held.remove(lessonId)
+        left <= 0
+    }
+
+    /**
+     * The undo window closed without an undo: the calendar now mirrors the lesson as it stands. Callers
+     * run it from the application scope, so a screen closed inside the window still settles it.
+     */
+    suspend fun settle(receipt: SessionReceipt) {
+        if (!release(receipt.lessonId)) return
+        current(receipt.after)?.let { calendar.mirror(it.classes) }
+    }
+
+    /**
+     * Writes [SessionReceipt.before] back — status, time, attendance and charges together — while the
+     * lesson is still [SessionReceipt.after], and its hour is free if it would hold one again.
+     */
+    suspend fun undo(receipt: SessionReceipt): UndoResult {
+        val result = write {
+            val current = current(receipt.after) ?: return@write Committed(UndoResult.Gone, changed = false)
+            if (current.classes.withoutMirrors() != receipt.after.classes.withoutMirrors()) {
+                return@write Committed(UndoResult.ChangedSince, changed = false)
+            }
+            // The calendar ids are the ones stored now, never the receipt's: only those name real events.
+            val events = current.classes.associate { it.id to it.calendarEventId }
+            val restored = receipt.before.classes.map { it.copy(calendarEventId = events[it.id]) }
+            val lesson = restored.first()
+            if (lesson.status.occupiesTime) {
+                holdingHour(current, lesson.start, lesson.durationMinutes)
+                    ?.let { return@write Committed(UndoResult.HourTaken(it), changed = false) }
+            }
+            rewrite(lesson = lesson, classes = restored)
+            Committed(UndoResult.Restored, mirror = restored)
+        }
+        // A refused undo leaves the change standing, so the calendar catches up with it now.
+        if (release(receipt.lessonId) && result != UndoResult.Restored) {
+            current(receipt.after)?.let { calendar.mirror(it.classes) }
+        }
+        return result
+    }
+
+    private fun List<TutoringClass>.withoutMirrors() = map { it.copy(calendarEventId = null) }
+
+    /**
+     * [rows] applied to [session] as an undoable write: the receipt of what the lesson was and became,
+     * its calendar held. A null receipt when nothing changed, so there is nothing to undo.
+     */
+    private suspend fun undoable(
+        session: ClassSession,
+        rows: suspend (ClassSession) -> Committed<LessonWrite<List<TutoringClass>>>,
+    ): LessonWrite<SessionReceipt?> = write<LessonWrite<SessionReceipt?>>(holding = session.lessonId) {
+        val before = current(session) ?: return@write Committed(LessonWrite.Gone, changed = false)
+        val done = rows(before)
+        val after = if (done.changed) current(session) else null
+        done.mapValue<LessonWrite<SessionReceipt?>> { outcome ->
+            when (outcome) {
+                is LessonWrite.Written -> LessonWrite.Written(after?.let { SessionReceipt(before, it) })
+                is LessonWrite.HourTaken -> LessonWrite.HourTaken(outcome.clash)
+                LessonWrite.Gone -> LessonWrite.Gone
+            }
+        }
     }
 
     /**
@@ -390,16 +473,26 @@ class ClassRepository @Inject constructor(
         session: ClassSession,
         newStart: Instant,
         now: Instant,
-    ): LessonWrite<List<TutoringClass>> {
-        return write {
-            val current = current(session) ?: return@write Committed(LessonWrite.Gone, changed = false)
-            val moved = current.classes.map { ClassRules.move(it, newStart, now) }
-            if (moved.first().status.occupiesTime) {
-                holdingHour(current, newStart, current.durationMinutes)
-                    ?.let { return@write Committed(LessonWrite.HourTaken(it), changed = false) }
-            }
-            persistRows(LessonEdit(lesson = moved.first(), updated = moved)).mapValue { LessonWrite.Written(it) }
+    ): LessonWrite<List<TutoringClass>> = write {
+        val current = current(session) ?: return@write Committed(LessonWrite.Gone, changed = false)
+        moveRows(current, newStart, now)
+    }
+
+    /** [move], undoably — see [SessionReceipt]. */
+    suspend fun moveUndoable(session: ClassSession, newStart: Instant, now: Instant): LessonWrite<SessionReceipt?> =
+        undoable(session) { moveRows(it, newStart, now) }
+
+    private suspend fun moveRows(
+        current: ClassSession,
+        newStart: Instant,
+        now: Instant,
+    ): Committed<LessonWrite<List<TutoringClass>>> {
+        val moved = current.classes.map { ClassRules.move(it, newStart, now) }
+        if (moved.first().status.occupiesTime) {
+            holdingHour(current, newStart, current.durationMinutes)
+                ?.let { return Committed(LessonWrite.HourTaken(it), changed = false) }
         }
+        return persistRows(LessonEdit(lesson = moved.first(), updated = moved)).mapValue { LessonWrite.Written(it) }
     }
 
     /** Marks what became of a whole lesson: it happened, it was called off, or it is planned again. */
@@ -409,12 +502,27 @@ class ClassRepository @Inject constructor(
             // The status it moves *from* is the database's, not the caller's: a lesson completed and
             // billed since the caller read it must not be "completed" again from its old classes.
             val current = current(session) ?: return@write Committed(LessonWrite.Gone, changed = false)
-            if (current.status == to) return@write Committed(LessonWrite.Written(emptyList()), changed = false)
-            if (to.occupiesTime && !current.status.occupiesTime) {
-                holdingHour(current)?.let { return@write Committed(LessonWrite.HourTaken(it), changed = false) }
+            statusRows(current, to)
+        }
+    }
+
+    /** [setStatus], undoably — see [SessionReceipt]. A null receipt when the lesson was already [to]. */
+    suspend fun setStatusUndoable(session: ClassSession, to: LessonStatus): LessonWrite<SessionReceipt?> =
+        undoable(session) { statusRows(it, to) }
+
+    private suspend fun statusRows(
+        current: ClassSession,
+        to: LessonStatus,
+    ): Committed<LessonWrite<List<TutoringClass>>> {
+        val clash = if (to.occupiesTime && !current.status.occupiesTime) holdingHour(current) else null
+        return when {
+            current.status == to -> Committed(LessonWrite.Written(emptyList()), changed = false)
+            clash != null -> Committed(LessonWrite.HourTaken(clash), changed = false)
+            else -> {
+                val resolved = current.classes.map { ClassRules.applyStatus(it, to) }
+                persistRows(LessonEdit(lesson = resolved.first(), updated = resolved))
+                    .mapValue { LessonWrite.Written(it) }
             }
-            val resolved = current.classes.map { ClassRules.applyStatus(it, to) }
-            persistRows(LessonEdit(lesson = resolved.first(), updated = resolved)).mapValue { LessonWrite.Written(it) }
         }
     }
 
@@ -436,13 +544,27 @@ class ClassRepository @Inject constructor(
      * touches a single row of a lesson rather than the lesson.
      */
     suspend fun setAttendance(klass: TutoringClass, attended: Attended): List<TutoringClass> = write {
+        attendanceRows(klass, attended)
+    }
+
+    /**
+     * [setAttendance], undoably — see [SessionReceipt]. The receipt is the whole lesson's, since the lesson
+     * is what an undo checks is unchanged; [LessonWrite.Gone] when the class was deleted underneath.
+     */
+    suspend fun setAttendanceUndoable(klass: TutoringClass, attended: Attended): LessonWrite<SessionReceipt?> =
+        undoable(ClassSession(klass.groupId, listOf(klass))) { _ ->
+            val written = attendanceRows(klass, attended)
+            written.mapValue { if (it.isEmpty()) LessonWrite.Gone else LessonWrite.Written(it) }
+        }
+
+    private suspend fun attendanceRows(klass: TutoringClass, attended: Attended): Committed<List<TutoringClass>> {
         val current = dao.getById(klass.id)?.toDomain()
-            ?: return@write Committed(emptyList(), changed = false)
+            ?: return Committed(emptyList(), changed = false)
         val resolved = ClassRules.applyAttendance(current, attended)
-        if (resolved == current) return@write Committed(listOf(current), changed = false)
+        val changed = resolved != current
         // Attendance is one student's correction, never a rewrite of the shared lesson from a stale sheet.
-        attendance.update(resolved.toAttendanceEntity())
-        Committed(listOf(resolved), mirror = listOf(resolved))
+        if (changed) attendance.update(resolved.toAttendanceEntity())
+        return Committed(listOf(resolved), mirror = listOf(resolved), changed = changed)
     }
 
     /**

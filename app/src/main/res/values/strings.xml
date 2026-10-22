@@ -932,6 +932,11 @@
     <string name="subject_add">Add subject</string>
     <string name="group_price_setup_hint">Set an individual subject price to add these students. Group lessons use the group rate.</string>
     <string name="class_completed_message">Marked taught</string>
+    <string name="class_cancelled_message">Lesson cancelled</string>
+    <string name="class_replanned_message">Lesson planned again</string>
+    <string name="class_moved_message">Lesson moved</string>
+    <string name="class_attendance_message">Attendance changed</string>
+    <string name="class_undo_changed">The lesson changed since, so nothing was undone.</string>
     <string name="class_correct_planned">Return to planned</string>
     <string name="class_correct_planned_confirm">Return this lesson to Planned and remove its earned charges? Recorded absences will be kept.</string>
     <string name="class_correction_changed">The lesson changed. Open it again to correct its status.</string>

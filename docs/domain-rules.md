@@ -36,6 +36,10 @@ mirrors and [database and backup](database-and-backup.md) for persistence contra
 - An explicit completion correction returns a taught lesson to Planned, voids charges and turns Present
   into Expected while preserving absences. Immediate Undo is guarded by its completion snapshot so later
   edits, cancellations or deletions cannot be overwritten.
+- Cancelling, re-planning, rescheduling and attendance marks are undone the same way: a
+  `SessionReceipt` restores the lesson's prior snapshot, charges included, only while the lesson is
+  still as the change left it (`ChangedSince`) and its hour is free if it needs one (`HourTaken`). There
+  is no Cancelled → Completed transition; undo restores a snapshot rather than making one.
 - A lesson carries no tutor notes. Homework is attached by rule, below.
 - Writes take a whole `ClassSession`, except per-person `setAttendance`. Editing/deleting works in any
   status and recalculates charges; deleting a completed lesson removes income and requires a UI warning.
