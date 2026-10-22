@@ -65,8 +65,8 @@ Roborazzi plugin generate tests; no handwritten test class is needed.
 ./gradlew :app:verifyRoborazziDebug # app unit suite + golden comparison
 ```
 
-`FormFactorScreenshotTest` is the other kind: the real app, seeded with the demo tutor, on a phone, an
-unfolded foldable, a tablet and a desktop window — bar or rail, People alone and with a card beside it,
+`FormFactorScreenshotTest` is the other kind: the real app, seeded with the demo tutor, on a phone (also
+in dark theme and at 1.5× text), an unfolded foldable, a tablet and a desktop window — bar or rail, People alone and with a card beside it,
 homework in columns, and a settings page beside the index. It ends on the card: a tab tapped before its bar hides and returns may still show a press. Its goldens are recorded and compared by the same tasks.
 
 Review PNG changes and commit them with the UI change. Failures leave `*_compare.png` (golden | diff |
@@ -80,6 +80,15 @@ For platform-only failures, use the Linux render from CI's artifact.
 
 Shared Robolectric configuration lives in `app/src/test/resources/robolectric.properties` (target SDK,
 bare `Application`); native graphics, resources and JDK access flags live in `app/build.gradle.kts`.
+
+## Coverage
+
+`./gradlew coverageReport` runs `:app:testDebugBehavior`, `:domain:jvmTest` and `:shared:jvmTest` with
+the JaCoCo agent and writes one merged HTML/XML report to `build/reports/jacoco/coverageReport/`.
+Preview screenshots are left out: they render code without asserting on it. `:shared` counts only its
+own tests, because `:app` runs its Android build, whose classes differ from the JVM ones the report
+reads. Metro, Room and Compose-generated classes and debug previews are excluded. Device, iOS and
+screenshot runs carry no agent. There is no coverage gate; read the report for untested branches.
 
 ## Instrumented tests
 

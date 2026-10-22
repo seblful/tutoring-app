@@ -70,6 +70,8 @@ detekt = "2.0.0-alpha.6"
 # ktlint adds or changes rules, which is a deliberate bump plus `ktlintGenerateBaseline`, not drift.
 ktlintGradle = "14.2.0"
 ktlint = "1.8.0"
+# Coverage agent and report, pinned like the linters: Gradle's bundled default moves with Gradle.
+jacoco = "0.8.15"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }

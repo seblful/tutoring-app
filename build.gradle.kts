@@ -19,6 +19,7 @@ plugins {
     alias(libs.plugins.roborazzi) apply false
     alias(libs.plugins.detekt) apply false
     alias(libs.plugins.ktlint) apply false
+    jacoco
 }
 
 // Lint every module; detekt baselines record existing findings.
@@ -70,6 +71,60 @@ tasks.register("verify") {
     )
     listOf(":app", ":domain", ":shared", ":baselineprofile").forEach { module ->
         dependsOn("$module:ktlintCheck", "$module:detekt")
+    }
+}
+
+// Coverage of the JVM suites. :app is measured by its behavior tests, not the preview screenshots, which
+// render code without asserting on it. :shared is measured by its own tests only: :app runs its Android
+// build, whose classes do not match the JVM ones the report reads.
+val jacocoVersion = libs.versions.jacoco.get()
+jacoco { toolVersion = jacocoVersion }
+val coverageTests = mapOf(":app" to "testDebugBehavior", ":domain" to "jvmTest", ":shared" to "jvmTest")
+coverageTests.forEach { (path, coverageTest) ->
+    project(path) {
+        apply(plugin = "jacoco")
+        configure<JacocoPluginExtension> { toolVersion = jacocoVersion }
+        tasks.withType<Test>().configureEach {
+            configure<JacocoTaskExtension> {
+                // The agent slows tests down; screenshot timing in the full :app suite is sensitive to that.
+                isEnabled = name == coverageTest
+                // Robolectric defines app classes in its own loader, which Jacoco only sees with this.
+                isIncludeNoLocationClasses = true
+                includes = listOf("com.seblful.klas.*")
+            }
+        }
+    }
+}
+
+tasks.register<JacocoReport>("coverageReport") {
+    group = "verification"
+    description = "Run the JVM test suites and report their line and branch coverage."
+    dependsOn(coverageTests.map { (path, test) -> "$path:$test" })
+    executionData.from(coverageTests.map { (path, test) -> file("${path.drop(1)}/build/jacoco/$test.exec") })
+    val generated = listOf(
+        "**/*\$Metro*", "metro/**", // Metro factories, graphs and hints
+        "**/*_Impl*", // Room DAOs and databases
+        "**/ComposableSingletons*",
+        "**/preview/**", // debug-only @Preview functions
+        "**/BuildConfig.class",
+    )
+    classDirectories.from(
+        listOf(
+            "app/build/intermediates/built_in_kotlinc/debug/compileDebugKotlin/classes",
+            "domain/build/classes/kotlin/jvm/main",
+            "shared/build/classes/kotlin/jvm/main",
+        ).map { fileTree(it) { exclude(generated) } },
+    )
+    sourceDirectories.from(
+        "app/src/main/java",
+        "app/src/debug/java",
+        "domain/src/commonMain/kotlin",
+        "shared/src/commonMain/kotlin",
+        "shared/src/jvmMain/kotlin",
+    )
+    reports {
+        xml.required = true
+        html.required = true
     }
 }
 

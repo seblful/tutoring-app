@@ -51,6 +51,7 @@ and pure rules in `:domain`.
 ./gradlew :domain:jvmTest               # domain unit tests (billing, scheduling, reminders, reports)
 ./gradlew :shared:jvmTest               # shared parsing, clock and real-database contracts
 ./gradlew :app:verifyRoborazziDebug     # app unit tests + preview screenshot comparisons
+./gradlew coverageReport               # JVM test coverage → build/reports/jacoco/coverageReport/
 ./gradlew :app:lintDebug ktlintCheck detekt
 ./gradlew :app:connectedDebugAndroidTest # instrumented tests; needs a device/emulator
 ./gradlew :app:generateBaselineProfile  # regenerate the release baseline profile; needs an API 33+ phone
