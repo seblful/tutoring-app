@@ -1,6 +1,10 @@
 package com.seblful.klas.ui.schedule.booking
 
 import androidx.compose.material3.Text
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -25,7 +29,10 @@ class FoldTest {
     fun show() {
         compose.setContent {
             KlasTheme {
-                FoldedSection(title = "Repeat", summary = "Once") { Text("Every week") }
+                var opened by remember { mutableStateOf(false) }
+                Fold(label = { Text("Repeat") }, summary = "Once", opened = opened, onToggle = { opened = it }) {
+                    Text("Every week")
+                }
             }
         }
     }

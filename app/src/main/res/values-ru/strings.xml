@@ -234,13 +234,14 @@
     <string name="class_repeat_none">Нет</string>
     <string name="class_repeat_weekly">Раз в неделю</string>
     <string name="class_repeat_fortnightly">Раз в 2 недели</string>
-    <string name="class_repeat_count_label">Занятий</string>
-    <string name="class_repeat_count_custom">Другое</string>
     <!-- %1$s: the last date the run reaches -->
     <string name="class_repeat_until">по %1$s</string>
-    <string name="class_repeat_count_title">Сколько занятий</string>
-    <!-- The dialog behind «Другое». %1$d: the ceiling on one booking — a year of weekly lessons. -->
-    <string name="class_repeat_count_field">Занятий (до %1$d)</string>
+    <string name="class_length_shorter">На 15 минут короче</string>
+    <string name="class_length_longer">На 15 минут длиннее</string>
+    <string name="class_lessons_fewer">На одно занятие меньше</string>
+    <string name="class_lessons_more">На одно занятие больше</string>
+    <string name="class_rate_lower">Уменьшить ставку</string>
+    <string name="class_rate_higher">Увеличить ставку</string>
     <!--
       A repeating booking that got some of its dates and not others. A dialog rather than a snackbar:
       the save closes the form, and a skipped date is a lesson the tutor believes they have booked.

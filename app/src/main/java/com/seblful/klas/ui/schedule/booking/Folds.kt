@@ -18,9 +18,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
@@ -32,8 +29,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import com.seblful.klas.ui.common.MinTouchTarget
 import com.seblful.klas.ui.common.Reveal
-import com.seblful.klas.ui.common.SectionCard
-import com.seblful.klas.ui.common.SectionTitle
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.outsetRowPress
 import com.seblful.klas.ui.theme.KlasIcons
@@ -45,26 +40,8 @@ import com.seblful.klas.ui.theme.KlasMotion
  */
 
 /**
- * A card of the form folded to its title and what it is set to — see [Fold]. Folded until the tutor opens
- * it: what it holds is usually already right.
- */
-@Composable
-internal fun FoldedSection(
-    title: String,
-    summary: String,
-    wanting: Boolean = false,
-    content: @Composable ColumnScope.() -> Unit,
-) {
-    SectionCard {
-        Column(Modifier.padding(horizontal = Spacing.gutter, vertical = Spacing.inline)) {
-            Fold(label = { SectionTitle(title) }, summary = summary, wanting = wanting, content = content)
-        }
-    }
-}
-
-/**
  * A line with [label] and what it is set to — [summary], red when [wanting] — that a tap opens to [content]
- * and closes again. It is pressed as the app's rows are, a rounded tint rather than a grey band
+ * and closes again. Whether it is [opened] is the caller's, so a card of them can keep one open at a time. It is pressed as the app's rows are, a rounded tint rather than a grey band
  * ([outsetRowPress]); it opens by growing downwards, the summary fading as the fields it sums up appear,
  * and its chevron turns to say which way the next tap goes.
  */
@@ -72,10 +49,11 @@ internal fun FoldedSection(
 internal fun Fold(
     label: @Composable () -> Unit,
     summary: String,
+    opened: Boolean,
+    onToggle: (Boolean) -> Unit,
     wanting: Boolean = false,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    var opened by rememberSaveable { mutableStateOf(false) }
     val turn by animateFloatAsState(
         if (opened) HALF_TURN else 0f,
         animationSpec = KlasMotion.defaultSpatial(),
@@ -87,10 +65,10 @@ internal fun Fold(
                 .fillMaxWidth()
                 .testTag(FOLD_TAG)
                 .outsetRowPress { source ->
-                    Modifier.clickable(source, indication = null, role = Role.Button) { opened = !opened }
+                    Modifier.clickable(source, indication = null, role = Role.Button) { onToggle(!opened) }
                 }
                 .semantics {
-                    if (opened) collapse { opened = false; true } else expand { opened = true; true }
+                    if (opened) collapse { onToggle(false); true } else expand { onToggle(true); true }
                 }
                 .heightIn(min = MinTouchTarget),
             verticalAlignment = Alignment.CenterVertically,

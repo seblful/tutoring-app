@@ -165,42 +165,6 @@ fun DurationPickerModal(
     )
 }
 
-/** How many lessons a repeating booking writes — the booking form's «Другое». */
-@Composable
-fun CountPickerModal(
-    title: String,
-    label: String,
-    initial: Int,
-    max: Int,
-    onConfirm: (Int) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    var count by rememberSaveable { mutableStateOf(initial.toString()) }
-    val total = count.toIntOrNull() ?: 0
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        properties = KeepTypedInput,
-        title = { Text(title) },
-        text = {
-            CountField(
-                value = count,
-                onValue = { count = it },
-                label = label,
-                max = max,
-                modifier = Modifier.fillMaxWidth(),
-            )
-        },
-        confirmButton = {
-            TextButton(
-                onClick = { onConfirm(total) },
-                // Zero lessons is not a booking, exactly as a lesson of no length is not a lesson.
-                enabled = total > 0,
-            ) { Text(stringResource(R.string.action_done)) }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },
-    )
-}
-
 @Composable
 private fun CountField(
     value: String,

@@ -179,13 +179,16 @@ Build screens from shared state and controls. Feature rules belong in the domain
   inside the week. Summaries are count·hours·money (`DaySummary`); show “now” only today. Completion is
   an undoable green swipe; cancelled lessons recede with a red badge. Book by duration, starting on the
   selected schedule day.
-- The booking form is cards in the order the tutor answers — Who, When, Repeat (new bookings only),
-  Terms. A new booking picks who from one dropdown like the subject's (`TargetChoices`: recently taught
+- The booking form is cards in the order the tutor answers — Who, When, then one details card of
+  Length, Repeat (new bookings only) and Terms. A new booking picks who from one dropdown like the subject's (`TargetChoices`: recently taught
   first, students and groups together, then adding a student or a group), so there is no Student/Group
-  switch; an edit keeps its kind. Repeat and Terms are `FoldedSection`s, folded until tapped to one line
-  saying what they are set to, pressed with a rounded `outsetRowPress` tint and opened by growing
-  downwards (`Fold`) — Terms still state the rate and place, or in red that the rate is all
-  that is missing (`rateNeeded`). It alone saves from a bottom `BookingSaveBar`, not the bar's
+  switch; an edit keeps its kind. The details card's rows (`DetailsSection`) are folded to one line saying
+  what each is set to — Terms the rate and place, or in red that the rate is all that is missing
+  (`rateNeeded`) — pressed with a rounded `outsetRowPress` tint and opened in place by growing downwards
+  (`Fold`), one at a time; never a dialog or sheet. Opened, each is a value between tonal −/+ (`StepRow`,
+  `Steps`): Length ±15 min with the usual lengths as chips; Repeat as lessons ±1, one being once
+  (`ClassForm.withLessons`), with Once/4/8/12 chips and weekly/fortnightly segments; Terms the typed rate
+  ± a step that suits its size (5 at 40, 100 at 1 500, so any currency) and the place as segments. It alone saves from a bottom `BookingSaveBar`, not the bar's
   `SaveAction`: the bar shows the booking it will make, or names what is missing or in the way
   (`ClassFormState.saveBar`, `Ready` exactly when `canSave`). When opens on the schedule's day, where bookings
   start, so it has no calendar: a day row steps a day either way and its date opens the date dialog,
@@ -194,8 +197,7 @@ Build screens from shared state and controls. Feature rules belong in the domain
   in the way and anywhere in the day (`ClassFormState.stepped`, `DayTimeline.shifted`). The first press
   takes the first free time (`DayTimeline.firstFree`); a tap on the time opens the time dialog. The time
   is red, over a line naming the lesson in the way, only while it is taken. The day's lessons stay data
-  (`DayTimeline`), not drawn: a draggable timeline was more form than setting a time needs. Length is
-  the same `Fold` inside When, opening to its chips.
+  (`DayTimeline`), not drawn: a draggable timeline was more form than setting a time needs.
 - Lesson context opens homework, payment entry and profiles for the named student/group. Group payments
   first ask who paid; completing a lesson never creates a payment. Profiles book through the same form.
 - Setup detours push over the unfinished booking/group form and return created IDs through the result bus

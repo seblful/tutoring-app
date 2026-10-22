@@ -43,20 +43,4 @@ class PickerRestorationTest {
         compose.onNodeWithText("Done").assertIsEnabled().performClick()
         assertEquals(135, confirmed)
     }
-
-    @Test
-    fun `a repeat count restores typed input and confirms it instead of the initial count`() {
-        val restoration = StateRestorationTester(compose)
-        var confirmed: Int? = null
-        restoration.setContent {
-            KlasTheme { CountPickerModal("Repeat", "Lessons", 3, 52, { confirmed = it }, {}) }
-        }
-        compose.onNodeWithText("Lessons").performTextReplacement("7")
-
-        restoration.emulateSavedInstanceStateRestore()
-
-        compose.onNodeWithText("Lessons").assertTextContains("7")
-        compose.onNodeWithText("Done").assertIsEnabled().performClick()
-        assertEquals(7, confirmed)
-    }
 }

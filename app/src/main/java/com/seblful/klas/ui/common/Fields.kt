@@ -333,7 +333,7 @@ fun MoneyTextField(
 }
 /**
  * A **shortlist with an escape hatch**, as chips: one per preset, then [customLabel], which asks for
- * anything else.
+ * anything else — left out where the presets sit beside a stepper that already reaches the rest.
  *
  * @param selected the value in force, or null while there is none.
  */
@@ -343,9 +343,9 @@ fun <T> PresetChips(
     presets: List<T>,
     selected: T?,
     label: @Composable (T) -> String,
-    customLabel: String,
     onSelect: (T) -> Unit,
-    onCustom: () -> Unit,
+    customLabel: String? = null,
+    onCustom: (() -> Unit)? = null,
 ) {
     FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.inline)) {
         presets.forEach { preset ->
@@ -355,11 +355,13 @@ fun <T> PresetChips(
                 label = { Text(label(preset)) },
             )
         }
-        FilterChip(
-            selected = selected != null && selected !in presets,
-            onClick = onCustom,
-            label = { Text(customLabel) },
-        )
+        if (customLabel != null && onCustom != null) {
+            FilterChip(
+                selected = selected != null && selected !in presets,
+                onClick = onCustom,
+                label = { Text(customLabel) },
+            )
+        }
     }
 }
 /**

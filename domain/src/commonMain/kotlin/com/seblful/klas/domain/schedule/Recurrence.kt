@@ -67,7 +67,7 @@ object Recurrence {
     /** How many lessons «Повторять» starts at — a month of weekly ones. */
     const val DEFAULT_COUNT = 4
 
-    /** The counts offered as chips: a month, two months, a term. «Другое» asks for the rest. */
+    /** The counts offered as chips: a month, two months, a term. The booking form's stepper reaches the rest. */
     val COMMON_COUNTS: List<Int> = listOf(4, 8, 12)
 
     /**

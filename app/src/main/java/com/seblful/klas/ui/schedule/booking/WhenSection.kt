@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -21,12 +22,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.seblful.klas.R
@@ -50,18 +53,15 @@ import com.seblful.klas.ui.theme.KlasIcons
  */
 
 /**
- * When: the day, stepped a day at a time or picked in the date dialog; the start, stepped
- * [STEP_MINUTES] at a time or typed in the time dialog; and how long, folded to a line. The day usually
- * comes from the schedule the booking was opened on, so neither needs a calendar on the form. Whether it
- * repeats is a section of its own, [RepeatSection].
+ * When: the day, stepped a day at a time or picked in the date dialog, and the start, stepped
+ * [STEP_MINUTES] at a time or typed in the time dialog. The day usually comes from the schedule the booking
+ * was opened on, so neither needs a calendar on the form. How long, and whether it repeats, are rows of
+ * [DetailsSection].
  */
 @Composable
 internal fun WhenSection(state: ClassFormState, viewModel: ClassEditViewModel) {
-    val form = state.form
-    val durations by viewModel.durationOptions.collectAsStateWithLifecycle()
     var pickingDay by remember { mutableStateOf(false) }
     var pickingTime by remember { mutableStateOf(false) }
-    var customLength by remember { mutableStateOf(false) }
 
     DayRow(
         state,
@@ -71,21 +71,6 @@ internal fun WhenSection(state: ClassFormState, viewModel: ClassEditViewModel) {
     )
     Stepper(state, onStep = viewModel::step, onPick = { pickingTime = true })
     state.conflict?.let { conflict -> ConflictLine(conflict, state) }
-
-    // How long, not when it ends — a length is what the lesson is stored as. The end is its consequence.
-    Fold(
-        label = { Text(stringResource(R.string.class_duration_label), style = MaterialTheme.typography.labelLarge) },
-        summary = lengthSummary(form.durationMinutes, state.ending),
-    ) {
-        PresetChips(
-            presets = durations,
-            selected = form.durationMinutes,
-            label = { minutes -> durationLabel(minutes) },
-            customLabel = stringResource(R.string.class_duration_custom),
-            onSelect = { minutes -> viewModel.change(BookingIntent.LastsFor(minutes)) },
-            onCustom = { customLength = true },
-        )
-    }
 
     if (pickingDay) {
         DatePickerModal(
@@ -102,13 +87,6 @@ internal fun WhenSection(state: ClassFormState, viewModel: ClassEditViewModel) {
             initial = viewModel.timePickerDefault(),
             onConfirm = { time -> viewModel.change(BookingIntent.StartAt(time)); pickingTime = false },
             onDismiss = { pickingTime = false },
-        )
-    }
-    if (customLength) {
-        DurationPickerModal(
-            initialMinutes = viewModel.durationPickerDefault(),
-            onConfirm = { minutes -> viewModel.change(BookingIntent.LastsFor(minutes)); customLength = false },
-            onDismiss = { customLength = false },
         )
     }
 }
@@ -162,17 +140,14 @@ private fun Stepper(state: ClassFormState, onStep: (later: Boolean) -> Unit, onP
     val slot = state.slot
     val colors = MaterialTheme.colorScheme
     val pick = stringResource(R.string.class_time_pick)
-    Row(
-        Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(Spacing.inline),
+    StepRow(
+        lessName = stringResource(R.string.class_step_earlier),
+        moreName = stringResource(R.string.class_step_later),
+        onLess = state.stepped(later = false)?.let { { onStep(false) } },
+        onMore = state.stepped(later = true)?.let { { onStep(true) } },
+        size = StartButtonSize,
+        caption = STEP_MINUTES.toString(),
     ) {
-        StepButton(
-            KlasIcons.Filled.Remove,
-            stringResource(R.string.class_step_earlier),
-            enabled = state.stepped(later = false) != null,
-            onClick = { onStep(false) },
-        )
         Column(
             Modifier
                 .weight(1f)
@@ -182,40 +157,27 @@ private fun Stepper(state: ClassFormState, onStep: (later: Boolean) -> Unit, onP
                 .testTag(TIME_TAG),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
+            val style = if (slot == null) {
+                MaterialTheme.typography.titleMedium
+            } else {
+                MaterialTheme.typography.headlineMedium.copy(fontFeatureSettings = "tnum")
+            }
             Text(
                 slot?.let { "${it.start.timeText()}–${it.end.timeText()}" } ?: pick,
-                style = if (slot == null) {
-                    MaterialTheme.typography.titleMedium
-                } else {
-                    MaterialTheme.typography.headlineMedium.copy(fontFeatureSettings = "tnum")
-                },
+                style = style,
                 color = when {
                     slot == null -> colors.primary
                     state.conflictBlocksSave -> colors.error
                     else -> colors.onSurface
                 },
+                textAlign = TextAlign.Center,
                 maxLines = 1,
-            )
-        }
-        StepButton(
-            KlasIcons.Filled.Add,
-            stringResource(R.string.class_step_later),
-            enabled = state.stepped(later = true) != null,
-            onClick = { onStep(true) },
-        )
-    }
-}
-
-/** A round tonal button: [icon] over the step's minutes, named [name] for whoever cannot see it. */
-@Composable
-private fun StepButton(icon: ImageVector, name: String, enabled: Boolean, onClick: () -> Unit) {
-    FilledTonalIconButton(onClick, Modifier.size(StepButtonSize), enabled = enabled) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Icon(icon, contentDescription = name, Modifier.size(StepIconSize))
-            Text(
-                STEP_MINUTES.toString(),
-                style = MaterialTheme.typography.labelSmall,
-                modifier = Modifier.clearAndSetSemantics { },
+                // «15:30–16:30» outgrew the room between the buttons on a 360 dp phone; a 12-hour clock is longer.
+                overflow = TextOverflow.Ellipsis,
+                autoSize = TextAutoSize.StepBased(
+                    minFontSize = with(LocalDensity.current) { MinTimeSize.toSp() },
+                    maxFontSize = style.fontSize,
+                ),
             )
         }
     }
@@ -239,13 +201,7 @@ private fun ConflictLine(conflict: TimeConflict, state: ClassFormState) {
     )
 }
 
-/** «1 h · until 15:30». */
-@Composable
-private fun lengthSummary(minutes: Int?, ends: ClassForm.Ending?): String =
-    bulletJoin(minutes?.let { durationLabel(it) }.orEmpty(), ends?.let { endsAtText(it) }.orEmpty())
-
 internal const val DAY_TAG = "booking_day"
 internal const val TIME_TAG = "booking_time"
 
-private val StepButtonSize = 56.dp
-private val StepIconSize = 20.dp
+private val MinTimeSize = 16.dp

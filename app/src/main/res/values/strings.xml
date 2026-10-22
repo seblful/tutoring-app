@@ -187,13 +187,15 @@
     <string name="class_repeat_none">Once</string>
     <string name="class_repeat_weekly">Every week</string>
     <string name="class_repeat_fortnightly">Every 2 weeks</string>
-    <string name="class_repeat_count_label">Lessons</string>
-    <string name="class_repeat_count_custom">Other</string>
     <!-- %1$s: the last date the run reaches -->
     <string name="class_repeat_until">until %1$s</string>
-    <string name="class_repeat_count_title">How many lessons</string>
-    <!-- The dialog behind "Other". %1$d: the ceiling on one booking — a year of weekly lessons. -->
-    <string name="class_repeat_count_field">Lessons (up to %1$d)</string>
+    <!-- The details card's −/+ buttons, named for screen readers. -->
+    <string name="class_length_shorter">15 minutes shorter</string>
+    <string name="class_length_longer">15 minutes longer</string>
+    <string name="class_lessons_fewer">One lesson fewer</string>
+    <string name="class_lessons_more">One lesson more</string>
+    <string name="class_rate_lower">Lower the rate</string>
+    <string name="class_rate_higher">Raise the rate</string>
     <!--
       A repeating booking that got some of its dates and not others. A dialog rather than a snackbar:
       the save closes the form, and a skipped date is a lesson the tutor believes they have booked.

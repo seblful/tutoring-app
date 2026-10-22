@@ -168,8 +168,7 @@ private fun ClassEditForm(
                 FormSection(stringResource(R.string.class_section_when)) {
                     WhenSection(state, viewModel)
                 }
-                if (viewModel.isNew) RepeatSection(state.form, viewModel)
-                TermsSection(state, viewModel)
+                DetailsSection(state, viewModel, viewModel.isNew)
             }
             // A taken time is as disqualifying as a missing field, and `canSave` already says so — the
             // lesson could not happen. The bar says which of the two it is.

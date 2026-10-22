@@ -63,6 +63,21 @@ data class ClassForm(
     val repeatsUntil: LocalDate?
         get() = date?.takeIf { repeat.repeats }?.let { Recurrence.lastDate(it, repeat, repeatCount) }
 
+    /** How many lessons saving this writes: one unless it repeats. What the Repeat row counts. */
+    val lessons: Int
+        get() = if (repeat.repeats) repeatCount else 1
+
+    /**
+     * This booking writing [count] lessons. One is a lesson that does not repeat; more keep the frequency
+     * already chosen, weekly when there was none.
+     */
+    fun withLessons(count: Int): ClassForm =
+        if (count <= 1) {
+            copy(repeat = Repeat.NONE)
+        } else {
+            copy(repeat = repeat.takeIf { it.repeats } ?: Repeat.WEEKLY, repeatCount = count)
+        }
+
     /**
      * Every instant this booking would write a lesson at, first one first. One element unless [repeat]
      * says otherwise; empty while the date or the time is still missing.
