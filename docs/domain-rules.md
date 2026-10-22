@@ -9,6 +9,8 @@ mirrors and [database and backup](database-and-backup.md) for persistence contra
   charges can exceed that input ceiling.
 - Currency is a display label (`BYN|RUB|USD|EUR`), never a conversion; display its symbol. A fresh install
   uses the phone's region. Decimal separators follow app language, not currency.
+- A student's empty phone field opens on the dialling code of the currency's country (`Phone.prefill`;
+  none for EUR). A phone that is only a `+` code is saved as no phone.
 - Each class books an editable hourly rate, initially the student's/group's. Later rate changes leave
   existing classes untouched. A new individual booking follows subject price suggestions until the
   tutor overrides the amount; changing subjects never replaces a typed or historical booked rate.

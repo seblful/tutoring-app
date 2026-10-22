@@ -31,10 +31,12 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.seblful.klas.R
 import com.seblful.klas.domain.model.Subject
+import com.seblful.klas.domain.people.Phone
 import com.seblful.klas.format.MoneyField
 import com.seblful.klas.ui.common.AddRow
 import com.seblful.klas.ui.common.KlasScreen
 import com.seblful.klas.ui.common.ListSkeleton
+import com.seblful.klas.ui.common.LocalCurrency
 import com.seblful.klas.ui.common.MinTouchTarget
 import com.seblful.klas.ui.common.MoneyTextField
 import com.seblful.klas.ui.common.Reveal
@@ -93,6 +95,9 @@ fun StudentFormContent(
     bottomInset: PaddingValues = PaddingValues(),
 ) {
     val form = state.form
+    // The currency is the screen's to know (see `LocalCurrency`); onboarding may change it in the same flow.
+    val diallingCode = Phone.prefill(LocalCurrency.current)
+    LaunchedEffect(diallingCode) { viewModel.offerDiallingCode(diallingCode) }
     Column(
         modifier
             // Before the scroll, so the keyboard shrinks the viewport instead of covering the

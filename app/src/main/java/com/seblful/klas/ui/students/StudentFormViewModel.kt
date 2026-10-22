@@ -45,7 +45,8 @@ class StudentFormViewModel @Inject constructor(
 
     data class Form(
         val name: String = "",
-        val phone: String = Phone.PREFILL,
+        /** Empty until the screen offers the dialling code ([offerDiallingCode]). */
+        val phone: String = "",
         val email: String = "",
         val note: String = "",
         val mode: ClassMode = ClassMode.IN_PERSON,
@@ -100,10 +101,19 @@ class StudentFormViewModel @Inject constructor(
         form.value = transform(form.value)
     }
 
+    /**
+     * Opens the phone on [prefill], the dialling code for the currency the screen is shown in
+     * ([Phone.prefill]). A typed number is kept; either way the code is not the tutor's work to lose.
+     */
+    fun offerDiallingCode(prefill: String) {
+        if (Phone.stored(form.value.phone).isEmpty()) form.value = form.value.copy(phone = prefill)
+        pristine.value = pristine.value.copy(phone = prefill)
+    }
+
     /** A setup detour carries the subject, while its parent form stays on the back stack. */
     fun suggestSubject(subjectId: Long) {
-        if (form.value != Form()) return
-        val suggested = Form(subjectPrices = mapOf(subjectId to MoneyField()))
+        if (form.value != pristine.value) return
+        val suggested = pristine.value.copy(subjectPrices = mapOf(subjectId to MoneyField()))
         form.value = suggested
         pristine.value = suggested
     }

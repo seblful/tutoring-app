@@ -5,6 +5,7 @@ import com.seblful.klas.data.toDomain
 import com.seblful.klas.domain.homework.HomeworkRules
 import com.seblful.klas.domain.model.Assignee
 import com.seblful.klas.domain.model.ClassMode
+import com.seblful.klas.domain.model.Currency
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Payment
@@ -215,7 +216,8 @@ class StudentDetailViewModelTest : StudentDetailTestFixture() {
         observing(vm.state)
         runCurrent()
 
-        vm.editStudent(name = "Аня", phone = Phone.PREFILL, email = "", note = "", mode = ClassMode.IN_PERSON)
+        val codeOnly = Phone.prefill(Currency.GBP)
+        vm.editStudent(name = "Аня", phone = codeOnly, email = "", note = "", mode = ClassMode.IN_PERSON)
         runCurrent()
 
         assertEquals("", env.studentDao.getById(sid)!!.phone)

@@ -33,6 +33,7 @@ import com.seblful.klas.ui.common.ConfirmDialog
 import com.seblful.klas.ui.common.ExternalTarget
 import com.seblful.klas.ui.common.KlasScreen
 import com.seblful.klas.ui.common.LoadingDetailScreen
+import com.seblful.klas.ui.common.LocalCurrency
 import com.seblful.klas.ui.common.NamedIconButton
 import com.seblful.klas.ui.common.OverviewSection
 import com.seblful.klas.ui.common.SectionNote
@@ -272,7 +273,7 @@ private fun StudentCard(
         StudentEditDialog(
             title = stringResource(R.string.student_edit_title),
             initialName = student.name,
-            initialPhone = Phone.editable(student.phone),
+            initialPhone = Phone.editable(student.phone, LocalCurrency.current),
             initialEmail = student.email,
             initialNote = student.note,
             initialMode = student.defaultMode,

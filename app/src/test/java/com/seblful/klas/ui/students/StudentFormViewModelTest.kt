@@ -53,6 +53,41 @@ class StudentFormViewModelTest {
     }
 
     @Test
+    fun `a setup detour carries its subject after the phone opened on its dialling code`() =
+        runTest(mainRule.dispatcher) {
+            val subject = env.fixtures.subject()
+            val vm = vm()
+            observing(vm.state)
+
+            vm.offerDiallingCode("+375 ")
+            vm.suggestSubject(subject)
+            advanceUntilIdle()
+
+            assertEquals(setOf(subject), vm.state.value.selectedSubjectIds)
+            assertEquals("+375 ", vm.state.value.form.phone)
+            assertFalse(vm.state.value.isDirty)
+        }
+
+    @Test
+    fun `the phone opens on the offered dialling code and follows a new one until a number is typed`() =
+        runTest(mainRule.dispatcher) {
+            val vm = vm()
+            observing(vm.state)
+
+            vm.offerDiallingCode("+375 ")
+            assertEquals("+375 ", vm.state.value.form.phone)
+
+            vm.offerDiallingCode("+7 ")
+            assertEquals("an untouched code follows the currency", "+7 ", vm.state.value.form.phone)
+            assertFalse(vm.state.value.isDirty)
+
+            vm.update { it.copy(phone = "+7 916 123-45-67") }
+            vm.offerDiallingCode("+44 ")
+            assertEquals("a typed number is the tutor's", "+7 916 123-45-67", vm.state.value.form.phone)
+            assertTrue(vm.state.value.isDirty)
+        }
+
+    @Test
     fun `only the subject list waits to be read`() = runTest(mainRule.dispatcher) {
         env.fixtures.subject("Математика")
         val vm = vm()
@@ -198,6 +233,7 @@ class StudentFormViewModelTest {
         val mathId = env.fixtures.subject("Математика")
         val vm = vm()
         observing(vm.state)
+        vm.offerDiallingCode("+7 ")
 
         vm.update { it.copy(name = "Аня") }
         vm.toggleSubject(mathId, on = true)
@@ -213,6 +249,7 @@ class StudentFormViewModelTest {
         val mathId = env.fixtures.subject(name = "Математика")
         val vm = vm()
         observing(vm.state)
+        vm.offerDiallingCode("+375 ")
 
         assertFalse("the prefilled phone prefix is not the tutor's work", vm.state.value.isDirty)
 

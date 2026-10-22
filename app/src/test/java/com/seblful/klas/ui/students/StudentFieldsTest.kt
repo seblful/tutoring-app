@@ -1,6 +1,7 @@
 package com.seblful.klas.ui.students
 
 import com.seblful.klas.domain.model.ClassMode
+import com.seblful.klas.domain.model.Currency
 import com.seblful.klas.domain.model.Student
 import com.seblful.klas.domain.people.Phone
 import org.junit.Assert.assertEquals
@@ -34,7 +35,7 @@ class StudentFieldsTest {
     fun `an edit keeps the student's identity`() {
         val current = Student(id = 7, name = "Аня", note = "старое", archived = true)
 
-        val edited = typedStudent("Анна", Phone.PREFILL, "", "новое", ClassMode.IN_PERSON, onto = current)
+        val edited = typedStudent("Анна", Phone.prefill(Currency.RUB), "", "новое", ClassMode.IN_PERSON, onto = current)
 
         assertEquals("only the dialling code is no phone", current.copy(name = "Анна", note = "новое"), edited)
     }
