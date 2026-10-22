@@ -45,7 +45,7 @@ import com.seblful.klas.data.settings.SettingsEntity
         HomeworkEntity::class,
         SettingsEntity::class,
     ],
-    version = 11,
+    version = 12,
     exportSchema = true,
 )
 // Every enum column, written as the constant's name and read back totally — see [EnumConverters].

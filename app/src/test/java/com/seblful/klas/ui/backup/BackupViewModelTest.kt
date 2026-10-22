@@ -17,12 +17,14 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import kotlin.time.Duration.Companion.days
 import kotlin.time.Instant
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -276,6 +278,14 @@ class BackupViewModelTest {
             assertEquals(listOf("Борис"), env.stored().students.map { it.name })
             assertNull(vm.undoRestoreSince.value)
         }
+
+    @Test
+    fun `a backup older than two weeks reads as stale`() {
+        val vm = vm()
+        assertTrue(vm.isStale(null))
+        assertTrue(vm.isStale(exportedAt - 15.days))
+        assertFalse(vm.isStale(exportedAt - 13.days))
+    }
 
     /** A backup of one student, made on another phone. */
     private suspend fun backupOf(name: String): String = TestEnv().use { other ->

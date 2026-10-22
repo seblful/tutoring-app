@@ -78,6 +78,10 @@ data class AppSettings(
     val lastExportAt: Instant? = null,
     /** Lock screen, app lock and recent apps — see [Privacy]. */
     val privacy: Privacy = Privacy(),
+    /** Where the weekly copy goes — see `AutoBackup`. Null while it is off. */
+    val autoBackupFolder: String? = null,
+    /** The last weekly copy could not be written to [autoBackupFolder]. */
+    val autoBackupFailed: Boolean = false,
 )
 
 /**
@@ -218,6 +222,8 @@ class SettingsRepository @Inject constructor(
                 relockAfterMinutes = relockAfterMinutes,
                 hideInRecents = hideInRecents,
             ),
+            autoBackupFolder = autoBackupFolder,
+            autoBackupFailed = autoBackupFailed,
         ),
     )
 
@@ -252,5 +258,7 @@ class SettingsRepository @Inject constructor(
         appLock = privacy.appLock,
         relockAfterMinutes = privacy.relockAfterMinutes,
         hideInRecents = privacy.hideInRecents,
+        autoBackupFolder = autoBackupFolder,
+        autoBackupFailed = autoBackupFailed,
     )
 }

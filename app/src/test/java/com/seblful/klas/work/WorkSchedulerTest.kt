@@ -22,6 +22,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import java.util.concurrent.TimeUnit
 import kotlin.time.Clock
+import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes
 
@@ -55,6 +56,14 @@ class WorkSchedulerTest {
 
         val info = arranged(WorkScheduler.PERIODIC_MAINTENANCE).single()
         assertEquals(WorkScheduler.PERIODIC_HOURS.hours.inWholeMilliseconds, info.periodicityInfo?.repeatIntervalMillis)
+    }
+
+    @Test
+    fun `the weekly backup is looked at daily`() {
+        scheduler.ensurePeriodicMaintenance()
+
+        val info = arranged(WorkScheduler.AUTO_BACKUP).single()
+        assertEquals(1.days.inWholeMilliseconds, info.periodicityInfo?.repeatIntervalMillis)
     }
 
     @Test

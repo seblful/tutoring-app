@@ -165,6 +165,11 @@ data class SettingsEntity(
     val relockAfterMinutes: Int = Privacy.DEFAULT_RELOCK_MINUTES,
     @ColumnInfo(defaultValue = "0")
     val hideInRecents: Boolean = false,
+    /** The weekly backup's folder (a SAF tree URI), null while it is off. Added by v11 → v12. */
+    val autoBackupFolder: String? = null,
+    /** Whether the last weekly copy could not be written — the folder has to be picked again. */
+    @ColumnInfo(defaultValue = "0")
+    val autoBackupFailed: Boolean = false,
 ) {
     companion object {
         const val SINGLETON_ID = 0

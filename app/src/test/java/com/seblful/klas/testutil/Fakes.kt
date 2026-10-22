@@ -9,6 +9,7 @@ import com.seblful.klas.notifications.NotificationPermission
 import com.seblful.klas.storage.DocumentRef
 import com.seblful.klas.storage.DocumentSharing
 import com.seblful.klas.storage.DocumentStore
+import com.seblful.klas.storage.FolderGrants
 import org.junit.rules.TestRule
 import java.io.Closeable
 
@@ -72,6 +73,23 @@ class FakeDocumentStore(var failing: Boolean = false) : DocumentStore {
         if (failing) error("Cannot open output stream")
         docs[ref.value] = text
     }
+}
+
+/** [FolderGrants] that remembers what is kept; [refusing] is a picker that granted nothing to keep. */
+class FakeFolderGrants(var refusing: Boolean = false) : FolderGrants {
+    val kept = mutableSetOf<String>()
+    val names = mutableMapOf<String, String>()
+
+    override fun keep(folder: String) {
+        if (refusing) throw SecurityException("No persistable grant for $folder")
+        kept += folder
+    }
+
+    override fun release(folder: String) {
+        kept -= folder
+    }
+
+    override suspend fun name(folder: String): String? = names[folder]
 }
 
 class RecordingDocumentSharing(var failing: Boolean = false) : DocumentSharing {

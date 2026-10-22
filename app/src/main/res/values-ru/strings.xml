@@ -1017,6 +1017,23 @@
     <string name="backup_undo_restore_confirm">Вернуть данные, которые были до последнего импорта? Всё, что есть сейчас, включая добавленное после импорта, будет заменено.</string>
     <string name="backup_undo_restore_action">Вернуть</string>
     <string name="backup_restore_undone">Данные до импорта возвращены</string>
+    <string name="backup_stale_detail">Больше двух недель назад. Всё, что добавлено после, есть только на этом телефоне.</string>
+    <string name="backup_weekly_header">Еженедельная копия</string>
+    <string name="backup_weekly_off">Сохранять копию каждую неделю</string>
+    <string name="backup_weekly_off_desc">Выберите папку на телефоне или в облаке.</string>
+    <plurals name="backup_weekly_keeps">
+        <item quantity="one">Klas хранит там %1$d последнюю копию.</item>
+        <item quantity="few">Klas хранит там %1$d последние копии.</item>
+        <item quantity="many">Klas хранит там %1$d последних копий.</item>
+        <item quantity="other">Klas хранит там %1$d последней копии.</item>
+    </plurals>
+    <string name="backup_weekly_on">Копия каждую неделю — в папку «%1$s»</string>
+    <string name="backup_weekly_on_unnamed">Копия каждую неделю — в выбранную папку</string>
+    <string name="backup_weekly_change">Нажмите, чтобы выбрать другую папку.</string>
+    <string name="backup_weekly_failed">Не удалось сохранить еженедельную копию</string>
+    <string name="backup_weekly_failed_desc">У Klas больше нет доступа к папке. Выберите её снова.</string>
+    <string name="backup_weekly_stop">Отключить еженедельные копии</string>
+    <string name="backup_weekly_saved">Первая еженедельная копия сохранена</string>
     <!--
       One message per BackupFailure. A single «Не удалось» told the tutor to check a file that may
       have been perfectly fine — a copy from a newer build needs an app update, not another look.

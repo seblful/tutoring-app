@@ -66,3 +66,10 @@ Preserve on-device data and existing backup files when changing storage. Before 
   backup). Backup offers «Undo the last import» until the next import replaces that copy. An empty
   phone keeps nothing; a refused file leaves the previous copy as it was. Undoing replaces everything,
   including what was added since, so it asks first.
+- The weekly copy (`AutoBackup`) writes into a SAF folder the tutor picks (`settings.autoBackupFolder`, a
+  persisted tree grant). A daily worker writes once a week has passed since the last export of any kind,
+  so a manual export counts. Copies are named `klas-auto-backup-<day>.json`, apart from manual exports,
+  and only the newest `KEEP` of those are kept. A folder that can no longer be written sets
+  `autoBackupFailed` for the Backup page instead of retrying: a lost grant needs the folder picked again.
+  No foreground service: WorkManager may run it late, never early. The Backup page warns after 14 days
+  without a copy.

@@ -461,6 +461,15 @@ object KlasIcons {
             )
         }
 
+        val Folder: ImageVector by lazy {
+            symbol(
+                "Outlined.Folder",
+                "M160-160q-33 0-56.5-23.5T80-240v-480q0-33 23.5-56.5T160-800h207q16 0 30.5 6t25.5 17l57 57h320" +
+                    "q33 0 56.5 23.5T880-640v400q0 33-23.5 56.5T800-160H160Zm0-80h640v-400H447l-80-80H160v480Zm0 0" +
+                    "v-480 480Z",
+            )
+        }
+
         val Group: ImageVector by lazy {
             symbol(
                 "Outlined.Group",

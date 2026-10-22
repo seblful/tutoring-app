@@ -2,6 +2,7 @@ package com.seblful.klas.ui.backup
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.seblful.klas.data.backup.AutoBackup
 import com.seblful.klas.data.backup.BackupFailure
 import com.seblful.klas.data.backup.BackupManager
 import com.seblful.klas.data.backup.BackupPreview
@@ -61,6 +62,9 @@ class BackupViewModel @Inject constructor(
         .map { it.lastExportAt }
         .ready()
         .hold(this, Loadable.Loading)
+
+    /** No copy in [AutoBackup.STALE_AFTER] — or none ever. */
+    fun isStale(lastExportAt: Instant?): Boolean = AutoBackup.isStale(lastExportAt, clock.now())
 
     /** Writes the snapshot, then **records that it happened** — in that order, and only if it did. */
     fun export(ref: DocumentRef) {

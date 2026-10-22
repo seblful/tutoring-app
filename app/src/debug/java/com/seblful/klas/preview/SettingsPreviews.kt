@@ -8,6 +8,7 @@ import androidx.compose.ui.unit.dp
 import com.seblful.klas.data.settings.AppSettings
 import com.seblful.klas.ui.backup.BackupContent
 import com.seblful.klas.ui.backup.ConfirmRestoreDialog
+import com.seblful.klas.ui.backup.WeeklyBackupViewModel
 import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.settings.AppearanceSettingsContent
 import com.seblful.klas.ui.settings.CalendarDelivery
@@ -75,6 +76,7 @@ private fun AppearanceSettingsPreview() = PreviewSurface {
 private fun BackupPreview() = PreviewSurface {
     BackupContent(
         lastExportAt = Loadable.Ready(Instant.parse("2026-05-20T10:00:00Z")),
+        weekly = Loadable.Ready(WeeklyBackupViewModel.Weekly(folder = "tree", folderName = "Klas", failed = false)),
         importing = false,
         onExport = {},
         onImport = {},
@@ -104,5 +106,12 @@ private fun ConfirmRestorePreview() = PreviewSurface {
 @KlasPreview
 @Composable
 private fun BackupNeverPreview() = PreviewSurface {
-    BackupContent(Loadable.Ready(null), importing = true, onExport = {}, onImport = {}, Modifier.height(640.dp))
+    BackupContent(
+        lastExportAt = Loadable.Ready(null),
+        weekly = Loadable.Ready(WeeklyBackupViewModel.Weekly(folder = null, folderName = null, failed = false)),
+        importing = true,
+        onExport = {},
+        onImport = {},
+        modifier = Modifier.height(640.dp),
+    )
 }

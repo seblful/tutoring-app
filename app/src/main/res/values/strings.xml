@@ -882,6 +882,21 @@
     <string name="backup_undo_restore_confirm">Put back the data from before the last import? Everything here now, including anything added since, will be replaced.</string>
     <string name="backup_undo_restore_action">Put back</string>
     <string name="backup_restore_undone">The data from before the import is back</string>
+    <string name="backup_stale_detail">Over two weeks ago. Anything since then is on this phone only.</string>
+    <string name="backup_weekly_header">Weekly copy</string>
+    <string name="backup_weekly_off">Save a copy every week</string>
+    <string name="backup_weekly_off_desc">Pick a folder on this phone or in a cloud drive.</string>
+    <plurals name="backup_weekly_keeps">
+        <item quantity="one">Klas keeps its last copy there.</item>
+        <item quantity="other">Klas keeps its last %1$d copies there.</item>
+    </plurals>
+    <string name="backup_weekly_on">Saving weekly to «%1$s»</string>
+    <string name="backup_weekly_on_unnamed">Saving weekly to the folder you picked</string>
+    <string name="backup_weekly_change">Tap to choose another folder.</string>
+    <string name="backup_weekly_failed">The last weekly copy could not be saved</string>
+    <string name="backup_weekly_failed_desc">Klas can no longer reach the folder. Choose it again.</string>
+    <string name="backup_weekly_stop">Stop weekly copies</string>
+    <string name="backup_weekly_saved">The first weekly copy is saved</string>
     <!--
       One message per BackupFailure. A single "Could not read it" told the tutor to check a file that
       may have been perfectly fine — a copy from a newer build needs an app update, not another look.
