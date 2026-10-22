@@ -72,7 +72,7 @@ class NavigationDoubleTapTest {
             compose.onNode(peopleTab).performClick()
             waitFor(STUDENT)
             compose.onNodeWithText(STUDENT).performClick()
-            waitFor(text(R.string.stat_earned))
+            waitFor(text(R.string.payment_add_short))
 
             // Two taps a few frames apart: the second lands on the card while it is still fading out.
             compose.mainClock.autoAdvance = false

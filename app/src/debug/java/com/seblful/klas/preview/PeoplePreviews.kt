@@ -1,16 +1,30 @@
 package com.seblful.klas.preview
 
 import androidx.compose.runtime.Composable
+import com.seblful.klas.domain.model.Balance
 import com.seblful.klas.domain.model.Group
+import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
+import com.seblful.klas.domain.model.Payment
 import com.seblful.klas.domain.model.Student
+import com.seblful.klas.domain.model.TutoringClass
+import com.seblful.klas.domain.reports.Taught
+import com.seblful.klas.queries.students.ClassRow
+import com.seblful.klas.queries.students.StudentDetails
 import com.seblful.klas.ui.groups.GroupCard
 import com.seblful.klas.ui.groups.GroupRow
 import com.seblful.klas.ui.people.LessonLine
+import com.seblful.klas.ui.students.BalanceCard
+import com.seblful.klas.ui.students.NextLesson
+import com.seblful.klas.ui.students.NextLessonCard
+import com.seblful.klas.ui.students.OverviewSection
+import com.seblful.klas.ui.students.PaymentRow
 import com.seblful.klas.ui.students.StudentCard
 import com.seblful.klas.ui.students.StudentRow
+import com.seblful.klas.ui.students.sectionRowColors
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
+import kotlin.time.Instant
 
 /*
  * The two sides of «Люди», card by card — the same anatomy on both, which is what these are here to keep.
@@ -64,4 +78,47 @@ private fun GroupCardsPreview() = PreviewSurface {
             LessonLine.Last(LocalDate(2026, 5, 28), thisYear = 2026),
         ),
     ).forEach { GroupCard(it, onClick = {}) }
+}
+
+/** A student card's next lesson — a group one, so its line names the group — and none booked. */
+@KlasPreview
+@Composable
+private fun StudentNextLessonPreview() = PreviewSurface {
+    val lesson = TutoringClass(
+        id = 1, studentId = 1, subjectId = 1, start = Instant.parse("2026-06-04T14:00:00Z"), durationMinutes = 90,
+        status = LessonStatus.SCHEDULED, groupId = 1,
+    )
+    NextLessonCard(
+        NextLesson(
+            ClassRow(lesson, subjectName = "Физика", groupName = "Олимпиадная физика"),
+            LessonLine.Next(LocalDate(2026, 6, 4), LocalTime(17, 0), daysAway = 3, thisYear = 2026),
+            running = false,
+        ),
+        onOpen = {},
+        onBook = {},
+    )
+    NextLessonCard(next = null, onOpen = {}, onBook = {})
+}
+
+/** What a student owes, and a section showing two of its three rows with the way to the rest. */
+@KlasPreview
+@Composable
+private fun StudentBalancePreview() = PreviewSurface {
+    val payments = listOf(
+        Payment(id = 1, studentId = 1, date = Instant.parse("2026-05-18T12:00:00Z"), amount = Money.ofMajor(120)),
+        Payment(id = 2, studentId = 1, date = Instant.parse("2026-04-30T12:00:00Z"), amount = Money.ofMajor(90)),
+    )
+    BalanceCard(
+        StudentDetails(
+            balance = Balance.Owed(Money.ofMajor(200)),
+            totals = Taught.Totals(
+                lessons = 27, upcoming = 6, cancelled = 1, minutes = 1260, earned = Money.ofMajor(862),
+            ),
+            payments = payments,
+        ),
+        onAddPayment = {},
+    )
+    OverviewSection(title = "Платежи", count = 3, onSeeAll = {}) {
+        payments.forEach { PaymentRow(it, onEdit = {}, onDelete = {}, colors = sectionRowColors()) }
+    }
 }

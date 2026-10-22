@@ -54,7 +54,7 @@ fun PinnedHeader(modifier: Modifier = Modifier, content: @Composable ColumnScope
 
 /**
  * A detail card's lists as **one pinned control naming the list on screen**, with the others behind it —
- * the student's card, which has four.
+ * the group's card, which has three.
  *
  * @param count how many rows [option] holds, or null to say nothing.
  */

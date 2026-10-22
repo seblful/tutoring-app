@@ -1,98 +1,70 @@
 package com.seblful.klas.ui.students
 
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListScope
-import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.semantics.contentDescription
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.seblful.klas.R
-import com.seblful.klas.domain.lesson.LessonFilter
 import com.seblful.klas.domain.model.Assignee
-import com.seblful.klas.domain.model.Balance
+import com.seblful.klas.domain.model.Homework
 import com.seblful.klas.domain.model.Payment
 import com.seblful.klas.domain.people.Phone
-import com.seblful.klas.format.bulletJoin
-import com.seblful.klas.format.formatDate
-import com.seblful.klas.format.formatHours
-import com.seblful.klas.format.toLocalDate
 import com.seblful.klas.queries.homework.AssigneeChoice
 import com.seblful.klas.queries.homework.HomeworkRow
 import com.seblful.klas.queries.students.ArchiveIntent
-import com.seblful.klas.queries.students.ClassRow
 import com.seblful.klas.queries.students.StudentDetails
 import com.seblful.klas.ui.common.AddRow
-import com.seblful.klas.ui.common.BadgeLine
 import com.seblful.klas.ui.common.ConfirmDialog
-import com.seblful.klas.ui.common.EmptyState
 import com.seblful.klas.ui.common.ExternalTarget
-import com.seblful.klas.ui.common.HeroCard
 import com.seblful.klas.ui.common.KlasScreen
-import com.seblful.klas.ui.common.LessonKindIcon
 import com.seblful.klas.ui.common.LoadingDetailScreen
+import com.seblful.klas.ui.common.Messages
+import com.seblful.klas.ui.common.MinTouchTarget
 import com.seblful.klas.ui.common.NamedIconButton
+import com.seblful.klas.ui.common.SectionCard
+import com.seblful.klas.ui.common.SectionTitle
 import com.seblful.klas.ui.common.Spacing
-import com.seblful.klas.ui.common.Stat
-import com.seblful.klas.ui.common.StatusBadge
 import com.seblful.klas.ui.common.TitleSize
-import com.seblful.klas.ui.common.TrailingAmount
 import com.seblful.klas.ui.common.animateInPlace
-import com.seblful.klas.ui.common.classStatusColor
-import com.seblful.klas.ui.common.classStatusLabel
-import com.seblful.klas.ui.common.dateTimeText
-import com.seblful.klas.ui.common.detailCard
-import com.seblful.klas.ui.common.earnedStat
-import com.seblful.klas.ui.common.insetRowPress
-import com.seblful.klas.ui.common.lessonsStat
 import com.seblful.klas.ui.common.plusInset
 import com.seblful.klas.ui.common.rememberExternalApps
 import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.rememberRejectFeedback
-import com.seblful.klas.ui.common.state.Loadable
+import com.seblful.klas.ui.common.sectionSurface
 import com.seblful.klas.ui.common.text
 import com.seblful.klas.ui.homework.CardHomeworkDialogs
-import com.seblful.klas.ui.homework.homeworkItems
-import com.seblful.klas.ui.homework.homeworkUndo
+import com.seblful.klas.ui.homework.SwipeableHomework
 import com.seblful.klas.ui.theme.KlasIcons
 import dev.zacsweers.metrox.viewmodel.assistedMetroViewModel
-
-private enum class StudentTab(val labelRes: Int, val icon: ImageVector) {
-    CLASSES(R.string.student_classes_title, KlasIcons.Outlined.CalendarMonth),
-    PAYMENTS(R.string.student_payments_title, KlasIcons.Outlined.Payments),
-
-    /**
-     * Their homework and their groups', current and done — the one place an archived student's is still
-     * listed, and where homework is set for this student without picking them first.
-     */
-    HOMEWORK(R.string.student_homework_title, KlasIcons.Outlined.Assignment),
-    SUBJECTS(R.string.student_subjects_title, KlasIcons.Outlined.MenuBook),
-}
-
-/** The task carried from a lesson or an unfinished setup form. */
-enum class StudentTask { HOMEWORK, PAYMENT, SUBJECT }
 
 private data class StudentNavigation(
     val back: () -> Unit,
@@ -100,29 +72,32 @@ private data class StudentNavigation(
     val backArrow: Boolean,
     val lesson: (Long) -> Unit,
     val book: () -> Unit,
+    val seeAll: (StudentSection) -> Unit,
 )
 
 /**
- * The card, once there is a student to draw one for.
+ * The card, once there is a student to draw one for: who they are, then **an overview** — their next lesson,
+ * what they owe, and the latest of each of their lists, the long ones opening in full ([StudentSection]) — so
+ * nothing on the card is hidden behind another view.
  *
  * @param backArrow false beside the People list the card was opened from: the list is the way to another.
  */
 @Composable
 fun StudentDetailScreen(
     onBack: () -> Unit,
-
     onLessonClick: (Long) -> Unit,
     viewModel: StudentDetailViewModel = assistedMetroViewModel(),
     onBookLesson: () -> Unit = {},
+    onSeeAll: (StudentSection) -> Unit = {},
     initialTask: StudentTask? = null,
     backArrow: Boolean = true,
 ) {
-    when (val screenState = viewModel.state.collectAsStateWithLifecycle().value) {
-        Loadable.Loading -> LoadingDetailScreen(onBack.takeIf { backArrow })
-        is Loadable.Ready -> StudentCard(
-            screenState.value,
+    when (val overview = viewModel.overview.collectAsStateWithLifecycle().value) {
+        null -> LoadingDetailScreen(onBack.takeIf { backArrow })
+        else -> StudentCard(
+            overview,
             viewModel,
-            StudentNavigation(onBack, backArrow, onLessonClick, onBookLesson),
+            StudentNavigation(onBack, backArrow, onLessonClick, onBookLesson, onSeeAll),
             initialTask,
         )
     }
@@ -131,17 +106,14 @@ fun StudentDetailScreen(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun StudentCard(
-    state: StudentDetails,
+    overview: StudentOverview,
     viewModel: StudentDetailViewModel,
     navigation: StudentNavigation,
     initialTask: StudentTask?,
 ) {
+    val state = overview.details
     val student = state.student
 
-    var tab by rememberSaveable { mutableStateOf(StudentTab.CLASSES) }
-    var lessonFilter by rememberSaveable { mutableStateOf(LessonFilter.ALL) }
-    // Filtered here rather than in the list's builder, which runs again on every scroll-driven remeasure.
-    val lessonRows = remember(state, lessonFilter) { state.lessonsShown(lessonFilter) }
     var editing by remember { mutableStateOf(false) }
     var addingSubject by remember { mutableStateOf(false) }
     var pricingSubjectId by remember { mutableStateOf<Long?>(null) }
@@ -156,16 +128,11 @@ private fun StudentCard(
     var taskHandled by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(student?.id, initialTask) {
         if (taskHandled || student == null || initialTask == null) return@LaunchedEffect
+        // Each task's dialog opens over the overview, which shows the section it adds to.
         when (initialTask) {
-            StudentTask.HOMEWORK -> {
-                tab = StudentTab.HOMEWORK
-                addingHomework = viewModel.homeworkChoice()
-            }
-            StudentTask.PAYMENT -> { tab = StudentTab.PAYMENTS; addingPayment = true }
-            StudentTask.SUBJECT -> {
-                tab = StudentTab.SUBJECTS
-                addingSubject = true
-            }
+            StudentTask.HOMEWORK -> addingHomework = viewModel.homeworkChoice()
+            StudentTask.PAYMENT -> addingPayment = true
+            StudentTask.SUBJECT -> addingSubject = true
         }
         taskHandled = true
     }
@@ -178,20 +145,21 @@ private fun StudentCard(
     // Read inside the collector through `rememberUpdatedState`, so the words are the language in force
     // when the event arrives — and the plural's count is the one the event carries, the write's own.
     val resources by rememberUpdatedState(context.resources)
+    val seeAll by rememberUpdatedState(navigation.seeAll)
     // A hand collector rather than `ShowMessagesFor`: the refusal carries a way to the lessons it names.
     val rejectFeedback = rememberRejectFeedback()
     LaunchedEffect(Unit) {
         viewModel.events.stream.collect { event ->
             when (event) {
-                // The refusal names lessons the tutor now has to go and look at — and they are one
-                // tab away, so the message carries the way there. This is the thing a toast could
-                // never do: state a problem *and* offer the next step.
+                // The refusal names lessons the tutor now has to go and look at — so the message carries
+                // the way there, which is the thing a toast could never do: state a problem *and* offer the
+                // next step.
                 StudentDetailViewModel.Event.RemoveBlockedHasClasses -> {
                     rejectFeedback()
                     messages.show(
                         resources.getString(R.string.student_subject_remove_blocked),
                         resources.getString(R.string.action_show),
-                    ) { tab = StudentTab.CLASSES }
+                    ) { seeAll(StudentSection.LESSONS) }
                 }
 
                 is StudentDetailViewModel.Event.ArchiveCancelledLessons -> messages.show(
@@ -202,54 +170,32 @@ private fun StudentCard(
         }
     }
 
-    val homeworkUndo = homeworkUndo(
-        messages = messages,
-        setDone = viewModel::setHomeworkDone,
-        putBack = viewModel::putHomeworkBack,
-        delete = viewModel::deleteHomework,
-        restore = viewModel::restoreHomework,
-    )
-    val paymentDeletedMsg = stringResource(R.string.payment_deleted)
-    val undoLabel = stringResource(R.string.action_undo)
-    fun deletePaymentWithUndo(payment: Payment) {
-        viewModel.deletePayment(payment)
-        messages.show(paymentDeletedMsg, undoLabel) { viewModel.restorePayment(payment) }
-    }
+    val homeworkUndo = studentHomeworkUndo(viewModel, messages)
+    val deletePayment = paymentDeleteWithUndo(viewModel, messages)
 
     // A student's name is what this screen is *about*, so it gets the large title Material designed for
-    // exactly that — collapsing into an ordinary bar as the list scrolls, instead of being a 16sp string
-    // ellipsised between a back arrow and two actions. [TitleSize.Large] is that, and the scroll
-    // behaviour it needs, said once.
+    // exactly that — collapsing into an ordinary bar as the list scrolls. [TitleSize.Large] is that, and the
+    // scroll behaviour it needs, said once.
     KlasScreen(
         title = student?.name,
         onBack = navigation.back.takeIf { navigation.backArrow },
         titleSize = TitleSize.Large,
         messages = messages,
         actions = {
-            if (student != null && !student.archived) {
-                NamedIconButton(
-                    KlasIcons.Outlined.EditCalendar,
-                    stringResource(R.string.class_book),
-                    onClick = navigation.book,
-                )
-            }
+            // Booking is the next lesson's «+», in the card it books into.
             NamedIconButton(KlasIcons.Outlined.Edit, stringResource(R.string.action_edit), onClick = { editing = true })
-            // Archiving is behind the overflow now. It used to be a bare text button in the
-            // bar — «Имя [✎] [В архив]» — which put the most consequential thing on the
-            // screen beside the pencil, at the width of a word, next to a name that has to
-            // ellipsize to make room for it.
+            // Archiving is behind the overflow: as a bare text button in the bar it put the most consequential
+            // thing on the screen beside the pencil, next to a name that had to ellipsize to make room for it.
             if (student != null) {
                 StudentOverflowMenu(
                     student = student,
-                    // The same three launches the contact block makes, through the same guard: a tablet
-                    // with no dialler must not crash the card.
+                    // The same launches the contact block makes, through the same guard: a tablet with no
+                    // dialler must not crash the card.
                     onCall = { phone -> externalApps.open(ExternalTarget.Dial(phone), noAppMsg) },
-                    onTelegram = { phone ->
-                        externalApps.open(ExternalTarget.Telegram(phone), noAppMsg)
-                    },
+                    onTelegram = { phone -> externalApps.open(ExternalTarget.Telegram(phone), noAppMsg) },
                     onEmail = { email -> externalApps.open(ExternalTarget.Email(email), noAppMsg) },
-                    // Whether archiving is worth asking about, and what the question would have
-                    // to say, are both `state.archiveIntent`'s — see [ArchiveIntent].
+                    // Whether archiving is worth asking about, and what the question would have to say, are
+                    // both `state.archiveIntent`'s — see [ArchiveIntent].
                     onArchive = {
                         when (state.archiveIntent) {
                             is ArchiveIntent.Confirm -> confirmingArchive = true
@@ -262,91 +208,74 @@ private fun StudentCard(
             }
         },
     ) { modifier, bottomInset ->
+        val cardModifier = Modifier.padding(horizontal = Spacing.gutter)
         LazyColumn(
             modifier = modifier,
             contentPadding = PaddingValues(bottom = Spacing.sectionGap).plusInset(bottomInset),
+            // Separate cards, each a section of its own, rather than parts of one surface.
+            verticalArrangement = Arrangement.spacedBy(Spacing.itemGap),
         ) {
-            // Identity, then the numbers, then the tabs — the same three in the same order as the
-            // group's card (see [detailCard]). This one used to lead with the stat row and put the contacts
-            // second, so the two cards disagreed about their own structure.
-            detailCard(
-                identity = {
-                    item(key = StudentDetailKeys.CONTACTS) {
-                        student?.let {
-                            ContactBlock(
-                                student = it,
-                                onCall = { phone ->
-                                    externalApps.open(ExternalTarget.Dial(phone), noAppMsg)
-                                },
-                                onEmail = { email ->
-                                    externalApps.open(ExternalTarget.Email(email), noAppMsg)
-                                },
-                                onTelegram = { phone ->
-                                    externalApps.open(ExternalTarget.Telegram(phone), noAppMsg)
-                                },
-                                modifier = Modifier.padding(
-                                    horizontal = Spacing.gutter,
-                                    vertical = Spacing.tight,
-                                ),
-                            )
-                        }
-                    }
-
-                    // The one number the card exists to answer, ahead of the two that qualify it.
-                    item(key = StudentDetailKeys.BALANCE) {
-                        BalanceHero(
-                            state = state,
-                            modifier = Modifier.padding(
-                                horizontal = Spacing.gutter,
-                                vertical = Spacing.inline,
-                            ),
-                        )
-                    }
-                },
-                stats = { studentStats(state) },
-                views = StudentTab.entries,
-                selected = tab,
-                onSelect = { tab = it },
-                label = { stringResource(it.labelRes) },
-                icon = { it.icon },
-                count = { entry ->
-                    when (entry) {
-                        StudentTab.CLASSES -> state.classes.size
-                        StudentTab.PAYMENTS -> state.payments.size
-                        StudentTab.HOMEWORK -> state.homework.current.size
-                        StudentTab.SUBJECTS -> state.subjects.size
-                    }
-                },
-            ) { shown ->
-                when (shown) {
-                    StudentTab.SUBJECTS -> subjectsTab(
-                        state = state,
-                        onAdd = { addingSubject = true },
-                        onReprice = { id -> pricingSubjectId = id },
-                        onRemove = { removingSubjectId = it },
-                    )
-                    StudentTab.CLASSES -> classesTab(
-                        state = state,
-                        rows = lessonRows,
-                        filter = lessonFilter,
-                        onLessonClick = navigation.lesson,
-                        onFilter = { lessonFilter = it },
-                    )
-                    StudentTab.PAYMENTS -> paymentsTab(
-                        state = state,
-                        onAdd = { addingPayment = true },
-                        onEdit = { editingPayment = it },
-                        onDelete = ::deletePaymentWithUndo,
-                    )
-                    StudentTab.HOMEWORK -> homeworkItems(
-                        owner = student?.let { Assignee.Student(it.id) },
-                        lists = state.homework,
-                        messages = messages,
-                        onAdd = { addingHomework = viewModel.homeworkChoice() },
-                        onOpen = { openedHomework = it },
-                        onDone = homeworkUndo::swiped,
+            item(key = StudentDetailKeys.CONTACTS, contentType = StudentDetailKeys.CONTACTS) {
+                student?.let {
+                    ContactBlock(
+                        student = it,
+                        onCall = { phone -> externalApps.open(ExternalTarget.Dial(phone), noAppMsg) },
+                        onEmail = { email -> externalApps.open(ExternalTarget.Email(email), noAppMsg) },
+                        onTelegram = { phone -> externalApps.open(ExternalTarget.Telegram(phone), noAppMsg) },
+                        modifier = Modifier.padding(horizontal = Spacing.gutter, vertical = Spacing.tight),
                     )
                 }
+            }
+            // An archived student's planned lessons were called off, and the form books nobody archived.
+            if (student != null && !student.archived) {
+                item(key = StudentDetailKeys.NEXT, contentType = StudentDetailKeys.NEXT) {
+                    NextLessonCard(
+                        next = overview.next,
+                        onOpen = navigation.lesson,
+                        onBook = navigation.book,
+                        modifier = animateInPlace(cardModifier),
+                    )
+                }
+            }
+            item(key = StudentDetailKeys.BALANCE, contentType = StudentDetailKeys.BALANCE) {
+                BalanceCard(state, onAddPayment = { addingPayment = true }, modifier = animateInPlace(cardModifier))
+            }
+            item(key = StudentDetailKeys.LESSONS, contentType = StudentDetailKeys.LESSONS) {
+                LessonsSection(
+                    overview = overview,
+                    onLessonClick = navigation.lesson,
+                    onSeeAll = { navigation.seeAll(StudentSection.LESSONS) },
+                    modifier = animateInPlace(cardModifier),
+                )
+            }
+            item(key = StudentDetailKeys.HOMEWORK, contentType = StudentDetailKeys.HOMEWORK) {
+                HomeworkSection(
+                    state = state,
+                    messages = messages,
+                    onAdd = { addingHomework = viewModel.homeworkChoice() },
+                    onOpen = { openedHomework = it },
+                    onDone = homeworkUndo::swiped,
+                    onSeeAll = { navigation.seeAll(StudentSection.HOMEWORK) },
+                    modifier = animateInPlace(cardModifier),
+                )
+            }
+            item(key = StudentDetailKeys.PAYMENTS, contentType = StudentDetailKeys.PAYMENTS) {
+                PaymentsSection(
+                    payments = state.payments,
+                    onEdit = { editingPayment = it },
+                    onDelete = deletePayment,
+                    onSeeAll = { navigation.seeAll(StudentSection.PAYMENTS) },
+                    modifier = animateInPlace(cardModifier),
+                )
+            }
+            item(key = StudentDetailKeys.SUBJECTS, contentType = StudentDetailKeys.SUBJECTS) {
+                SubjectsSection(
+                    state = state,
+                    onAdd = { addingSubject = true },
+                    onReprice = { pricingSubjectId = it },
+                    onRemove = { removingSubjectId = it },
+                    modifier = animateInPlace(cardModifier),
+                )
             }
         }
     }
@@ -391,24 +320,12 @@ private fun StudentCard(
             )
         }
     }
-    if (addingPayment) {
-        PaymentDialog(
-            title = stringResource(R.string.payment_add_title),
-            initialAmount = null,
-            initialDate = viewModel.paymentDay(),
-            onConfirm = { amount, date -> viewModel.addPayment(amount, date) },
-            onDismiss = { addingPayment = false },
-        )
-    }
-    editingPayment?.let { payment ->
-        PaymentDialog(
-            title = stringResource(R.string.payment_edit_title),
-            initialAmount = payment.amount,
-            initialDate = payment.date.toLocalDate(),
-            onConfirm = { amount, date -> viewModel.editPayment(payment, amount, date) },
-            onDismiss = { editingPayment = null },
-        )
-    }
+    PaymentDialogs(
+        viewModel = viewModel,
+        adding = addingPayment,
+        editing = editingPayment,
+        onDismiss = { addingPayment = false; editingPayment = null },
+    )
     CardHomeworkDialogs(
         adding = addingHomework,
         opened = openedHomework,
@@ -445,196 +362,181 @@ private fun StudentCard(
     }
 }
 
+/**
+ * One of the card's sections: a heading with how many it holds, the latest few, and — when there are more
+ * than it shows — the way to the rest.
+ *
+ * @param onSeeAll null when every row is already shown.
+ */
 @Composable
-private fun studentStats(state: StudentDetails): List<Stat> {
-    val totals = state.totals
-    return listOfNotNull(
-        // Hours as the hint, in place of the tile they used to have. `lessonsStat` prefers «впереди N»
-        // when there are lessons still to come — that is something to act on and outranks a total.
-        lessonsStat(totals).let { stat ->
-            stat.copy(hint = stat.hint ?: stringResource(R.string.hours_value, formatHours(totals.minutes)))
-        },
-        earnedStat(totals.earned),
-    )
-}
-
-@Composable
-private fun BalanceHero(state: StudentDetails, modifier: Modifier = Modifier) {
-    val balance = state.balance
-    HeroCard(
-        label = stringResource(
-            when (balance) {
-                is Balance.Credit -> R.string.stat_credit
-                Balance.Settled, is Balance.Owed -> R.string.stat_debt
-            },
-        ),
-        value = balance.amount.text(),
-        modifier = modifier,
-        tonal = true,
-    ) {
-        // Not the balance again in words — the label and the number already say it — but when the money last
-        // came in, which they do not.
-        Text(
-            state.lastPaymentAt?.let { stringResource(R.string.student_last_payment, it.formatDate()) }
-                ?: stringResource(R.string.payments_empty),
-            style = MaterialTheme.typography.bodySmall,
-        )
+internal fun OverviewSection(
+    title: String,
+    count: Int,
+    onSeeAll: (() -> Unit)?,
+    modifier: Modifier = Modifier,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    SectionCard(modifier) {
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .heightIn(min = MinTouchTarget)
+                .padding(start = Spacing.gutter, end = Spacing.tight, top = Spacing.tight),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            SectionTitle(title)
+            if (count > 0) {
+                Text(
+                    count.toString(),
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(start = Spacing.inline),
+                )
+            }
+            Spacer(Modifier.weight(1f))
+            if (onSeeAll != null) {
+                TextButton(onClick = onSeeAll) {
+                    Text(stringResource(R.string.section_see_all))
+                    Icon(
+                        KlasIcons.Filled.ChevronRight,
+                        contentDescription = null,
+                        Modifier.size(ButtonDefaults.IconSize),
+                    )
+                }
+            }
+        }
+        content()
+        Spacer(Modifier.height(Spacing.inline))
     }
 }
 
-private fun LazyListScope.subjectsTab(
+/** What a section says with nothing in it — a line, not an illustrated empty state, inside a card. */
+@Composable
+private fun SectionNote(text: String) {
+    Text(
+        text,
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(horizontal = Spacing.gutter, vertical = Spacing.inline),
+    )
+}
+
+/** Under the card's add rows, the «+» lines up with the rows' leading edge. */
+private val AddRowInCard = Modifier.padding(start = Spacing.tight)
+
+@Composable
+private fun LessonsSection(
+    overview: StudentOverview,
+    onLessonClick: (Long) -> Unit,
+    onSeeAll: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val all = overview.details.classes
+    OverviewSection(
+        title = stringResource(R.string.student_classes_title),
+        count = all.size,
+        onSeeAll = onSeeAll.takeIf { all.size > overview.lessons.size },
+        modifier = modifier,
+    ) {
+        if (all.isEmpty()) SectionNote(stringResource(R.string.student_lessons_empty))
+        overview.lessons.forEach { row ->
+            LessonRow(row, onClick = { onLessonClick(row.klass.id) }, colors = sectionRowColors())
+        }
+    }
+}
+
+@Composable
+private fun HomeworkSection(
+    state: StudentDetails,
+    messages: Messages,
+    onAdd: () -> Unit,
+    onOpen: (HomeworkRow) -> Unit,
+    onDone: (Homework, Boolean) -> Unit,
+    onSeeAll: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val lists = state.homework
+    val shown = lists.current.take(StudentOverview.HOMEWORK_SHOWN)
+    OverviewSection(
+        title = stringResource(R.string.student_homework_title),
+        count = lists.current.size,
+        // The done ones are only on the full list, so it is worth opening while there are any.
+        onSeeAll = onSeeAll.takeIf { lists.current.size > shown.size || lists.archive.isNotEmpty() },
+        modifier = modifier,
+    ) {
+        val none = lists.current.isEmpty() && lists.archive.isEmpty()
+        if (none) SectionNote(stringResource(R.string.student_homework_empty))
+        val owner = state.student?.let { Assignee.Student(it.id) }
+        shown.forEach { row ->
+            // Keyed, so a row swiped done hands its place to the next rather than its swipe state.
+            key(row.homework.id) {
+                SwipeableHomework(
+                    row = row,
+                    onSwipe = { onDone(row.homework, true) },
+                    onClick = { onOpen(row) },
+                    messages = messages,
+                    nested = true,
+                    owner = owner,
+                    container = MaterialTheme.colorScheme.sectionSurface,
+                )
+            }
+        }
+        AddRow(stringResource(R.string.homework_add), onAdd, AddRowInCard)
+    }
+}
+
+@Composable
+private fun PaymentsSection(
+    payments: List<Payment>,
+    onEdit: (Payment) -> Unit,
+    onDelete: (Payment) -> Unit,
+    onSeeAll: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val shown = remember(payments) { payments.sortedByDescending { it.date }.take(StudentOverview.PAYMENTS_SHOWN) }
+    OverviewSection(
+        title = stringResource(R.string.student_payments_title),
+        count = payments.size,
+        onSeeAll = onSeeAll.takeIf { payments.size > shown.size },
+        modifier = modifier,
+    ) {
+        // Recorded from the balance's button, so no add row here.
+        if (payments.isEmpty()) SectionNote(stringResource(R.string.payments_empty))
+        shown.forEach { payment ->
+            PaymentRow(
+                payment,
+                onEdit = { onEdit(payment) },
+                onDelete = { onDelete(payment) },
+                colors = sectionRowColors(),
+            )
+        }
+    }
+}
+
+/** Every subject, in place: a student takes a few, so there is no longer list to open. */
+@Composable
+private fun SubjectsSection(
     state: StudentDetails,
     onAdd: () -> Unit,
     onReprice: (Long) -> Unit,
     onRemove: (Long) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    if (state.subjects.isEmpty()) {
-        item(key = StudentDetailKeys.SUBJECTS_EMPTY) {
-            EmptyState(
-                title = stringResource(R.string.student_no_subjects),
-                icon = KlasIcons.Outlined.MenuBook,
-                actionLabel = stringResource(R.string.student_add_subject),
-                onAction = onAdd,
-                compact = true,
+    OverviewSection(
+        title = stringResource(R.string.student_subjects_title),
+        count = 0,
+        onSeeAll = null,
+        modifier = modifier,
+    ) {
+        if (state.subjects.isEmpty()) SectionNote(stringResource(R.string.student_no_subjects))
+        state.subjects.forEach { sp ->
+            SubjectRow(
+                sp,
+                onReprice = { onReprice(sp.subject.id) },
+                onRemove = { onRemove(sp.subject.id) },
+                colors = sectionRowColors(),
             )
         }
-        return
-    }
-    item(key = StudentDetailKeys.SUBJECTS_ADD) { AddRow(stringResource(R.string.student_add_subject), onAdd) }
-    items(state.subjects, key = { StudentDetailKeys.subject(it.subject.id) }, contentType = { "subject" }) { sp ->
-        ListItem(
-            headlineContent = { Text(sp.subject.name) },
-            supportingContent = {
-                Text(
-                    stringResource(R.string.price_per_hour, sp.price.text()),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            },
-            trailingContent = {
-                Row {
-                    IconButton(onClick = { onReprice(sp.subject.id) }) {
-                        Icon(KlasIcons.Outlined.Edit, stringResource(R.string.price_edit_title))
-                    }
-                    IconButton(onClick = { onRemove(sp.subject.id) }) {
-                        Icon(
-                            KlasIcons.Outlined.Delete,
-                            stringResource(R.string.student_subject_remove, sp.subject.name),
-                        )
-                    }
-                }
-            },
-            modifier = animateInPlace(),
-        )
-    }
-}
-
-private fun LazyListScope.classesTab(
-    state: StudentDetails,
-    rows: List<ClassRow>,
-    filter: LessonFilter,
-    onFilter: (LessonFilter) -> Unit,
-    onLessonClick: (Long) -> Unit,
-) {
-    if (state.hasBothKinds) {
-        item(key = StudentDetailKeys.CLASSES_FILTER) {
-            LessonFilterChips(
-                selected = filter,
-                tally = state.lessonKinds,
-                onSelect = onFilter,
-                modifier = Modifier.padding(vertical = Spacing.inline),
-            )
-        }
-    }
-    if (rows.isEmpty()) {
-        item(key = StudentDetailKeys.CLASSES_EMPTY) {
-            // No action: booking belongs to the schedule, which is the one place that knows what else
-            // the hour holds. See the card's KDoc.
-            EmptyState(
-                title = stringResource(R.string.student_lessons_empty),
-                icon = KlasIcons.Outlined.EventBusy,
-                compact = true,
-            )
-        }
-        return
-    }
-    items(rows, key = { StudentDetailKeys.klass(it.klass.id) }, contentType = { "lesson" }) { row ->
-        ListItem(
-            leadingContent = { LessonKindIcon(row.kind) },
-            headlineContent = {
-                Text(
-                    // When first, as on the group card: it is what tells one row from the next, so it is
-                    // the half that must survive when a large font leaves room for only one of the two.
-                    bulletJoin(row.klass.start.dateTimeText(), row.subjectName),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            },
-            supportingContent = {
-                // The status in the pill the schedule says it in — it was coloured text here, the
-                // one place a lesson's state was a font style.
-                val status = row.klass.status
-                BadgeLine(badge = { StatusBadge(classStatusLabel(status), classStatusColor(status)) }) {
-                    // The group's name for a group lesson, since *which* group is the useful half of
-                    // "not individual" — a student in two groups is billed a different rate by each. An
-                    // individual lesson says nothing here: «Индивидуальное» repeated the icon on every row.
-                    row.groupName?.let { group ->
-                        Text(
-                            group,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-                }
-            },
-            trailingContent = {
-                row.shownCharge?.let { TrailingAmount(it.text()) }
-            },
-            // Opens the lesson, as the schedule and the group's card do: a tutor reading a student's
-            // history is the one most likely to spot the lesson to correct.
-            modifier = Modifier.insetRowPress {
-                Modifier.clickable(it, indication = null) { onLessonClick(row.klass.id) }
-            },
-        )
-    }
-}
-
-private fun LazyListScope.paymentsTab(
-    state: StudentDetails,
-    onAdd: () -> Unit,
-    onEdit: (Payment) -> Unit,
-    onDelete: (Payment) -> Unit,
-) {
-    if (state.payments.isEmpty()) {
-        item(key = StudentDetailKeys.PAYMENTS_EMPTY) {
-            EmptyState(
-                title = stringResource(R.string.payments_empty),
-                icon = KlasIcons.Outlined.Payments,
-                actionLabel = stringResource(R.string.add_payment),
-                onAction = onAdd,
-                compact = true,
-            )
-        }
-        return
-    }
-    item(key = StudentDetailKeys.PAYMENTS_ADD) { AddRow(stringResource(R.string.add_payment), onAdd) }
-    items(state.payments, key = { StudentDetailKeys.payment(it.id) }, contentType = { "payment" }) { payment ->
-        ListItem(
-            headlineContent = { Text(payment.amount.text()) },
-            supportingContent = { Text(payment.date.formatDate()) },
-            trailingContent = {
-                IconButton(onClick = { onDelete(payment) }) {
-                    Icon(
-                        KlasIcons.Outlined.Delete,
-                        stringResource(R.string.payment_delete, payment.amount.text(), payment.date.formatDate()),
-                    )
-                }
-            },
-            // Tapping the row corrects it; the bin still removes it. Editing is the commoner of the
-            // two — a wrong amount is a typo, not a payment that did not happen.
-            modifier = Modifier
-                .insetRowPress { Modifier.clickable(it, indication = null) { onEdit(payment) } }
-                .then(animateInPlace()),
-        )
+        AddRow(stringResource(R.string.student_add_subject), onAdd, AddRowInCard)
     }
 }

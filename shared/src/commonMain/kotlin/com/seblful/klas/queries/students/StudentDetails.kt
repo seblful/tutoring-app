@@ -4,6 +4,7 @@ import com.seblful.klas.domain.billing.Billing
 import com.seblful.klas.domain.lesson.LessonFilter
 import com.seblful.klas.domain.lesson.LessonKind
 import com.seblful.klas.domain.model.Balance
+import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Payment
 import com.seblful.klas.domain.model.RateChange
@@ -56,10 +57,10 @@ data class StudentDetails(
     val allSubjects: List<Subject> = emptyList(),
     val classes: List<ClassRow> = emptyList(),
     val payments: List<Payment> = emptyList(),
-    /** How many lessons of each kind, for the lessons tab's chips. A kind with none is absent. */
+    /** How many lessons of each kind, for the lessons list's chips. A kind with none is absent. */
     val lessonKinds: Map<LessonKind, Int> = emptyMap(),
     /**
-     * Their homework and their groups', current and done — the card's homework view, and the one place an
+     * Their homework and their groups', current and done — the card's homework list, and the one place an
      * archived student's is still listed (the «Задания» tab leaves them out). See [HomeworkRules.lists].
      */
     val homework: HomeworkLists = HomeworkLists(current = emptyList(), archive = emptyList()),
@@ -77,9 +78,32 @@ data class StudentDetails(
             return allSubjects.filter { it.id !in priced }
         }
 
-    /** The lessons tab's rows under [filter]. */
+    /** The lessons list's rows under [filter]. */
     fun lessonsShown(filter: LessonFilter): List<ClassRow> =
         if (hasBothKinds) filter.accepted(classes) { it.kind } else classes
+
+    /**
+     * The lesson the tutor next sees them at: the first not cancelled and not yet over, so one under way is
+     * still next — the People list's rule (`LessonSpan`). Null with none booked.
+     */
+    fun nextLesson(now: Instant): ClassRow? = classes
+        .filter { it.klass.status != LessonStatus.CANCELLED && it.klass.end > now }
+        .minByOrNull { it.klass.start }
+
+    /**
+     * The few lessons the card shows under its lessons heading: the latest already begun, newest first, as
+     * the full list reads. With none begun yet, the ones booked after [nextLesson], soonest first — so a new
+     * student's card shows their run of bookings rather than an empty section.
+     */
+    fun lessonPreview(now: Instant, limit: Int): List<ClassRow> {
+        val next = nextLesson(now)
+        val begun = classes.filter { it.klass.start <= now && it != next }
+        return if (begun.isNotEmpty()) {
+            begun.sortedByDescending { it.klass.start }.take(limit)
+        } else {
+            classes.filter { it.klass.start > now && it != next }.sortedBy { it.klass.start }.take(limit)
+        }
+    }
 
     /**
      * When they last paid, or null if they never have — the line under the balance. It used to repeat the

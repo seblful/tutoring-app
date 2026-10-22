@@ -191,9 +191,7 @@ private fun GroupCard(
             modifier = modifier,
             contentPadding = PaddingValues(bottom = Spacing.sectionGap).plusInset(bottomInset),
         ) {
-            // Identity, then the numbers, then the tabs — the same three in the same order as the
-            // student's card (see [detailCard]). The two used to disagree: the student led with the stat
-            // row and put the "what is this" block second.
+            // Identity, then the numbers, then the tabs (see [detailCard]).
             detailCard(
                 identity = {
                     item(key = GroupDetailKeys.HEADER) {

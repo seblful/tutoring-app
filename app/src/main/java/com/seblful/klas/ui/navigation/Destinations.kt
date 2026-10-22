@@ -3,6 +3,7 @@ package com.seblful.klas.ui.navigation
 import androidx.annotation.StringRes
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.seblful.klas.R
+import com.seblful.klas.ui.students.StudentSection
 import com.seblful.klas.ui.students.StudentTask
 import com.seblful.klas.ui.theme.KlasIcons
 import kotlinx.datetime.LocalDate
@@ -73,6 +74,10 @@ object Routes {
 
     @Serializable
     data class StudentDetail(val id: Long, val task: StudentTask? = null) : Route
+
+    /** One of a student's lists in full — what «See all» under a section of their card opens. */
+    @Serializable
+    data class StudentList(val id: Long, val section: StudentSection) : Route
 
     @Serializable
     data object GroupAdd : Route

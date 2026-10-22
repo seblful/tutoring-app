@@ -44,6 +44,7 @@ import com.seblful.klas.ui.settings.SettingsNavigation
 import com.seblful.klas.ui.settings.SettingsScreen
 import com.seblful.klas.ui.students.StudentDetailScreen
 import com.seblful.klas.ui.students.StudentFormScreen
+import com.seblful.klas.ui.students.StudentListScreen
 import com.seblful.klas.ui.students.StudentTask
 import com.seblful.klas.ui.subjects.SubjectsScreen
 import com.seblful.klas.ui.theme.KlasIcons
@@ -82,6 +83,12 @@ class KlasGraph(
             Routes.StudentAdd -> StudentFormScreen(onBack = back)
             is Routes.StudentAddForSubject -> StudentAddForSubject(route, back)
             is Routes.StudentDetail -> StudentDetail(route, back)
+            is Routes.StudentList -> StudentListScreen(
+                section = route.section,
+                onBack = back,
+                onLessonClick = { go(Routes.classEdit(it)) },
+                viewModel = routeViewModel(route),
+            )
             Routes.GroupAdd -> GroupForm(editing = null, back)
             is Routes.GroupDetail -> GroupDetail(route, back)
             is Routes.GroupEdit -> GroupForm(editing = route, back)
@@ -162,6 +169,7 @@ class KlasGraph(
             onBack = back,
             onLessonClick = { go(Routes.classEdit(it)) },
             onBookLesson = { go(Routes.classEdit(0, studentId = route.id)) },
+            onSeeAll = { go(Routes.StudentList(route.id, it)) },
             initialTask = route.task,
             viewModel = routeViewModel(route),
             backArrow = !besideList(),
@@ -275,7 +283,7 @@ private data class CreatedGroup(val id: Long)
  * under it and fills the window. Null for a route that is not a detail.
  */
 private fun Route.list(): Route? = when (this) {
-    is Routes.StudentDetail, is Routes.GroupDetail -> Routes.People
+    is Routes.StudentDetail, is Routes.StudentList, is Routes.GroupDetail -> Routes.People
     in SettingsPages.values -> Routes.Settings
     else -> null
 }

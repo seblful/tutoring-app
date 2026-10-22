@@ -52,7 +52,10 @@ Build screens from shared state and controls. Feature rules belong in the domain
   bar's title (`SearchField`).
 - Follow `Spacing`; page sides use `gutter`. A row gets ripple room from card padding, keeping text
   aligned. Use top-level `ContentCard`, nested `ListItem`; top-level cards lead with a 40 dp `Avatar`
-  or `IconAvatar`. Detail cards share `detailCard`: identity → `StatRow` → pinned `StickyViewMenu`.
+  or `IconAvatar`. The group card is `detailCard`: identity → `StatRow` → pinned `StickyViewMenu`. The student
+  card is an overview instead: contacts, the next lesson (`primaryContainer`, its «+» books), the balance with
+  its payment button, then `OverviewSection`s — lessons, homework, payments with their latest few rows and
+  «See all» to the full list (`StudentList` route, beside People like the card), subjects in full.
 - Items sit on `itemSurface`, sections (`SectionCard`, `StatRow`, report slices) on `sectionSurface`:
   both above the `surfaceContainer` the bar tints to. Settings and More group rows on cards too
   (`SettingsGroup`), their `ListItem`s transparent (`settingsRowColors`).
@@ -139,8 +142,9 @@ Build screens from shared state and controls. Feature rules belong in the domain
 - With room for two panes, People and Settings are list-detail layouts (Material `ListDetailSceneStrategy`,
   one scene per list): a student or group card beside the People list, a settings page beside the index. A
   detail opened from its list replaces the one shown, is marked on the list and has no back arrow; opened
-  elsewhere it fills the window. The tabs stay beside People, a tab, and not beside Settings, a pushed
-  screen, whose back arrow leaves with the page. On an expanded, unfolded window (`roomForSupportingPane`)
+  elsewhere it fills the window. A student's full list stacks on their card in the same pane, with a back
+  arrow. The tabs stay beside People, a tab, and not beside Settings, a pushed screen, whose back arrow
+  leaves with the page. On an expanded, unfolded window (`roomForSupportingPane`)
   Schedule's month
   and Reports are supporting-pane layouts up to `SupportingPaneMaxWidth`: the month grid beside the day it
   opens, the period's summary beside its breakdowns and debts. Other screens stay one pane.

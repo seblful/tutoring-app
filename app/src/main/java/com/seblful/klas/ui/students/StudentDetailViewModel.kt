@@ -18,6 +18,7 @@ import com.seblful.klas.domain.model.Payment
 import com.seblful.klas.domain.model.Student
 import com.seblful.klas.domain.time.WallClock
 import com.seblful.klas.domain.time.today
+import com.seblful.klas.format.minutes
 import com.seblful.klas.queries.homework.AssigneeChoice
 import com.seblful.klas.queries.students.StudentDetails
 import com.seblful.klas.queries.students.StudentDetailsQuery
@@ -38,6 +39,7 @@ import dev.zacsweers.metrox.viewmodel.ViewModelAssistedFactoryKey
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.datetime.LocalDate
 
 /** The student's card. */
@@ -88,6 +90,15 @@ class StudentDetailViewModel @AssistedInject constructor(
     val state: StateFlow<Loadable<StudentDetails>> = details.observe(studentId)
         .ready()
         .derive(this, computation, Loadable.Loading)
+
+    /**
+     * The card: [state] with its next lesson and the few listed under it, re-read every minute so a card left
+     * open moves on once a lesson ends. Null until loaded. **A test that collects it must advance time by a
+     * stated amount, never `advanceUntilIdle()`** — the minutes never run out.
+     */
+    val overview: StateFlow<StudentOverview?> = combine(state, clock.minutes()) { loaded, now ->
+        loaded.valueOrNull()?.let { StudentOverview.of(it, now, clock.zone) }
+    }.derive(this, computation, null)
 
     private fun <T> write(onWritten: suspend (T) -> Unit = {}, block: suspend () -> T) =
         appScope.write(events, Event.WriteFailed, onWritten, block)

@@ -27,6 +27,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.res.stringResource
@@ -168,6 +169,8 @@ object HomeworkItemKeys {
  * @param nested whether it stands in a list inside a card (a student's), where a row is a `ListItem` and
  * names who it is for only when that is a group; at the top level (the tab) it is a card of its own.
  * @param owner the card a nested row stands in; its own homework goes unnamed — see [homeworkItems].
+ * @param container what a nested row stands on, painted under it to cover the swipe's panel: the page, or
+ * the section card it is listed in.
  */
 @Composable
 fun SwipeableHomework(
@@ -178,6 +181,7 @@ fun SwipeableHomework(
     nested: Boolean,
     modifier: Modifier = Modifier,
     owner: Assignee? = null,
+    container: Color = ListItemDefaults.containerColor,
 ) {
     val shape = if (nested) RectangleShape else MaterialTheme.shapes.medium
     // Toward the list it goes to: done is the tab on the right, current the one on the left. So a row
@@ -196,7 +200,7 @@ fun SwipeableHomework(
         )
         val named = row.isGroup && row.homework.assignee != owner
         if (nested) {
-            HomeworkListItem(row, named, messages, onClick, onSwipe, swipe)
+            HomeworkListItem(row, named, messages, onClick, onSwipe, container, swipe)
         } else {
             HomeworkCard(row, messages, onClick, onSwipe, swipe)
         }
@@ -270,6 +274,7 @@ private fun HomeworkListItem(
     messages: Messages,
     onClick: () -> Unit,
     onDone: () -> Unit,
+    container: Color,
     modifier: Modifier,
 ) {
     ListItem(
@@ -277,11 +282,12 @@ private fun HomeworkListItem(
         headlineContent = { Text(row.text, maxLines = HomeworkPreviewLines, overflow = TextOverflow.Ellipsis) },
         supportingContent = { DueLine(row, prefix = row.title.takeIf { named }) },
         trailingContent = { HomeworkActions(row, messages, onDone) },
+        colors = ListItemDefaults.colors(containerColor = container),
         modifier = Modifier
             // Edge to edge, under the inset press shape: the swipe's panel lies behind this row, and the
             // list item's own fill, clipped to that shape, stops 8 dp short of each side — the first pixels
             // of a drag showed the panel down both edges.
-            .background(ListItemDefaults.containerColor)
+            .background(container)
             .insetRowPress { Modifier.clickable(it, indication = null, onClick = onClick) }
             .then(modifier),
     )

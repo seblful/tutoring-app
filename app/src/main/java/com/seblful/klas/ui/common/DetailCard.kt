@@ -13,8 +13,8 @@ object DetailCard {
 }
 
 /**
- * A student's or a group's card under its bar: [identity], then the [stats], then the pinned view menu,
- * then the [view] it has selected.
+ * A group's card under its bar: [identity], then the [stats], then the pinned view menu, then the [view] it
+ * has selected. A student's card is an overview of section cards instead — see `StudentDetailScreen`.
  */
 fun <T> LazyListScope.detailCard(
     identity: LazyListScope.() -> Unit,

@@ -135,8 +135,8 @@ class FormFactorScreenshotTest {
 
             compose.onAllNodesWithText(tutor.debtor.name, substring = true)
                 .filterToOne(hasClickAction()).performClick()
-            // «Earned» is the card's own; «Owes» is on the list beside it too.
-            waitFor(string(R.string.stat_earned))
+            // The balance's payment button is the card's own, near its top; «Owes» is on the list beside it too.
+            waitFor(string(R.string.payment_add_short))
             capture(formFactor, "people-student")
 
             // Back first: on a phone the card hides the bar, so More is only there under it.

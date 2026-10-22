@@ -2,6 +2,7 @@ package com.seblful.klas.ui.navigation
 
 import androidx.savedstate.read
 import androidx.savedstate.serialization.encodeToSavedState
+import com.seblful.klas.ui.students.StudentSection
 import com.seblful.klas.ui.students.StudentTask
 import kotlinx.datetime.LocalDate
 import kotlinx.serialization.builtins.ListSerializer
@@ -19,7 +20,8 @@ class RouteSavingTest {
         Routes.Schedule, Routes.People, Routes.Homework, Routes.Reports, Routes.More, Routes.Subjects,
         Routes.Backup, Routes.Settings, Routes.LessonSettings, Routes.NotificationSettings,
         Routes.CalendarSettings, Routes.AppearanceSettings, Routes.Diagnostics, Routes.About, Routes.StudentAdd,
-        Routes.StudentAddForSubject(4), Routes.StudentDetail(1, StudentTask.PAYMENT), Routes.GroupAdd,
+        Routes.StudentAddForSubject(4), Routes.StudentDetail(1, StudentTask.PAYMENT),
+        Routes.StudentList(1, StudentSection.HOMEWORK), Routes.GroupAdd,
         Routes.GroupDetail(2, setHomework = true), Routes.GroupEdit(2),
         Routes.classEdit(3, groupId = 2, day = LocalDate(2026, 10, 21), studentId = 1),
     )

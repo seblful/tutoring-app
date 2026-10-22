@@ -327,6 +327,10 @@
     <string name="student_subject_remove_confirm">Remove %1$s from this student? Its price and price history will be deleted.</string>
     <string name="student_classes_title">Lessons</string>
     <string name="student_homework_title">Homework</string>
+    <string name="student_next_lesson">Next lesson</string>
+    <string name="student_no_lesson_booked">No lesson booked</string>
+    <string name="student_earned">Earned %1$s</string>
+    <string name="section_see_all">See all</string>
     <string name="student_homework_empty">No homework set yet</string>
     <!-- The heading over the done ones, under the current. -->
     <string name="student_homework_done">Done</string>
@@ -369,6 +373,8 @@
     <string name="add_payment">Add a payment</string>
     <string name="payments_empty">No payments yet</string>
     <string name="payment_add_title">New payment</string>
+    <!-- The card's button beside the balance; read out as add_payment. -->
+    <string name="payment_add_short">Payment</string>
     <string name="payment_edit_title">Edit payment</string>
     <string name="payment_amount_label">Amount</string>
     <string name="payment_delete">Delete payment of %1$s on %2$s</string>

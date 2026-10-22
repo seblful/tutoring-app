@@ -392,6 +392,10 @@
     <string name="student_payments_title">Платежи</string>
     <string name="student_classes_title">Занятия</string>
     <string name="student_homework_title">Домашние задания</string>
+    <string name="student_next_lesson">Следующее занятие</string>
+    <string name="student_no_lesson_booked">Занятий не запланировано</string>
+    <string name="student_earned">Заработано %1$s</string>
+    <string name="section_see_all">Все</string>
     <string name="student_homework_empty">Заданий пока не было</string>
     <!-- The heading over the done ones, under the current. -->
     <string name="student_homework_done">Сделано</string>
@@ -438,6 +442,8 @@
     <string name="add_payment">Добавить платёж</string>
     <string name="payments_empty">Платежей пока нет</string>
     <string name="payment_add_title">Новый платёж</string>
+    <!-- The card's button beside the balance; read out as add_payment. -->
+    <string name="payment_add_short">Платёж</string>
     <string name="payment_edit_title">Изменить платёж</string>
     <string name="payment_amount_label">Сумма</string>
     <string name="payment_delete">Удалить платёж %1$s от %2$s</string>

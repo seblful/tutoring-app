@@ -28,18 +28,26 @@ sealed interface LessonLine {
 
     companion object {
         fun of(nearest: NearestLessons, now: Instant, zone: TimeZone): LessonLine {
+            nearest.next?.let { return next(it, now, zone) }
             val today = now.toLocalDateTime(zone).date
-            nearest.next?.let { next ->
-                val at = next.toLocalDateTime(zone)
-                return Next(at.date, at.time, today.daysUntil(at.date), today.year)
-            }
             return nearest.last?.let { Last(it.toLocalDateTime(zone).date, today.year) } ?: Never
+        }
+
+        /** A lesson starting [start], said from [now] — the student card's next lesson as the list says it. */
+        fun next(start: Instant, now: Instant, zone: TimeZone): Next {
+            val today = now.toLocalDateTime(zone).date
+            val at = start.toLocalDateTime(zone)
+            return Next(at.date, at.time, today.daysUntil(at.date), today.year)
         }
     }
 }
 
+/**
+ * @param timeAlways keep the time past a week too — the student card's next lesson, a line of its own where
+ * the list's card has a fact line to share.
+ */
 @Composable
-fun lessonLineText(line: LessonLine): String = when (line) {
+fun lessonLineText(line: LessonLine, timeAlways: Boolean = false): String = when (line) {
     is LessonLine.Next -> when (line.daysAway) {
         // A lesson under way started today; one that started yesterday and runs past midnight is today's too.
         in Int.MIN_VALUE..0 -> stringResource(R.string.people_next_today, line.time.timeText())
@@ -49,7 +57,12 @@ fun lessonLineText(line: LessonLine): String = when (line) {
             line.date.dayOfWeek.shortDisplayName(),
             line.time.timeText(),
         )
-        else -> line.date.formatNearDate(line.thisYear)
+        // «%1$s %2$s» is a day then a time, whichever way the day is named.
+        else -> if (timeAlways) {
+            stringResource(R.string.people_next_weekday, line.date.formatNearDate(line.thisYear), line.time.timeText())
+        } else {
+            line.date.formatNearDate(line.thisYear)
+        }
     }
     is LessonLine.Last -> stringResource(R.string.people_last_lesson, line.date.formatNearDate(line.thisYear))
     LessonLine.Never -> stringResource(R.string.people_no_lessons)

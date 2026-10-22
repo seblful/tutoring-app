@@ -302,6 +302,41 @@ class StudentDetailViewModelTest : StudentDetailTestFixture() {
     }
 
     @Test
+    fun `the overview moves on from a lesson once it ends`() = runTest(mainRule.dispatcher) {
+        val maths = env.fixtures.subject("Математика")
+        val anya = env.fixtures.pricedStudent("Аня", maths)
+        val underWay = env.fixtures.lesson(maths, listOf(anya), clock.now().minus(30.minutes)).single()
+        val later = env.fixtures.lesson(maths, listOf(anya), clock.now().plus(2.days)).single()
+        val vm = vm(anya)
+        observing(vm.overview)
+        runCurrent()
+
+        val next = checkNotNull(vm.overview.value?.next)
+        assertEquals(underWay, next.row.klass.id)
+        assertTrue("begun, so said as under way", next.running)
+        val shown = vm.overview.value?.lessons?.map { it.klass.id }
+        assertEquals("nothing else begun, so the booking after it", listOf(later), shown)
+
+        val pastItsEnd = 31.minutes
+        clock.advanceBy(pastItsEnd.inWholeMilliseconds)
+        advanceTimeBy(pastItsEnd.inWholeMilliseconds)
+
+        assertEquals(later, vm.overview.value?.next?.row?.klass?.id)
+        assertEquals(listOf(underWay), vm.overview.value?.lessons?.map { it.klass.id })
+    }
+
+    @Test
+    fun `the overview waits for the card to load`() = runTest(mainRule.dispatcher) {
+        val vm = vm(seedStudent())
+        assertNull(vm.overview.value)
+
+        observing(vm.overview)
+        runCurrent()
+
+        assertEquals("Аня", vm.overview.value?.details?.student?.name)
+    }
+
+    @Test
     fun `the payment dialog opens on today by the injected clock`() = runTest(mainRule.dispatcher) {
         val sid = env.fixtures.student("Аня")
 
