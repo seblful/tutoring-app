@@ -243,15 +243,15 @@ class ClassRepository @Inject constructor(
      */
     private suspend fun <T> write(
         refreshesReminders: Boolean = true,
-        holding: Long? = null,
+        holding: Boolean = false,
         rows: suspend () -> Committed<T>,
     ): T {
         val written = transactor.transaction { rows() }
         if (!written.changed) return written.value
-        if (holding != null) {
+        if (holding) {
             // An undoable write leaves the calendar alone until it is settled or undone: a cancellation
             // mirrored at once would delete the event, and its undo re-create it and invite again.
-            hold(holding)
+            written.mirror.map { it.lessonId }.distinct().forEach { hold(it) }
         } else {
             // Leavers' events go before the survivors are mirrored, mirroring the row order inside (2).
             written.drop.forEach { calendar.drop(it) }
@@ -286,35 +286,70 @@ class ClassRepository @Inject constructor(
         current(receipt.after)?.let { calendar.mirror(it.classes) }
     }
 
+    /** [settle] for every lesson one action changed. */
+    suspend fun settleAll(receipts: List<SessionReceipt>) = receipts.forEach { settle(it) }
+
     /**
      * Writes [SessionReceipt.before] back — status, time, attendance and charges together — while the
      * lesson is still [SessionReceipt.after], and its hour is free if it would hold one again.
      */
-    suspend fun undo(receipt: SessionReceipt): UndoResult {
-        val result = write {
-            val current = current(receipt.after) ?: return@write Committed(UndoResult.Gone, changed = false)
-            if (current.classes.withoutMirrors() != receipt.after.classes.withoutMirrors()) {
-                return@write Committed(UndoResult.ChangedSince, changed = false)
-            }
-            // The calendar ids are the ones stored now, never the receipt's: only those name real events.
-            val events = current.classes.associate { it.id to it.calendarEventId }
-            val restored = receipt.before.classes.map { it.copy(calendarEventId = events[it.id]) }
-            val lesson = restored.first()
-            if (lesson.status.occupiesTime) {
-                holdingHour(current, lesson.start, lesson.durationMinutes)
-                    ?.let { return@write Committed(UndoResult.HourTaken(it), changed = false) }
-            }
-            rewrite(lesson = lesson, classes = restored)
-            Committed(UndoResult.Restored, mirror = restored)
+    suspend fun undo(receipt: SessionReceipt): UndoResult = undoAll(listOf(receipt)).single()
+
+    /**
+     * [undo] for every lesson one action changed, in one transaction. Each lesson is restored or refused
+     * on its own, so one edited since does not keep the rest from coming back. Results are in order.
+     */
+    suspend fun undoAll(receipts: List<SessionReceipt>): List<UndoResult> {
+        val results = write {
+            val outcomes = receipts.map { restore(it) }
+            val restored = outcomes.flatMap { it.second }
+            Committed(outcomes.map { it.first }, mirror = restored, changed = restored.isNotEmpty())
         }
         // A refused undo leaves the change standing, so the calendar catches up with it now.
-        if (release(receipt.lessonId) && result != UndoResult.Restored) {
-            current(receipt.after)?.let { calendar.mirror(it.classes) }
+        receipts.zip(results).forEach { (receipt, result) ->
+            if (release(receipt.lessonId) && result != UndoResult.Restored) {
+                current(receipt.after)?.let { calendar.mirror(it.classes) }
+            }
         }
-        return result
+        return results
+    }
+
+    /** One receipt's undo inside [undoAll]'s transaction, with the rows it wrote back. */
+    private suspend fun restore(receipt: SessionReceipt): Pair<UndoResult, List<TutoringClass>> {
+        val current = current(receipt.after)
+        // The calendar ids are the ones stored now, never the receipt's: only those name real events.
+        val events = current?.classes.orEmpty().associate { it.id to it.calendarEventId }
+        val restored = receipt.before.classes.map { it.copy(calendarEventId = events[it.id]) }
+        val lesson = restored.first()
+        val result = when {
+            current == null -> UndoResult.Gone
+            current.classes.withoutMirrors() != receipt.after.classes.withoutMirrors() -> UndoResult.ChangedSince
+            else -> lesson.takeIf { it.status.occupiesTime }
+                ?.let { holdingHour(current, it.start, it.durationMinutes) }
+                ?.let { UndoResult.HourTaken(it) }
+                ?: UndoResult.Restored
+        }
+        if (result != UndoResult.Restored) return result to emptyList()
+        rewrite(lesson = lesson, classes = restored)
+        return result to restored
     }
 
     private fun List<TutoringClass>.withoutMirrors() = map { it.copy(calendarEventId = null) }
+
+    /**
+     * [rows] as one undoable write over the lessons [touched] names: a receipt for each lesson it
+     * changed, every one's calendar held.
+     */
+    private suspend fun undoableAll(
+        touched: suspend () -> Collection<Long>,
+        rows: suspend () -> List<TutoringClass>,
+    ): List<SessionReceipt> = write(holding = true) {
+        val before = touched().mapNotNull { lessonById(it) }
+        val changed = rows()
+        val receipts = before.mapNotNull { was -> lessonById(was.lessonId)?.let { SessionReceipt(was, it) } }
+            .filter { it.before != it.after }
+        Committed(receipts, mirror = changed, changed = changed.isNotEmpty())
+    }
 
     /**
      * [rows] applied to [session] as an undoable write: the receipt of what the lesson was and became,
@@ -323,7 +358,7 @@ class ClassRepository @Inject constructor(
     private suspend fun undoable(
         session: ClassSession,
         rows: suspend (ClassSession) -> Committed<LessonWrite<List<TutoringClass>>>,
-    ): LessonWrite<SessionReceipt?> = write<LessonWrite<SessionReceipt?>>(holding = session.lessonId) {
+    ): LessonWrite<SessionReceipt?> = write<LessonWrite<SessionReceipt?>>(holding = true) {
         val before = current(session) ?: return@write Committed(LessonWrite.Gone, changed = false)
         val done = rows(before)
         val after = if (done.changed) current(session) else null
@@ -603,18 +638,32 @@ class ClassRepository @Inject constructor(
         // others still due to bill, which is the state this exists to rule out. Read inside it, so a
         // lesson completed (or re-priced) in the meantime is not written back from a stale row.
         return write {
-            val theirs = dao.scheduledForStudent(studentId).map { it.toDomain() }
-            // Their own lessons are called off; a group's is not, because it goes ahead without them. That
-            // distinction is what the split makes expressible: before, both were "cancel their class",
-            // which left the group lesson holding a cancelled member and no status of its own.
-            val (mine, groups) = theirs.partition { it.groupId == null }
-            val cancelled = mine.map { ClassRules.applyStatus(it, LessonStatus.CANCELLED) }
-            val excused = groups.map { ClassRules.applyAttendance(it, Attended.ABSENT) }
-            // An individual lesson is its one class, so each cancelled one states its own row.
-            cancelled.forEach { rewrite(lesson = it, classes = listOf(it)) }
-            rewrite(lesson = null, classes = excused)
-            Committed(cancelled + excused, mirror = cancelled + excused)
+            val rows = cancelRowsFor(studentId)
+            Committed(rows, mirror = rows)
         }
+    }
+
+    /** [cancelScheduledFor], undoably: a receipt per lesson it changed — see [undoAll], [settleAll]. */
+    suspend fun cancelScheduledForUndoable(studentId: Long): List<SessionReceipt> {
+        if (dao.scheduledForStudent(studentId).isEmpty()) return emptyList()
+        return undoableAll(
+            touched = { dao.scheduledForStudent(studentId).map { it.lessonId }.distinct() },
+            rows = { cancelRowsFor(studentId) },
+        )
+    }
+
+    private suspend fun cancelRowsFor(studentId: Long): List<TutoringClass> {
+        val theirs = dao.scheduledForStudent(studentId).map { it.toDomain() }
+        // Their own lessons are called off; a group's is not, because it goes ahead without them. That
+        // distinction is what the split makes expressible: before, both were "cancel their class",
+        // which left the group lesson holding a cancelled member and no status of its own.
+        val (mine, groups) = theirs.partition { it.groupId == null }
+        val cancelled = mine.map { ClassRules.applyStatus(it, LessonStatus.CANCELLED) }
+        val excused = groups.map { ClassRules.applyAttendance(it, Attended.ABSENT) }
+        // An individual lesson is its one class, so each cancelled one states its own row.
+        cancelled.forEach { rewrite(lesson = it, classes = listOf(it)) }
+        rewrite(lesson = null, classes = excused)
+        return cancelled + excused
     }
 
     /**
@@ -624,15 +673,25 @@ class ClassRepository @Inject constructor(
     suspend fun cancelScheduledForGroup(groupId: Long): Int {
         if (dao.scheduledForGroup(groupId).isEmpty()) return 0
         return write {
-            val lessonsOf = dao.scheduledForGroup(groupId).map { it.toDomain() }.groupBy { it.lessonId }
-            val cancelled = lessonsOf.values.map { classes ->
-                classes.map { ClassRules.applyStatus(it, LessonStatus.CANCELLED) }
-                    .also { rewrite(lesson = it.first(), classes = it) }
-            }
-            val rows = cancelled.flatten()
-            Committed(cancelled.size, mirror = rows)
+            val rows = cancelRowsForGroup(groupId)
+            Committed(rows.distinctBy { it.lessonId }.size, mirror = rows)
         }
     }
+
+    /** [cancelScheduledForGroup], undoably: a receipt per lesson it called off — see [undoAll], [settleAll]. */
+    suspend fun cancelScheduledForGroupUndoable(groupId: Long): List<SessionReceipt> {
+        if (dao.scheduledForGroup(groupId).isEmpty()) return emptyList()
+        return undoableAll(
+            touched = { dao.scheduledForGroup(groupId).map { it.lessonId }.distinct() },
+            rows = { cancelRowsForGroup(groupId) },
+        )
+    }
+
+    private suspend fun cancelRowsForGroup(groupId: Long): List<TutoringClass> =
+        dao.scheduledForGroup(groupId).map { it.toDomain() }.groupBy { it.lessonId }.values.flatMap { classes ->
+            classes.map { ClassRules.applyStatus(it, LessonStatus.CANCELLED) }
+                .also { rewrite(lesson = it.first(), classes = it) }
+        }
 
     /**
      * How many **lessons** are waiting to be auto-completed at [now] — what [autoCompleteDue] would
@@ -663,8 +722,10 @@ class ClassRepository @Inject constructor(
         }
     }
 
-    private suspend fun current(session: ClassSession): ClassSession? {
-        val members = dao.getSession(session.lessonId).map { it.toDomain() }
+    private suspend fun current(session: ClassSession): ClassSession? = lessonById(session.lessonId)
+
+    private suspend fun lessonById(lessonId: Long): ClassSession? {
+        val members = dao.getSession(lessonId).map { it.toDomain() }
         return members.firstOrNull()?.let { ClassSession(it.groupId, members) }
     }
 

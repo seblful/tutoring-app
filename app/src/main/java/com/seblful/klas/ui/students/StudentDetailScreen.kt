@@ -40,6 +40,7 @@ import com.seblful.klas.ui.common.SectionNote
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.TitleSize
 import com.seblful.klas.ui.common.animateInPlace
+import com.seblful.klas.ui.common.archivedMessage
 import com.seblful.klas.ui.common.plusInset
 import com.seblful.klas.ui.common.rememberExternalApps
 import com.seblful.klas.ui.common.rememberMessages
@@ -148,8 +149,12 @@ private fun StudentCard(
                     ) { seeAll(StudentSection.LESSONS) }
                 }
 
-                is StudentDetailViewModel.Event.ArchiveCancelledLessons -> messages.show(
-                    resources.getQuantityString(R.plurals.student_archive_lessons_cancelled, event.count, event.count),
+                is StudentDetailViewModel.Event.Archived -> messages.show(
+                    resources.archivedMessage(event.cancelled.size),
+                    resources.getString(R.string.action_undo),
+                ) { viewModel.undoArchive(event) }
+                is StudentDetailViewModel.Event.ArchiveUndoKept -> messages.show(
+                    resources.getQuantityString(R.plurals.archive_undo_kept, event.count, event.count),
                 )
                 StudentDetailViewModel.Event.WriteFailed -> messages.show(resources.getString(R.string.action_failed))
             }

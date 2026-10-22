@@ -32,6 +32,7 @@ import com.seblful.klas.ui.common.Messages
 import com.seblful.klas.ui.common.ShowMessagesFor
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.animateInPlace
+import com.seblful.klas.ui.common.archivedMessage
 import com.seblful.klas.ui.common.plusInset
 import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.state.Loadable
@@ -127,7 +128,7 @@ private fun StudentList(
     )
 }
 
-/** Only a failed write reaches this page; the other two events follow the card's own actions. */
+/** Only a failed write reaches this page; the other events follow the card's own actions. */
 @Composable
 private fun ShowStudentMessages(viewModel: StudentDetailViewModel, messages: Messages) {
     val resources by rememberUpdatedState(LocalContext.current.resources)
@@ -136,8 +137,9 @@ private fun ShowStudentMessages(viewModel: StudentDetailViewModel, messages: Mes
             StudentDetailViewModel.Event.WriteFailed -> resources.getString(R.string.action_failed)
             StudentDetailViewModel.Event.RemoveBlockedHasClasses ->
                 resources.getString(R.string.student_subject_remove_blocked)
-            is StudentDetailViewModel.Event.ArchiveCancelledLessons ->
-                resources.getQuantityString(R.plurals.student_archive_lessons_cancelled, event.count, event.count)
+            is StudentDetailViewModel.Event.Archived -> resources.archivedMessage(event.cancelled.size)
+            is StudentDetailViewModel.Event.ArchiveUndoKept ->
+                resources.getQuantityString(R.plurals.archive_undo_kept, event.count, event.count)
         }
     }
 }

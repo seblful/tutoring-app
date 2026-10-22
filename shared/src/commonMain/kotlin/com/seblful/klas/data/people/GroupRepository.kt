@@ -3,6 +3,8 @@ package com.seblful.klas.data.people
 import com.seblful.klas.calendar.CalendarMirror
 import com.seblful.klas.data.billing.RateHistoryRepository
 import com.seblful.klas.data.lessons.ClassRepository
+import com.seblful.klas.data.lessons.SessionReceipt
+import com.seblful.klas.data.lessons.UndoResult
 import com.seblful.klas.data.local.Transactor
 import com.seblful.klas.data.local.upsertedId
 import com.seblful.klas.data.toDomain
@@ -108,6 +110,19 @@ class GroupRepository @Inject constructor(
         val cancelled = if (archived) classes.cancelScheduledForGroup(group.id) else 0
         dao.upsert(group.copy(archived = archived).toEntity())
         return cancelled
+    }
+
+    /** Archives [group] undoably — as [StudentRepository.archive], for [unarchive] to take back. */
+    suspend fun archive(group: Group): List<SessionReceipt> {
+        val cancelled = classes.cancelScheduledForGroupUndoable(group.id)
+        dao.upsert(group.copy(archived = true).toEntity())
+        return cancelled
+    }
+
+    /** Takes [archive] back — as [StudentRepository.unarchive]; returns how many lessons stayed cancelled. */
+    suspend fun unarchive(groupId: Long, cancelled: List<SessionReceipt>): Int {
+        dao.getById(groupId)?.let { dao.upsert(it.copy(archived = false)) }
+        return classes.undoAll(cancelled).count { it != UndoResult.Restored }
     }
 
     /**

@@ -148,7 +148,7 @@ class StudentArchiveTest : StudentDetailTestFixture() {
     }
 
     @Test
-    fun `archiving says how many lessons it called off`() = runTest(mainRule.dispatcher) {
+    fun `archiving says how many lessons it called off, and undo plans them again`() = runTest(mainRule.dispatcher) {
         val sid = seedStudent()
         val subject = env.fixtures.subject(name = "Алгебра")
         env.fixtures.storedClass(
@@ -164,11 +164,19 @@ class StudentArchiveTest : StudentDetailTestFixture() {
         vm.setArchived(true)
         runCurrent()
 
-        assertEquals(listOf(StudentDetailViewModel.Event.ArchiveCancelledLessons(count = 1)), events)
+        val archived = events.single() as StudentDetailViewModel.Event.Archived
+        assertEquals(1, archived.cancelled.size)
+
+        vm.undoArchive(archived)
+        runCurrent()
+
+        assertFalse(env.studentDao.getById(sid)!!.archived)
+        assertEquals(LessonStatus.SCHEDULED, env.classes().single().status)
+        assertEquals("nothing stayed cancelled, so nothing more is said", 1, events.size)
     }
 
     @Test
-    fun `archiving a student with nothing planned announces nothing`() = runTest(mainRule.dispatcher) {
+    fun `archiving a student with nothing planned is still said, with its undo`() = runTest(mainRule.dispatcher) {
         val sid = seedStudent()
         val vm = vm(sid)
         observing(vm.state)
@@ -179,7 +187,7 @@ class StudentArchiveTest : StudentDetailTestFixture() {
         vm.setArchived(true)
         runCurrent()
 
-        assertTrue(events.isEmpty())
+        assertEquals(listOf(StudentDetailViewModel.Event.Archived(cancelled = emptyList())), events)
         assertTrue(env.studentDao.getById(sid)!!.archived)
     }
 

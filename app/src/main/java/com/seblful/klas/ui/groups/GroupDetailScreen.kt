@@ -18,6 +18,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -52,10 +53,10 @@ import com.seblful.klas.ui.common.OverflowMenu
 import com.seblful.klas.ui.common.OverviewSection
 import com.seblful.klas.ui.common.SectionCard
 import com.seblful.klas.ui.common.SectionNote
-import com.seblful.klas.ui.common.ShowMessagesFor
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.TitleSize
 import com.seblful.klas.ui.common.animateInPlace
+import com.seblful.klas.ui.common.archivedMessage
 import com.seblful.klas.ui.common.plusInset
 import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.sectionRowColors
@@ -255,17 +256,24 @@ private fun HomeworkEntry(requested: Boolean, groupId: Long?, onOpen: () -> Unit
     }
 }
 
+/** A hand collector rather than `ShowMessagesFor`: an archive is said with its Undo. */
 @Composable
 internal fun ShowGroupMessages(viewModel: GroupDetailViewModel, messages: Messages) {
-    val deleteBlockedMsg = stringResource(R.string.group_delete_blocked)
-    val writeFailedMsg = stringResource(R.string.action_failed)
-    val resources = LocalResources.current
-    ShowMessagesFor(viewModel.events, messages) { event ->
-        when (event) {
-            GroupDetailViewModel.Event.DeleteBlockedHasLessons -> deleteBlockedMsg
-            is GroupDetailViewModel.Event.ArchiveCancelledLessons ->
-                resources.getQuantityString(R.plurals.student_archive_lessons_cancelled, event.count, event.count)
-            GroupDetailViewModel.Event.WriteFailed -> writeFailedMsg
+    val resources by rememberUpdatedState(LocalResources.current)
+    LaunchedEffect(viewModel) {
+        viewModel.events.stream.collect { event ->
+            when (event) {
+                GroupDetailViewModel.Event.DeleteBlockedHasLessons ->
+                    messages.show(resources.getString(R.string.group_delete_blocked))
+                is GroupDetailViewModel.Event.Archived -> messages.show(
+                    resources.archivedMessage(event.cancelled.size),
+                    resources.getString(R.string.action_undo),
+                ) { viewModel.undoArchive(event) }
+                is GroupDetailViewModel.Event.ArchiveUndoKept -> messages.show(
+                    resources.getQuantityString(R.plurals.archive_undo_kept, event.count, event.count),
+                )
+                GroupDetailViewModel.Event.WriteFailed -> messages.show(resources.getString(R.string.action_failed))
+            }
         }
     }
 }

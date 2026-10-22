@@ -41,6 +41,7 @@ import com.seblful.klas.ui.common.state.hold
 import com.seblful.klas.ui.common.state.map
 import com.seblful.klas.ui.common.state.ready
 import com.seblful.klas.ui.common.state.readyOrLoadingAfter
+import com.seblful.klas.ui.common.state.settleAfterUndoWindow
 import com.seblful.klas.ui.common.state.shared
 import com.seblful.klas.ui.common.state.valueOrNull
 import com.seblful.klas.ui.common.state.write
@@ -55,7 +56,6 @@ import dev.zacsweers.metrox.viewmodel.ViewModelKey
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -81,7 +81,6 @@ import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.minutes
-import kotlin.time.Duration.Companion.seconds
 import kotlin.time.Instant
 
 private fun List<TutoringClass>.shownFor(filter: StudentFilter?): List<TutoringClass> =
@@ -512,12 +511,7 @@ class ScheduleViewModel @Inject constructor(
     private suspend fun offerUndo(receipt: SessionReceipt?, change: Undoable.Change) {
         receipt ?: return
         undoables.send(Undoable(change, receipt))
-        // Once the message is gone the calendar catches up. Outliving the screen is the point: the
-        // settle must run even if the tutor leaves the schedule inside the window.
-        write {
-            delay(UNDO_WINDOW)
-            classes.settle(receipt)
-        }
+        appScope.settleAfterUndoWindow(events, Event.ACTION_FAILED) { classes.settle(receipt) }
     }
 
     private suspend fun reportHourTaken(clash: ClassSession) {
@@ -575,8 +569,5 @@ class ScheduleViewModel @Inject constructor(
     private companion object {
         /** A week's span as a day count, for the bounds of the week being read. */
         const val DAYS_IN_WEEK = CalendarLayout.DAYS_IN_WEEK.toLong()
-
-        /** Longer than a long snackbar, so the calendar waits for as long as Undo is on screen. */
-        val UNDO_WINDOW = 12.seconds
     }
 }

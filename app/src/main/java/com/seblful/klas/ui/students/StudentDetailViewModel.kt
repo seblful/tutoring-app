@@ -6,6 +6,8 @@ import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.viewmodel.CreationExtras
 import com.seblful.klas.data.billing.PaymentRepository
 import com.seblful.klas.data.homework.HomeworkRepository
+import com.seblful.klas.data.lessons.ClassRepository
+import com.seblful.klas.data.lessons.SessionReceipt
 import com.seblful.klas.data.people.EnrollmentRepository
 import com.seblful.klas.data.people.StudentRepository
 import com.seblful.klas.di.ApplicationScope
@@ -26,6 +28,7 @@ import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.common.state.UiEvents
 import com.seblful.klas.ui.common.state.derive
 import com.seblful.klas.ui.common.state.ready
+import com.seblful.klas.ui.common.state.settleAfterUndoWindow
 import com.seblful.klas.ui.common.state.valueOrNull
 import com.seblful.klas.ui.common.state.write
 import com.seblful.klas.ui.homework.HomeworkActions
@@ -46,6 +49,7 @@ import kotlinx.datetime.LocalDate
 class StudentDetailViewModel @AssistedInject constructor(
     @Assisted savedStateHandle: SavedStateHandle,
     private val students: StudentRepository,
+    private val classes: ClassRepository,
     details: StudentDetailsQuery,
     homework: HomeworkRepository,
     private val payments: PaymentRepository,
@@ -72,12 +76,15 @@ class StudentDetailViewModel @AssistedInject constructor(
         data object RemoveBlockedHasClasses : Event
 
         /**
-         * Archiving called off [count] lessons that were still planned. Confirmed beforehand by the
-         * dialog, and confirmed again here: it changed the schedule, which is another screen. The count
-         * is the write's own, not the card's — a lesson marked taught from the tray while the card was
-         * open made the card's figure one too many.
+         * The card was archived, calling off the lessons in [cancelled] that were still planned. Shown
+         * with Undo ([undoArchive]): it changed the schedule, which is another screen. The count is the
+         * write's own, not the card's — a lesson marked taught from the tray while the card was open made
+         * the card's figure one too many.
          */
-        data class ArchiveCancelledLessons(val count: Int) : Event
+        data class Archived(val cancelled: List<SessionReceipt>) : Event
+
+        /** An archive was taken back, but [count] of its lessons stayed cancelled — changed, or their hour taken. */
+        data class ArchiveUndoKept(val count: Int) : Event
 
         /** A write failed — a database error rather than a rule. */
         data object WriteFailed : Event
@@ -111,13 +118,24 @@ class StudentDetailViewModel @AssistedInject constructor(
 
     /**
      * Archives or restores the student. Archiving also calls off their planned lessons — see
-     * [StudentRepository.setArchived] — and says how many, since that is a change to the schedule the
-     * tutor is making on purpose but from another screen.
+     * [StudentRepository.archive] — and says how many with an Undo, since that is a change to the schedule
+     * the tutor is making on purpose but from another screen.
      */
     fun setArchived(archived: Boolean) {
         val current = state.value.valueOrNull()?.student ?: return
-        write(onWritten = { cancelled -> if (cancelled > 0) events.send(Event.ArchiveCancelledLessons(cancelled)) }) {
-            students.setArchived(current, archived)
+        if (!archived) return write { students.setArchived(current, archived = false) }
+        write(
+            onWritten = { cancelled: List<SessionReceipt> ->
+                events.send(Event.Archived(cancelled))
+                appScope.settleAfterUndoWindow(events, Event.WriteFailed) { classes.settleAll(cancelled) }
+            },
+        ) { students.archive(current) }
+    }
+
+    /** Takes [archived] back — see [StudentRepository.unarchive]. */
+    fun undoArchive(archived: Event.Archived) {
+        write(onWritten = { kept: Int -> if (kept > 0) events.send(Event.ArchiveUndoKept(kept)) }) {
+            students.unarchive(studentId, archived.cancelled)
         }
     }
 

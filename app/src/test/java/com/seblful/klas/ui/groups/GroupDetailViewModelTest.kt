@@ -225,7 +225,7 @@ class GroupDetailViewModelTest {
     }
 
     @Test
-    fun `archiving a group with planned lessons calls them off and says how many`() = runTest(mainRule.dispatcher) {
+    fun `archiving a group calls off its planned lessons, says how many, and undoes`() = runTest(mainRule.dispatcher) {
         val maths = fixtures.subject()
         val anya = fixtures.pricedStudent("Аня", maths)
         val id = fixtures.group("Выпускники", subjectId = maths, members = setOf(anya), rate = rate)
@@ -243,8 +243,15 @@ class GroupDetailViewModelTest {
         vm.setArchived(true)
         runCurrent()
 
-        assertEquals(listOf(GroupDetailViewModel.Event.ArchiveCancelledLessons(2)), events)
+        val archived = events.single() as GroupDetailViewModel.Event.Archived
+        assertEquals(2, archived.cancelled.size)
         assertEquals(0, vm.state.current.plannedLessons)
+
+        vm.undoArchive(archived)
+        runCurrent()
+
+        assertEquals(2, vm.state.current.plannedLessons)
+        assertFalse(vm.state.current.group!!.archived)
     }
 
     @Test

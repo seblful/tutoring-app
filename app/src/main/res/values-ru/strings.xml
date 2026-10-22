@@ -383,11 +383,18 @@
         <item quantity="many">%1$d запланированных занятий будут отменены.</item>
         <item quantity="other">%1$d запланированных занятия будут отменены.</item>
     </plurals>
-    <plurals name="student_archive_lessons_cancelled">
-        <item quantity="one">Отменено %1$d занятие</item>
-        <item quantity="few">Отменено %1$d занятия</item>
-        <item quantity="many">Отменено %1$d занятий</item>
-        <item quantity="other">Отменено %1$d занятия</item>
+    <string name="archived_message">Перенесено в архив</string>
+    <plurals name="archived_lessons_cancelled">
+        <item quantity="one">В архиве · отменено %1$d занятие</item>
+        <item quantity="few">В архиве · отменено %1$d занятия</item>
+        <item quantity="many">В архиве · отменено %1$d занятий</item>
+        <item quantity="other">В архиве · отменено %1$d занятия</item>
+    </plurals>
+    <plurals name="archive_undo_kept">
+        <item quantity="one">%1$d занятие осталось отменённым: оно изменилось или его время занято</item>
+        <item quantity="few">%1$d занятия остались отменёнными: они изменились или их время занято</item>
+        <item quantity="many">%1$d занятий остались отменёнными: они изменились или их время занято</item>
+        <item quantity="other">%1$d занятия остались отменёнными: они изменились или их время занято</item>
     </plurals>
     <string name="student_last_payment">Последняя оплата %1$s</string>
     <string name="student_lessons_empty">Занятий пока нет</string>
