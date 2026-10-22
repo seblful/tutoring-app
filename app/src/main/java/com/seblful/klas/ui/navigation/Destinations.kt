@@ -62,6 +62,9 @@ object Routes {
     data object AppearanceSettings : Route
 
     @Serializable
+    data object PrivacySettings : Route
+
+    @Serializable
     data object Diagnostics : Route
 
     @Serializable

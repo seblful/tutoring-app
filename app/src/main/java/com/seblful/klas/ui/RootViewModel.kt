@@ -8,6 +8,7 @@ import com.seblful.klas.di.DeviceLocales
 import com.seblful.klas.domain.model.AppLanguage
 import com.seblful.klas.format.AppLocale
 import com.seblful.klas.format.localeFor
+import com.seblful.klas.lock.AppLock
 import com.seblful.klas.maintenance.Maintenance
 import com.seblful.klas.runCatchingCancellable
 import com.seblful.klas.ui.common.state.hold
@@ -55,6 +56,8 @@ class RootViewModel @Inject constructor(
     // In [ApplicationScope] so the pass outlives this view model, and starts from the UI coming up rather
     // than from whichever screen happened to be showing.
     @param:ApplicationScope private val appScope: CoroutineScope,
+    /** Whether the app is open behind its lock — the activity reports the app coming and going to it. */
+    val appLock: AppLock,
 ) : ViewModel() {
 
     /** Catch up **in process**, not by enqueueing a worker — called once by `AppRoot` as the UI comes up. */

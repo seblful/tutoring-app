@@ -47,6 +47,7 @@ import androidx.navigation3.ui.NavDisplay
 import com.seblful.klas.data.settings.SettingsRepository
 import com.seblful.klas.domain.model.Currency
 import com.seblful.klas.domain.model.ThemeChoice
+import com.seblful.klas.lock.AppLockGate
 import com.seblful.klas.ui.common.LocalCurrency
 import com.seblful.klas.ui.common.LocalRailAction
 import com.seblful.klas.ui.common.ProvideClockFormat
@@ -70,7 +71,7 @@ import com.seblful.klas.ui.theme.KlasTheme
 import dev.zacsweers.metrox.viewmodel.metroViewModel
 
 @Composable
-fun AppRoot(rootViewModel: RootViewModel = metroViewModel()) {
+fun AppRoot(rootViewModel: RootViewModel = metroViewModel(), onUnlock: (title: String) -> Unit = {}) {
     // The upkeep pass that the tutor's own arrival is worth: settle, in process, whatever the clock
     // passed while the app was closed, so the schedule and the reports they are about to look at are
     // current — and so the passes that run while nobody is here keep the report they are owed. See
@@ -118,7 +119,14 @@ fun AppRoot(rootViewModel: RootViewModel = metroViewModel()) {
                             }
                             RootRoute.ONBOARDING ->
                                 OnboardingScreen(onFinished = { /* settings flip re-renders into MainApp */ })
-                            RootRoute.MAIN -> MainApp()
+                            RootRoute.MAIN -> {
+                                val open by rootViewModel.appLock.open.collectAsStateWithLifecycle()
+                                val available by rootViewModel.appLock.available.collectAsStateWithLifecycle()
+                                // A phone with no screen lock left is never locked out of its own data.
+                                AppLockGate(settings?.privacy?.appLock == true && available && !open, onUnlock) {
+                                    MainApp()
+                                }
+                            }
                         }
                     }
                 }

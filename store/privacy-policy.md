@@ -1,6 +1,6 @@
 # Klas — Privacy Policy
 
-Last updated: 17 October 2026
+Last updated: 22 October 2026
 
 Klas (Android application ID: `com.seblful.klas`) is a tutoring-management app developed by
 **Aliaksei Chymba**. It helps tutors manage students, groups, subjects, lessons, homework, rates,
@@ -54,8 +54,11 @@ another service.
 ## Notifications and permissions
 
 Klas uses notification permission to show lesson reminders and optional agenda or debt summaries.
-Notifications can display student names, lesson details, homework, or balances, including on your
-lock screen depending on your device settings.
+Notifications can display student names, lesson details, homework, or balances. By default, Klas hides
+these details on a secure lock screen and shows only the kind of notification until you unlock the
+phone; you can choose to show them in Settings → Privacy & security. Marking a lesson taught from a
+notification asks you to unlock first. The Today widget lists lessons on a lock screen only if you
+choose so.
 
 Exact-alarm access, where granted, helps deliver timely reminders. Klas also reschedules reminders
 after a device restart. These reminder features do not require sending your records to the developer.
@@ -98,7 +101,10 @@ synced calendar events are separate copies and must be deleted from their destin
 storage or uninstalling Klas does not delete those copies.
 
 Klas relies on Android's app-private storage and operating-system protections. It does not add its own
-database encryption. Protect your device with a screen lock and keep backups secure. Because the
+database encryption. You can turn on an app lock, which asks for your fingerprint, face, or screen lock
+through Android when Klas opens; Klas never receives or stores biometric data, only whether the unlock
+succeeded. You can also hide Klas's preview in recent apps (below Android 13 this also blocks
+screenshots of the app). Protect your device with a screen lock and keep backups secure. Because the
 developer does not hold your tutoring database, the developer cannot remotely retrieve or erase it.
 
 ## Information about students and minors

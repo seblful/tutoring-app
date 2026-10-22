@@ -26,7 +26,7 @@ import kotlin.time.Instant
 private fun SettingsIndexPreview() = PreviewSurface {
     SettingsIndex(
         AppSettings(), NotificationDelivery.BLOCKED, ReminderDelivery.BLOCKED, CalendarDelivery.OFF,
-        SettingsNavigation({}, {}, {}, {}, {}),
+        SettingsNavigation({}, {}, {}, {}, {}, {}),
         modifier = Modifier.height(640.dp),
     )
 }

@@ -1096,4 +1096,26 @@
         <item>Иван Петров</item>
         <item>Физика</item>
     </string-array>
+    <string name="settings_privacy_title">Конфиденциальность</string>
+    <string name="settings_section_lock_screen">Экран блокировки</string>
+    <string name="settings_section_this_app">Приложение</string>
+    <string name="privacy_lock_screen_details">Подробности в уведомлениях</string>
+    <string name="privacy_lock_screen_details_desc">Показывать имена и суммы в уведомлениях на заблокированном телефоне</string>
+    <string name="privacy_lock_screen_widgets">Занятия в виджете на экране блокировки</string>
+    <string name="privacy_lock_screen_widgets_desc">Показывать занятия на сегодня, если виджет «Сегодня» стоит на экране блокировки</string>
+    <string name="privacy_app_lock">Блокировка приложения</string>
+    <string name="privacy_app_lock_desc">Запрашивать отпечаток, лицо или блокировку экрана при открытии</string>
+    <string name="privacy_app_lock_unavailable">Сначала установите блокировку экрана на телефоне</string>
+    <string name="privacy_relock">Блокировать снова через</string>
+    <string name="privacy_relock_immediately">Сразу</string>
+    <string name="privacy_hide_recents">Скрывать в недавних</string>
+    <string name="privacy_hide_recents_desc">Пустое превью в списке открытых приложений</string>
+    <string name="privacy_hide_recents_desc_screenshots">Пустое превью в списке открытых приложений. Скриншоты тоже запрещены</string>
+    <string name="privacy_hide_recents_locked">Блокировка приложения уже скрывает превью</string>
+    <string name="privacy_summary_private">Без подробностей на экране блокировки</string>
+    <string name="privacy_summary_details">Подробности на экране блокировки</string>
+    <string name="privacy_summary_locked">Блокировка приложения включена</string>
+    <string name="app_lock_prompt_title">Разблокируйте %1$s</string>
+    <string name="app_lock_locked">%1$s заблокирован</string>
+    <string name="app_lock_unlock">Разблокировать</string>
 </resources>

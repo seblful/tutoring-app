@@ -65,11 +65,12 @@ class SettingsNavigation(
     val notifications: () -> Unit,
     val calendar: () -> Unit,
     val appearance: () -> Unit,
+    val privacy: () -> Unit,
     val diagnostics: () -> Unit,
 )
 
 /** The pages the index opens. */
-enum class SettingsCategory { APPEARANCE, NOTIFICATIONS, LESSONS, CALENDAR, DIAGNOSTICS }
+enum class SettingsCategory { APPEARANCE, NOTIFICATIONS, LESSONS, CALENDAR, PRIVACY, DIAGNOSTICS }
 
 @Composable
 internal fun SettingsIndex(
@@ -143,6 +144,13 @@ private fun SettingsCategories(
         calendarSummary(settings, calendar),
         navigation.calendar,
         selected = open == SettingsCategory.CALENDAR,
+    )
+    SettingsCategoryRow(
+        KlasIcons.Outlined.PhonelinkLock,
+        stringResource(R.string.settings_privacy_title),
+        privacySummary(settings.privacy),
+        navigation.privacy,
+        selected = open == SettingsCategory.PRIVACY,
     )
 }
 

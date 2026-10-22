@@ -175,6 +175,7 @@ class SettingsContentTest {
                         notifications = { opened = "notifications" },
                         calendar = { opened = "calendar" },
                         appearance = { opened = "appearance" },
+                        privacy = { opened = "privacy" },
                         diagnostics = { opened = "diagnostics" },
                     ),
                 )
@@ -201,7 +202,7 @@ class SettingsContentTest {
             KlasTheme {
                 SettingsIndex(
                     settings, NotificationDelivery.ENABLED, ReminderDelivery.ON_TIME, CalendarDelivery.OFF,
-                    SettingsNavigation({}, {}, {}, {}, {}),
+                    SettingsNavigation({}, {}, {}, {}, {}, {}),
                     open = SettingsCategory.CALENDAR,
                 )
             }

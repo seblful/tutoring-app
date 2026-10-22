@@ -70,6 +70,11 @@ The database drives both mirrors; neither writes changes back into Klas.
 - «Taught» from the tray bills the lesson, so it asks for the unlock first (`setAuthenticationRequired`).
 - On a keyguard host the Today widget shows only its title and «unlock», unless
   `Privacy.lockScreenWidgets` is on (`listsLessons`).
+- The app lock (`AppLock`, `AppLockGate`) covers the app until `BiometricPrompt` succeeds with
+  biometrics or the screen lock (`UNLOCK_WITH`), and again after `relockAfterMinutes` in the background
+  on a monotonic clock. The app stays composed beneath, hidden from touch and screen readers, so the tutor
+  returns where they were. A phone with no screen lock is never locked out. Hiding in recents — on with
+  the lock too — is `setRecentsScreenshotEnabled(false)` from Android 13 and `FLAG_SECURE` before it.
 
 ## Permissions and digests
 

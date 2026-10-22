@@ -967,4 +967,26 @@
         <item>Ivan Petrov</item>
         <item>Physics</item>
     </string-array>
+    <string name="settings_privacy_title">Privacy &amp; security</string>
+    <string name="settings_section_lock_screen">Lock screen</string>
+    <string name="settings_section_this_app">This app</string>
+    <string name="privacy_lock_screen_details">Lesson details in notifications</string>
+    <string name="privacy_lock_screen_details_desc">Show names and amounts in notifications while the phone is locked</string>
+    <string name="privacy_lock_screen_widgets">Lessons in the lock-screen widget</string>
+    <string name="privacy_lock_screen_widgets_desc">List today\'s lessons where the Today widget sits on the lock screen</string>
+    <string name="privacy_app_lock">App lock</string>
+    <string name="privacy_app_lock_desc">Ask for your fingerprint, face or screen lock to open the app</string>
+    <string name="privacy_app_lock_unavailable">Set a screen lock on this phone first</string>
+    <string name="privacy_relock">Lock again after</string>
+    <string name="privacy_relock_immediately">Immediately</string>
+    <string name="privacy_hide_recents">Hide in recent apps</string>
+    <string name="privacy_hide_recents_desc">Show a blank preview in the app switcher</string>
+    <string name="privacy_hide_recents_desc_screenshots">Show a blank preview in the app switcher. Screenshots are blocked too</string>
+    <string name="privacy_hide_recents_locked">The app lock hides the preview already</string>
+    <string name="privacy_summary_private">Lock screen hides details</string>
+    <string name="privacy_summary_details">Details on the lock screen</string>
+    <string name="privacy_summary_locked">App lock on</string>
+    <string name="app_lock_prompt_title">Unlock %1$s</string>
+    <string name="app_lock_locked">%1$s is locked</string>
+    <string name="app_lock_unlock">Unlock</string>
 </resources>

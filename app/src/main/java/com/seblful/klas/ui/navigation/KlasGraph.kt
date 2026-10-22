@@ -40,6 +40,7 @@ import com.seblful.klas.ui.settings.AppearanceSettingsScreen
 import com.seblful.klas.ui.settings.CalendarSettingsScreen
 import com.seblful.klas.ui.settings.LessonSettingsScreen
 import com.seblful.klas.ui.settings.NotificationSettingsScreen
+import com.seblful.klas.ui.settings.PrivacySettingsScreen
 import com.seblful.klas.ui.settings.SettingsCategory
 import com.seblful.klas.ui.settings.SettingsNavigation
 import com.seblful.klas.ui.settings.SettingsScreen
@@ -107,6 +108,7 @@ class KlasGraph(
             Routes.NotificationSettings -> NotificationSettingsScreen(onBack = back.takeUnless { besideList() })
             Routes.CalendarSettings -> CalendarSettingsScreen(onBack = back.takeUnless { besideList() })
             Routes.AppearanceSettings -> AppearanceSettingsScreen(onBack = back.takeUnless { besideList() })
+            Routes.PrivacySettings -> PrivacySettingsScreen(onBack = back.takeUnless { besideList() })
             Routes.Diagnostics -> DiagnosticsScreen(onBack = back.takeUnless { besideList() })
             // About is where the app makes the "your data is on this device and nowhere else" promise, which
             // is also where its one obligation is stated — so the way to act on it is here.
@@ -250,6 +252,7 @@ class KlasGraph(
                 notifications = { page(SettingsCategory.NOTIFICATIONS) },
                 calendar = { page(SettingsCategory.CALENDAR) },
                 appearance = { page(SettingsCategory.APPEARANCE) },
+                privacy = { page(SettingsCategory.PRIVACY) },
                 diagnostics = { page(SettingsCategory.DIAGNOSTICS) },
             ),
             open = SettingsPages.entries.firstOrNull { it.value == open }?.key,
@@ -263,6 +266,7 @@ private val SettingsPages: Map<SettingsCategory, Route> = mapOf(
     SettingsCategory.NOTIFICATIONS to Routes.NotificationSettings,
     SettingsCategory.LESSONS to Routes.LessonSettings,
     SettingsCategory.CALENDAR to Routes.CalendarSettings,
+    SettingsCategory.PRIVACY to Routes.PrivacySettings,
     SettingsCategory.DIAGNOSTICS to Routes.Diagnostics,
 )
 

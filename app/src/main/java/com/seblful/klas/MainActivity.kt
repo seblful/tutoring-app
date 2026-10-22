@@ -3,23 +3,32 @@ package com.seblful.klas
 import android.content.Context
 import android.os.Build
 import android.os.Bundle
-import androidx.activity.ComponentActivity
+import android.view.WindowManager
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import androidx.biometric.BiometricPrompt
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.core.content.ContextCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.fragment.app.FragmentActivity
+import androidx.lifecycle.lifecycleScope
 import com.seblful.klas.di.appGraph
 import com.seblful.klas.domain.model.AppLanguage
 import com.seblful.klas.format.deviceLocales
 import com.seblful.klas.format.inLanguage
 import com.seblful.klas.format.localeFor
+import com.seblful.klas.lock.UNLOCK_WITH
+import com.seblful.klas.lock.canUnlock
 import com.seblful.klas.ui.AppRoot
 import com.seblful.klas.ui.RootViewModel
 import dev.zacsweers.metrox.viewmodel.LocalMetroViewModelFactory
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 
-/** The one activity. */
-class MainActivity : ComponentActivity() {
+/** The one activity — a [FragmentActivity] because the app lock's [BiometricPrompt] needs one. */
+class MainActivity : FragmentActivity() {
 
     private val rootViewModel: RootViewModel by viewModels { appGraph.metroViewModelFactory }
 
@@ -58,8 +67,54 @@ class MainActivity : ComponentActivity() {
             // Every `metroViewModel()` below finds the graph's factory here.
             CompositionLocalProvider(LocalMetroViewModelFactory provides appGraph.metroViewModelFactory) {
                 // Theme is applied inside AppRoot, driven by the user's theme setting.
-                AppRoot(rootViewModel)
+                AppRoot(rootViewModel, onUnlock = ::promptUnlock)
             }
+        }
+        // Whatever the app lock hides must not show in recent apps either, or the lock hides nothing.
+        lifecycleScope.launch {
+            rootViewModel.settings
+                .map { it?.privacy?.let { privacy -> privacy.hideInRecents || privacy.appLock } == true }
+                .distinctUntilChanged()
+                .collect(::hideFromRecents)
+        }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        rootViewModel.appLock.foregrounded(rootViewModel.settings.value?.privacy?.relockAfterMinutes, canUnlock())
+    }
+
+    override fun onStop() {
+        super.onStop()
+        if (!isChangingConfigurations) rootViewModel.appLock.backgrounded()
+    }
+
+    private fun promptUnlock(title: String) {
+        val lock = rootViewModel.appLock
+        val prompt = BiometricPrompt(
+            this,
+            ContextCompat.getMainExecutor(this),
+            object : BiometricPrompt.AuthenticationCallback() {
+                override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) = lock.unlocked()
+
+                override fun onAuthenticationError(errorCode: Int, errString: CharSequence) = lock.prompting(false)
+            },
+        )
+        lock.prompting(true)
+        // No negative button: with the screen lock allowed, the prompt offers it itself.
+        prompt.authenticate(
+            BiometricPrompt.PromptInfo.Builder().setTitle(title).setAllowedAuthenticators(UNLOCK_WITH).build(),
+        )
+    }
+
+    /** A blank preview in recent apps: its own switch from Android 13, the secure flag (no screenshots) before. */
+    private fun hideFromRecents(hide: Boolean) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            setRecentsScreenshotEnabled(!hide)
+        } else if (hide) {
+            window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
+        } else {
+            window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
         }
     }
 }
