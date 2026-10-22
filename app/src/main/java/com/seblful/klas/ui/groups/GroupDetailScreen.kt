@@ -38,6 +38,7 @@ import com.seblful.klas.ui.common.AddRow
 import com.seblful.klas.ui.common.AddRowInSection
 import com.seblful.klas.ui.common.ArchiveMenuItem
 import com.seblful.klas.ui.common.ArchivedBadge
+import com.seblful.klas.ui.common.FactsLine
 import com.seblful.klas.ui.common.ConfirmDialog
 import com.seblful.klas.ui.common.HeadlineCardInset
 import com.seblful.klas.ui.common.KlasScreen
@@ -262,13 +263,11 @@ private fun GroupHeader(state: GroupDetailState, modifier: Modifier = Modifier) 
     val group = state.group ?: return
     Column(modifier.fillMaxWidth()) {
         Row(Modifier.heightIn(min = MinTouchTarget), verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                bulletJoin(
+            FactsLine(
+                listOf(
                     state.subjectName ?: stringResource(R.string.group_no_subject),
                     stringResource(R.string.price_per_hour, group.price.text()),
                 ),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.weight(1f, fill = false),
             )
             if (group.archived) ArchivedBadge(Modifier.padding(start = Spacing.inline))

@@ -19,8 +19,8 @@ import androidx.compose.ui.res.stringResource
 import com.seblful.klas.R
 import com.seblful.klas.domain.model.Student
 import com.seblful.klas.domain.people.Phone
-import com.seblful.klas.format.bulletJoin
 import com.seblful.klas.ui.common.ArchiveMenuItem
+import com.seblful.klas.ui.common.FactsLine
 import com.seblful.klas.ui.common.MinTouchTarget
 import com.seblful.klas.ui.common.OverflowMenu
 import com.seblful.klas.ui.common.Spacing
@@ -44,10 +44,8 @@ internal fun ContactBlock(
     Column(modifier) {
         Row(Modifier.fillMaxWidth().heightIn(min = MinTouchTarget), verticalAlignment = Alignment.CenterVertically) {
             // The email stands in the line only for want of a phone; its button is there either way.
-            Text(
-                bulletJoin(phone ?: email.orEmpty(), classModeLabel(student.defaultMode)),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            FactsLine(
+                listOf(phone ?: email.orEmpty(), classModeLabel(student.defaultMode)),
                 modifier = Modifier.weight(1f),
             )
             if (phone != null) {
