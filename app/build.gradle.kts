@@ -123,6 +123,8 @@ android {
 kotlin {
     compilerOptions {
         jvmTarget = JvmTarget.JVM_11
+        // Compose Styles (`ui/theme/KlasStyles.kt`) are still experimental in foundation 1.12.
+        freeCompilerArgs.add("-opt-in=androidx.compose.foundation.style.ExperimentalFoundationStyleApi")
     }
 }
 

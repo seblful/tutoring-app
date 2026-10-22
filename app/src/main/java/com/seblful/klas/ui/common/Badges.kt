@@ -1,21 +1,22 @@
 package com.seblful.klas.ui.common
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.style.Style
+import androidx.compose.foundation.style.styleable
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.res.stringResource
 import com.seblful.klas.R
+import com.seblful.klas.ui.theme.KlasStyles
 import com.seblful.klas.ui.theme.klasColors
 
 /*
@@ -25,17 +26,18 @@ import com.seblful.klas.ui.theme.klasColors
  * shape the lesson statuses use, and emphasis carries nothing to a screen reader.
  */
 
-/** A small tonal pill — e.g. a class status. The tint is derived from [color]. */
+/**
+ * A small tonal pill — e.g. a class status. The tint is derived from [color].
+ *
+ * @param style applied over [KlasStyles.statusBadge] and the tint; text styling stays on the label.
+ */
 @Composable
-fun StatusBadge(text: String, color: Color, modifier: Modifier = Modifier) {
+fun StatusBadge(text: String, color: Color, modifier: Modifier = Modifier, style: Style = Style) {
+    val tint = color.copy(alpha = PillAlpha)
     // Judged on the highest card surface a pill sits on: every lower one leaves it more contrast.
-    val pill = color.copy(alpha = PillAlpha).compositeOver(MaterialTheme.colorScheme.surfaceContainerHighest)
-    Box(
-        modifier
-            .clip(MaterialTheme.shapes.small)
-            .background(color.copy(alpha = PillAlpha))
-            .padding(horizontal = Spacing.inline, vertical = Spacing.tight),
-    ) {
+    val pill = tint.compositeOver(MaterialTheme.colorScheme.surfaceContainerHighest)
+    val tintStyle = remember(tint) { Style { background(tint) } }
+    Box(modifier.styleable(null, KlasStyles.statusBadge, tintStyle, style)) {
         Text(
             text,
             // labelSmall, not labelMedium. The pill is the secondary half of its row and the name

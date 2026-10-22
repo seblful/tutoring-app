@@ -45,6 +45,9 @@ Build screens from shared state and controls. Feature rules belong in the domain
   search and draws the first 30 matches, since a dropdown composes every item when it opens.
 - A card that can hold hundreds of rows (a report's per-student lines, its debts) is one list item per
   row, drawn as `CardSlice`s of one surface, not one item composing them all.
+- Compose Styles (experimental, opted in) are for the app's own foundation-built atoms only — `StatusBadge`
+  so far: defaults live in `KlasStyles`, the caller's `style` goes last. Material components keep their
+  parameters until Material supports Styles; a Style cannot read `MaterialTheme`, so it uses `Shapes`/`Typography`.
 - Shapes are Material's baseline scale (`Shape.kt`); search opens Material's search input in place of the
   bar's title (`SearchField`).
 - Follow `Spacing`; page sides use `gutter`. A row gets ripple room from card padding, keeping text
