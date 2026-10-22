@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.InputChip
@@ -46,7 +45,7 @@ fun <T> FilterMenuAction(
     var open by remember { mutableStateOf(false) }
     Box {
         NamedIconButton(KlasIcons.Filled.FilterList, name, onClick = { open = true })
-        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+        KlasMenu(expanded = open, onDismissRequest = { open = false }) {
             TickedMenuItem(
                 text = allLabel,
                 selected = !narrowed,

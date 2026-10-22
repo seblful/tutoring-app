@@ -3,7 +3,6 @@ package com.seblful.klas.ui.common
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -54,7 +53,7 @@ fun <T> ColumnScope.MenuOptions(
     matches.take(MENU_SHOWN).forEach { option(it) }
     val hidden = matches.size - MENU_SHOWN
     if (hidden > 0) {
-        DropdownMenuItem(
+        MenuItem(
             text = { Text(pluralStringResource(R.plurals.menu_more_matches, hidden, hidden)) },
             onClick = {},
             enabled = false,

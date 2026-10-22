@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -22,6 +21,7 @@ import com.seblful.klas.ui.common.AddRow
 import com.seblful.klas.ui.common.DropdownField
 import com.seblful.klas.ui.common.MemberPickRow
 import com.seblful.klas.ui.common.MenuField
+import com.seblful.klas.ui.common.MenuItem
 import com.seblful.klas.ui.common.MenuOptions
 import com.seblful.klas.ui.common.ModeField
 import com.seblful.klas.ui.common.MoneyTextField
@@ -75,6 +75,7 @@ internal fun WhoSection(
                 selectedText = state.studentName,
                 options = remember(state.students) { state.students.map { it.id to it.name } },
                 onSelect = { id -> viewModel.change(BookingIntent.ChooseStudent(id)) },
+                selectedId = form.studentId,
             )
             // A booked lesson can't be handed to another group: its members' classes are billed history,
             // and the other group is a different set of people.
@@ -123,12 +124,12 @@ private fun WhoField(
             )
         }
         if (choices.isNotEmpty()) HorizontalDivider()
-        DropdownMenuItem(
+        MenuItem(
             text = { Text(stringResource(R.string.schedule_add_student)) },
             onClick = { dismiss(); setup.addStudent() },
             leadingIcon = { Icon(KlasIcons.Outlined.PersonAdd, contentDescription = null) },
         )
-        DropdownMenuItem(
+        MenuItem(
             text = { Text(stringResource(R.string.group_add_title)) },
             onClick = { dismiss(); setup.addGroup() },
             leadingIcon = { Icon(KlasIcons.Outlined.Groups, contentDescription = null) },
@@ -189,6 +190,7 @@ private fun SubjectField(state: ClassFormState, viewModel: ClassEditViewModel, s
         selectedText = state.subjectName,
         options = remember(state.subjects) { state.subjects.map { it.id to it.name } },
         onSelect = { id -> viewModel.change(BookingIntent.ChooseSubject(id)) },
+        selectedId = state.form.subjectId,
         enabled = state.subjectPickerEnabled,
         supportingText = state.subjectNotice?.let { notice ->
             stringResource(

@@ -26,7 +26,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -72,6 +71,7 @@ import com.seblful.klas.format.formatMonth
 import com.seblful.klas.format.formatMonthName
 import com.seblful.klas.ui.common.EmptyState
 import com.seblful.klas.ui.common.HeroCard
+import com.seblful.klas.ui.common.KlasMenu
 import com.seblful.klas.ui.common.KlasScreen
 import com.seblful.klas.ui.common.ListSkeleton
 import com.seblful.klas.ui.common.MaxContentWidth
@@ -410,7 +410,7 @@ private fun PeriodNavigator(
                 )
                 Icon(KlasIcons.Filled.ArrowDropDown, stringResource(R.string.reports_period))
             }
-            DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            KlasMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
                 ReportPeriod.Kind.entries.forEach { kind ->
                     TickedMenuItem(
                         text = stringResource(periodKindLabel(kind)),

@@ -2,7 +2,6 @@ package com.seblful.klas.ui.people
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -20,6 +19,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.seblful.klas.R
 import com.seblful.klas.domain.model.Assignee
 import com.seblful.klas.ui.common.HoldToName
+import com.seblful.klas.ui.common.KlasMenu
 import com.seblful.klas.ui.common.KlasScreen
 import com.seblful.klas.ui.common.NamedIconButton
 import com.seblful.klas.ui.common.ScreenSearch
@@ -168,7 +168,7 @@ private fun SortMenu(selected: StudentSort, onSelect: (StudentSort) -> Unit) {
             // in the bar above it.
             tint = MaterialTheme.colorScheme.primary.takeIf { selected != StudentSort.NAME },
         )
-        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+        KlasMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             StudentSort.entries.forEach { option ->
                 TickedMenuItem(
                     text = stringResource(sortLabel(option)),

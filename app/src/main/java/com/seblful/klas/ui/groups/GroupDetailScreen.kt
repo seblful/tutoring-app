@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.text.TextAutoSize
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -38,11 +37,12 @@ import com.seblful.klas.ui.common.AddRow
 import com.seblful.klas.ui.common.AddRowInSection
 import com.seblful.klas.ui.common.ArchiveMenuItem
 import com.seblful.klas.ui.common.ArchivedBadge
-import com.seblful.klas.ui.common.FactsLine
 import com.seblful.klas.ui.common.ConfirmDialog
+import com.seblful.klas.ui.common.FactsLine
 import com.seblful.klas.ui.common.HeadlineCardInset
 import com.seblful.klas.ui.common.KlasScreen
 import com.seblful.klas.ui.common.LoadingDetailScreen
+import com.seblful.klas.ui.common.MenuItem
 import com.seblful.klas.ui.common.Messages
 import com.seblful.klas.ui.common.MinHeadlineSize
 import com.seblful.klas.ui.common.MinTouchTarget
@@ -367,7 +367,7 @@ private fun GroupOverflowMenu(archived: Boolean, onArchive: () -> Unit, onDelete
         ArchiveMenuItem(archived) { close(); onArchive() }
         // Only while there is something it can do — see [GroupDetailState.canDelete].
         if (onDelete != null) {
-            DropdownMenuItem(
+            MenuItem(
                 text = {
                     Text(
                         stringResource(R.string.action_delete),

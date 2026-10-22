@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
@@ -94,7 +93,7 @@ fun ModeField(
 }
 /**
  * A read-only text field that opens a menu of [options] — the app's one way of picking a single
- * row-backed thing (a student, a group, a subject) by id.
+ * row-backed thing (a student, a group, a subject) by id, ticking [selectedId] among them.
  */
 @Composable
 fun DropdownField(
@@ -105,6 +104,7 @@ fun DropdownField(
     enabled: Boolean = true,
     supportingText: String? = null,
     isError: Boolean = false,
+    selectedId: Long? = null,
 ) {
     MenuField(
         label = label,
@@ -114,8 +114,9 @@ fun DropdownField(
         isError = isError,
     ) { dismiss ->
         MenuOptions(options, nameOf = { it.second }) { (id, name) ->
-            DropdownMenuItem(
-                text = { Text(name) },
+            TickedMenuItem(
+                text = name,
+                selected = id == selectedId,
                 onClick = { onSelect(id); dismiss() },
             )
         }
@@ -149,8 +150,9 @@ fun <T> ChoiceField(
         // Labelled once the menu is open, so a long list can be searched by what it reads.
         val labelled = options.map { it to optionLabel(it) }
         MenuOptions(labelled, nameOf = { it.second }) { (option, text) ->
-            DropdownMenuItem(
-                text = { Text(text) },
+            TickedMenuItem(
+                text = text,
+                selected = option == selected,
                 onClick = { onSelect(option); dismiss() },
             )
         }
@@ -209,7 +211,13 @@ internal fun MenuField(
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = open) },
             modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
         )
-        ExposedDropdownMenu(expanded = open, onDismissRequest = close) {
+        ExposedDropdownMenu(
+            expanded = open,
+            onDismissRequest = close,
+            shape = MenuShape,
+            containerColor = MenuContainerColor,
+            shadowElevation = MenuShadowElevation,
+        ) {
             items(close)
         }
     }

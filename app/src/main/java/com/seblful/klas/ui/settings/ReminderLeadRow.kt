@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
@@ -31,6 +30,7 @@ import com.seblful.klas.R
 import com.seblful.klas.ui.common.ChoiceField
 import com.seblful.klas.ui.common.DisabledAlpha
 import com.seblful.klas.ui.common.KeepTypedInput
+import com.seblful.klas.ui.common.KlasMenu
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.TickedMenuItem
 import com.seblful.klas.ui.common.insetRowPress
@@ -51,7 +51,7 @@ internal fun ReminderLeadRow(minutes: Int, enabled: Boolean, onSelect: (Int) -> 
                 Modifier.clickable(it, indication = null, enabled = enabled, onClick = { expanded = true })
             },
         )
-        DropdownMenu(expanded = expanded && enabled, onDismissRequest = { expanded = false }) {
+        KlasMenu(expanded = expanded && enabled, onDismissRequest = { expanded = false }) {
             LeadPresets.forEach { preset ->
                 TickedMenuItem(
                     text = reminderLeadLabel(preset),

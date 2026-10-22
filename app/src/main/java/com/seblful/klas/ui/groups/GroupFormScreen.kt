@@ -166,9 +166,10 @@ private fun GroupForm(
                     label = stringResource(R.string.group_subject_label),
                     selectedText = state.subjects.firstOrNull { it.id == form.subjectId }?.name
                         ?: stringResource(R.string.group_subject_none),
-                    options = listOf(0L to stringResource(R.string.group_subject_none)) +
+                    options = listOf(NoSubject to stringResource(R.string.group_subject_none)) +
                         state.subjects.map { it.id to it.name },
-                    onSelect = { id -> viewModel.setSubject(id.takeIf { it != 0L }) },
+                    onSelect = { id -> viewModel.setSubject(id.takeIf { it != NoSubject }) },
+                    selectedId = subjectChoice(form.subjectId),
                     supportingText = stringResource(
                         if (form.subjectId == null) R.string.group_subject_none_hint
                         else R.string.group_subject_hint,
@@ -337,3 +338,8 @@ private fun GroupMemberPrice(
 // The group and booking forms share MemberPickRow for roster membership.
 
 private val TitleKeyboard = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences)
+
+/** The subject menu's «No subject» entry, which no row id can be. */
+private const val NoSubject = 0L
+
+private fun subjectChoice(subjectId: Long?): Long = subjectId ?: NoSubject
