@@ -164,6 +164,11 @@ data class BackupData(
      * and [legacyHomework] is how it becomes rows of this.
      */
     val homework: List<HomeworkEntity> = emptyList(),
+    /**
+     * When the file was made, epoch millis — for the restore preview. Optional in both directions: older
+     * files lack it, and an older build ignores it, so adding it needed no version bump.
+     */
+    val exportedAtMillis: Long? = null,
 ) {
     companion object {
         /**

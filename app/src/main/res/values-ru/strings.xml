@@ -992,6 +992,31 @@
     <string name="backup_export_success">Данные сохранены</string>
     <string name="backup_import_success">Данные восстановлены</string>
     <string name="backup_importing">Восстанавливаем данные…</string>
+    <string name="backup_restore_holds">В копии от %1$s: %2$s.</string>
+    <string name="backup_restore_holds_undated">В копии: %1$s.</string>
+    <plurals name="backup_groups_count">
+        <item quantity="one">%1$d группа</item>
+        <item quantity="few">%1$d группы</item>
+        <item quantity="many">%1$d групп</item>
+        <item quantity="other">%1$d группы</item>
+    </plurals>
+    <plurals name="backup_payments_count">
+        <item quantity="one">%1$d оплата</item>
+        <item quantity="few">%1$d оплаты</item>
+        <item quantity="many">%1$d оплат</item>
+        <item quantity="other">%1$d оплаты</item>
+    </plurals>
+    <plurals name="backup_homework_count">
+        <item quantity="one">%1$d домашнее задание</item>
+        <item quantity="few">%1$d домашних задания</item>
+        <item quantity="many">%1$d домашних заданий</item>
+        <item quantity="other">%1$d домашнего задания</item>
+    </plurals>
+    <string name="backup_undo_restore">Отменить последний импорт</string>
+    <string name="backup_undo_restore_desc">Вернуть данные, которые были на телефоне %1$s</string>
+    <string name="backup_undo_restore_confirm">Вернуть данные, которые были до последнего импорта? Всё, что есть сейчас, включая добавленное после импорта, будет заменено.</string>
+    <string name="backup_undo_restore_action">Вернуть</string>
+    <string name="backup_restore_undone">Данные до импорта возвращены</string>
     <!--
       One message per BackupFailure. A single «Не удалось» told the tutor to check a file that may
       have been perfectly fine — a copy from a newer build needs an app update, not another look.

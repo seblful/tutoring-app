@@ -863,6 +863,25 @@
     <string name="backup_export_success">Data saved</string>
     <string name="backup_import_success">Data restored</string>
     <string name="backup_importing">Restoring your data…</string>
+    <string name="backup_restore_holds">This backup, made %1$s, holds %2$s.</string>
+    <string name="backup_restore_holds_undated">This backup holds %1$s.</string>
+    <plurals name="backup_groups_count">
+        <item quantity="one">%1$d group</item>
+        <item quantity="other">%1$d groups</item>
+    </plurals>
+    <plurals name="backup_payments_count">
+        <item quantity="one">%1$d payment</item>
+        <item quantity="other">%1$d payments</item>
+    </plurals>
+    <plurals name="backup_homework_count">
+        <item quantity="one">%1$d homework assignment</item>
+        <item quantity="other">%1$d homework assignments</item>
+    </plurals>
+    <string name="backup_undo_restore">Undo the last import</string>
+    <string name="backup_undo_restore_desc">Put back the data that was here on %1$s</string>
+    <string name="backup_undo_restore_confirm">Put back the data from before the last import? Everything here now, including anything added since, will be replaced.</string>
+    <string name="backup_undo_restore_action">Put back</string>
+    <string name="backup_restore_undone">The data from before the import is back</string>
     <!--
       One message per BackupFailure. A single "Could not read it" told the tutor to check a file that
       may have been perfectly fine — a copy from a newer build needs an app update, not another look.

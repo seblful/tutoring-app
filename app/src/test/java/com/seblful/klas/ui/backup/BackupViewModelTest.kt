@@ -202,4 +202,84 @@ class BackupViewModelTest {
             assertEquals(listOf("Аня"), env.stored().students.map { it.name })
             assertTrue(env.settingsRepo.get().onboardingComplete)
         }
+
+    @Test
+    fun `a picked file is described before anything is replaced, and restored on yes`() =
+        runTest(mainRule.dispatcher) {
+            val vm = vm()
+            documents.docs[ref.value] = backupOf("Аня")
+            env.fixtures.student(name = "Борис")
+
+            vm.preview(ref)
+            advanceUntilIdle()
+
+            assertEquals(1, vm.pendingRestore.value?.preview?.students)
+            assertEquals("nothing replaced yet", listOf("Борис"), env.stored().students.map { it.name })
+
+            vm.confirmRestore()
+            advanceUntilIdle()
+
+            assertNull(vm.pendingRestore.value)
+            assertEquals(listOf("Аня"), env.stored().students.map { it.name })
+        }
+
+    @Test
+    fun `a file that would be refused is refused before the question`() =
+        runTest(mainRule.dispatcher) {
+            val vm = vm()
+            documents.docs[ref.value] = "this is not json at all"
+            var received: BackupResult? = null
+            val job = backgroundScope.launch { vm.events.stream.collect { received = it } }
+
+            vm.preview(ref)
+            advanceUntilIdle()
+            job.cancel()
+
+            assertNull(vm.pendingRestore.value)
+            assertEquals(BackupResult.Failed(BackupFailure.Malformed), received)
+        }
+
+    @Test
+    fun `saying no to the preview replaces nothing`() =
+        runTest(mainRule.dispatcher) {
+            val vm = vm()
+            documents.docs[ref.value] = backupOf("Аня")
+            env.fixtures.student(name = "Борис")
+            vm.preview(ref)
+            advanceUntilIdle()
+
+            vm.dismissRestore()
+            vm.confirmRestore()
+            advanceUntilIdle()
+
+            assertNull(vm.pendingRestore.value)
+            assertEquals(listOf("Борис"), env.stored().students.map { it.name })
+        }
+
+    @Test
+    fun `the last import can be undone, once`() =
+        runTest(mainRule.dispatcher) {
+            val vm = vm()
+            documents.docs[ref.value] = backupOf("Аня")
+            env.fixtures.student(name = "Борис")
+            val received = mutableListOf<BackupResult>()
+            val job = backgroundScope.launch { vm.events.stream.collect { received += it } }
+            vm.import(ref)
+            advanceUntilIdle()
+            assertEquals(env.clock.now(), vm.undoRestoreSince.value)
+
+            vm.undoRestore()
+            advanceUntilIdle()
+            job.cancel()
+
+            assertEquals(listOf(BackupResult.ImportOk, BackupResult.RestoreUndone), received)
+            assertEquals(listOf("Борис"), env.stored().students.map { it.name })
+            assertNull(vm.undoRestoreSince.value)
+        }
+
+    /** A backup of one student, made on another phone. */
+    private suspend fun backupOf(name: String): String = TestEnv().use { other ->
+        other.fixtures.student(name = name)
+        other.backupManager.exportJson()
+    }
 }

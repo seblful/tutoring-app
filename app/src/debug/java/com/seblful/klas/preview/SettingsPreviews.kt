@@ -7,6 +7,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.seblful.klas.data.settings.AppSettings
 import com.seblful.klas.ui.backup.BackupContent
+import com.seblful.klas.ui.backup.ConfirmRestoreDialog
 import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.settings.AppearanceSettingsContent
 import com.seblful.klas.ui.settings.CalendarDelivery
@@ -19,6 +20,7 @@ import com.seblful.klas.ui.settings.ReminderDelivery
 import com.seblful.klas.ui.settings.SettingsIndex
 import com.seblful.klas.ui.settings.SettingsNavigation
 import kotlin.time.Instant
+import com.seblful.klas.data.backup.BackupPreview as FileContents
 
 @KlasPreview
 @Preview(name = "English", group = "component", showBackground = true, widthDp = 360, locale = "en")
@@ -77,6 +79,25 @@ private fun BackupPreview() = PreviewSurface {
         onExport = {},
         onImport = {},
         modifier = Modifier.height(640.dp),
+        undoRestoreSince = Instant.parse("2026-06-02T09:00:00Z"),
+    )
+}
+
+/** What a picked file holds, said before it replaces anything — the longest form, with every kind present. */
+@KlasPreview
+@Composable
+private fun ConfirmRestorePreview() = PreviewSurface {
+    ConfirmRestoreDialog(
+        preview = FileContents(
+            exportedAt = Instant.parse("2026-05-20T10:00:00Z"),
+            students = 12,
+            groups = 2,
+            lessons = 341,
+            payments = 118,
+            homework = 23,
+        ),
+        onConfirm = {},
+        onDismiss = {},
     )
 }
 

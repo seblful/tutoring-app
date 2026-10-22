@@ -5,6 +5,7 @@ import com.seblful.klas.HostServices
 import com.seblful.klas.calendar.CalendarSync
 import com.seblful.klas.calendar.Guest
 import com.seblful.klas.createKlasStore
+import com.seblful.klas.data.backup.RestoreSnapshots
 import com.seblful.klas.data.local.AppDatabase
 import com.seblful.klas.data.local.KlasDatabase
 import com.seblful.klas.data.local.buildDatabase
@@ -24,6 +25,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
@@ -116,5 +119,13 @@ private object PilotHost : HostServices {
         override fun showUnfinished(unfinished: Digests.Unfinished) = Unit
         override fun showDebts(debts: Digests.Debts, currency: Currency) = Unit
         override fun showAutoCompleted(lessons: Int, billed: Money, day: LocalDate, currency: Currency) = Unit
+    }
+
+    /** The pilot never restores a backup, so it keeps nothing to undo one with. */
+    override val restoreSnapshots = object : RestoreSnapshots {
+        override val keptAt: StateFlow<Instant?> = MutableStateFlow(null)
+        override suspend fun save(json: String, takenAt: Instant) = Unit
+        override suspend fun read(): String? = null
+        override suspend fun clear() = Unit
     }
 }

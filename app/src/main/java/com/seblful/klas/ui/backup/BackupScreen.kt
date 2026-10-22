@@ -15,18 +15,19 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.seblful.klas.R
+import com.seblful.klas.data.backup.BackupPreview
 import com.seblful.klas.format.formatDate
 import com.seblful.klas.format.toLocalDate
-import com.seblful.klas.storage.DocumentRef
 import com.seblful.klas.ui.common.ConfirmDialog
 import com.seblful.klas.ui.common.KlasScreen
 import com.seblful.klas.ui.common.ShowMessagesFor
@@ -51,12 +52,15 @@ fun BackupScreen(
     viewModel: BackupViewModel = metroViewModel(),
 ) {
     val messages = rememberMessages()
-    var confirmImport by remember { mutableStateOf<DocumentRef?>(null) }
+    var confirmUndo by rememberSaveable { mutableStateOf(false) }
     val lastExportAt by viewModel.lastExportAt.collectAsStateWithLifecycle()
     val importing by viewModel.importing.collectAsStateWithLifecycle()
+    val pendingRestore by viewModel.pendingRestore.collectAsStateWithLifecycle()
+    val undoRestoreSince by viewModel.undoRestoreSince.collectAsStateWithLifecycle()
 
     val exportSuccess = stringResource(R.string.backup_export_success)
     val importSuccess = stringResource(R.string.backup_import_success)
+    val restoreUndone = stringResource(R.string.backup_restore_undone)
     val context = LocalContext.current
     val noPickerMsg = stringResource(R.string.student_contact_failed)
     // Named for the day it is made on — see [BackupViewModel.exportDay].
@@ -66,13 +70,14 @@ fun BackupScreen(
         when (result) {
             BackupResult.ExportOk -> exportSuccess
             BackupResult.ImportOk -> importSuccess
+            BackupResult.RestoreUndone -> restoreUndone
             is BackupResult.Failed -> result.failure.messageIn(context)
         }
     }
 
     val saveBackup = rememberCreateDocument("application/json", noPickerMsg, messages) { viewModel.export(it) }
-    // Confirmed before it replaces everything.
-    val openBackup = rememberOpenDocument(noPickerMsg, messages) { confirmImport = it }
+    // Read and described before it replaces everything.
+    val openBackup = rememberOpenDocument(noPickerMsg, messages) { viewModel.preview(it) }
 
     KlasScreen(
         title = stringResource(R.string.backup_title),
@@ -84,33 +89,64 @@ fun BackupScreen(
             importing = importing,
             onExport = { saveBackup(backupFilename) },
             onImport = { openBackup(BACKUP_MIME_TYPES) },
+            undoRestoreSince = undoRestoreSince,
+            onUndoRestore = { confirmUndo = true },
             modifier = modifier,
             bottomInset = bottomInset,
         )
     }
 
-    confirmImport?.let { document ->
+    pendingRestore?.let { pending ->
         ConfirmRestoreDialog(
-            onConfirm = { viewModel.import(document) },
-            onDismiss = { confirmImport = null },
+            preview = pending.preview,
+            onConfirm = viewModel::confirmRestore,
+            onDismiss = viewModel::dismissRestore,
+        )
+    }
+
+    if (confirmUndo) {
+        ConfirmDialog(
+            text = stringResource(R.string.backup_undo_restore_confirm),
+            confirmLabel = stringResource(R.string.backup_undo_restore_action),
+            destructive = true,
+            onConfirm = viewModel::undoRestore,
+            onDismiss = { confirmUndo = false },
         )
     }
 }
 
 /**
  * «Восстановить из копии?» — asked before a restore that would replace what is on the phone, here and on
- * first run's welcome step alike. A restore is a full replace, so it is a loss and says its button in the
- * error colour; the two places used to spell the question, its button and that colour out separately.
+ * first run's welcome step alike. It first says what the file holds and when it was made, so a tutor with
+ * two copies can tell they picked the right one. A restore is a full replace, so it is a loss and says its
+ * button in the error colour.
  */
 @Composable
-fun ConfirmRestoreDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) {
+fun ConfirmRestoreDialog(preview: BackupPreview, onConfirm: () -> Unit, onDismiss: () -> Unit) {
     ConfirmDialog(
-        text = stringResource(R.string.backup_import_confirm),
+        text = previewText(preview) + "\n\n" + stringResource(R.string.backup_import_confirm),
         confirmLabel = stringResource(R.string.backup_import),
         destructive = true,
         onConfirm = onConfirm,
         onDismiss = onDismiss,
     )
+}
+
+/** «В копии от 21.06.2026: 12 учеников, 340 занятий, …» — kinds the file has none of are left out. */
+@Composable
+private fun previewText(preview: BackupPreview): String {
+    val res = LocalResources.current
+    fun count(plural: Int, n: Int) = res.getQuantityString(plural, n, n)
+    val counts = listOfNotNull(
+        count(R.plurals.students_count, preview.students),
+        preview.groups.takeIf { it > 0 }?.let { count(R.plurals.backup_groups_count, it) },
+        count(R.plurals.lessons_count, preview.lessons),
+        preview.payments.takeIf { it > 0 }?.let { count(R.plurals.backup_payments_count, it) },
+        preview.homework.takeIf { it > 0 }?.let { count(R.plurals.backup_homework_count, it) },
+    ).joinToString()
+    return preview.exportedAt
+        ?.let { stringResource(R.string.backup_restore_holds, it.formatDate(), counts) }
+        ?: stringResource(R.string.backup_restore_holds_undated, counts)
 }
 
 /**
@@ -125,6 +161,8 @@ internal fun BackupContent(
     onExport: () -> Unit,
     onImport: () -> Unit,
     modifier: Modifier = Modifier,
+    undoRestoreSince: Instant? = null,
+    onUndoRestore: () -> Unit = {},
     bottomInset: PaddingValues = PaddingValues(),
 ) {
     Column(modifier.verticalScroll(rememberScrollState()).padding(bottom = Spacing.gutter).padding(bottomInset)) {
@@ -155,6 +193,16 @@ internal fun BackupContent(
                 enabled = !importing,
                 onClick = onImport,
             )
+            // Only while the data from before the last import is kept — until the next one.
+            undoRestoreSince?.let { since ->
+                BackupActionRow(
+                    icon = KlasIcons.Filled.Undo,
+                    title = stringResource(R.string.backup_undo_restore),
+                    description = stringResource(R.string.backup_undo_restore_desc, since.formatDate()),
+                    enabled = !importing,
+                    onClick = onUndoRestore,
+                )
+            }
         }
     }
 }

@@ -12,6 +12,7 @@ import com.seblful.klas.domain.model.Balance
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.settings.DevicePreferences
 import com.seblful.klas.testutil.FakeCalendarSync
+import com.seblful.klas.testutil.InMemoryRestoreSnapshots
 import com.seblful.klas.testutil.RecordingDigestScheduler
 import com.seblful.klas.testutil.RecordingNotifier
 import com.seblful.klas.testutil.RecordingReminderScheduler
@@ -54,6 +55,7 @@ class SupportedUpgradeTest {
             override val reminders = RecordingReminderScheduler()
             override val digests = RecordingDigestScheduler()
             override val notifier = RecordingNotifier()
+            override val restoreSnapshots = InMemoryRestoreSnapshots()
         }
         openDatabase(isolated).use { database ->
             val store = createKlasStore(database, host)

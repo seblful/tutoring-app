@@ -105,11 +105,16 @@ open class RepositoryTestEnv(
      */
     val fixtures: Fixtures by lazy { Fixtures(this) }
 
+    /** Where a restore keeps what it replaced, so a test can undo it. */
+    val restoreSnapshots = InMemoryRestoreSnapshots()
+
     val backupRestore = BackupRestore(
         backup = backupManager,
         settings = settingsRepo,
         calendar = calendarMirror,
         reminders = reminders,
+        snapshots = restoreSnapshots,
+        clock = clock,
     )
 
     /**

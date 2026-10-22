@@ -23,6 +23,7 @@ import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.TutoringClass
 import com.seblful.klas.domain.time.WallClock
 import com.seblful.klas.format.toDevicePreferences
+import com.seblful.klas.testutil.InMemoryRestoreSnapshots
 import com.seblful.klas.testutil.RecordingReminderScheduler
 import com.seblful.klas.testutil.RussianMinskPhone
 import kotlinx.coroutines.test.runTest
@@ -80,6 +81,8 @@ class BackupRestoreTest {
             settings = settings,
             calendar = mirror,
             reminders = reminders,
+            snapshots = InMemoryRestoreSnapshots(),
+            clock = WallClock.system(),
         )
     }
 

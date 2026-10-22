@@ -57,3 +57,12 @@ Preserve on-device data and existing backup files when changing storage. Before 
   device's IDs only for matching restored classes (row ID, lesson, student, start), withdraws unclaimed
   events and re-mirrors. This preserves past events and avoids re-inviting upcoming students when
   restoring this phone's own backup; past events are never newly created.
+- A restore is asked about only after the file is read: `BackupManager.preview` parses it as the import
+  will (a refused file is refused before the question) and the dialog names its date and counts.
+  Exports carry an optional `exportedAtMillis`; older files lack it and older builds ignore it, so it
+  needed no version bump.
+- Before replacing anything, `BackupRestore` encodes what is on the phone and, once the import has
+  succeeded, keeps it through `RestoreSnapshots` (Android: one file in `filesDir`, outside platform
+  backup). Backup offers «Undo the last import» until the next import replaces that copy. An empty
+  phone keeps nothing; a refused file leaves the previous copy as it was. Undoing replaces everything,
+  including what was added since, so it asks first.

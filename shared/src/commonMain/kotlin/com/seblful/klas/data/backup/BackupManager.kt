@@ -12,6 +12,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.intOrNull
+import kotlin.time.Instant
 
 /**
  * Exports the whole database to a JSON string and restores it. Import is a full replace inside
@@ -35,7 +36,29 @@ class BackupManager @Inject constructor(
 
     suspend fun export(): BackupData = transactor.transaction { snapshot.read() }.toBackupData()
 
-    suspend fun exportJson(): String = json.encodeToString(export())
+    /** The backup as its file says it, stamped with [at] — the moment it was made — when given. */
+    suspend fun exportJson(at: Instant? = null): String = encode(export(), at)
+
+    /** [data] as a backup file, stamped with [at] when given. */
+    fun encode(data: BackupData, at: Instant? = null): String =
+        json.encodeToString(data.copy(exportedAtMillis = at?.toEpochMilliseconds()))
+
+    /**
+     * What [text] would restore, read the way [parse] reads it — so a file that will be refused is refused
+     * here, before the tutor is asked anything.
+     */
+    fun preview(text: String): BackupPreview {
+        val data = parse(text)
+        return BackupPreview(
+            exportedAt = data.exportedAtMillis?.let { Instant.fromEpochMilliseconds(it) },
+            students = data.students.size,
+            groups = data.groups.size,
+            // A file older than v6 keeps its lessons as flat classes.
+            lessons = data.lessons.size.takeIf { it > 0 } ?: data.classes.splitIntoLessons().first.size,
+            payments = data.payments.size,
+            homework = data.homework.size,
+        )
+    }
 
     /**
      * The file as a [BackupData] — with its **version read first**, and a newer one refused before any row

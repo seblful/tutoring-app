@@ -53,7 +53,6 @@ import androidx.navigationevent.compose.rememberNavigationEventState
 import com.seblful.klas.R
 import com.seblful.klas.domain.model.Subject
 import com.seblful.klas.domain.people.SubjectNames
-import com.seblful.klas.storage.DocumentRef
 import com.seblful.klas.ui.backup.BACKUP_MIME_TYPES
 import com.seblful.klas.ui.backup.BackupResult
 import com.seblful.klas.ui.backup.BackupViewModel
@@ -131,7 +130,6 @@ fun OnboardingScreen(
     val subjects by viewModel.subjects.collectAsStateWithLifecycle()
     val locale by viewModel.locale.collectAsStateWithLifecycle()
     var addingSubject by rememberSaveable { mutableStateOf(false) }
-    var confirmRestore by rememberSaveable { mutableStateOf<String?>(null) }
     val messages = rememberMessages()
     val noPickerMsg = stringResource(R.string.student_contact_failed)
 
@@ -177,8 +175,7 @@ fun OnboardingScreen(
     val restore = rememberOpenDocument(noPickerMsg, messages) { document ->
         // Whether a restore here would destroy anything is `restoreNeedsConfirming`'s — an import is a
         // full replace, and what that costs is a fact about the backup rather than about this screen.
-        // The handle is kept as its string: it survives rotation in a saveable, which a value class does not.
-        if (viewModel.restoreNeedsConfirming()) confirmRestore = document.value
+        if (viewModel.restoreNeedsConfirming()) backupViewModel.preview(document)
         else backupViewModel.import(document)
     }
 
@@ -450,10 +447,12 @@ fun OnboardingScreen(
         SubjectNameDialog(onConfirm = { viewModel.addSubject(it) }, onDismiss = { addingSubject = false })
     }
 
-    confirmRestore?.let { document ->
+    val pendingRestore by backupViewModel.pendingRestore.collectAsStateWithLifecycle()
+    pendingRestore?.let { pending ->
         ConfirmRestoreDialog(
-            onConfirm = { backupViewModel.import(DocumentRef(document)) },
-            onDismiss = { confirmRestore = null },
+            preview = pending.preview,
+            onConfirm = backupViewModel::confirmRestore,
+            onDismiss = backupViewModel::dismissRestore,
         )
     }
 }
