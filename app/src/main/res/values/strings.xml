@@ -91,7 +91,7 @@
     <!-- Schedule -->
     <string name="schedule_title">Schedule</string>
     <string name="schedule_empty">No lessons on this day</string>
-    <string name="schedule_empty_detail">Book a lesson — it will appear here and in your calendar</string>
+    <string name="schedule_empty_detail">Book a lesson — it will appear here</string>
     <string name="schedule_add_class">Book a lesson</string>
     <string name="schedule_week_empty">No lessons this week</string>
     <!-- What the schedule says before anything can be booked. Both the page and the add button carry
@@ -274,6 +274,7 @@
       length of the lesson and is the only place in the app written in the amber of KlasColors.live.
     -->
     <string name="class_status_in_progress">On now</string>
+    <string name="class_status_overdue">Not marked</string>
 
     <!-- Individual vs group lessons: one vocabulary for the distinction, used everywhere it is drawn. -->
     <string name="lesson_kind_all">All</string>
@@ -294,8 +295,10 @@
     <string name="student_add_title">New student</string>
     <string name="student_edit_title">Edit student</string>
     <string name="student_name_label">Name</string>
-    <string name="student_phone_label">Phone</string>
+    <string name="student_phone_label">Contact phone</string>
+    <string name="student_phone_hint">Optional · the student\'s or a parent\'s, for calls and Telegram</string>
     <string name="student_email_label">Email</string>
+    <string name="student_email_hint">Optional · for lesson invitations, if they are on in Settings</string>
     <string name="student_note_label">Note</string>
     <string name="student_form_subjects_title">Subjects and prices</string>
     <string name="student_form_subjects_required">Pick at least one subject and set its price</string>
@@ -368,6 +371,7 @@
     <!-- Price -->
     <string name="price_edit_title">Change the price</string>
     <string name="price_label">Price per hour</string>
+    <string name="price_per_lesson_hint">%1$s for a %2$s lesson</string>
     <string name="price_per_hour">%1$s/h</string>
 
     <!-- Payments -->
@@ -641,7 +645,7 @@
     <string name="onboarding_value_schedule">Lessons by day, week and month, with reminders</string>
     <string name="onboarding_value_money">Who has paid and who owes — worked out for you</string>
     <string name="onboarding_value_offline">No internet and no account: your data stays on the phone</string>
-    <string name="onboarding_welcome_desc">Setup takes a minute: the subjects you teach, and your first student with prices.</string>
+    <string name="onboarding_welcome_desc">Setup takes a minute: the basics, the subjects you teach and your first student.</string>
     <string name="onboarding_start">Set up</string>
     <string name="onboarding_restore">Restore a backup</string>
     <string name="onboarding_restore_desc">The file\'s data will replace what is here</string>
@@ -655,14 +659,26 @@
       language applies as it is tapped, which is what makes the pre-set answer checkable rather than a
       claim.
     -->
-    <string name="onboarding_locale_title">Language and currency</string>
-    <string name="onboarding_locale_desc">Taken from your phone. Both can be changed later in Settings.</string>
+    <string name="onboarding_locale_title">The basics</string>
+    <string name="onboarding_locale_desc">Already chosen for you. Change anything now or later in Settings.</string>
+    <string name="onboarding_lesson_length_desc">Pre-fills new lessons. Prices are per hour, so each lesson is billed for its length.</string>
     <string name="onboarding_locale_currency_desc">Amounts are only labelled with it — nothing is converted.</string>
     <string name="onboarding_subjects_title">Subjects</string>
-    <string name="onboarding_subjects_desc">Add the subjects you teach. You can change them later.</string>
+    <string name="onboarding_subjects_desc">Tap what you teach, or add your own. You can change them later.</string>
+    <string-array name="onboarding_subject_suggestions">
+        <item>Math</item>
+        <item>English</item>
+        <item>Physics</item>
+        <item>Chemistry</item>
+        <item>Biology</item>
+        <item>History</item>
+        <item>Computer science</item>
+        <item>Piano</item>
+    </string-array>
     <string name="onboarding_subject_removed">Subject deleted</string>
     <string name="onboarding_subject_remove_failed">Could not delete the subject</string>
     <string name="onboarding_student_title">First student</string>
+    <string name="onboarding_student_desc">Just a name and a price. A phone, email and note can be added on the student\'s card later.</string>
     <string name="onboarding_continue">Next</string>
     <string name="onboarding_finish">Done</string>
 

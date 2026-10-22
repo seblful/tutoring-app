@@ -109,8 +109,8 @@ class StringCoverageTest {
     @Test
     fun `an indexed string-array is the same length in every language`() {
         assertEachTranslation(
-            "A <string-array> has a different number of items in two languages. Both of the app's arrays " +
-                "are read by index — a weekday number, a month — so the short one is an out-of-bounds read.",
+            "A <string-array> has a different number of items in two languages. The arrays read by index " +
+                "— a weekday number, a month — fail short with an out-of-bounds read.",
         ) { tag, translation ->
             translation.arrays.keys.intersect(reference.arrays.keys)
                 .filter { translation.arrays.getValue(it) != reference.arrays.getValue(it) }

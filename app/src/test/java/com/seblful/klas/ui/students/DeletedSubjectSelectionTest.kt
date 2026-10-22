@@ -25,7 +25,9 @@ class DeletedSubjectSelectionTest {
     fun `deleting a selected subject cannot leave an invisible unsaveable enrollment`() = runTest(main.dispatcher) {
         val removed = env.fixtures.subject("Math")
         val kept = env.fixtures.subject("Physics")
-        val vm = main.own(StudentFormViewModel(env.subjectRepo, env.enrollmentRepo, main.appScope, main.dispatcher))
+        val vm = main.own(
+            StudentFormViewModel(env.subjectRepo, env.enrollmentRepo, env.settingsRepo, main.appScope, main.dispatcher),
+        )
         observing(vm.state)
         vm.update { it.copy(name = "Anna") }
         vm.toggleSubject(removed, true)

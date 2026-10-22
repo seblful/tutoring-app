@@ -91,25 +91,35 @@ internal fun LessonSettingsContent(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun DefaultLessonDuration(settings: AppSettings, onUpdate: ((AppSettings) -> AppSettings) -> Unit) {
+    LessonLengthSetting(
+        minutes = settings.defaultLessonMinutes,
+        onSelect = { minutes -> onUpdate { it.copy(defaultLessonMinutes = minutes) } },
+        hint = stringResource(R.string.settings_default_lesson_desc),
+    )
+}
+
+/** The usual lesson length, as presets and a custom length — here, and in setup with its own [hint]. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun LessonLengthSetting(minutes: Int, onSelect: (Int) -> Unit, hint: String) {
     var pickingDuration by rememberSaveable { mutableStateOf(false) }
     DurationPresetRow(
         title = stringResource(R.string.settings_default_lesson),
         presets = LessonPresets,
-        minutes = settings.defaultLessonMinutes,
+        minutes = minutes,
         customWord = stringResource(R.string.class_duration_custom),
-        onSelect = { minutes -> onUpdate { it.copy(defaultLessonMinutes = minutes) } },
+        onSelect = onSelect,
         onCustom = { pickingDuration = true },
     )
-    SettingsHint(stringResource(R.string.settings_default_lesson_desc))
+    SettingsHint(hint)
     if (pickingDuration) {
         DurationPickerModal(
-            initialMinutes = settings.defaultLessonMinutes,
+            initialMinutes = minutes,
             title = stringResource(R.string.settings_default_lesson),
-            onConfirm = { minutes ->
-                onUpdate { it.copy(defaultLessonMinutes = minutes) }
+            onConfirm = { picked ->
+                onSelect(picked)
                 pickingDuration = false
             },
             onDismiss = { pickingDuration = false },

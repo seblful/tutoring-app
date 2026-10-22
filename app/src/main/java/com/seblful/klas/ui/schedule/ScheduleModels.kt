@@ -1,6 +1,7 @@
 package com.seblful.klas.ui.schedule
 
 import com.seblful.klas.domain.lesson.DeleteWarning
+import com.seblful.klas.domain.lesson.LessonPhase
 import com.seblful.klas.domain.lesson.SessionRules
 import com.seblful.klas.domain.model.ClassSession
 import com.seblful.klas.domain.model.Homework
@@ -67,6 +68,9 @@ data class ScheduleRow(
         )
     }
 }
+
+/** Where [row] stands, from [ScheduleViewModel.phases]: UPCOMING when left out, and its status says the rest. */
+fun Map<Long, LessonPhase>.of(row: ScheduleRow): LessonPhase = this[row.session.lessonId] ?: LessonPhase.UPCOMING
 
 /**
  * One day's section of the week agenda. Only days that actually have classes get one.
@@ -135,7 +139,7 @@ sealed interface ScheduleContent {
     data class Week(val start: LocalDate, val sections: List<WeekSection>) : ScheduleContent
 
     /**
-     * Every lesson row this content holds, whichever shape it is — asked by [ScheduleViewModel.running],
+     * Every lesson row this content holds, whichever shape it is — asked by [ScheduleViewModel.phases],
      * which is about the clock and not about the view, and by a reminder's tap looking for its lesson.
      */
     val rowsShown: List<ScheduleRow>

@@ -5,6 +5,8 @@ import androidx.compose.animation.EnterExitState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -20,6 +22,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
@@ -39,6 +42,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -48,6 +52,7 @@ import androidx.navigationevent.compose.NavigationBackHandler
 import androidx.navigationevent.compose.rememberNavigationEventState
 import com.seblful.klas.R
 import com.seblful.klas.domain.model.Subject
+import com.seblful.klas.domain.people.SubjectNames
 import com.seblful.klas.storage.DocumentRef
 import com.seblful.klas.ui.backup.BACKUP_MIME_TYPES
 import com.seblful.klas.ui.backup.BackupResult
@@ -72,6 +77,7 @@ import com.seblful.klas.ui.common.rememberOpenDocument
 import com.seblful.klas.ui.common.state.valueOrNull
 import com.seblful.klas.ui.navigation.fadeThrough
 import com.seblful.klas.ui.navigation.predictiveBackRelease
+import com.seblful.klas.ui.settings.LessonLengthSetting
 import com.seblful.klas.ui.students.StudentFormContent
 import com.seblful.klas.ui.students.StudentFormViewModel
 import com.seblful.klas.ui.subjects.SubjectNameDialog
@@ -82,12 +88,14 @@ private enum class Step(val number: Int) {
     WELCOME(0),
 
     /**
-     * The language and the currency, **first**, because every screen after it is read in the answer.
+     * The language, the currency and the usual lesson length, **first**, because what comes after is read
+     * in the answers: the language on every screen, and the student step's prices per lesson of this length.
      *
-     * Both arrive pre-set from the phone, so this is a step to nod at rather than one to fill in — which is
-     * why it is a step at all and not a question folded into the welcome screen: the guess is right most of
-     * the time and wrong in a way the tutor is the only one who can see (a Minsk tutor's English phone
-     * names dollars). The language applies on the tap, so the rest of the setup demonstrates the choice.
+     * All three arrive pre-set, so this is a step to nod at rather than one to fill in — which is why it is
+     * a step at all and not a question folded into the welcome screen: the guess is right most of the time
+     * and wrong in a way the tutor is the only one who can see (a Minsk tutor's English phone names dollars;
+     * a tutor of 90-minute lessons types a lesson's price as the hour's). The language applies on the tap,
+     * so the rest of the setup demonstrates the choice.
      */
     LOCALE(1),
     SUBJECTS(2),
@@ -101,9 +109,9 @@ private enum class Step(val number: Int) {
 }
 
 /**
- * First run. It opens on a welcome step that offers three ways out — walk the setup (step 1: language and
- * currency, step 2: subjects, step 3: the first student with subjects + prices), restore a backup, or skip
- * it — so setup is offered rather than imposed.
+ * First run. It opens on a welcome step that offers three ways out — walk the setup (step 1: language,
+ * currency and lesson length, step 2: subjects, step 3: the first student's name, subjects and prices),
+ * restore a backup, or skip it — so setup is offered rather than imposed.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -311,9 +319,9 @@ fun OnboardingScreen(
                         // a record: the defaults are somebody else's answers, and a currency field that shows
                         // BYN and then jumps to USD reads as the app changing its mind. See [Loadable].
                         val chosen = locale.valueOrNull()
-                        Column(Modifier.weight(1f)) {
+                        Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
                             if (chosen == null) {
-                                ListSkeleton(rows = 2, rowHeight = LocaleRowHeight)
+                                ListSkeleton(rows = 3, rowHeight = LocaleRowHeight)
                             } else {
                                 ChoiceRow(
                                     title = stringResource(R.string.settings_language),
@@ -327,6 +335,11 @@ fun OnboardingScreen(
                                     description = stringResource(R.string.onboarding_locale_currency_desc),
                                     selected = chosen.currency,
                                     onSelect = viewModel::setCurrency,
+                                )
+                                LessonLengthSetting(
+                                    minutes = chosen.defaultLessonMinutes,
+                                    onSelect = viewModel::setLessonMinutes,
+                                    hint = stringResource(R.string.onboarding_lesson_length_desc),
                                 )
                             }
                         }
@@ -345,6 +358,13 @@ fun OnboardingScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(Spacing.gutter),
                         )
+                        val added = subjects.valueOrNull()
+                        SubjectSuggestions(
+                            added = added,
+                            onAdd = viewModel::addSubject,
+                            onRemove = ::removeSubject,
+                            modifier = Modifier.padding(horizontal = Spacing.gutter),
+                        )
                         OutlinedButton(
                             onClick = { addingSubject = true },
                             modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.gutter),
@@ -356,7 +376,6 @@ fun OnboardingScreen(
                         // «Нет предметов» is usually the truth on this screen — it runs on a fresh install —
                         // but not always: the step is reachable again once subjects have been added, and it
                         // must not say that over three the tutor has just typed. See [Loadable].
-                        val added = subjects.valueOrNull()
                         if (added == null) {
                             ListSkeleton(Modifier.weight(1f), rows = 3, rowHeight = SubjectRowHeight)
                         } else if (added.isEmpty()) {
@@ -401,10 +420,20 @@ fun OnboardingScreen(
 
                     Step.STUDENT -> {
                         val studentState by studentVm.state.collectAsStateWithLifecycle()
+                        Text(
+                            stringResource(R.string.onboarding_student_desc),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = Spacing.gutter).padding(top = Spacing.gutter),
+                        )
+                        // A name and a priced subject: what a lesson needs. How to reach the student is the
+                        // card's to ask, once there is a student to reach. Five optional fields made the last
+                        // step of a setup that "takes a minute" its longest screen.
                         StudentFormContent(
                             state = studentState,
                             viewModel = studentVm,
                             modifier = Modifier.weight(1f).fillMaxWidth(),
+                            contacts = false,
                         )
                         Button(
                             onClick = { studentVm.save { viewModel.complete(); onFinished() } },
@@ -426,6 +455,33 @@ fun OnboardingScreen(
             onConfirm = { backupViewModel.import(DocumentRef(document)) },
             onDismiss = { confirmRestore = null },
         )
+    }
+}
+
+/**
+ * The subjects most tutors teach, one tap each: a chip is on while a subject of that name exists, and
+ * tapping it again takes the subject back — the same removal, with the same undo, as the list's bin.
+ * Nothing is offered until the list has been read, since a chip cannot say yet whether it is on.
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun SubjectSuggestions(
+    added: List<Subject>?,
+    onAdd: (String) -> Unit,
+    onRemove: (Subject) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    if (added == null) return
+    val suggestions = stringArrayResource(R.array.onboarding_subject_suggestions)
+    FlowRow(modifier, horizontalArrangement = Arrangement.spacedBy(Spacing.inline)) {
+        suggestions.forEach { name ->
+            val existing = SubjectNames.sameAs(name, added)
+            FilterChip(
+                selected = existing != null,
+                onClick = { if (existing != null) onRemove(existing) else onAdd(name) },
+                label = { Text(name) },
+            )
+        }
     }
 }
 

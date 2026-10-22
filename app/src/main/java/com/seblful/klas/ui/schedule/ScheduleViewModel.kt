@@ -322,14 +322,19 @@ class ScheduleViewModel @Inject constructor(
         }
             .derive(this, computation, null)
 
-    /** The lessons **happening right now**, by lesson id — what the schedule badges «Идёт». */
-    val running: StateFlow<Set<Long>> =
+    /**
+     * The shown lessons the clock has something to say about **this minute**, by lesson id: being taught
+     * («Идёт»), or over and unmarked («Не отмечено»). Read with [of]. Only those two, so a day of lessons
+     * still to come is the same empty map as any other, and moving between such days redraws no row.
+     */
+    val phases: StateFlow<Map<Long, LessonPhase>> =
         combine(content, minutes) { loaded, now ->
             loaded.valueOrNull()?.rowsShown.orEmpty()
-                .filter { LessonPhase.of(it.session, now).isRunning }
-                .mapTo(mutableSetOf()) { it.session.lessonId }
+                .map { it.session.lessonId to LessonPhase.of(it.session, now) }
+                .filter { (_, phase) -> phase == LessonPhase.IN_PROGRESS || phase == LessonPhase.OVERDUE }
+                .toMap()
         }
-            .derive(this, computation, emptySet())
+            .derive(this, computation, emptyMap())
 
     /** Switches view, on the pages holding the selected day — see [SchedulePages.showing]. */
     fun setViewMode(mode: ScheduleViewMode) = page { it.showing(mode) }

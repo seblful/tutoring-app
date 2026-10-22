@@ -56,15 +56,24 @@ fun classStatusColor(status: LessonStatus): Color = when (status) {
     LessonStatus.CANCELLED -> MaterialTheme.colorScheme.error
 }
 
-/** What a lesson's badge **says**: its status, or «Идёт» while the lesson is being taught. */
+/** What a lesson's badge **says**: its status, «Идёт» while it is taught, «Не отмечено» once over unmarked. */
 @Composable
-fun lessonBadgeLabel(status: LessonStatus, running: Boolean): String =
-    if (running) stringResource(R.string.class_status_in_progress) else classStatusLabel(status)
+fun lessonBadgeLabel(status: LessonStatus, phase: LessonPhase): String = when (phase) {
+    LessonPhase.IN_PROGRESS -> stringResource(R.string.class_status_in_progress)
+    // Not «Запланировано» once it is over: that read as nothing to do, and a lesson nobody marks taught is
+    // never billed — the first thing a new tutor's empty balances come down to.
+    LessonPhase.OVERDUE -> stringResource(R.string.class_status_overdue)
+    LessonPhase.UPCOMING, LessonPhase.SETTLED -> classStatusLabel(status)
+}
 
 /** The tint [lessonBadgeLabel] is said in — amber for a lesson in progress, see `KlasColors.live`. */
 @Composable
-fun lessonBadgeColor(status: LessonStatus, running: Boolean): Color =
-    if (running) klasColors.live else classStatusColor(status)
+fun lessonBadgeColor(status: LessonStatus, phase: LessonPhase): Color = when (phase) {
+    LessonPhase.IN_PROGRESS -> klasColors.live
+    // Neither the blue of a lesson to come nor any status's colour: it has none yet.
+    LessonPhase.OVERDUE -> MaterialTheme.colorScheme.onSurfaceVariant
+    LessonPhase.UPCOMING, LessonPhase.SETTLED -> classStatusColor(status)
+}
 /** Localized label for a class mode: «Очно» / «Удалённо». */
 @Composable
 fun classModeLabel(mode: ClassMode): String = stringResource(mode.labelRes())

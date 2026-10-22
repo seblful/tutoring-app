@@ -98,6 +98,12 @@ Build screens from shared state and controls. Feature rules belong in the domain
   currencies. Sort by the localized name and show the name, symbol and ISO code
   (`Belarusian ruble — ⃅ (BYN)`); codes distinguish shared symbols. Use the same label in change
   confirmation. Currency remains a label on stored amounts, without conversion or precision changes.
+- First run asks only what a lesson needs. Step 1 is the basics, all pre-set: language, currency and the
+  usual lesson length (Settings' `LessonLengthSetting`). Step 2 is subjects: suggestion chips that add a
+  subject and take it back, plus a custom name. Step 3 is the first student's name and subject prices
+  (`StudentFormContent(contacts = false)`); phone, email, note and place are the card's to ask. The student
+  form ticks a lone subject for the tutor, and while the usual length is not an hour each price says what
+  one lesson costs.
 - Apply `AppLanguage` with `ProvideLocalizedResources`, never `Locale.setDefault()`. `StringCoverageTest`
   checks resource parity; language changes re-sync baked calendar text. Setup and Settings share
   `LanguageChoices`: System first, followed by English and Русский in autonym order.
@@ -185,8 +191,9 @@ Build screens from shared state and controls. Feature rules belong in the domain
   timing is editable when lesson reminders **or** calendar sync is enabled, from either category.
 - Schedule Day/Week/Month share `ScheduleViewModel.content`'s week assembly, avoiding reads for switches
   inside the week. Summaries are count·hours·money (`DaySummary`); show “now” only today. Completion is
-  an undoable green swipe; cancelled lessons recede with a red badge. Book by duration, starting on the
-  selected schedule day.
+  an undoable green swipe; cancelled lessons recede with a red badge. An ended lesson nobody has marked
+  badges «Not marked» in grey (`LessonPhase.OVERDUE`), never «Planned»: unmarked lessons are unbilled. Book
+  by duration, starting on the selected schedule day.
 - The booking form is cards in the order the tutor answers — Who, When, then one details card of
   Length, Repeat (new bookings only), Price and Format. A new booking picks who from one dropdown like the subject's (`TargetChoices`: recently taught
   first, students and groups together, then adding a student or a group), so there is no Student/Group

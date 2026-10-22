@@ -11,6 +11,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
+import com.seblful.klas.domain.lesson.LessonPhase
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.ui.common.ArchivedBadge
 import com.seblful.klas.ui.common.BadgeLine
@@ -47,10 +48,12 @@ private fun StatusBadgePreview() = PreviewSurface {
         }
     }
     Row(horizontalArrangement = Arrangement.spacedBy(Spacing.inline)) {
-        StatusBadge(
-            text = lessonBadgeLabel(LessonStatus.SCHEDULED, running = true),
-            color = lessonBadgeColor(LessonStatus.SCHEDULED, running = true),
-        )
+        listOf(LessonPhase.IN_PROGRESS, LessonPhase.OVERDUE).forEach { phase ->
+            StatusBadge(
+                text = lessonBadgeLabel(LessonStatus.SCHEDULED, phase),
+                color = lessonBadgeColor(LessonStatus.SCHEDULED, phase),
+            )
+        }
         ArchivedBadge()
     }
 }

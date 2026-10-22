@@ -34,7 +34,13 @@ class StudentFormPhoneTest {
 
     @Test
     fun `the phone opens on the dialling code of the chosen currency and follows a change of it`() {
-        val vm = StudentFormViewModel(env.subjectRepo, env.enrollmentRepo, MainScope(), Dispatchers.Unconfined)
+        val vm = StudentFormViewModel(
+            env.subjectRepo,
+            env.enrollmentRepo,
+            env.settingsRepo,
+            MainScope(),
+            Dispatchers.Unconfined,
+        )
         // Onboarding embeds the form after the currency step, which can still be revisited.
         var currency by mutableStateOf(Currency.RUB)
         compose.setContent {
@@ -43,10 +49,10 @@ class StudentFormPhoneTest {
             }
         }
 
-        compose.onNodeWithText("Phone").assertTextContains("+7", substring = true)
+        compose.onNodeWithText("Contact phone").assertTextContains("+7", substring = true)
 
         currency = Currency.BYN
-        compose.onNodeWithText("Phone").assertTextContains("+375", substring = true)
+        compose.onNodeWithText("Contact phone").assertTextContains("+375", substring = true)
         assertFalse("the code alone is not the tutor's work", vm.state.value.isDirty)
     }
 }

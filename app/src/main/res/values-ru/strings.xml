@@ -119,7 +119,7 @@
     <!-- Schedule -->
     <string name="schedule_title">Расписание</string>
     <string name="schedule_empty">На этот день занятий нет</string>
-    <string name="schedule_empty_detail">Запишите занятие — оно появится здесь и в календаре</string>
+    <string name="schedule_empty_detail">Запишите занятие — оно появится здесь</string>
     <string name="schedule_add_class">Записать занятие</string>
     <string name="schedule_week_empty">На эту неделю занятий нет</string>
     <!--
@@ -331,6 +331,7 @@
       единственное в приложении пишется янтарным цветом KlasColors.live.
     -->
     <string name="class_status_in_progress">Идёт</string>
+    <string name="class_status_overdue">Не отмечено</string>
 
     <!--
       Individual vs group lessons: one vocabulary for the distinction, used everywhere it is drawn —
@@ -354,8 +355,10 @@
     <string name="student_add_title">Новый ученик</string>
     <string name="student_edit_title">Изменить ученика</string>
     <string name="student_name_label">Имя</string>
-    <string name="student_phone_label">Телефон</string>
+    <string name="student_phone_label">Телефон для связи</string>
+    <string name="student_phone_hint">Необязательно · ученика или родителя — для звонков и Telegram</string>
     <string name="student_email_label">Email</string>
+    <string name="student_email_hint">Необязательно · для приглашений на занятия, если они включены в настройках</string>
     <string name="student_note_label">Заметка</string>
     <string name="student_form_subjects_title">Предметы и цены</string>
     <string name="student_form_subjects_required">Выберите хотя бы один предмет и укажите цену</string>
@@ -437,6 +440,7 @@
     <!-- Price -->
     <string name="price_edit_title">Изменить цену</string>
     <string name="price_label">Цена за час</string>
+    <string name="price_per_lesson_hint">%1$s за занятие %2$s</string>
     <string name="price_per_hour">%1$s/час</string>
 
     <!-- Payments -->
@@ -753,7 +757,7 @@
     <string name="onboarding_value_schedule">Занятия по дням, неделям и месяцам, с напоминаниями</string>
     <string name="onboarding_value_money">Кто сколько заплатил и кто сколько должен — считается само</string>
     <string name="onboarding_value_offline">Без интернета и без аккаунта: данные остаются на телефоне</string>
-    <string name="onboarding_welcome_desc">Настройка займёт минуту: предметы, которые вы преподаёте, и первый ученик с ценами.</string>
+    <string name="onboarding_welcome_desc">Настройка займёт минуту: основное, ваши предметы и первый ученик.</string>
     <string name="onboarding_start">Настроить</string>
     <string name="onboarding_restore">Загрузить резервную копию</string>
     <string name="onboarding_restore_desc">Данные из файла заменят текущие</string>
@@ -766,14 +770,26 @@
       телефона, поэтому репетитору, которому телефон и так говорит нужное, достаточно нажать «Далее». Язык
       применяется сразу по нажатию — именно это позволяет проверить подставленный ответ, а не поверить ему.
     -->
-    <string name="onboarding_locale_title">Язык и валюта</string>
-    <string name="onboarding_locale_desc">Взяты с телефона. И то, и другое можно изменить позже в настройках.</string>
+    <string name="onboarding_locale_title">Основное</string>
+    <string name="onboarding_locale_desc">Уже выбрано за вас. Изменить можно сейчас или позже в настройках.</string>
+    <string name="onboarding_lesson_length_desc">Подставляется в новые занятия. Цены — за час, поэтому занятие оплачивается по его длительности.</string>
     <string name="onboarding_locale_currency_desc">Валютой только подписываются суммы — ничего не пересчитывается.</string>
     <string name="onboarding_subjects_title">Предметы</string>
-    <string name="onboarding_subjects_desc">Добавьте предметы, которые вы преподаёте. Их можно изменить позже.</string>
+    <string name="onboarding_subjects_desc">Отметьте, что вы преподаёте, или добавьте свой предмет. Их можно изменить позже.</string>
+    <string-array name="onboarding_subject_suggestions">
+        <item>Математика</item>
+        <item>Английский язык</item>
+        <item>Русский язык</item>
+        <item>Физика</item>
+        <item>Химия</item>
+        <item>Биология</item>
+        <item>Информатика</item>
+        <item>Фортепиано</item>
+    </string-array>
     <string name="onboarding_subject_removed">Предмет удалён</string>
     <string name="onboarding_subject_remove_failed">Не удалось удалить предмет</string>
     <string name="onboarding_student_title">Первый ученик</string>
+    <string name="onboarding_student_desc">Только имя и цена. Телефон, email и заметку можно добавить позже в карточке ученика.</string>
     <string name="onboarding_continue">Далее</string>
     <string name="onboarding_finish">Готово</string>
 

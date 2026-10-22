@@ -26,8 +26,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
 /**
- * Drives first-run setup: the tutor confirms the language and currency, adds at least one subject, then
- * their first student (with subjects and prices). Completing it flips `AppSettings.onboardingComplete`,
+ * Drives first-run setup: the tutor confirms the language, currency and lesson length, adds at least one
+ * subject, then their first student (with subjects and prices). Completing it flips `AppSettings.onboardingComplete`,
  * after which the app shows its normal tabs.
  */
 @ViewModelKey
@@ -51,6 +51,9 @@ class OnboardingViewModel @Inject constructor(
 
     /** Stores the currency. Asks nothing: nothing has been recorded yet for a re-label to touch. */
     fun setCurrency(currency: Currency) = store { it.copy(currency = currency) }
+
+    /** Stores how long a lesson usually is: what a booking starts at, and what the student step prices per. */
+    fun setLessonMinutes(minutes: Int) = store { it.copy(defaultLessonMinutes = minutes) }
 
     /** Subjects added during setup. */
     val subjects: StateFlow<Loadable<List<Subject>>> = subjectsRepo.observeAll()

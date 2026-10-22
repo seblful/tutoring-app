@@ -31,7 +31,9 @@ class StudentSaveLifecycleTest {
 
     private suspend fun TestScope.form(): StudentFormViewModel {
         val subject = env.fixtures.subject("Maths")
-        val vm = main.own(StudentFormViewModel(env.subjectRepo, env.enrollmentRepo, main.appScope, main.dispatcher))
+        val vm = main.own(
+            StudentFormViewModel(env.subjectRepo, env.enrollmentRepo, env.settingsRepo, main.appScope, main.dispatcher),
+        )
         observing(vm.state)
         runCurrent()
         vm.update { it.copy(name = "Ann") }

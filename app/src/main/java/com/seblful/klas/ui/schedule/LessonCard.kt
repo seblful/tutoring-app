@@ -19,6 +19,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import com.seblful.klas.R
 import com.seblful.klas.domain.lesson.LessonKind
+import com.seblful.klas.domain.lesson.LessonPhase
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.format.bulletJoin
 import com.seblful.klas.ui.common.BadgeLine
@@ -43,14 +44,14 @@ import com.seblful.klas.ui.theme.klasColors
 @Composable
 internal fun LazyItemScope.SwipeToCompleteCard(
     row: ScheduleRow,
-    running: Boolean,
+    phase: LessonPhase,
     timeWidth: Dp,
     onClick: () -> Unit,
     onComplete: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     if (!row.canSwipeComplete) {
-        ScheduleCard(row, running, timeWidth, onClick, animateInPlace(modifier))
+        ScheduleCard(row, phase, timeWidth, onClick, animateInPlace(modifier))
         return
     }
     SwipeToConfirmBox(
@@ -75,7 +76,7 @@ internal fun LazyItemScope.SwipeToCompleteCard(
     ) {
         ScheduleCard(
             row,
-            running,
+            phase,
             timeWidth,
             onClick,
             Modifier.swipeAction(stringResource(R.string.class_mark_completed), onComplete),
@@ -86,7 +87,7 @@ internal fun LazyItemScope.SwipeToCompleteCard(
 @Composable
 private fun ScheduleCard(
     row: ScheduleRow,
-    running: Boolean,
+    phase: LessonPhase,
     timeWidth: Dp,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -130,7 +131,7 @@ private fun ScheduleCard(
                 }
                 // Under the icon, not hung under the name: the status pill starts the card's second line on
                 // the same edge as its first.
-                StatusLine(row, running)
+                StatusLine(row, phase)
                 if (row.isGroup) {
                     Text(
                         // The roster is the least important line on the card and the most likely to
@@ -148,8 +149,8 @@ private fun ScheduleCard(
 }
 
 @Composable
-internal fun StatusLine(row: ScheduleRow, running: Boolean, maxLines: Int = 1) {
-    BadgeLine(badge = { SessionStatusBadge(row, running) }, Modifier.padding(top = Spacing.tight)) {
+internal fun StatusLine(row: ScheduleRow, phase: LessonPhase, maxLines: Int = 1) {
+    BadgeLine(badge = { SessionStatusBadge(row, phase) }, Modifier.padding(top = Spacing.tight)) {
         Text(
             bulletJoin(row.subjectName, classModeLabel(row.klass.mode)),
             style = MaterialTheme.typography.bodyMedium,
@@ -161,14 +162,14 @@ internal fun StatusLine(row: ScheduleRow, running: Boolean, maxLines: Int = 1) {
 }
 
 @Composable
-private fun SessionStatusBadge(row: ScheduleRow, running: Boolean) {
+private fun SessionStatusBadge(row: ScheduleRow, phase: LessonPhase) {
     val status = row.session.status
     StatusBadge(
-        text = lessonBadgeLabel(status, running),
-        color = lessonBadgeColor(status, running),
+        text = lessonBadgeLabel(status, phase),
+        color = lessonBadgeColor(status, phase),
         // Keyed on **what the badge says**, not on the status alone: a lesson beginning changes the word
         // without changing the status, and a pill that changed silently at four o'clock would be the one
         // moment in the app where a state change is not announced.
-        modifier = Modifier.popsOnChange(status to running),
+        modifier = Modifier.popsOnChange(status to phase),
     )
 }

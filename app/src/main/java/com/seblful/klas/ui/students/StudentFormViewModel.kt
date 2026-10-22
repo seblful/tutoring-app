@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.seblful.klas.data.people.EnrollmentRepository
 import com.seblful.klas.data.people.SubjectRepository
+import com.seblful.klas.data.settings.AppSettings
+import com.seblful.klas.data.settings.SettingsRepository
 import com.seblful.klas.di.ApplicationScope
 import com.seblful.klas.di.Computation
 import com.seblful.klas.domain.model.ClassMode
@@ -27,6 +29,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
 /**
@@ -39,6 +42,7 @@ import kotlinx.coroutines.launch
 class StudentFormViewModel @Inject constructor(
     private val subjectsRepo: SubjectRepository,
     private val enrollment: EnrollmentRepository,
+    private val settings: SettingsRepository,
     @param:ApplicationScope private val appScope: CoroutineScope,
     @param:Computation private val computation: CoroutineDispatcher,
 ) : ViewModel() {
@@ -64,6 +68,8 @@ class StudentFormViewModel @Inject constructor(
          * state is not.
          */
         val allSubjects: Loadable<List<Subject>> = Loadable.Loading,
+        /** How long a lesson usually is, to say what a typed hourly price comes to for one. */
+        val lessonMinutes: Int = AppSettings().defaultLessonMinutes,
         private val baseline: Form = Form(),
     ) : LeavableForm {
         val selectedSubjectIds: Set<Long> get() = form.subjectPrices.keys
@@ -82,7 +88,8 @@ class StudentFormViewModel @Inject constructor(
         form,
         subjectsRepo.observeAll(),
         pristine,
-    ) { f, subjects, baseline ->
+        settings.observe().map { it.defaultLessonMinutes },
+    ) { f, subjects, baseline, lessonMinutes ->
         val existing = subjects.mapTo(mutableSetOf()) { it.id }
         UiState(
             f.copy(
@@ -90,12 +97,38 @@ class StudentFormViewModel @Inject constructor(
                     it in existing
                 },
             ),
-            Loadable.Ready(subjects), baseline,
+            Loadable.Ready(subjects), lessonMinutes, baseline,
         )
     }
         // The form itself is usable from the first frame, so the state is not wrapped — the one part of it
         // that has to have been read carries its own answer (see [UiState.allSubjects]).
         .derive(this, computation, UiState())
+
+    /**
+     * Whether the ticked subjects are still the form's guess ([guessSubject]) — until one is suggested,
+     * ticked or added, after which no change to the list second-guesses them.
+     */
+    private var guessing = true
+
+    init {
+        viewModelScope.launch { subjectsRepo.observeAll().collect(::guessSubject) }
+    }
+
+    /** Whether nothing has been entered yet, so what the form shows is still its own guess. */
+    private val untouched: Boolean get() = form.value == pristine.value
+
+    /**
+     * Ticks the only subject there is, until the tutor touches the form: a student needs one, and with a
+     * single subject there is nothing to choose. With several, nothing is ticked — and a guess the list
+     * has outgrown (setup adds subjects while this form waits) is taken back.
+     */
+    private fun guessSubject(subjects: List<Subject>) {
+        if (!guessing || !untouched) return
+        val guess = subjects.singleOrNull()?.let { mapOf(it.id to MoneyField()) }.orEmpty()
+        if (form.value.subjectPrices.keys == guess.keys) return
+        form.value = form.value.copy(subjectPrices = guess)
+        pristine.value = form.value
+    }
 
     fun update(transform: (Form) -> Form) {
         form.value = transform(form.value)
@@ -112,13 +145,14 @@ class StudentFormViewModel @Inject constructor(
 
     /** A setup detour carries the subject, while its parent form stays on the back stack. */
     fun suggestSubject(subjectId: Long) {
-        if (form.value != pristine.value) return
-        val suggested = pristine.value.copy(subjectPrices = mapOf(subjectId to MoneyField()))
-        form.value = suggested
-        pristine.value = suggested
+        if (!untouched) return
+        guessing = false
+        form.value = form.value.copy(subjectPrices = mapOf(subjectId to MoneyField()))
+        pristine.value = form.value
     }
 
     fun toggleSubject(subjectId: Long, on: Boolean) {
+        guessing = false
         form.value = form.value.copy(
             subjectPrices = if (on) form.value.subjectPrices + (subjectId to MoneyField())
             else form.value.subjectPrices - subjectId,
@@ -141,6 +175,7 @@ class StudentFormViewModel @Inject constructor(
     fun addSubject(name: String) {
         val trimmed = name.trim()
         if (trimmed.isEmpty()) return
+        guessing = false
         // A subject already called that is the one meant: ticked, not made a second time.
         state.value.allSubjects.valueOrNull()
             ?.let { SubjectNames.sameAs(trimmed, it) }

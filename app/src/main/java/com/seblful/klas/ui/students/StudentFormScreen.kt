@@ -30,6 +30,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.seblful.klas.R
+import com.seblful.klas.domain.lesson.ClassRules
 import com.seblful.klas.domain.model.Subject
 import com.seblful.klas.domain.people.Phone
 import com.seblful.klas.format.MoneyField
@@ -44,10 +45,12 @@ import com.seblful.klas.ui.common.SaveAction
 import com.seblful.klas.ui.common.SectionTitle
 import com.seblful.klas.ui.common.ShowMessagesFor
 import com.seblful.klas.ui.common.Spacing
+import com.seblful.klas.ui.common.durationLabel
 import com.seblful.klas.ui.common.leaveGuard
 import com.seblful.klas.ui.common.outsetRowPress
 import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.state.Loadable
+import com.seblful.klas.ui.common.text
 import com.seblful.klas.ui.subjects.SubjectNameDialog
 import dev.zacsweers.metrox.viewmodel.metroViewModel
 
@@ -86,13 +89,19 @@ fun StudentFormScreen(
     }
 }
 
-/** The form body, without a scaffold, so it can also be embedded (e.g. in onboarding). */
+/**
+ * The form body, without a scaffold, so it can also be embedded (e.g. in onboarding).
+ *
+ * @param contacts whether to ask how to reach the student and where they are taught. Setup asks only for
+ *   what a lesson needs — a name and a priced subject — and leaves the rest to the card.
+ */
 @Composable
 fun StudentFormContent(
     state: StudentFormViewModel.UiState,
     viewModel: StudentFormViewModel,
     modifier: Modifier = Modifier,
     bottomInset: PaddingValues = PaddingValues(),
+    contacts: Boolean = true,
 ) {
     val form = state.form
     // The currency is the screen's to know (see `LocalCurrency`); onboarding may change it in the same flow.
@@ -110,18 +119,22 @@ fun StudentFormContent(
             .padding(Spacing.gutter),
         verticalArrangement = Arrangement.spacedBy(Spacing.itemGap),
     ) {
-        StudentContactFields(
-            name = form.name,
-            onName = { v -> viewModel.update { it.copy(name = v) } },
-            phone = form.phone,
-            onPhone = { v -> viewModel.update { it.copy(phone = v) } },
-            email = form.email,
-            onEmail = { v -> viewModel.update { it.copy(email = v) } },
-            note = form.note,
-            onNote = { v -> viewModel.update { it.copy(note = v) } },
-            mode = form.mode,
-            onMode = { m -> viewModel.update { it.copy(mode = m) } },
-        )
+        if (contacts) {
+            StudentContactFields(
+                name = form.name,
+                onName = { v -> viewModel.update { it.copy(name = v) } },
+                phone = form.phone,
+                onPhone = { v -> viewModel.update { it.copy(phone = v) } },
+                email = form.email,
+                onEmail = { v -> viewModel.update { it.copy(email = v) } },
+                note = form.note,
+                onNote = { v -> viewModel.update { it.copy(note = v) } },
+                mode = form.mode,
+                onMode = { m -> viewModel.update { it.copy(mode = m) } },
+            )
+        } else {
+            StudentNameField(form.name) { v -> viewModel.update { it.copy(name = v) } }
+        }
 
         HorizontalDivider(Modifier.padding(vertical = Spacing.tight))
         SectionTitle(stringResource(R.string.student_form_subjects_title))
@@ -193,6 +206,7 @@ private fun SubjectPrices(
                         field = price,
                         onValueChange = { viewModel.setPriceText(subject.id, it) },
                         label = stringResource(R.string.price_label),
+                        hint = lessonPriceHint(price, state.lessonMinutes),
                         // Indented to the width the checkbox takes, so the field sits under the
                         // name it prices rather than under the tick.
                         modifier = Modifier.padding(start = PriceFieldIndent, top = Spacing.tight),
@@ -205,6 +219,21 @@ private fun SubjectPrices(
     if (addingSubject) {
         SubjectNameDialog(onConfirm = viewModel::addSubject, onDismiss = { addingSubject = false })
     }
+}
+
+/**
+ * What the typed hourly price comes to for a lesson of the usual length — said only when that length is not
+ * an hour, which is when "per hour" and "per lesson" stop being the same number. A tutor who charges per
+ * lesson thinks in the second, and typed it as the first.
+ */
+@Composable
+private fun lessonPriceHint(price: MoneyField, lessonMinutes: Int): String? {
+    val hourly = price.amount?.takeIf { lessonMinutes != 60 } ?: return null
+    return stringResource(
+        R.string.price_per_lesson_hint,
+        ClassRules.chargeFor(hourly, lessonMinutes).text(),
+        durationLabel(lessonMinutes),
+    )
 }
 
 /** Material's checkbox — a 20 dp box in 2 dp of padding — and the gap after it: where the subject's name starts. */

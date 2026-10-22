@@ -34,21 +34,14 @@ fun StudentContactFields(
     mode: ClassMode,
     onMode: (ClassMode) -> Unit,
 ) {
-    OutlinedTextField(
-        value = name,
-        onValueChange = onName,
-        label = { Text(stringResource(R.string.student_name_label)) },
-        supportingText = supportingTextOf(
-            hint = stringResource(R.string.field_required).takeIf { name.isBlank() },
-        ),
-        singleLine = true,
-        keyboardOptions = NameKeyboard,
-        modifier = Modifier.fillMaxWidth(),
-    )
+    StudentNameField(name, onName)
+    // Whose number is the tutor's to know — a child's tutor mostly calls a parent — so the hint names
+    // both, and says what the number is for: the card's call and Telegram buttons.
     OutlinedTextField(
         value = phone,
         onValueChange = onPhone,
         label = { Text(stringResource(R.string.student_phone_label)) },
+        supportingText = { Text(stringResource(R.string.student_phone_hint)) },
         singleLine = true,
         keyboardOptions = PhoneKeyboard,
         modifier = Modifier.fillMaxWidth(),
@@ -57,6 +50,7 @@ fun StudentContactFields(
         value = email,
         onValueChange = onEmail,
         label = { Text(stringResource(R.string.student_email_label)) },
+        supportingText = { Text(stringResource(R.string.student_email_hint)) },
         singleLine = true,
         keyboardOptions = EmailKeyboard,
         modifier = Modifier.fillMaxWidth(),
@@ -74,6 +68,22 @@ fun StudentContactFields(
         onSelect = onMode,
     )
 }
+/** The one field a student cannot do without — alone, it is what setup asks for. */
+@Composable
+fun StudentNameField(name: String, onName: (String) -> Unit) {
+    OutlinedTextField(
+        value = name,
+        onValueChange = onName,
+        label = { Text(stringResource(R.string.student_name_label)) },
+        supportingText = supportingTextOf(
+            hint = stringResource(R.string.field_required).takeIf { name.isBlank() },
+        ),
+        singleLine = true,
+        keyboardOptions = NameKeyboard,
+        modifier = Modifier.fillMaxWidth(),
+    )
+}
+
 private val NameKeyboard = KeyboardOptions(capitalization = KeyboardCapitalization.Words, imeAction = ImeAction.Next)
 private val PhoneKeyboard = KeyboardOptions(keyboardType = KeyboardType.Phone, imeAction = ImeAction.Next)
 private val EmailKeyboard = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next)

@@ -38,6 +38,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.seblful.klas.R
 import com.seblful.klas.domain.lesson.LessonKind
+import com.seblful.klas.domain.lesson.LessonPhase
 import com.seblful.klas.domain.lesson.SessionRules
 import com.seblful.klas.domain.model.Attended
 import com.seblful.klas.domain.model.Homework
@@ -71,7 +72,7 @@ import kotlin.time.Instant
 @Composable
 internal fun ClassActionsSheet(
     row: ScheduleRow,
-    running: Boolean,
+    phase: LessonPhase,
     sheetState: androidx.compose.material3.SheetState,
     homework: List<SheetHomework>,
     onHomeworkDone: (Homework, Boolean) -> Unit,
@@ -109,7 +110,7 @@ internal fun ClassActionsSheet(
                 }
                 // The lesson card's own second line — status first — so the sheet opens on the
                 // row that was tapped, in the same order, rather than a rearrangement of it.
-                StatusLine(row, running, maxLines = Int.MAX_VALUE)
+                StatusLine(row, phase, maxLines = Int.MAX_VALUE)
             }
 
             // The lesson's state, as a state: every status it can be in, with the current one shown

@@ -41,6 +41,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.seblful.klas.R
 import com.seblful.klas.domain.lesson.DeleteWarning
+import com.seblful.klas.domain.lesson.LessonPhase
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.schedule.DaySummary
 import com.seblful.klas.domain.schedule.ScheduleEmpty
@@ -120,8 +121,8 @@ fun ScheduleScreen(
     val timeConflict by viewModel.timeConflict.collectAsStateWithLifecycle()
     // Where "now" falls in the selected day's list, or null when that day is not today — see [NowMarker].
     val nowMark by viewModel.nowMark.collectAsStateWithLifecycle()
-    // Which lessons are being taught right this minute — see [ScheduleViewModel.running].
-    val running by viewModel.running.collectAsStateWithLifecycle()
+    // Where each lesson stands this minute — being taught, or over and unmarked — see [ScheduleViewModel.phases].
+    val phases by viewModel.phases.collectAsStateWithLifecycle()
     // Whose lessons are on screen, or null for everyone's. Both the chip and the queries read this one
     // value, so the schedule can never be quietly narrowed with nothing saying so.
     val studentFilter by viewModel.studentFilter.collectAsStateWithLifecycle()
@@ -356,7 +357,7 @@ fun ScheduleScreen(
                             state = dayContent,
                             emptyReason = emptyReason,
                             nowMark = nowMark,
-                            running = running,
+                            phases = phases,
                             timeWidth = timeWidth,
                             onRowClick = { sheetFor = it },
                             onComplete = { viewModel.setStatus(it.session, LessonStatus.COMPLETED) },
@@ -383,7 +384,7 @@ fun ScheduleScreen(
                         state = dayContent,
                         emptyReason = emptyReason,
                         nowMark = nowMark,
-                        running = running,
+                        phases = phases,
                         timeWidth = timeWidth,
                         onRowClick = { sheetFor = it },
                         onComplete = { viewModel.setStatus(it.session, LessonStatus.COMPLETED) },
@@ -438,7 +439,7 @@ fun ScheduleScreen(
                                 ) { row ->
                                     SwipeToCompleteCard(
                                         row = row,
-                                        running = row.session.lessonId in running,
+                                        phase = phases.of(row),
                                         timeWidth = timeWidth,
                                         onClick = { sheetFor = row },
                                         onComplete = {
@@ -483,7 +484,7 @@ fun ScheduleScreen(
                             state = dayContent,
                             emptyReason = emptyReason,
                             nowMark = nowMark,
-                            running = running,
+                            phases = phases,
                             timeWidth = timeWidth,
                             onRowClick = { sheetFor = it },
                             onComplete = { viewModel.setStatus(it.session, LessonStatus.COMPLETED) },
@@ -512,7 +513,7 @@ fun ScheduleScreen(
         }
         ClassActionsSheet(
             row = row,
-            running = row.session.lessonId in running,
+            phase = phases.of(row),
             sheetState = sheetState,
             homework = homework,
             // A tick leaves the sheet open, unlike every other action on it: a group lesson can have
@@ -663,7 +664,7 @@ private fun LazyListScope.dayList(
     state: Loadable<ScheduleContent.Day>,
     emptyReason: Loadable<ScheduleEmpty>,
     nowMark: Int?,
-    running: Set<Long>,
+    phases: Map<Long, LessonPhase>,
     timeWidth: Dp,
     onRowClick: (ScheduleRow) -> Unit,
     onComplete: (ScheduleRow) -> Unit,
@@ -698,7 +699,7 @@ private fun LazyListScope.dayList(
             item(key = lessonKey(view, row, day.date), contentType = "lesson") {
                 SwipeToCompleteCard(
                     row = row,
-                    running = row.session.lessonId in running,
+                    phase = phases.of(row),
                     timeWidth = timeWidth,
                     onClick = { onRowClick(row) },
                     onComplete = { onComplete(row) },

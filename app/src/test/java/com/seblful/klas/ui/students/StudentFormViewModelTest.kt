@@ -30,7 +30,13 @@ class StudentFormViewModelTest {
     val env = TestEnv()
 
     private fun vm() = mainRule.own(
-        StudentFormViewModel(env.subjectRepo, env.enrollmentRepo, mainRule.appScope, mainRule.dispatcher),
+        StudentFormViewModel(
+            env.subjectRepo,
+            env.enrollmentRepo,
+            env.settingsRepo,
+            mainRule.appScope,
+            mainRule.dispatcher,
+        ),
     )
 
     @Test
@@ -140,8 +146,10 @@ class StudentFormViewModelTest {
     @Test
     fun `setPriceText is ignored for a subject that isn't selected`() = runTest(mainRule.dispatcher) {
         val id = env.fixtures.subject(name = "Химия")
+        env.fixtures.subject(name = "Физика") // two, so neither is ticked for the tutor
         val vm = vm()
         observing(vm.state)
+        advanceUntilIdle()
 
         vm.setPriceText(id, "40") // never toggled on
         assertTrue(vm.state.value.form.subjectPrices.isEmpty())
@@ -247,8 +255,10 @@ class StudentFormViewModelTest {
     @Test
     fun `an untouched form is clean, and clearing an edit makes it clean again`() = runTest(mainRule.dispatcher) {
         val mathId = env.fixtures.subject(name = "Математика")
+        env.fixtures.subject(name = "Физика")
         val vm = vm()
         observing(vm.state)
+        advanceUntilIdle()
         vm.offerDiallingCode("+375 ")
 
         assertFalse("the prefilled phone prefix is not the tutor's work", vm.state.value.isDirty)
@@ -261,6 +271,58 @@ class StudentFormViewModelTest {
 
         vm.toggleSubject(mathId, on = true)
         assertTrue("a ticked subject is unsaved work even before it is priced", vm.state.value.isDirty)
+    }
+
+    @Test
+    fun `the only subject comes ticked, and the tick is not unsaved work`() = runTest(mainRule.dispatcher) {
+        val math = env.fixtures.subject("Математика")
+        val vm = vm()
+        observing(vm.state)
+        advanceUntilIdle()
+
+        assertEquals(setOf(math), vm.state.value.selectedSubjectIds)
+        assertFalse(vm.state.value.isDirty)
+    }
+
+    @Test
+    fun `with several subjects nothing is guessed - and a guess the list outgrows is taken back`() =
+        runTest(mainRule.dispatcher) {
+            // Setup builds this form before its subjects exist and adds them one by one.
+            val vm = vm()
+            observing(vm.state)
+            val math = env.fixtures.subject("Математика")
+            advanceUntilIdle()
+            assertEquals(setOf(math), vm.state.value.selectedSubjectIds)
+
+            env.fixtures.subject("Физика")
+            advanceUntilIdle()
+            assertTrue(vm.state.value.selectedSubjectIds.isEmpty())
+        }
+
+    @Test
+    fun `a subject the tutor chose is not second-guessed by the list`() = runTest(mainRule.dispatcher) {
+        env.fixtures.subject("Математика")
+        val physics = env.fixtures.subject("Физика")
+        val vm = vm()
+        observing(vm.state)
+        advanceUntilIdle()
+
+        vm.toggleSubject(physics, on = true)
+        vm.toggleSubject(physics, on = false)
+        env.subjectRepo.delete(env.subjectRepo.observeAll().first().single { it.id == physics })
+        advanceUntilIdle()
+
+        assertTrue("down to one subject, but the tutor has already chosen", vm.state.value.selectedSubjectIds.isEmpty())
+    }
+
+    @Test
+    fun `the usual lesson length is read for the price hint`() = runTest(mainRule.dispatcher) {
+        env.settingsRepo.update { it.copy(defaultLessonMinutes = 90) }
+        val vm = vm()
+        observing(vm.state)
+        advanceUntilIdle()
+
+        assertEquals(90, vm.state.value.lessonMinutes)
     }
 
     @Test

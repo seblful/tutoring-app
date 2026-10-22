@@ -1,5 +1,6 @@
 package com.seblful.klas.ui.schedule
 
+import com.seblful.klas.domain.lesson.LessonPhase
 import com.seblful.klas.testutil.MutableClock
 import com.seblful.klas.testutil.observing
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -51,7 +52,7 @@ class ScheduleClockTest : ScheduleTestFixture() {
     }
 
     @Test
-    fun `a lesson is marked as running only while it is running`() = runTest(mainRule.dispatcher) {
+    fun `a lesson reads as to come, then on now, then over and unmarked`() = runTest(mainRule.dispatcher) {
         val subj = env.fixtures.subject("Математика")
         val sid = env.fixtures.pricedStudent("Аня", subj)
         val day = LocalDate(2026, 5, 18)
@@ -65,19 +66,20 @@ class ScheduleClockTest : ScheduleTestFixture() {
 
         val vm = vm(clock)
         observing(vm.content)
-        observing(vm.running)
+        observing(vm.phases)
         val minute = 1.minutes.inWholeMilliseconds
         advanceTimeBy(minute)
-        assertEquals("not yet", emptySet<Long>(), vm.running.value)
+        val row = vm.dayContent.rows.single()
+        val lessonId = row.session.lessonId
+        assertEquals("not yet", LessonPhase.UPCOMING, vm.phases.value.of(row))
 
-        val lessonId = vm.dayContent.rows.single().session.lessonId
         clock.advanceBy(minute)
         advanceTimeBy(minute)
-        assertEquals("on now", setOf(lessonId), vm.running.value)
+        assertEquals("on now", LessonPhase.IN_PROGRESS, vm.phases.value[lessonId])
 
         clock.advanceBy(60 * minute)
         advanceTimeBy(60 * minute)
-        assertEquals("over, and unmarked rather than running", emptySet<Long>(), vm.running.value)
+        assertEquals("over, and unmarked rather than running", LessonPhase.OVERDUE, vm.phases.value[lessonId])
     }
 
     @Test

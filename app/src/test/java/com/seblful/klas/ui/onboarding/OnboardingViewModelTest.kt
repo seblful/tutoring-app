@@ -12,6 +12,7 @@ import com.seblful.klas.testutil.MainDispatcherRule
 import com.seblful.klas.testutil.TestEnv
 import com.seblful.klas.testutil.observing
 import com.seblful.klas.ui.common.state.Loadable
+import com.seblful.klas.ui.common.state.valueOrNull
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -92,6 +93,19 @@ class OnboardingViewModelTest {
             assertEquals(Currency.EUR, env.settingsRepo.get().currency)
             assertEquals("the other answer is untouched", AppLanguage.ENGLISH, env.settingsRepo.get().language)
         }
+
+    @Test
+    fun `the usual lesson length is offered at an hour and stored as picked`() = runTest(mainRule.dispatcher) {
+        val vm = vm()
+        observing(vm.locale)
+        advanceUntilIdle()
+        assertEquals(60, vm.locale.value.valueOrNull()?.defaultLessonMinutes)
+
+        vm.setLessonMinutes(90)
+        advanceUntilIdle()
+
+        assertEquals(90, env.settingsRepo.get().defaultLessonMinutes)
+    }
 
     @Test
     fun `skipping the setup still persists the currency the phone named`() = runTest(mainRule.dispatcher) {
