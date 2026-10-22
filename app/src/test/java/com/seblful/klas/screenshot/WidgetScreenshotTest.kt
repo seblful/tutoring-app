@@ -123,7 +123,7 @@ class WidgetScreenshotTest {
                 headerButton = button(R.drawable.widget_icon_add, R.string.schedule_add_class),
                 buttons = listOf(
                     button(R.drawable.widget_icon_today, R.string.schedule_today),
-                    button(R.drawable.widget_icon_add_student, R.string.schedule_add_student),
+                    button(R.drawable.widget_icon_people, R.string.nav_people),
                     button(R.drawable.widget_icon_homework, R.string.nav_homework),
                     button(R.drawable.widget_icon_debts, R.string.debts_title),
                 ),

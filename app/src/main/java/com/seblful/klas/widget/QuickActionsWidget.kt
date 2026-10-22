@@ -63,11 +63,7 @@ class QuickActionsWidget : GlanceAppWidget() {
                 ),
                 buttons = listOf(
                     button(R.drawable.widget_icon_today, R.string.schedule_today, TrayNavigation.ACTION_OPEN_TODAY),
-                    button(
-                        R.drawable.widget_icon_add_student,
-                        R.string.schedule_add_student,
-                        TrayNavigation.ACTION_ADD_STUDENT,
-                    ),
+                    button(R.drawable.widget_icon_people, R.string.nav_people, TrayNavigation.ACTION_OPEN_PEOPLE),
                     button(
                         R.drawable.widget_icon_homework,
                         R.string.nav_homework,

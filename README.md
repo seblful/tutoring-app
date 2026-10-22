@@ -19,8 +19,8 @@ Russian and English UI, Material 3, and 28 currencies with localized names and s
   overpayments, income/debt breakdowns and CSV export. Changing currency labels never converts amounts.
 - **Calendar and reminders** — optional device-calendar sync, separate email-invite opt-in, lesson
   alarms and optional agenda/debt digests.
-- **Widgets** — today's lessons, marked taught with one tap, and shortcuts to booking, a new student,
-  today, homework and debts.
+- **Widgets** — today's lessons, marked taught with one tap, and shortcuts to booking, today, people,
+  homework and debts.
 - **Backup and diagnostics** — manual JSON export/restore and a local, exportable crash log; no
   third-party crash SDK. Google Play Vitals provides platform diagnostics.
 

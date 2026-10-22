@@ -32,7 +32,7 @@ class QuickActionsLayoutTest {
                 headerButton = ToolBarButton(R.drawable.widget_icon_add, "Book a lesson", actionStartActivity(book)),
                 buttons = listOf(
                     ToolBarButton(R.drawable.widget_icon_today, "Today", other),
-                    ToolBarButton(R.drawable.widget_icon_add_student, "Add a student", other),
+                    ToolBarButton(R.drawable.widget_icon_people, "People", other),
                     ToolBarButton(R.drawable.widget_icon_homework, "Homework", other),
                     ToolBarButton(R.drawable.widget_icon_debts, "Debts", other),
                 ),
@@ -68,6 +68,6 @@ class QuickActionsLayoutTest {
         shortcuts(DpSize(240.dp, 228.dp))
 
         onNode(hasText("Klas")).assertExists()
-        listOf("Today", "Add a student", "Homework", "Debts").forEach { onNode(hasText(it)).assertExists() }
+        listOf("Today", "People", "Homework", "Debts").forEach { onNode(hasText(it)).assertExists() }
     }
 }

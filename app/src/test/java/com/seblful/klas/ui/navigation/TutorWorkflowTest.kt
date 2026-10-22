@@ -207,6 +207,8 @@ class TutorWorkflowTest {
                 TrayNavigation.ACTION_OPEN_DEBTS,
                 // The widgets' shortcuts.
                 TrayNavigation.ACTION_OPEN_HOMEWORK,
+                TrayNavigation.ACTION_OPEN_PEOPLE,
+                // What the widget offered before People, still routed.
                 TrayNavigation.ACTION_ADD_STUDENT,
             )
             for (action in arrivals) {

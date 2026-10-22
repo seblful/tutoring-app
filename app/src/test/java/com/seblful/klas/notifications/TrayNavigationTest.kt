@@ -62,7 +62,7 @@ class TrayNavigationTest {
     }
 
     @Test
-    fun `the widgets' shortcuts open an empty booking, an empty student form and the homework`() {
+    fun `the widgets' shortcuts open an empty booking, People and the homework, and an old one a student form`() {
         assertEquals(
             TrayNavigation.Destination.NewLesson,
             TrayNavigation.destinationFor(TrayNavigation.ACTION_BOOK_LESSON, classId = 0),
@@ -74,6 +74,10 @@ class TrayNavigationTest {
         assertEquals(
             TrayNavigation.Destination.Homework,
             TrayNavigation.destinationFor(TrayNavigation.ACTION_OPEN_HOMEWORK, classId = 0),
+        )
+        assertEquals(
+            TrayNavigation.Destination.People,
+            TrayNavigation.destinationFor(TrayNavigation.ACTION_OPEN_PEOPLE, classId = 0),
         )
     }
 

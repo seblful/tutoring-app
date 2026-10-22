@@ -52,6 +52,7 @@ internal fun OpensWhatTheTrayNames(
             TrayNavigation.Destination.NewLesson -> navigator.openOnTop(Routes.classEdit(0))
             TrayNavigation.Destination.NewStudent -> navigator.openOnTop(Routes.StudentAdd)
             TrayNavigation.Destination.Homework -> navigator.openTabFromTray(TopDestination.HOMEWORK)
+            TrayNavigation.Destination.People -> navigator.openTabFromTray(TopDestination.PEOPLE)
             null -> Unit
         }
     }

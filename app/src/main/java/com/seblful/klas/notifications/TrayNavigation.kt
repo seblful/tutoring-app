@@ -38,7 +38,9 @@ object TrayNavigation {
     const val ACTION_OPEN_DAY = "com.seblful.klas.action.OPEN_DAY"
     const val ACTION_SHOW_LESSON = "com.seblful.klas.action.SHOW_LESSON"
     const val ACTION_BOOK_LESSON = "com.seblful.klas.action.BOOK_LESSON"
+    /** No longer on the widget, which offers People instead; still routed for a widget not yet redrawn. */
     const val ACTION_ADD_STUDENT = "com.seblful.klas.action.ADD_STUDENT"
+    const val ACTION_OPEN_PEOPLE = "com.seblful.klas.action.OPEN_PEOPLE"
     const val ACTION_OPEN_HOMEWORK = "com.seblful.klas.action.OPEN_HOMEWORK"
 
     /** The day an [ACTION_OPEN_DAY] entry is about, as `LocalDate.toEpochDays()`. */
@@ -99,11 +101,14 @@ object TrayNavigation {
         /** An empty booking form — a widget's «Записать занятие». */
         data object NewLesson : Destination
 
-        /** An empty student form — a widget's «Добавить ученика». */
+        /** An empty student form — what the widget's «Добавить ученика» opened. */
         data object NewStudent : Destination
 
         /** The homework tab. */
         data object Homework : Destination
+
+        /** The People tab — the widget's «Люди», where a balance, a payment or a contact is one tap on. */
+        data object People : Destination
     }
 
     /**
@@ -142,5 +147,6 @@ object TrayNavigation {
         ACTION_BOOK_LESSON to Destination.NewLesson,
         ACTION_ADD_STUDENT to Destination.NewStudent,
         ACTION_OPEN_HOMEWORK to Destination.Homework,
+        ACTION_OPEN_PEOPLE to Destination.People,
     )
 }

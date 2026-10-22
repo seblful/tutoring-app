@@ -215,7 +215,7 @@ private fun QuickActionsPreview() {
             headerButton = ToolBarButton(R.drawable.widget_icon_add, "Book a lesson", action),
             buttons = listOf(
                 ToolBarButton(R.drawable.widget_icon_today, "Today", action),
-                ToolBarButton(R.drawable.widget_icon_add_student, "Add a student", action),
+                ToolBarButton(R.drawable.widget_icon_people, "People", action),
                 ToolBarButton(R.drawable.widget_icon_homework, "Homework", action),
                 ToolBarButton(R.drawable.widget_icon_debts, "Debts", action),
             ),
