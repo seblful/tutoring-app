@@ -192,6 +192,7 @@
     <!-- The details card's −/+ buttons, named for screen readers. -->
     <string name="class_length_shorter">15 minutes shorter</string>
     <string name="class_length_longer">15 minutes longer</string>
+    <string name="class_length_pick">Set length</string>
     <string name="class_lessons_fewer">One lesson fewer</string>
     <string name="class_lessons_more">One lesson more</string>
     <string name="class_rate_lower">Lower the rate</string>

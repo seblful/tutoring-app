@@ -120,7 +120,7 @@ fun TimePickerModal(
     }
 }
 
-/** How long something lasts, in hours and minutes — the booking form's «Другая» length. */
+/** How long something lasts, typed in hours and minutes — what a tap on the booking form's length opens. */
 @Composable
 fun DurationPickerModal(
     initialMinutes: Int,

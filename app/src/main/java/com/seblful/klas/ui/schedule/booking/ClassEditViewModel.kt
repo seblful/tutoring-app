@@ -106,11 +106,6 @@ class ClassEditViewModel @AssistedInject constructor(
 
     private val defaultMinutes = MutableStateFlow(DEFAULT_LESSON_MINUTES)
 
-    /** The lengths offered as chips, shortest first. */
-    val durationOptions: StateFlow<List<Int>> = defaultMinutes
-        .map { (COMMON_DURATIONS + it).distinct().sorted() }
-        .hold(this, (COMMON_DURATIONS + DEFAULT_LESSON_MINUTES).distinct().sorted())
-
     private val session = MutableStateFlow<ClassSession?>(null)
 
     private val saving = MutableStateFlow(false)
@@ -771,9 +766,6 @@ class ClassEditViewModel @AssistedInject constructor(
         offeredRosterNow(groupId, session.classes.mapTo(mutableSetOf()) { it.studentId }) - excludedMemberIds
 
     private companion object {
-        /** The lengths a tutoring lesson usually runs to — 45 minutes to two hours. */
-        val COMMON_DURATIONS = listOf(45, 60, 90, 120)
-
         /**
          * What a picker offers: the active ones, plus whichever one the form has [selected] even if it has
          * been archived since — see [students]. Its accessors are passed in because `Student` and `Group`

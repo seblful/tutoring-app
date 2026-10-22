@@ -238,6 +238,7 @@
     <string name="class_repeat_until">по %1$s</string>
     <string name="class_length_shorter">На 15 минут короче</string>
     <string name="class_length_longer">На 15 минут длиннее</string>
+    <string name="class_length_pick">Указать длительность</string>
     <string name="class_lessons_fewer">На одно занятие меньше</string>
     <string name="class_lessons_more">На одно занятие больше</string>
     <string name="class_rate_lower">Уменьшить ставку</string>

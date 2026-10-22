@@ -3,9 +3,11 @@ package com.seblful.klas.ui.schedule.booking
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performTextReplacement
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.schedule.Repeat
 import com.seblful.klas.domain.time.today
@@ -88,6 +90,31 @@ class DetailsSectionTest : ClassEditTestFixture() {
         press("15 minutes longer")
 
         assertEquals(before + 15, vm.state.current.form.durationMinutes)
+    }
+
+    @Test
+    fun `a tap on the length types it in hours and minutes`() {
+        val vm = vm(day = day)
+        open(vm)
+
+        tapRow("Length")
+        compose.onNodeWithTag(LENGTH_TAG).performScrollTo().performClick()
+        compose.onNodeWithText("Hours").performTextReplacement("1")
+        compose.onNodeWithText("Minutes").performTextReplacement("20")
+        compose.onNodeWithText("Done").performClick()
+        compose.waitForIdle()
+
+        assertEquals(80, vm.state.current.form.durationMinutes)
+    }
+
+    @Test
+    fun `length offers no chips, only the stepper`() {
+        open(vm(day = day))
+
+        tapRow("Length")
+
+        compose.onNodeWithText("45 min").assertDoesNotExist()
+        compose.onNodeWithText("1.5 h").assertDoesNotExist()
     }
 
     @Test
