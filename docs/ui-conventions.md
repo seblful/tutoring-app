@@ -148,6 +148,8 @@ Build screens from shared state and controls. Feature rules belong in the domain
   Every lazy item has a key and a `contentType`.
 - Motion uses Material's standard springs and easings from `KlasMotion` (spatial for movement, effects
   for colour and fades); material3 1.4 keeps `MotionScheme` internal. Pops use its one bouncy spring.
+- Launch: the splash mark's page turn (`ic_splash_logo`, an animated vector at rest before Android 12),
+  then a fade through into the app (`fadeThrough`) once settings load. Neither delays the first screen.
 - State that moves every frame — a back gesture's progress, a tint or pop animating, a drag — is read in
   layout or draw (`graphicsLayer`, `drawBehind`, `offset {}`), not in composition. A list row does no work
   that every row shares (a measured width, the clock format, a pulse): it is done once above the list.

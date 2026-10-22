@@ -1,5 +1,89 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- The splash mask leaves the central two thirds visible. -->
-<inset xmlns:android="http://schemas.android.com/apk/res/android"
-    android:drawable="@drawable/ic_logo"
-    android:inset="16.67%" />
+<!--
+  The splash mark, and its page turn: the curled corner of the K flips down and settles.
+
+  Traced from art/logo_source.png in its own pixels (1254 px square, 72 px stroke), framed as ic_logo
+  is: the source square fills the central two thirds the splash mask leaves visible.
+
+  The declared state is the finished mark. Android 12+ starts the animation, which sets each animated
+  value's start; Android 7–11 draw the drawable as part of a static window background, so they show the
+  mark at rest.
+-->
+<animated-vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt">
+    <aapt:attr name="android:drawable">
+        <vector
+            android:width="240dp"
+            android:height="240dp"
+            android:viewportWidth="1881"
+            android:viewportHeight="1881">
+            <group
+                android:name="mark"
+                android:pivotX="642"
+                android:pivotY="643"
+                android:translateX="313.5"
+                android:translateY="313.5">
+                <path
+                    android:pathData="M561,290L561,615C561,650 590,662 612,638L812,428C825,414 838,406 858,406L1040,406C1082,406 1100,442 1072,468L850,696C830,716 830,730 850,750L1060,985C1090,1018 1072,1057 1030,1057L858,1057C836,1057 824,1050 812,1036L606,802C590,784 562,782 544,800L318,1018C278,1056 200,1040 200,970L200,440C200,392 220,362 258,340L452,230C500,204 561,228 561,290Z"
+                    android:strokeColor="@color/klas_logo_mark"
+                    android:strokeLineJoin="round"
+                    android:strokeWidth="72" />
+                <!-- The fold turns about the top of the stem, where it meets the outline. -->
+                <group
+                    android:name="page"
+                    android:pivotX="561"
+                    android:pivotY="290">
+                    <path
+                        android:name="fold"
+                        android:pathData="M337,427L505,327C540,306 556,296 561,290"
+                        android:strokeColor="@color/klas_logo_mark"
+                        android:strokeLineCap="round"
+                        android:strokeWidth="72" />
+                </group>
+            </group>
+        </vector>
+    </aapt:attr>
+
+    <!-- 500 ms in all, = windowSplashScreenAnimationDuration (themes.xml). -->
+    <target android:name="mark">
+        <aapt:attr name="android:animation">
+            <set>
+                <objectAnimator
+                    android:duration="400"
+                    android:propertyName="scaleX"
+                    android:valueFrom="0.86"
+                    android:valueTo="1"
+                    android:interpolator="@interpolator/emphasized_decelerate" />
+                <objectAnimator
+                    android:duration="400"
+                    android:propertyName="scaleY"
+                    android:valueFrom="0.86"
+                    android:valueTo="1"
+                    android:interpolator="@interpolator/emphasized_decelerate" />
+            </set>
+        </aapt:attr>
+    </target>
+    <target android:name="page">
+        <aapt:attr name="android:animation">
+            <objectAnimator
+                android:duration="420"
+                android:propertyName="rotation"
+                android:startOffset="80"
+                android:valueFrom="-50"
+                android:valueTo="0"
+                android:interpolator="@android:interpolator/overshoot" />
+        </aapt:attr>
+    </target>
+    <!-- Drawn out from the stem, so the page unrolls as it turns. -->
+    <target android:name="fold">
+        <aapt:attr name="android:animation">
+            <objectAnimator
+                android:duration="320"
+                android:propertyName="trimPathStart"
+                android:startOffset="80"
+                android:valueFrom="1"
+                android:valueTo="0"
+                android:interpolator="@interpolator/emphasized_decelerate" />
+        </aapt:attr>
+    </target>
+</animated-vector>

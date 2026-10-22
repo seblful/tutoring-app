@@ -46,6 +46,9 @@ class MainActivity : ComponentActivity() {
          * than letting an app hold it indefinitely.
          */
         splash.setKeepOnScreenCondition { rootViewModel.settings.value == null }
+        splash.setOnExitAnimationListener { provider ->
+            fadeThrough(provider.view, provider.iconView, findViewById(android.R.id.content), provider::remove)
+        }
 
         enableEdgeToEdge()
         // The tab bar draws behind 3-button navigation; the default scrim would tint it. Icon contrast is
