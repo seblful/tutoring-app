@@ -118,6 +118,31 @@ class DetailsSectionTest : ClassEditTestFixture() {
     }
 
     @Test
+    fun `a tap on the lesson count types it, keeping the booking weekly`() {
+        val vm = vm(day = day)
+        open(vm)
+
+        tapRow("Repeat")
+        compose.onNodeWithTag(LESSONS_TAG).performScrollTo().performClick()
+        compose.onNodeWithText("Lessons (up to 52)").performTextReplacement("10")
+        compose.onNodeWithText("Done").performClick()
+        compose.waitForIdle()
+
+        val form = vm.state.current.form
+        assertEquals(Repeat.WEEKLY, form.repeat)
+        assertEquals(10, form.lessons)
+    }
+
+    @Test
+    fun `repeat offers no chips, only the stepper`() {
+        open(vm(day = day))
+
+        tapRow("Repeat")
+
+        compose.onNodeWithText("12").assertDoesNotExist()
+    }
+
+    @Test
     fun `the rate steps from the student's own`() = runTest(mainRule.dispatcher) {
         val (studentId, _) = seedStudentWithPricedSubject(price = Money.ofMajor(30))
         val vm = vm(day = day, studentId = studentId)

@@ -225,9 +225,8 @@
     <string name="duration_hours_label">Часы</string>
     <string name="duration_minutes_label">Минуты</string>
     <!--
-      Repeating a booking. Deliberately shaped like the duration row above it: a fixed choice, then a
-      shortlist of counts with an escape hatch, then the consequence («по 24 сентября») beside the label
-      rather than in a field of its own. Every occurrence is the same weekday at the same time — a tutor
+      Repeating a booking. Deliberately shaped like the duration row above it: a count stepped or typed,
+      then the consequence («по 24 сентября») beside the label rather than in a field of its own. Every occurrence is the same weekday at the same time — a tutor
       teaching Monday and Thursday books twice, which is why there is no weekday picker here.
     -->
     <string name="class_repeat_label">Повторять</string>
@@ -241,6 +240,10 @@
     <string name="class_length_pick">Указать длительность</string>
     <string name="class_lessons_fewer">На одно занятие меньше</string>
     <string name="class_lessons_more">На одно занятие больше</string>
+    <string name="class_lessons_pick">Указать число занятий</string>
+    <string name="class_repeat_count_title">Сколько занятий</string>
+    <!-- %1$d: the most lessons one booking may write -->
+    <string name="class_repeat_count_field">Занятий (до %1$d)</string>
     <string name="class_rate_lower">Уменьшить ставку</string>
     <string name="class_rate_higher">Увеличить ставку</string>
     <!--

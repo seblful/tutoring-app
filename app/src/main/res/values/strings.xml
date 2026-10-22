@@ -195,6 +195,10 @@
     <string name="class_length_pick">Set length</string>
     <string name="class_lessons_fewer">One lesson fewer</string>
     <string name="class_lessons_more">One lesson more</string>
+    <string name="class_lessons_pick">Set number of lessons</string>
+    <string name="class_repeat_count_title">How many lessons</string>
+    <!-- %1$d: the most lessons one booking may write -->
+    <string name="class_repeat_count_field">Lessons (up to %1$d)</string>
     <string name="class_rate_lower">Lower the rate</string>
     <string name="class_rate_higher">Raise the rate</string>
     <!--

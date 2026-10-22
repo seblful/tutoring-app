@@ -187,7 +187,7 @@ Build screens from shared state and controls. Feature rules belong in the domain
   (`rateNeeded`) — pressed with a rounded `outsetRowPress` tint and opened in place by growing downwards
   (`Fold`), one at a time; never a dialog or sheet. Opened, each is a value between tonal −/+ (`StepRow`,
   `Steps`): Length ±15 min, its value tapped to type hours and minutes (`DurationPickerModal`); Repeat as lessons ±1, one being once
-  (`ClassForm.withLessons`), with Once/4/8/12 chips and weekly/fortnightly segments; Terms the typed rate
+  (`ClassForm.withLessons`), the count tapped to type it (`CountPickerModal`), and weekly/fortnightly segments; Terms the typed rate
   ± a step that suits its size (5 at 40, 100 at 1 500, so any currency) and the place as segments. It alone saves from a bottom `BookingSaveBar`, not the bar's
   `SaveAction`: the bar shows the booking it will make, or names what is missing or in the way
   (`ClassFormState.saveBar`, `Ready` exactly when `canSave`). When opens on the schedule's day, where bookings

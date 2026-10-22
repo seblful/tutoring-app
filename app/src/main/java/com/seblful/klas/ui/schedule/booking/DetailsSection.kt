@@ -21,9 +21,9 @@ import com.seblful.klas.domain.schedule.Repeat
 import com.seblful.klas.format.MoneyField
 import com.seblful.klas.format.bulletJoin
 import com.seblful.klas.format.formatDate
+import com.seblful.klas.ui.common.CountPickerModal
 import com.seblful.klas.ui.common.DurationPickerModal
 import com.seblful.klas.ui.common.MoneyTextField
-import com.seblful.klas.ui.common.PresetChips
 import com.seblful.klas.ui.common.SectionCard
 import com.seblful.klas.ui.common.SegmentedChoice
 import com.seblful.klas.ui.common.Spacing
@@ -107,9 +107,13 @@ private fun LengthRow(
     }
 }
 
-/** How many lessons, one being a lesson that does not repeat, and how often when there are more. */
+/**
+ * How many lessons, one being a lesson that does not repeat, and how often when there are more. Stepped one
+ * at a time, or typed from a tap on the count.
+ */
 @Composable
 private fun RepeatRow(form: ClassForm, viewModel: ClassEditViewModel, opened: Boolean, onToggle: (Boolean) -> Unit) {
+    var typing by rememberSaveable { mutableStateOf(false) }
     val lessons = form.lessons
     val writes = { count: Int -> viewModel.change(BookingIntent.Edit { it.withLessons(count) }) }
     Fold(
@@ -123,18 +127,16 @@ private fun RepeatRow(form: ClassForm, viewModel: ClassEditViewModel, opened: Bo
             moreName = stringResource(R.string.class_lessons_more),
             onLess = Steps.lessons(lessons, more = false)?.let { to -> { writes(to) } },
             onMore = Steps.lessons(lessons, more = true)?.let { to -> { writes(to) } },
+            caption = "1",
         ) {
             StepValue(
                 pluralStringResource(R.plurals.class_series_lessons, lessons, lessons),
                 if (form.repeat.repeats) repeatSummary(form, counted = false) else repeatLabel(Repeat.NONE),
+                onPick = { typing = true },
+                pickLabel = stringResource(R.string.class_lessons_pick),
+                tag = LESSONS_TAG,
             )
         }
-        PresetChips(
-            presets = listOf(1) + Recurrence.COMMON_COUNTS,
-            selected = lessons,
-            label = { count -> if (count == 1) repeatLabel(Repeat.NONE) else count.toString() },
-            onSelect = writes,
-        )
         if (form.repeat.repeats) {
             SegmentedChoice(
                 options = listOf(Repeat.WEEKLY, Repeat.FORTNIGHTLY),
@@ -148,6 +150,16 @@ private fun RepeatRow(form: ClassForm, viewModel: ClassEditViewModel, opened: Bo
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
+    }
+    if (typing) {
+        CountPickerModal(
+            title = stringResource(R.string.class_repeat_count_title),
+            label = stringResource(R.string.class_repeat_count_field, Recurrence.MAX_COUNT),
+            initial = lessons,
+            max = Recurrence.MAX_COUNT,
+            onConfirm = { to -> writes(to); typing = false },
+            onDismiss = { typing = false },
+        )
     }
 }
 
@@ -213,6 +225,7 @@ private fun TermsRow(
 }
 
 internal const val LENGTH_TAG = "booking_length"
+internal const val LESSONS_TAG = "booking_lessons"
 
 @Composable
 private fun RowLabel(text: String) {
