@@ -15,6 +15,7 @@ import com.github.takahirom.roborazzi.ThresholdValidator
 import com.github.takahirom.roborazzi.captureScreenRoboImage
 import com.seblful.klas.MainActivity
 import com.seblful.klas.R
+import com.seblful.klas.domain.model.ThemeChoice
 import com.seblful.klas.store.DemoTutor
 import com.seblful.klas.store.StoreApp
 import com.seblful.klas.store.StoreGraph
@@ -51,13 +52,14 @@ class FormFactorScreenshotTest {
     private val tutor = DemoTutor.english
     private val timeZone = TimeZone.getDefault()
     private val locale = Locale.getDefault()
+    private lateinit var graph: StoreGraph
 
     @Before
     fun seed() {
         TimeZone.setDefault(TimeZone.getTimeZone(DemoTutor.ZONE.id))
         Locale.setDefault(tutor.locale)
         val app = ApplicationProvider.getApplicationContext<StoreApp>()
-        val graph = createGraphFactory<StoreGraph.Factory>().create(
+        graph = createGraphFactory<StoreGraph.Factory>().create(
             context = app,
             clock = DemoTutor.CLOCK,
             firstDayOfWeek = tutor.firstDayOfWeek,
@@ -80,6 +82,18 @@ class FormFactorScreenshotTest {
     @Test
     @Config(qualifiers = "en-rUS-w412dp-h915dp-port-mdpi")
     fun phone() = tour("phone")
+
+    // The demo tutor is seeded light, so dark is the tutor's own choice rather than the phone's.
+    @Test
+    @Config(qualifiers = "en-rUS-w412dp-h915dp-port-mdpi")
+    fun phoneDark() {
+        runBlocking { graph.settings.update { it.copy(themeMode = ThemeChoice.DARK) } }
+        tour("phone-dark")
+    }
+
+    @Test
+    @Config(qualifiers = "en-rUS-w412dp-h915dp-port-mdpi", fontScale = 1.5f)
+    fun phoneLargeText() = tour("phone-large-text")
 
     @Test
     @Config(qualifiers = "en-rUS-w673dp-h841dp-port-mdpi")
