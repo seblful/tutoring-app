@@ -214,7 +214,7 @@ Build screens from shared state and controls. Feature rules belong in the domain
   preselects its owner; tab entry preselects nobody. Reassignment previews the first lesson after the
   original given time, including historical lessons. Rows carry Send and a Done/Restore icon button,
   the swipe's visible twin, sharing its undo.
-- Students and groups are one `PeopleCard` anatomy: avatar; name with a balance or `ArchivedBadge` at its
+- Students and groups are one `PeopleCard` anatomy, roomier than a lesson card: avatar; name with a balance or `ArchivedBadge` at its
   end; one line of facts — `LessonLine` first, as the line is cut at its end: the next lesson («Today
   16:00», a weekday within a week, else a date) or, with none booked, the last · subjects (a group's
   subject and head count). Rates and rosters live on the detail pages. The line re-reads per minute,

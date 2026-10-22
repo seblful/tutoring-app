@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.MaterialTheme
@@ -37,10 +38,11 @@ internal fun PeopleCard(
     trailing: @Composable () -> Unit = {},
 ) {
     ContentCard(onClick = onClick, modifier = modifier, selected = selected) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        // Roomier than a lesson card: a list of people is scanned by name, and two tight lines read as cramped.
+        Row(Modifier.padding(vertical = Spacing.tight), verticalAlignment = Alignment.CenterVertically) {
             leading()
             Spacer(Modifier.width(Spacing.leading))
-            Column(Modifier.weight(1f)) {
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(LineGap)) {
                 Row(horizontalArrangement = Arrangement.spacedBy(Spacing.inline)) {
                     Text(
                         title,
@@ -69,3 +71,4 @@ internal fun PeopleCard(
 }
 
 private val TrailingWidth = 160.dp
+private val LineGap = 2.dp
