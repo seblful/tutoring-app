@@ -62,6 +62,22 @@ class TrayNavigationTest {
     }
 
     @Test
+    fun `the widgets' shortcuts open an empty booking, an empty student form and the homework`() {
+        assertEquals(
+            TrayNavigation.Destination.NewLesson,
+            TrayNavigation.destinationFor(TrayNavigation.ACTION_BOOK_LESSON, classId = 0),
+        )
+        assertEquals(
+            TrayNavigation.Destination.NewStudent,
+            TrayNavigation.destinationFor(TrayNavigation.ACTION_ADD_STUDENT, classId = 0),
+        )
+        assertEquals(
+            TrayNavigation.Destination.Homework,
+            TrayNavigation.destinationFor(TrayNavigation.ACTION_OPEN_HOMEWORK, classId = 0),
+        )
+    }
+
+    @Test
     fun `an ordinary launch goes nowhere in particular`() {
         assertNull(TrayNavigation.destinationFor(null, classId = 0))
         assertNull(TrayNavigation.destinationFor("android.intent.action.MAIN", classId = 0))

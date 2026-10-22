@@ -48,4 +48,21 @@ class OpenLessonFormTest {
 
         assertEquals(listOf("Schedule", "More", "Settings", "form 7"), stack())
     }
+
+    @Test
+    fun `a widget's new-lesson form opens once, however often its button is tapped`() {
+        navigator.openOnTop(Routes.classEdit(0))
+        navigator.openOnTop(Routes.classEdit(0))
+
+        assertEquals(listOf("Schedule", "form 0"), stack())
+    }
+
+    @Test
+    fun `a widget's student form opens over the booking being typed, which waits under it`() {
+        navigator.openOnTop(Routes.classEdit(0))
+
+        navigator.openOnTop(Routes.StudentAdd)
+
+        assertEquals(listOf("Schedule", "form 0", "StudentAdd"), stack())
+    }
 }

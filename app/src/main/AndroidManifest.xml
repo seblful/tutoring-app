@@ -113,6 +113,34 @@
         </receiver>
 
         <!--
+          Home-screen widgets. Exported, as the launcher's widget host must reach them. Today's receiver also
+          takes its own midnight alarm (TodayWidgetUpdates); anyone else sending that only redraws the widget.
+        -->
+        <receiver
+            android:name=".widget.TodayWidgetReceiver"
+            android:exported="true"
+            android:label="@string/widget_today_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_today_info" />
+        </receiver>
+
+        <receiver
+            android:name=".widget.QuickActionsWidgetReceiver"
+            android:exported="true"
+            android:label="@string/widget_quick_actions_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_quick_actions_info" />
+        </receiver>
+
+        <!--
           Lends one file at a time to whichever app the tutor picks from the share sheet — the report
           CSV, written to `cache/shared` by `AndroidDocumentSharing`.
 

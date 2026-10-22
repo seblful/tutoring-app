@@ -9,6 +9,7 @@ import com.seblful.klas.notifications.ReminderActionReceiver
 import com.seblful.klas.notifications.ReminderReceiver
 import com.seblful.klas.testutil.ProjectFiles
 import com.seblful.klas.testutil.SourceText
+import com.seblful.klas.widget.MarkTaughtAction
 import com.seblful.klas.work.BootReceiver
 import com.seblful.klas.work.ClockChangeReceiver
 import dev.zacsweers.metro.createGraphFactory
@@ -70,6 +71,13 @@ class KlasGraphTest {
         assertNotNull(ReminderActionReceiver().also { context.appGraph.inject(it) }.actions)
         assertNotNull(BootReceiver().also { context.appGraph.inject(it) }.maintenance)
         assertNotNull(ClockChangeReceiver().also { context.appGraph.inject(it) }.maintenance)
+    }
+
+    @Test
+    fun `the widgets' entry points are served by the application's graph`() {
+        assertNotNull(MarkTaughtAction().also { context.appGraph.inject(it) }.actions)
+        assertNotNull(graph.todayWidget.lessons)
+        assertNotNull(graph.displayLocale.current)
     }
 
     /** Every class in the app's sources extending [supertype] directly: simple name → qualified name. */

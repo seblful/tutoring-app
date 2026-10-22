@@ -6,9 +6,12 @@ import androidx.work.WorkerFactory
 import com.seblful.klas.KlasStore
 import com.seblful.klas.diagnostics.CrashLogger
 import com.seblful.klas.domain.reminders.ReminderScheduler
+import com.seblful.klas.format.DisplayLocale
 import com.seblful.klas.notifications.Notifier
 import com.seblful.klas.notifications.ReminderActionReceiver
 import com.seblful.klas.notifications.ReminderReceiver
+import com.seblful.klas.widget.MarkTaughtAction
+import com.seblful.klas.widget.TodayWidgetUpdates
 import com.seblful.klas.work.BootReceiver
 import com.seblful.klas.work.ClockChangeReceiver
 import dev.zacsweers.metro.AppScope
@@ -27,14 +30,18 @@ import kotlin.reflect.KClass
 
 /**
  * What the app's own entry points need from its object graph — the pieces Android creates itself and so
- * cannot be handed their dependencies: the application, the activity's view models, WorkManager's workers
- * and the manifest's receivers.
+ * cannot be handed their dependencies: the application, the activity's view models, WorkManager's workers,
+ * the manifest's receivers and the home-screen widgets.
  */
 interface AppGraph : ViewModelGraph {
     val notifier: Notifier
     val scheduler: ReminderScheduler
     val crashLogger: CrashLogger
     val workerFactory: WorkerFactory
+    val todayWidget: TodayWidgetUpdates
+
+    /** The app's language, which widgets speak rather than the phone's. */
+    val displayLocale: DisplayLocale
 
     /** For the application's startup work that need not hold up its first frame. */
     @ApplicationScope
@@ -45,6 +52,7 @@ interface AppGraph : ViewModelGraph {
     fun inject(receiver: ReminderActionReceiver)
     fun inject(receiver: BootReceiver)
     fun inject(receiver: ClockChangeReceiver)
+    fun inject(action: MarkTaughtAction)
 
     /** The application, which owns the one graph the process has. */
     interface Holder {

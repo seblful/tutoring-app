@@ -194,7 +194,7 @@ class TutorWorkflowTest {
     }
 
     @Test
-    fun `notification arrivals preserve the typed booking until Back returns to it`() {
+    fun `notification and widget arrivals preserve the typed booking until Back returns to it`() {
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
             waitForText("Workflow student")
             compose.onNodeWithContentDescription(text(R.string.schedule_add_class)).performClick()
@@ -202,7 +202,14 @@ class TutorWorkflowTest {
             // Terms are folded to a line; the rate is typed once they are opened.
             compose.onNodeWithText(text(R.string.class_section_terms)).performScrollTo().performClick()
             compose.onNodeWithText(text(R.string.price_label)).performScrollTo().performTextReplacement("35")
-            for (action in listOf(TrayNavigation.ACTION_OPEN_TODAY, TrayNavigation.ACTION_OPEN_DEBTS)) {
+            val arrivals = listOf(
+                TrayNavigation.ACTION_OPEN_TODAY,
+                TrayNavigation.ACTION_OPEN_DEBTS,
+                // The widgets' shortcuts.
+                TrayNavigation.ACTION_OPEN_HOMEWORK,
+                TrayNavigation.ACTION_ADD_STUDENT,
+            )
+            for (action in arrivals) {
                 scenario.onActivity { activity ->
                     ReflectionHelpers.callInstanceMethod<Unit>(
                         activity, "onNewIntent",

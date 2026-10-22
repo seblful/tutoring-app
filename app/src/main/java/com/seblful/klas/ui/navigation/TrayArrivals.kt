@@ -49,6 +49,9 @@ internal fun OpensWhatTheTrayNames(
             }
             TrayNavigation.Destination.Today -> toSchedule(ScheduleTarget.Today)
             is TrayNavigation.Destination.Day -> toSchedule(ScheduleTarget.Day(destination.date))
+            TrayNavigation.Destination.NewLesson -> navigator.openOnTop(Routes.classEdit(0))
+            TrayNavigation.Destination.NewStudent -> navigator.openOnTop(Routes.StudentAdd)
+            TrayNavigation.Destination.Homework -> navigator.openTabFromTray(TopDestination.HOMEWORK)
             null -> Unit
         }
     }

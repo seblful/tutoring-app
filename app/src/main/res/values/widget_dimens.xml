@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Widget sizes, from the Glance canonical layouts (Android platform samples), unchanged.
+  https://developer.android.com/design/ui/mobile/guides/widgets/sizing#handheld
+-->
+<resources>
+    <!-- Today: about 2x2 when dropped, resizable from 2x2 to 4x4. -->
+    <integer name="widget_today_target_cell_width">2</integer>
+    <integer name="widget_today_target_cell_height">2</integer>
+    <dimen name="widget_today_min_width">120dp</dimen>
+    <dimen name="widget_today_min_height">115dp</dimen>
+    <dimen name="widget_today_min_resize_width">120dp</dimen>
+    <dimen name="widget_today_min_resize_height">115dp</dimen>
+    <dimen name="widget_today_max_resize_width">624dp</dimen>
+    <dimen name="widget_today_max_resize_height">422dp</dimen>
+
+    <!-- Shortcuts: about 4x1 when dropped, resizable from 1x1 to 4x4. -->
+    <integer name="widget_quick_actions_target_cell_width">4</integer>
+    <integer name="widget_quick_actions_target_cell_height">1</integer>
+    <dimen name="widget_quick_actions_min_width">256dp</dimen>
+    <dimen name="widget_quick_actions_min_height">48dp</dimen>
+    <dimen name="widget_quick_actions_min_resize_width">48dp</dimen>
+    <dimen name="widget_quick_actions_min_resize_height">48dp</dimen>
+    <dimen name="widget_quick_actions_max_resize_width">624dp</dimen>
+    <dimen name="widget_quick_actions_max_resize_height">422dp</dimen>
+</resources>

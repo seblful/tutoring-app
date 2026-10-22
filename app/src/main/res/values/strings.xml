@@ -903,4 +903,11 @@
     <string name="class_correction_changed">The lesson changed. Open it again to correct its status.</string>
     <string name="class_repeat_independent_hint">Creates separate lessons. Edit or cancel each lesson individually.</string>
     <string name="reports_earned_hint">Earned from taught lessons, whether paid or unpaid.</string>
+
+    <!-- Home-screen widgets: the names and descriptions the launcher's widget picker shows. -->
+    <string name="widget_today_name">Today\'s lessons</string>
+    <string name="widget_today_description">Today\'s lessons, marked taught with one tap</string>
+    <string name="widget_today_empty">No lessons today</string>
+    <string name="widget_quick_actions_name">Klas shortcuts</string>
+    <string name="widget_quick_actions_description">Book a lesson, add a student, or open today, homework and debts</string>
 </resources>

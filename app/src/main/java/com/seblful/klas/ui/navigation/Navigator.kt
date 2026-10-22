@@ -113,6 +113,14 @@ class KlasNavigator internal constructor(
     fun openLessonForm(classId: Long) {
         if ((top.route as? Routes.ClassEdit)?.id != classId) navigate(Routes.classEdit(classId))
     }
+
+    /**
+     * Pushes [route] for a tap from outside the app, **over whatever is open**, unless it is already on top —
+     * a second tap on the same widget button leaves the form it opened, and its draft, alone.
+     */
+    fun openOnTop(route: Route) {
+        if (top.route != route) navigate(route)
+    }
 }
 
 /** The app's [KlasNavigator], kept across configuration changes and process death. */

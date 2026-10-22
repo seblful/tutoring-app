@@ -3,7 +3,8 @@ package com.seblful.klas.notifications
 import kotlinx.datetime.LocalDate
 
 /**
- * Where a tap in the notification tray puts the tutor — **one rule for every notification the app posts.**
+ * Where a tap in the notification tray puts the tutor — **one rule for every notification the app posts**,
+ * and for the home-screen widgets (`widget/`), which open the app the same way.
  *
  * It began as `ReminderNavigation`, about the single thing a reminder can ask the app to open: a lesson,
  * because «Перенести» needs a screen a notification cannot draw. The weekly debt digest is the second
@@ -36,6 +37,9 @@ object TrayNavigation {
     const val ACTION_OPEN_TODAY = "com.seblful.klas.action.OPEN_TODAY"
     const val ACTION_OPEN_DAY = "com.seblful.klas.action.OPEN_DAY"
     const val ACTION_SHOW_LESSON = "com.seblful.klas.action.SHOW_LESSON"
+    const val ACTION_BOOK_LESSON = "com.seblful.klas.action.BOOK_LESSON"
+    const val ACTION_ADD_STUDENT = "com.seblful.klas.action.ADD_STUDENT"
+    const val ACTION_OPEN_HOMEWORK = "com.seblful.klas.action.OPEN_HOMEWORK"
 
     /** The day an [ACTION_OPEN_DAY] entry is about, as `LocalDate.toEpochDays()`. */
     const val EXTRA_DAY = "day"
@@ -91,6 +95,15 @@ object TrayNavigation {
          * yesterday, and today would be a page with none of its lessons on it.
          */
         data class Day(val date: LocalDate) : Destination
+
+        /** An empty booking form — a widget's «Записать занятие». */
+        data object NewLesson : Destination
+
+        /** An empty student form — a widget's «Добавить ученика». */
+        data object NewStudent : Destination
+
+        /** The homework tab. */
+        data object Homework : Destination
     }
 
     /**
@@ -114,13 +127,20 @@ object TrayNavigation {
     ): Destination? = if (fromHistory) null else when (action) {
         ACTION_OPEN_LESSON -> lessonIdOrNull(classId)?.let { Destination.Lesson(it) }
         ACTION_SHOW_LESSON -> lessonIdOrNull(classId)?.let { Destination.LessonOnSchedule(it) }
-        ACTION_OPEN_DEBTS -> Destination.Debts
-        ACTION_OPEN_TODAY -> Destination.Today
         ACTION_OPEN_DAY ->
             epochDay
                 ?.let { runCatching { LocalDate.fromEpochDays(it) }.getOrNull() }
                 ?.let { Destination.Day(it) }
                 ?: Destination.Today
-        else -> null
+        else -> fixed[action]
     }
+
+    /** The entries that carry nothing but their action. */
+    private val fixed: Map<String, Destination> = mapOf(
+        ACTION_OPEN_DEBTS to Destination.Debts,
+        ACTION_OPEN_TODAY to Destination.Today,
+        ACTION_BOOK_LESSON to Destination.NewLesson,
+        ACTION_ADD_STUDENT to Destination.NewStudent,
+        ACTION_OPEN_HOMEWORK to Destination.Homework,
+    )
 }

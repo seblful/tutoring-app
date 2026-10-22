@@ -1034,4 +1034,11 @@
     <string name="class_correction_changed">Занятие изменилось. Откройте его снова, чтобы исправить статус.</string>
     <string name="class_repeat_independent_hint">Создаются отдельные занятия. Каждое можно изменить или отменить по отдельности.</string>
     <string name="reports_earned_hint">Начисления за проведённые занятия, в том числе ещё не оплаченные.</string>
+
+    <!-- Home-screen widgets: the names and descriptions the launcher's widget picker shows. -->
+    <string name="widget_today_name">Занятия сегодня</string>
+    <string name="widget_today_description">Сегодняшние занятия, отмечаются проведёнными одним касанием</string>
+    <string name="widget_today_empty">Сегодня занятий нет</string>
+    <string name="widget_quick_actions_name">Быстрые действия Klas</string>
+    <string name="widget_quick_actions_description">Записать занятие, добавить ученика, открыть сегодня, задания и долги</string>
 </resources>

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Sizes from the Glance canonical toolbar layout. -->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:description="@string/widget_quick_actions_description"
+    android:initialLayout="@layout/glance_default_loading_layout"
+    android:maxResizeHeight="@dimen/widget_quick_actions_max_resize_height"
+    android:maxResizeWidth="@dimen/widget_quick_actions_max_resize_width"
+    android:minHeight="@dimen/widget_quick_actions_min_height"
+    android:minResizeHeight="@dimen/widget_quick_actions_min_resize_height"
+    android:minResizeWidth="@dimen/widget_quick_actions_min_resize_width"
+    android:minWidth="@dimen/widget_quick_actions_min_width"
+    android:resizeMode="horizontal|vertical"
+    android:targetCellHeight="@integer/widget_quick_actions_target_cell_height"
+    android:targetCellWidth="@integer/widget_quick_actions_target_cell_width"
+    android:widgetCategory="home_screen|keyguard" />

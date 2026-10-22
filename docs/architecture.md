@@ -29,6 +29,7 @@ Paths below are inside `com.seblful.klas`; follow the linked sources for individ
 | [Shared queries](../shared/src/commonMain/kotlin/com/seblful/klas/queries/) | Student details and reports join repository flows into portable results; homework rows and date changes are shared too. Hosts own loading state, collection lifetime, events and navigation. |
 | [Shared calendar](../shared/src/commonMain/kotlin/com/seblful/klas/calendar/) / [notifications](../shared/src/commonMain/kotlin/com/seblful/klas/notifications/) / [storage](../shared/src/commonMain/kotlin/com/seblful/klas/storage/) | Calendar mirroring, reminder/digest posting decisions and device interfaces. |
 | [Android calendar](../app/src/main/java/com/seblful/klas/calendar/) / [notifications](../app/src/main/java/com/seblful/klas/notifications/) / [work](../app/src/main/java/com/seblful/klas/work/) | Device adapters, permission prompts, tray navigation, receivers and WorkManager scheduling. |
+| [Android widgets](../app/src/main/java/com/seblful/klas/widget/) | Glance home-screen widgets: today's lessons and shortcuts. Both open the app through `TrayNavigation`; the check marks a lesson taught through `ReminderActions`. `TodayWidgetUpdates` redraws them when lessons change while the process lives, and at midnight through a non-waking alarm. |
 | [Android storage](../app/src/main/java/com/seblful/klas/storage/) / [diagnostics](../app/src/main/java/com/seblful/klas/diagnostics/) | Document picker/sharing adapters and a capped local crash log. |
 | [Shared format](../shared/src/commonMain/kotlin/com/seblful/klas/format/) / [Android format](../app/src/main/java/com/seblful/klas/format/) | Portable exact amount parsing and observable-clock interface; Android owns localized display and device preferences. |
 | [UI](../app/src/main/java/com/seblful/klas/ui/) | Screens and view models by feature; shared atoms/state in `common/`, routes in `navigation/`, booking in `schedule/booking/`, settings index/categories and permission UI in `settings/`. Feature-only parts stay with their feature. |
@@ -82,7 +83,7 @@ in [the version catalog](../gradle/libs.versions.toml).
   The graph factory receives `@ApplicationContext Context`.
 - `KlasGraph` also exposes `KlasStore`. Other hosts call `createKlasStore(database, host)` with
   `HostServices`; the shared Metro graph constructs the same repositories, queries and workflows.
-- Android-created objects use `context.appGraph`: receivers inject first in `onReceive`, workers use
+- Android-created objects use `context.appGraph`: receivers and widget action callbacks inject first, workers use
   `AppWorkerFactory` with nested `@AssistedFactory`/`@WorkerKey`, and the activity provides the view-model
   factory. metrox's `AppComponentFactory` needs API 28; minSdk is 24.
 - View models contribute via `@ViewModelKey` and `@ContributesIntoMap` and use `metroViewModel()`.
