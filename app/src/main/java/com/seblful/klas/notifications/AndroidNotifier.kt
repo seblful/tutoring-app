@@ -247,7 +247,7 @@ class AndroidNotifier @Inject constructor(
 
     private fun builder(channel: String, titleRes: Int): NotificationCompat.Builder =
         NotificationCompat.Builder(context, channel)
-            .setSmallIcon(R.drawable.ic_stat_reminder)
+            .setSmallIcon(R.drawable.ic_stat_klas)
             .setContentTitle(words.getString(titleRes))
             .setAutoCancel(true)
 

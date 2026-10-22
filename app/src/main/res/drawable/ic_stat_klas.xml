@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The Klas mark filled for the status bar, where the outline's page fold closes up below 20dp; the fold
+     survives as an even-odd cut. Traced from art/logo_source.png. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24"
+    android:tint="#FFFFFF">
+    <path
+        android:fillColor="#FFFFFF"
+        android:fillType="evenOdd"
+        android:pathData="M10.32,4.83L10.32,11.54C10.32,12.26 10.92,12.51 11.37,12.01L15.50,7.68C15.76,7.39 16.03,7.23 16.44,7.23L20.20,7.23C21.06,7.23 21.43,7.97 20.86,8.50L16.28,13.21C15.87,13.62 15.87,13.91 16.28,14.32L20.61,19.17C21.23,19.85 20.86,20.65 19.99,20.65L16.44,20.65C15.99,20.65 15.74,20.51 15.50,20.22L11.25,15.39C10.92,15.02 10.34,14.98 9.97,15.35L5.31,19.85C4.48,20.63 2.88,20.30 2.88,18.86L2.88,7.93C2.88,6.94 3.29,6.32 4.07,5.87L8.07,3.60C9.06,3.06 10.32,3.56 10.32,4.83ZM5.98,8.13L9.53,6.02A0.55,0.55 0 0,0 8.97,5.08L5.42,7.19A0.55,0.55 0 0,0 5.98,8.13Z" />
+    <!-- Rounds and thickens the filled outline to the logo's stroke weight. -->
+    <path
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="1.75"
+        android:strokeLineJoin="round"
+        android:pathData="M10.32,4.83L10.32,11.54C10.32,12.26 10.92,12.51 11.37,12.01L15.50,7.68C15.76,7.39 16.03,7.23 16.44,7.23L20.20,7.23C21.06,7.23 21.43,7.97 20.86,8.50L16.28,13.21C15.87,13.62 15.87,13.91 16.28,14.32L20.61,19.17C21.23,19.85 20.86,20.65 19.99,20.65L16.44,20.65C15.99,20.65 15.74,20.51 15.50,20.22L11.25,15.39C10.92,15.02 10.34,14.98 9.97,15.35L5.31,19.85C4.48,20.63 2.88,20.30 2.88,18.86L2.88,7.93C2.88,6.94 3.29,6.32 4.07,5.87L8.07,3.60C9.06,3.06 10.32,3.56 10.32,4.83Z" />
+</vector>
