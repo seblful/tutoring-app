@@ -69,6 +69,10 @@ Roborazzi plugin generate tests; no handwritten test class is needed.
 in dark theme and at 1.5× text), an unfolded foldable, a tablet and a desktop window — bar or rail, People alone and with a card beside it,
 homework in columns, and a settings page beside the index. It ends on the card: a tab tapped before its bar hides and returns may still show a press. Its goldens are recorded and compared by the same tasks.
 
+`ScreenTourScreenshotTest` covers the rest on a phone — lesson sheet, forms, More and every Settings page,
+onboarding — in light, dark, 1.5× text and Russian (`Tour.*`). It finds controls by their strings, so one
+tour runs in both languages; a screen that changes by accident during a UI migration shows here.
+
 `WidgetScreenshotTest` draws the home-screen widgets as a launcher does: each layout composed to RemoteViews
 at a cell size and applied under an `AppWidgetHostView` (a list fills only there), in Russian, light and dark.
 
