@@ -289,4 +289,26 @@ class CalendarLayoutTest {
             "however many lessons a day holds, its cell prints one number per status",
         )
     }
+
+    @Test
+    fun `a cell draws a mark per lesson - each status by its own shape`() {
+        val load = CalendarLayout.DayLoad(mapOf(LessonStatus.COMPLETED to 1, LessonStatus.SCHEDULED to 2))
+
+        assertEquals(
+            CalendarLayout.Marks(
+                listOf(LessonStatus.SCHEDULED, LessonStatus.SCHEDULED, LessonStatus.COMPLETED),
+                more = 0,
+            ),
+            load.marks,
+        )
+    }
+
+    @Test
+    fun `five lessons are four marks and one more`() {
+        val load = CalendarLayout.DayLoad(mapOf(LessonStatus.SCHEDULED to 3, LessonStatus.CANCELLED to 2))
+
+        assertEquals(CalendarLayout.MAX_MARKS, load.marks.shown.size)
+        assertEquals(1, load.marks.more)
+        assertEquals(5, load.total)
+    }
 }

@@ -508,6 +508,16 @@ private fun TrendCard(trend: Reports.Trend) {
     val isMonths = trend.bucket == Reports.Trend.Bucket.MONTHS
     ReportCard(stringResource(if (isMonths) R.string.reports_by_month else R.string.reports_by_year)) {
         IncomeTrendChart(trend) { bar -> if (isMonths) months[bar.monthIndex] else bar.key.toString() }
+        // The accent bar explained, and named: the chart itself is not read aloud.
+        trend.peak?.let { peak ->
+            PeakLegend(
+                if (isMonths) {
+                    stringResource(R.string.reports_best_month, formatMonthName(peak.key))
+                } else {
+                    stringResource(R.string.reports_best_year, peak.key.toString())
+                },
+            )
+        }
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
         // `rows`, not `bars`: newest first and without the empty buckets, which are a gap in the chart
         // above and would only be a row of zeros here. Both halves of that are stated on [Reports.Trend].
@@ -519,6 +529,26 @@ private fun TrendCard(trend: Reports.Trend) {
         }
     }
 }
+
+/** A swatch of the peak bar's colour and what it marks. */
+@Composable
+private fun PeakLegend(text: String) {
+    Row(
+        Modifier.padding(top = Spacing.tight),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.tight),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            Modifier
+                .size(PeakSwatch)
+                .clip(MaterialTheme.shapes.extraSmall)
+                .background(MaterialTheme.colorScheme.primary),
+        )
+        Text(text, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+private val PeakSwatch = 10.dp
 
 @Composable
 private fun IncomeTrendChart(trend: Reports.Trend, labelOf: (Reports.Trend.Bar) -> String) {

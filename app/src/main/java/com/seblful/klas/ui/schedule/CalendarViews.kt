@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
@@ -42,7 +43,6 @@ import com.seblful.klas.format.formatDay
 import com.seblful.klas.format.shortName
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.bleed
-import com.seblful.klas.ui.common.classStatusColor
 import com.seblful.klas.ui.common.classStatusLabel
 import com.seblful.klas.ui.common.rememberPlaceholderShown
 import com.seblful.klas.ui.common.state.Loadable
@@ -89,7 +89,7 @@ fun MonthCalendar(
     onSelect: (LocalDate) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    // One for the grid, not one per cell — see [DayTallies].
+    // One for the grid, not one per cell — see [DayMarks].
     val placeholderShown = rememberPlaceholderShown(waiting = loads is Loadable.Loading)
     Column(modifier.fillMaxWidth().bleed(GridBleed)) {
         WeekdayHeader(grid.weeks.first())
@@ -111,6 +111,7 @@ fun MonthCalendar(
                 }
             }
         }
+        StatusLegend(Modifier.fillMaxWidth().padding(top = Spacing.tight))
     }
 }
 
@@ -144,6 +145,7 @@ fun WeekStrip(
                 )
             }
         }
+        StatusLegend(Modifier.fillMaxWidth().padding(top = Spacing.tight))
     }
 }
 
@@ -179,8 +181,8 @@ private fun DayCell(
     // swapping in a frame. Both are read in the draw: a tap would otherwise recompose two cells per frame.
     val selection = animateFloatAsState(if (isSelected) 1f else 0f, KlasMotion.fastEffects(), label = "day fill")
     val ink = animateColorAsState(numberColor, KlasMotion.fastEffects(), label = "day number")
-    // Spoken as «Четверг, 15 октября, 2 занятия, В плане: 1, Отменено: 1» — the tallies carry that
-    // breakdown visually through colour alone, which a screen reader cannot convey, so it must be said,
+    // Spoken as «Четверг, 15 октября, 2 занятия, В плане: 1, Отменено: 1» — the marks carry that
+    // breakdown as shapes, which a screen reader cannot convey, so it must be said,
     // and the day is said in full rather than as a bare «15». A cell whose counts have not arrived says
     // only its date, which is all that is known about it. Which day is selected, and which is today, are
     // said as the cell's state — see the semantics below.
@@ -249,13 +251,13 @@ private fun DayCell(
                     color = { ink.value },
                 )
             }
-            DayTallies(load, placeholderShown)
+            DayMarks(load, placeholderShown)
         }
     }
 }
 
 @Composable
-private fun DayTallies(load: Loadable<CalendarLayout.DayLoad?>, placeholderShown: State<Boolean>) {
+private fun DayMarks(load: Loadable<CalendarLayout.DayLoad?>, placeholderShown: State<Boolean>) {
     if (load is Loadable.Loading) {
         val placeholderTint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = TallyPlaceholderAlpha)
         Row(
@@ -278,14 +280,16 @@ private fun DayTallies(load: Loadable<CalendarLayout.DayLoad?>, placeholderShown
         // over the neighbouring day. Centred within the cell, so a one-tally day still sits under its
         // own number.
         Modifier.fillMaxWidth().heightIn(min = TallyRowHeight),
-        horizontalArrangement = Arrangement.spacedBy(TallySpacing, Alignment.CenterHorizontally),
+        horizontalArrangement = Arrangement.spacedBy(MarkGap, Alignment.CenterHorizontally),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        load.valueOrNull()?.tallies?.forEach { tally ->
+        val marks = load.valueOrNull()?.marks ?: return@Row
+        marks.shown.forEach { StatusMark(it) }
+        if (marks.more > 0) {
             Text(
-                text = tally.count.toString(),
+                text = stringResource(R.string.calendar_more_marks, marks.more),
                 style = MaterialTheme.typography.labelSmall,
-                color = classStatusColor(tally.status),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
             )
         }

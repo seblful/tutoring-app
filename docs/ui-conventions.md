@@ -194,6 +194,10 @@ Build screens from shared state and controls. Feature rules belong in the domain
   feature keeps its chosen switch state and offers system recovery; exact-alarm access concerns only
   lesson reminders. Dependent controls stay visible and explain how to enable them. Shared reminder
   timing is editable when lesson reminders **or** calendar sync is enabled, from either category.
+- Status is never colour alone. Month and week cells draw a `StatusMark` per lesson — taught a dot,
+  planned a ring, cancelled a cross — up to `CalendarLayout.MAX_MARKS` and «+n», with a `StatusLegend`
+  under the grid; each cell still speaks its counts. The report chart's accent bar is named under it
+  («Best month»), since the chart itself is not read aloud.
 - Schedule Day/Week/Month share `ScheduleViewModel.content`'s week assembly, avoiding reads for switches
   inside the week. Summaries are count·hours·money (`DaySummary`); show “now” only today. Completion is
   an undoable green swipe; cancelled lessons recede with a red badge. An ended lesson nobody has marked
