@@ -1,19 +1,17 @@
 package com.seblful.klas.ui.groups
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListScope
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -25,60 +23,47 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.seblful.klas.R
 import com.seblful.klas.domain.model.Assignee
-import com.seblful.klas.domain.model.Attendance
+import com.seblful.klas.domain.reports.Taught
+import com.seblful.klas.format.bulletJoin
+import com.seblful.klas.format.formatHours
 import com.seblful.klas.queries.homework.AssigneeChoice
 import com.seblful.klas.queries.homework.HomeworkRow
+import com.seblful.klas.ui.common.AddRow
+import com.seblful.klas.ui.common.AddRowInSection
 import com.seblful.klas.ui.common.ArchiveMenuItem
 import com.seblful.klas.ui.common.ArchivedBadge
-import com.seblful.klas.ui.common.Avatar
-import com.seblful.klas.ui.common.BadgeLine
 import com.seblful.klas.ui.common.ConfirmDialog
-import com.seblful.klas.ui.common.DetailCard
-import com.seblful.klas.ui.common.EmptyState
+import com.seblful.klas.ui.common.HeadlineCardInset
 import com.seblful.klas.ui.common.KlasScreen
 import com.seblful.klas.ui.common.LoadingDetailScreen
+import com.seblful.klas.ui.common.Messages
+import com.seblful.klas.ui.common.MinHeadlineSize
+import com.seblful.klas.ui.common.MinTouchTarget
 import com.seblful.klas.ui.common.NamedIconButton
-import com.seblful.klas.ui.common.OpensScreenMark
 import com.seblful.klas.ui.common.OverflowMenu
+import com.seblful.klas.ui.common.OverviewSection
+import com.seblful.klas.ui.common.SectionCard
+import com.seblful.klas.ui.common.SectionNote
 import com.seblful.klas.ui.common.ShowMessagesFor
 import com.seblful.klas.ui.common.Spacing
-import com.seblful.klas.ui.common.Stat
-import com.seblful.klas.ui.common.StatusBadge
 import com.seblful.klas.ui.common.TitleSize
-import com.seblful.klas.ui.common.TrailingAmount
 import com.seblful.klas.ui.common.animateInPlace
-import com.seblful.klas.ui.common.classStatusColor
-import com.seblful.klas.ui.common.classStatusLabel
-import com.seblful.klas.ui.common.dateTimeText
-import com.seblful.klas.ui.common.detailCard
-import com.seblful.klas.ui.common.earnedStat
-import com.seblful.klas.ui.common.hoursStat
-import com.seblful.klas.ui.common.insetRowPress
-import com.seblful.klas.ui.common.lessonsStat
 import com.seblful.klas.ui.common.plusInset
 import com.seblful.klas.ui.common.rememberMessages
-import com.seblful.klas.ui.common.state.Loadable
+import com.seblful.klas.ui.common.sectionRowColors
 import com.seblful.klas.ui.common.text
 import com.seblful.klas.ui.homework.CardHomeworkDialogs
-import com.seblful.klas.ui.homework.homeworkItems
+import com.seblful.klas.ui.homework.HomeworkSection
 import com.seblful.klas.ui.homework.homeworkUndo
+import com.seblful.klas.ui.people.NextLessonCard
 import com.seblful.klas.ui.theme.KlasIcons
 import dev.zacsweers.metrox.viewmodel.assistedMetroViewModel
-
-private enum class GroupTab(val labelRes: Int, val icon: ImageVector) {
-    LESSONS(R.string.group_lessons_title, KlasIcons.Outlined.CalendarMonth),
-
-    /** The group's own homework, current and done — where it is set for the whole group. */
-    HOMEWORK(R.string.student_homework_title, KlasIcons.Outlined.Assignment),
-    STUDENTS(R.string.group_students_title, KlasIcons.Outlined.Groups),
-}
 
 private data class GroupNavigation(
     val back: () -> Unit,
@@ -88,11 +73,13 @@ private data class GroupNavigation(
     val member: (Long) -> Unit,
     val lesson: (Long) -> Unit,
     val book: () -> Unit,
+    val seeAll: (GroupSection) -> Unit,
 )
 
 /**
- * A group's card: what it is taught and for how much, how much of it has happened, who is in it and
- * which lessons they attended.
+ * A group's card, laid out as the student's is: what it is taught and for how much, then **an overview** —
+ * its next lesson, what it has earned, the latest of its lessons and homework (each opening in full,
+ * [GroupSection]) and everybody in it.
  *
  * @param backArrow false beside the People list the card was opened from: the list is the way to another.
  * @param onEdit opens the group form — the only place a group's roster, subject or rate changes.
@@ -106,57 +93,41 @@ fun GroupDetailScreen(
     onLessonClick: (Long) -> Unit,
     viewModel: GroupDetailViewModel = assistedMetroViewModel(),
     onBookLesson: () -> Unit = {},
+    onSeeAll: (GroupSection) -> Unit = {},
     initialHomework: Boolean = false,
     backArrow: Boolean = true,
 ) {
-    // As the student's card: `GroupDetailState()` is an empty group rather than an unread one, so the
-    // wait is its own screen instead of a card claiming no members and no lessons. See [Loadable].
-    when (val screenState = viewModel.state.collectAsStateWithLifecycle().value) {
-        Loadable.Loading -> LoadingDetailScreen(onBack.takeIf { backArrow })
-        is Loadable.Ready ->
-            GroupCard(
-                screenState.value, viewModel,
-                GroupNavigation(onBack, backArrow, onEdit, onMemberClick, onLessonClick, onBookLesson), initialHomework,
-            )
+    when (val overview = viewModel.overview.collectAsStateWithLifecycle().value) {
+        null -> LoadingDetailScreen(onBack.takeIf { backArrow })
+        else -> GroupCard(
+            overview,
+            viewModel,
+            GroupNavigation(onBack, backArrow, onEdit, onMemberClick, onLessonClick, onBookLesson, onSeeAll),
+            initialHomework,
+        )
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun GroupCard(
-    state: GroupDetailState,
+    overview: GroupOverview,
     viewModel: GroupDetailViewModel,
     navigation: GroupNavigation,
     initialHomework: Boolean,
 ) {
+    val state = overview.details
     val group = state.group
 
-    var tab by rememberSaveable { mutableStateOf(GroupTab.LESSONS) }
     var confirmingDelete by remember { mutableStateOf(false) }
     // Taken when the dialog opens — see `GroupDetailViewModel.homeworkChoice`.
     var addingHomework by remember { mutableStateOf<AssigneeChoice?>(null) }
     var openedHomework by remember { mutableStateOf<HomeworkRow?>(null) }
-    HomeworkEntry(initialHomework, group?.id) {
-        tab = GroupTab.HOMEWORK
-        addingHomework = viewModel.homeworkChoice()
-    }
+    HomeworkEntry(initialHomework, group?.id) { addingHomework = viewModel.homeworkChoice() }
 
     val messages = rememberMessages()
-    val deleteBlockedMsg = stringResource(R.string.group_delete_blocked)
-    val writeFailedMsg = stringResource(R.string.action_failed)
-    ShowMessagesFor(viewModel.events, messages) { event ->
-        when (event) {
-            GroupDetailViewModel.Event.DELETE_BLOCKED_HAS_LESSONS -> deleteBlockedMsg
-            GroupDetailViewModel.Event.WRITE_FAILED -> writeFailedMsg
-        }
-    }
-    val homeworkUndo = homeworkUndo(
-        messages = messages,
-        setDone = viewModel::setHomeworkDone,
-        putBack = viewModel::putHomeworkBack,
-        delete = viewModel::deleteHomework,
-        restore = viewModel::restoreHomework,
-    )
+    ShowGroupMessages(viewModel, messages)
+    val homeworkUndo = groupHomeworkUndo(viewModel, messages)
 
     // The group's name is the subject of the screen, as a student's is on theirs — the same large,
     // collapsing title, so the two cards read as one pattern.
@@ -166,18 +137,9 @@ private fun GroupCard(
         titleSize = TitleSize.Large,
         messages = messages,
         actions = {
-            if (group != null && !group.archived) {
-                NamedIconButton(
-                    KlasIcons.Outlined.EditCalendar,
-                    stringResource(R.string.class_book),
-                    onClick = navigation.book,
-                )
-            }
+            // Booking is the next lesson's «+», in the card it books into.
             NamedIconButton(KlasIcons.Outlined.Edit, stringResource(R.string.action_edit), onClick = navigation.edit)
-            // Retiring and removing the group, behind the overflow — where a student's already were.
-            // They used to be a pair of outlined buttons under a «danger zone» heading at the foot of
-            // the group's *form*, so the same lifecycle verb lived on the card for one entity and on
-            // the form for the other, and reaching the group's meant scrolling past its whole roster.
+            // Retiring and removing the group, behind the overflow — where a student's are.
             if (group != null) {
                 GroupOverflowMenu(
                     archived = group.archived,
@@ -187,49 +149,57 @@ private fun GroupCard(
             }
         },
     ) { modifier, bottomInset ->
+        val cardModifier = Modifier.padding(horizontal = Spacing.gutter)
         LazyColumn(
             modifier = modifier,
             contentPadding = PaddingValues(bottom = Spacing.sectionGap).plusInset(bottomInset),
+            // Separate cards, each a section of its own, rather than parts of one surface.
+            verticalArrangement = Arrangement.spacedBy(Spacing.itemGap),
         ) {
-            // Identity, then the numbers, then the tabs (see [detailCard]).
-            detailCard(
-                identity = {
-                    item(key = GroupDetailKeys.HEADER) {
-                        GroupHeader(
-                            state = state,
-                            modifier = Modifier.padding(
-                                horizontal = Spacing.gutter,
-                                vertical = Spacing.inline,
-                            ),
-                        )
-                    }
-                },
-                stats = { groupStats(state) },
-                views = GroupTab.entries,
-                selected = tab,
-                onSelect = { tab = it },
-                label = { stringResource(it.labelRes) },
-                icon = { it.icon },
-                count = { entry ->
-                    when (entry) {
-                        GroupTab.LESSONS -> state.lessons.size
-                        GroupTab.HOMEWORK -> state.homework.current.size
-                        GroupTab.STUDENTS -> state.members.size
-                    }
-                },
-            ) { shown ->
-                when (shown) {
-                    GroupTab.LESSONS -> lessonsTab(state, navigation.lesson)
-                    GroupTab.HOMEWORK -> homeworkItems(
-                        owner = group?.let { Assignee.Group(it.id) },
-                        lists = state.homework,
-                        messages = messages,
-                        onAdd = { addingHomework = viewModel.homeworkChoice() },
-                        onOpen = { openedHomework = it },
-                        onDone = homeworkUndo::swiped,
+            item(key = GroupDetailKeys.HEADER, contentType = GroupDetailKeys.HEADER) {
+                GroupHeader(state, Modifier.padding(horizontal = Spacing.gutter))
+            }
+            // An archived group's planned lessons were called off, and the form books no archived group.
+            if (group != null && !group.archived) {
+                item(key = GroupDetailKeys.NEXT, contentType = GroupDetailKeys.NEXT) {
+                    NextLessonCard(
+                        next = overview.next,
+                        onOpen = navigation.lesson,
+                        onBook = navigation.book,
+                        modifier = animateInPlace(cardModifier),
                     )
-                    GroupTab.STUDENTS -> studentsTab(state, navigation.member, onEditMembers = navigation.edit)
                 }
+            }
+            item(key = GroupDetailKeys.EARNED, contentType = GroupDetailKeys.EARNED) {
+                EarnedCard(state.totals, modifier = animateInPlace(cardModifier))
+            }
+            item(key = GroupDetailKeys.LESSONS, contentType = GroupDetailKeys.LESSONS) {
+                LessonsSection(
+                    overview = overview,
+                    onLessonClick = navigation.lesson,
+                    onSeeAll = { navigation.seeAll(GroupSection.LESSONS) },
+                    modifier = animateInPlace(cardModifier),
+                )
+            }
+            item(key = GroupDetailKeys.HOMEWORK, contentType = GroupDetailKeys.HOMEWORK) {
+                HomeworkSection(
+                    owner = group?.let { Assignee.Group(it.id) },
+                    lists = state.homework,
+                    messages = messages,
+                    onAdd = { addingHomework = viewModel.homeworkChoice() },
+                    onOpen = { openedHomework = it },
+                    onDone = homeworkUndo::swiped,
+                    onSeeAll = { navigation.seeAll(GroupSection.HOMEWORK) },
+                    modifier = animateInPlace(cardModifier),
+                )
+            }
+            item(key = GroupDetailKeys.MEMBERS, contentType = GroupDetailKeys.MEMBERS) {
+                MembersSection(
+                    members = state.members,
+                    onMemberClick = navigation.member,
+                    onEditMembers = navigation.edit,
+                    modifier = animateInPlace(cardModifier),
+                )
             }
         }
     }
@@ -265,27 +235,130 @@ private fun HomeworkEntry(requested: Boolean, groupId: Long?, onOpen: () -> Unit
 }
 
 @Composable
+internal fun ShowGroupMessages(viewModel: GroupDetailViewModel, messages: Messages) {
+    val deleteBlockedMsg = stringResource(R.string.group_delete_blocked)
+    val writeFailedMsg = stringResource(R.string.action_failed)
+    ShowMessagesFor(viewModel.events, messages) { event ->
+        when (event) {
+            GroupDetailViewModel.Event.DELETE_BLOCKED_HAS_LESSONS -> deleteBlockedMsg
+            GroupDetailViewModel.Event.WRITE_FAILED -> writeFailedMsg
+        }
+    }
+}
+
+@Composable
+internal fun groupHomeworkUndo(viewModel: GroupDetailViewModel, messages: Messages) =
+    homeworkUndo(
+        messages = messages,
+        setDone = viewModel::setHomeworkDone,
+        putBack = viewModel::putHomeworkBack,
+        delete = viewModel::deleteHomework,
+        restore = viewModel::restoreHomework,
+    )
+
+/** Under the name, as the student's contact line is: what the group is taught, and for how much. */
+@Composable
 private fun GroupHeader(state: GroupDetailState, modifier: Modifier = Modifier) {
     val group = state.group ?: return
-    Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.tight)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+    Column(modifier.fillMaxWidth()) {
+        Row(Modifier.heightIn(min = MinTouchTarget), verticalAlignment = Alignment.CenterVertically) {
             Text(
-                state.subjectName ?: stringResource(R.string.group_no_subject),
-                style = MaterialTheme.typography.titleMedium,
-                color = if (state.subjectName == null) MaterialTheme.colorScheme.onSurfaceVariant
-                else MaterialTheme.colorScheme.onSurface,
+                bulletJoin(
+                    state.subjectName ?: stringResource(R.string.group_no_subject),
+                    stringResource(R.string.price_per_hour, group.price.text()),
+                ),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.weight(1f, fill = false),
             )
-            // The badge the lists use for the same state — this was the last italic grey word saying it.
             if (group.archived) ArchivedBadge(Modifier.padding(start = Spacing.inline))
         }
         if (group.note.isNotBlank()) {
-            Text(group.note, style = MaterialTheme.typography.bodyMedium)
+            Text(
+                group.note,
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(top = Spacing.tight),
+            )
         }
-        Text(
-            stringResource(R.string.price_per_hour, group.price.text()),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+    }
+}
+
+/**
+ * What the group has brought in, the way a student's card heads with their balance: the money first, then how
+ * much teaching it was for and how much more is booked.
+ */
+@Composable
+internal fun EarnedCard(totals: Taught.Totals, modifier: Modifier = Modifier) {
+    SectionCard(modifier) {
+        Column(HeadlineCardInset, verticalArrangement = Arrangement.spacedBy(Spacing.tight)) {
+            Text(
+                stringResource(R.string.stat_earned),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
+                totals.earned.text(),
+                style = MaterialTheme.typography.headlineSmall,
+                maxLines = 1,
+                autoSize = TextAutoSize.StepBased(
+                    minFontSize = with(LocalDensity.current) { MinHeadlineSize.toSp() },
+                    maxFontSize = MaterialTheme.typography.headlineSmall.fontSize,
+                ),
+            )
+            Text(
+                bulletJoin(
+                    pluralStringResource(R.plurals.lessons_count, totals.lessons, totals.lessons),
+                    stringResource(R.string.hours_value, formatHours(totals.minutes)),
+                    if (totals.upcoming > 0) stringResource(R.string.stat_upcoming, totals.upcoming) else "",
+                ),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+@Composable
+private fun LessonsSection(
+    overview: GroupOverview,
+    onLessonClick: (Long) -> Unit,
+    onSeeAll: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val all = overview.details.lessons
+    OverviewSection(
+        title = stringResource(R.string.group_lessons_title),
+        count = all.size,
+        onSeeAll = onSeeAll.takeIf { all.size > overview.lessons.size },
+        modifier = modifier,
+    ) {
+        if (all.isEmpty()) SectionNote(stringResource(R.string.group_lessons_empty))
+        overview.lessons.forEach { row ->
+            GroupLessonItem(row, onClick = { onLessonClick(row.session.first.id) }, colors = sectionRowColors())
+        }
+    }
+}
+
+/** Everybody in it, in place: a group is a handful, so there is no longer list to open. */
+@Composable
+private fun MembersSection(
+    members: List<GroupMemberRow>,
+    onMemberClick: (Long) -> Unit,
+    onEditMembers: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    OverviewSection(
+        title = stringResource(R.string.group_students_title),
+        count = members.size,
+        onSeeAll = null,
+        modifier = modifier,
+    ) {
+        if (members.isEmpty()) SectionNote(stringResource(R.string.group_no_members))
+        members.forEach { row ->
+            GroupMemberItem(row, onClick = { onMemberClick(row.student.id) }, colors = sectionRowColors())
+        }
+        // A roster is changed on the group's form, so that is where this leads.
+        AddRow(stringResource(R.string.group_edit_members), onEditMembers, AddRowInSection)
     }
 }
 
@@ -315,123 +388,14 @@ private fun GroupOverflowMenu(archived: Boolean, onArchive: () -> Unit, onDelete
     }
 }
 
-@Composable
-private fun groupStats(state: GroupDetailState): List<Stat> {
-    val totals = state.totals
-    return listOf(lessonsStat(totals), hoursStat(totals.minutes), earnedStat(totals.earned))
-}
-
-private fun LazyListScope.studentsTab(
-    state: GroupDetailState,
-    onMemberClick: (Long) -> Unit,
-    onEditMembers: () -> Unit,
-) {
-    if (state.members.isEmpty()) {
-        item(key = GroupDetailKeys.STUDENTS_EMPTY) {
-            // With the way out. This tab named its emptiness and offered nothing, while the student
-            // card's subjects tab offered «Добавить предмет» — the asymmetry was which file `AddRow`
-            // happened to live in, not a decision. A roster is changed on the group's form, so that is
-            // where this leads.
-            EmptyState(
-                title = stringResource(R.string.group_no_members),
-                icon = KlasIcons.Outlined.Groups,
-                actionLabel = stringResource(R.string.group_edit_members),
-                onAction = onEditMembers,
-                compact = true,
-            )
-        }
-        return
-    }
-    items(state.members, key = { GroupDetailKeys.member(it.student.id) }, contentType = { "member" }) { row ->
-        val openMemberLabel = stringResource(R.string.group_member_open)
-        ListItem(
-            leadingContent = { Avatar(row.student.name, row.student.id) },
-            headlineContent = { Text(row.student.name, maxLines = 1, overflow = TextOverflow.Ellipsis) },
-            supportingContent = {
-                // An archived member still explains the group's past lessons, so they stay listed — and
-                // say so, or the card counted three members where the form offered two.
-                val attended = pluralStringResource(R.plurals.lessons_count, row.attended, row.attended)
-                if (row.student.archived) {
-                    BadgeLine(badge = { ArchivedBadge() }, badgeFirst = false) {
-                        Text(attended, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                } else {
-                    Text(attended, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            },
-            // The chevron every row that opens a screen carries. Where it goes is said by the click itself:
-            // the headline names the student, not their card, and a description on the glyph was read as a
-            // second stop on the row.
-            trailingContent = { OpensScreenMark() },
-            modifier = Modifier
-                .insetRowPress {
-                    Modifier.clickable(it, indication = null, onClickLabel = openMemberLabel) {
-                        onMemberClick(row.student.id)
-                    }
-                }
-                .then(animateInPlace()),
-        )
-    }
-}
-
-private fun LazyListScope.lessonsTab(state: GroupDetailState, onLessonClick: (Long) -> Unit) {
-    if (state.lessons.isEmpty()) {
-        item(key = GroupDetailKeys.LESSONS_EMPTY) {
-            // No action, for the same reason the student card's lessons tab has none: a lesson is
-            // booked from the schedule.
-            EmptyState(
-                title = stringResource(R.string.group_lessons_empty),
-                icon = KlasIcons.Outlined.EventBusy,
-                compact = true,
-            )
-        }
-        return
-    }
-    items(state.lessons, key = { GroupDetailKeys.lesson(it.session.first.id) }, contentType = { "lesson" }) { row ->
-        val status = row.session.status
-        ListItem(
-            headlineContent = { Text(row.session.start.dateTimeText()) },
-            supportingContent = {
-                // What happened to the lesson, in the pill the schedule and the student card say it
-                // in — this was the last place a lesson's state was a font style.
-                BadgeLine(badge = { StatusBadge(classStatusLabel(status), classStatusColor(status)) }) {
-                    // How many of the group were in it — the part that speaks for the members, and the
-                    // only place their attendance is visible. Said as "who came" only for a lesson that
-                    // happened: until then everybody is expected, and a count of that is just the roster.
-                    Text(
-                        when (val attendance = row.attendance) {
-                            is Attendance.All ->
-                                pluralStringResource(
-                                    R.plurals.group_lesson_attended,
-                                    attendance.count,
-                                    attendance.count,
-                                )
-                            is Attendance.Some ->
-                                stringResource(
-                                    R.string.group_lesson_present,
-                                    attendance.present,
-                                    attendance.of,
-                                )
-                        },
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            },
-            trailingContent = { row.charge?.let { TrailingAmount(it.text()) } },
-            modifier = Modifier
-                .insetRowPress { Modifier.clickable(it, indication = null) { onLessonClick(row.session.first.id) } }
-                .then(animateInPlace()),
-        )
-    }
-}
-
-private object GroupDetailKeys {
+internal object GroupDetailKeys {
     const val HEADER = "header"
-    const val STATS = DetailCard.STATS_KEY
-    const val TABS = DetailCard.VIEWS_KEY
-    const val STUDENTS_EMPTY = "students:empty"
+    const val NEXT = "next"
+    const val EARNED = "earned"
+    const val LESSONS = "lessons"
+    const val HOMEWORK = "homework"
+    const val MEMBERS = "members"
     const val LESSONS_EMPTY = "lessons:empty"
 
-    fun member(id: Long): String = "member:$id"
     fun lesson(id: Long): String = "lesson:$id"
 }

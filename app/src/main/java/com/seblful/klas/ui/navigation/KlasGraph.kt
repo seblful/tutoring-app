@@ -25,6 +25,7 @@ import com.seblful.klas.ui.diagnostics.DiagnosticsScreen
 import com.seblful.klas.ui.groups.GroupDetailScreen
 import com.seblful.klas.ui.groups.GroupFormScreen
 import com.seblful.klas.ui.groups.GroupFormViewModel
+import com.seblful.klas.ui.groups.GroupListScreen
 import com.seblful.klas.ui.homework.HomeworkScreen
 import com.seblful.klas.ui.more.AboutScreen
 import com.seblful.klas.ui.more.MoreScreen
@@ -91,6 +92,12 @@ class KlasGraph(
             )
             Routes.GroupAdd -> GroupForm(editing = null, back)
             is Routes.GroupDetail -> GroupDetail(route, back)
+            is Routes.GroupList -> GroupListScreen(
+                section = route.section,
+                onBack = back,
+                onLessonClick = { go(Routes.classEdit(it)) },
+                viewModel = routeViewModel(route),
+            )
             is Routes.GroupEdit -> GroupForm(editing = route, back)
             is Routes.ClassEdit -> ClassEdit(route, back)
             Routes.Subjects -> SubjectsScreen(onBack = back)
@@ -184,6 +191,7 @@ class KlasGraph(
             onMemberClick = { go(Routes.StudentDetail(it)) },
             onLessonClick = { go(Routes.classEdit(it)) },
             onBookLesson = { go(Routes.classEdit(0, groupId = route.id)) },
+            onSeeAll = { go(Routes.GroupList(route.id, it)) },
             initialHomework = route.setHomework,
             viewModel = routeViewModel(route),
             backArrow = !besideList(),
@@ -283,7 +291,7 @@ private data class CreatedGroup(val id: Long)
  * under it and fills the window. Null for a route that is not a detail.
  */
 private fun Route.list(): Route? = when (this) {
-    is Routes.StudentDetail, is Routes.StudentList, is Routes.GroupDetail -> Routes.People
+    is Routes.StudentDetail, is Routes.StudentList, is Routes.GroupDetail, is Routes.GroupList -> Routes.People
     in SettingsPages.values -> Routes.Settings
     else -> null
 }

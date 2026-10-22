@@ -14,6 +14,7 @@ import com.seblful.klas.di.ApplicationScope
 import com.seblful.klas.di.Computation
 import com.seblful.klas.domain.billing.Billing
 import com.seblful.klas.domain.homework.HomeworkRules
+import com.seblful.klas.domain.lesson.CardLessons
 import com.seblful.klas.domain.lesson.SessionRules
 import com.seblful.klas.domain.model.Assignee
 import com.seblful.klas.domain.model.Attendance
@@ -27,6 +28,7 @@ import com.seblful.klas.domain.people.Captions
 import com.seblful.klas.domain.reports.Taught
 import com.seblful.klas.domain.time.WallClock
 import com.seblful.klas.format.days
+import com.seblful.klas.format.minutes
 import com.seblful.klas.queries.homework.AssigneeChoice
 import com.seblful.klas.queries.homework.HomeworkLists
 import com.seblful.klas.ui.common.state.Loadable
@@ -50,6 +52,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import kotlin.time.Duration.Companion.days
+import kotlin.time.Instant
 
 /** One member of the group, with how much of the group they have actually attended. */
 data class GroupMemberRow(val student: Student, val attended: Int)
@@ -90,6 +93,13 @@ data class GroupDetailState(
      * history — so the menu used to ask «Удалить группу?» and then refuse the answer it had asked for.
      */
     val canDelete: Boolean get() = lessons.isEmpty()
+
+    /** The lesson the tutor next teaches the group — see [CardLessons.next]. */
+    fun nextLesson(now: Instant): GroupLessonRow? = CardLessons.next(lessons, now) { it.session.first }
+
+    /** The few lessons the card shows under its lessons heading — see [CardLessons.preview]. */
+    fun lessonPreview(now: Instant, limit: Int): List<GroupLessonRow> =
+        CardLessons.preview(lessons, now, limit) { it.session.first }
 }
 
 /** A group's card: who is in it, what it has been taught, and **the whole of its lifecycle**. */
@@ -185,6 +195,15 @@ class GroupDetailViewModel @AssistedInject constructor(
         .ready()
         // As the student's card: `GroupDetailState()` is an empty group, not an unread one. See [Loadable].
         .derive(this, computation, Loadable.Loading)
+
+    /**
+     * The card: [state] with its next lesson and the few listed under it, re-read every minute so a card left
+     * open moves on once a lesson ends. Null until loaded. **A test that collects it must advance time by a
+     * stated amount, never `advanceUntilIdle()`** — the minutes never run out.
+     */
+    val overview: StateFlow<GroupOverview?> = combine(state, clock.minutes()) { loaded, now ->
+        loaded.valueOrNull()?.let { GroupOverview.of(it, now, clock.zone) }
+    }.derive(this, computation, null)
 
     /**
      * Retires the group, or brings it back. Writes straight through — there is no form here to leave

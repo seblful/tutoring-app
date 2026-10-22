@@ -1,6 +1,7 @@
 package com.seblful.klas.screenshot
 
 import androidx.annotation.StringRes
+import androidx.compose.ui.test.filter
 import androidx.compose.ui.test.filterToOne
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.isSelectable
@@ -139,15 +140,28 @@ class FormFactorScreenshotTest {
             waitFor(string(R.string.payment_add_short))
             capture(formFactor, "people-student")
 
-            // Back first: on a phone the card hides the bar, so More is only there under it.
-            scenario.onActivity { it.onBackPressedDispatcher.onBackPressed() }
-            settle()
+            // On a phone the card hides the list the groups are on; beside the list, Back would leave People.
+            val groupsTab = compose.onAllNodesWithText(string(R.string.groups_title)).filter(hasClickAction())
+            if (groupsTab.fetchSemanticsNodes().isEmpty()) back(scenario)
+            click(R.string.groups_title)
+            compose.onAllNodesWithText(tutor.group.name).filterToOne(hasClickAction()).performClick()
+            // The earnings card is the group card's own, near its top.
+            waitFor(string(R.string.stat_earned))
+            capture(formFactor, "people-group")
+
+            // Back again: on a phone the card hides the bar, so More is only there under it.
+            back(scenario)
             tab(R.string.nav_more)
             click(R.string.settings_title)
             click(R.string.settings_lessons_title)
             waitFor(string(R.string.settings_autocomplete))
             capture(formFactor, "settings-lessons")
         }
+    }
+
+    private fun back(scenario: ActivityScenario<MainActivity>) {
+        scenario.onActivity { it.onBackPressedDispatcher.onBackPressed() }
+        settle()
     }
 
     private fun click(@StringRes label: Int) {

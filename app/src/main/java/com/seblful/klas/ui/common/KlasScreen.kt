@@ -255,6 +255,7 @@ fun KlasScreen(
                         modifier = barModifier,
                         navigationIcon = barNavigation,
                         actions = barActions,
+                        expandedHeight = LargeTitleBarHeight,
                         windowInsets = BarInsets.only(WindowInsetsSides.Top),
                         scrollBehavior = scrollBehavior,
                         colors = TopAppBarDefaults.largeTopAppBarColors(
@@ -451,5 +452,11 @@ class ScreenSearch(
 )
 
 private const val LargeTitleLines = 2
+
+/**
+ * Shorter than Material's 152 dp, so the name sits just under the arrow with the facts under it, not a band
+ * of empty bar between. A two-line name steps its size down to fit (see the title's autosize) rather than clip.
+ */
+private val LargeTitleBarHeight = 128.dp
 
 private val MinTitleSize = 18.dp

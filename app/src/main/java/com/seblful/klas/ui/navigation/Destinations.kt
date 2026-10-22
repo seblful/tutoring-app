@@ -3,6 +3,7 @@ package com.seblful.klas.ui.navigation
 import androidx.annotation.StringRes
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.seblful.klas.R
+import com.seblful.klas.ui.groups.GroupSection
 import com.seblful.klas.ui.students.StudentSection
 import com.seblful.klas.ui.students.StudentTask
 import com.seblful.klas.ui.theme.KlasIcons
@@ -89,6 +90,10 @@ object Routes {
      */
     @Serializable
     data class GroupDetail(val id: Long, val setHomework: Boolean = false) : Route
+
+    /** One of a group's lists in full — what «See all» under a section of its card opens. */
+    @Serializable
+    data class GroupList(val id: Long, val section: GroupSection) : Route
 
     /** The group form for an existing group — the only place its roster, subject or rate changes. */
     @Serializable

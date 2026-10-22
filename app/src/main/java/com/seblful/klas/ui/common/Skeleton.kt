@@ -134,7 +134,8 @@ private fun placeholderAlpha(): State<Float> {
 }
 
 /**
- * A detail card before its subject has been read: the stat strip, the tab row, and rows under it.
+ * A student's or group's card before it has been read: the line under the name, the two headline cards, and
+ * a section.
  *
  * @param onBack the back arrow stays live throughout. A screen that cannot be left until it has loaded
  * is a screen that traps the tutor if the load is slow. Null beside a list, as on the loaded card.
@@ -152,9 +153,14 @@ fun LoadingDetailScreen(onBack: (() -> Unit)?) {
             verticalArrangement = Arrangement.spacedBy(Spacing.itemGap),
         ) {
             val pulse = rememberSkeletonPulse()
-            SkeletonBlock(StatRowHeight, pulse = pulse)
-            SkeletonBlock(TabRowHeight, shape = MaterialTheme.shapes.extraSmall, pulse = pulse)
-            ListSkeleton(rows = 4, rowHeight = DetailRowHeight, contentPadding = PaddingValues(0.dp), pulse = pulse)
+            SkeletonBlock(
+                FactsLineHeight,
+                Modifier.fillMaxWidth(FactsLineWidth),
+                shape = MaterialTheme.shapes.extraSmall,
+                pulse = pulse,
+            )
+            repeat(2) { SkeletonBlock(HeadlineCardHeight, pulse = pulse) }
+            SkeletonBlock(SectionHeight, pulse = pulse)
         }
     }
 }
@@ -181,11 +187,13 @@ private val SkeletonRowHeight = 72.dp
 
 private val FieldHeight = 72.dp
 
-private val StatRowHeight = 76.dp
+private val FactsLineHeight = 20.dp
 
-private val TabRowHeight = 48.dp
+private const val FactsLineWidth = 0.6f
 
-private val DetailRowHeight = 64.dp
+private val HeadlineCardHeight = 96.dp
+
+private val SectionHeight = 240.dp
 
 private const val PlaceholderDelayMillis = 150L
 

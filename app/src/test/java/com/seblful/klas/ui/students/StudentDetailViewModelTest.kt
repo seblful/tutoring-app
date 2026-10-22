@@ -312,7 +312,7 @@ class StudentDetailViewModelTest : StudentDetailTestFixture() {
         runCurrent()
 
         val next = checkNotNull(vm.overview.value?.next)
-        assertEquals(underWay, next.row.klass.id)
+        assertEquals(underWay, next.classId)
         assertTrue("begun, so said as under way", next.running)
         val shown = vm.overview.value?.lessons?.map { it.klass.id }
         assertEquals("nothing else begun, so the booking after it", listOf(later), shown)
@@ -321,7 +321,7 @@ class StudentDetailViewModelTest : StudentDetailTestFixture() {
         clock.advanceBy(pastItsEnd.inWholeMilliseconds)
         advanceTimeBy(pastItsEnd.inWholeMilliseconds)
 
-        assertEquals(later, vm.overview.value?.next?.row?.klass?.id)
+        assertEquals(later, vm.overview.value?.next?.classId)
         assertEquals(listOf(underWay), vm.overview.value?.lessons?.map { it.klass.id })
     }
 

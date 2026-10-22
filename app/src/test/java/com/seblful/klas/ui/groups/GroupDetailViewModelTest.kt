@@ -322,4 +322,46 @@ class GroupDetailViewModelTest {
 
         assertEquals(HomeworkRules.Due.TODAY, vm.state.current.homework.current.single().due)
     }
+
+    @Test
+    fun `the overview leads with the lesson under way, then moves on once it ends`() = runTest(mainRule.dispatcher) {
+        val algebra = fixtures.subject("Алгебра")
+        val anya = fixtures.student("Аня")
+        val boris = fixtures.student("Борис")
+        val id = fixtures.group("11 «А»", subjectId = algebra, members = setOf(anya, boris), rate = rate)
+        val now = env.clock.now()
+        val members = listOf(anya, boris)
+        val underWay = fixtures.lesson(algebra, members, now.minus(30.minutes), rate = rate, groupId = id).min()
+        val later = fixtures.lesson(algebra, members, now.plus(48.hours), rate = rate, groupId = id).min()
+
+        val vm = vm(id)
+        observing(vm.overview)
+        runCurrent()
+
+        val next = checkNotNull(vm.overview.value?.next)
+        assertEquals("one class of the lesson opens it", underWay, next.classId)
+        assertTrue("begun, so said as under way", next.running)
+        assertEquals("Алгебра", next.subjectName)
+        assertNull("the group's own card does not name the group again", next.groupName)
+        assertEquals(listOf(later), vm.overview.value?.lessons?.map { it.session.first.id })
+
+        val pastItsEnd = 31.minutes
+        env.clock.advanceBy(pastItsEnd.inWholeMilliseconds)
+        advanceTimeBy(pastItsEnd.inWholeMilliseconds)
+
+        assertEquals(later, vm.overview.value?.next?.classId)
+        assertEquals(listOf(underWay), vm.overview.value?.lessons?.map { it.session.first.id })
+    }
+
+    @Test
+    fun `the overview waits for the card to load`() = runTest(mainRule.dispatcher) {
+        val id = fixtures.group("Вечер", members = setOf(fixtures.student("Аня")), rate = rate)
+        val vm = vm(id)
+        assertNull(vm.overview.value)
+
+        observing(vm.overview)
+        runCurrent()
+
+        assertEquals("Вечер", vm.overview.value?.details?.group?.name)
+    }
 }

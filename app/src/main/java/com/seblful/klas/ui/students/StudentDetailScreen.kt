@@ -1,41 +1,26 @@
 package com.seblful.klas.ui.students
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.contentDescription
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.seblful.klas.R
 import com.seblful.klas.domain.model.Assignee
-import com.seblful.klas.domain.model.Homework
 import com.seblful.klas.domain.model.Payment
 import com.seblful.klas.domain.people.Phone
 import com.seblful.klas.queries.homework.AssigneeChoice
@@ -43,15 +28,14 @@ import com.seblful.klas.queries.homework.HomeworkRow
 import com.seblful.klas.queries.students.ArchiveIntent
 import com.seblful.klas.queries.students.StudentDetails
 import com.seblful.klas.ui.common.AddRow
+import com.seblful.klas.ui.common.AddRowInSection
 import com.seblful.klas.ui.common.ConfirmDialog
 import com.seblful.klas.ui.common.ExternalTarget
 import com.seblful.klas.ui.common.KlasScreen
 import com.seblful.klas.ui.common.LoadingDetailScreen
-import com.seblful.klas.ui.common.Messages
-import com.seblful.klas.ui.common.MinTouchTarget
 import com.seblful.klas.ui.common.NamedIconButton
-import com.seblful.klas.ui.common.SectionCard
-import com.seblful.klas.ui.common.SectionTitle
+import com.seblful.klas.ui.common.OverviewSection
+import com.seblful.klas.ui.common.SectionNote
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.TitleSize
 import com.seblful.klas.ui.common.animateInPlace
@@ -59,10 +43,11 @@ import com.seblful.klas.ui.common.plusInset
 import com.seblful.klas.ui.common.rememberExternalApps
 import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.rememberRejectFeedback
-import com.seblful.klas.ui.common.sectionSurface
+import com.seblful.klas.ui.common.sectionRowColors
 import com.seblful.klas.ui.common.text
 import com.seblful.klas.ui.homework.CardHomeworkDialogs
-import com.seblful.klas.ui.homework.SwipeableHomework
+import com.seblful.klas.ui.homework.HomeworkSection
+import com.seblful.klas.ui.people.NextLessonCard
 import com.seblful.klas.ui.theme.KlasIcons
 import dev.zacsweers.metrox.viewmodel.assistedMetroViewModel
 
@@ -222,7 +207,9 @@ private fun StudentCard(
                         onCall = { phone -> externalApps.open(ExternalTarget.Dial(phone), noAppMsg) },
                         onEmail = { email -> externalApps.open(ExternalTarget.Email(email), noAppMsg) },
                         onTelegram = { phone -> externalApps.open(ExternalTarget.Telegram(phone), noAppMsg) },
-                        modifier = Modifier.padding(horizontal = Spacing.gutter, vertical = Spacing.tight),
+                        // The icons' own touch padding stands in for most of the gutter, so their glyphs line
+                        // up with the cards' edge below.
+                        modifier = Modifier.padding(start = Spacing.gutter, end = Spacing.tight),
                     )
                 }
             }
@@ -250,7 +237,8 @@ private fun StudentCard(
             }
             item(key = StudentDetailKeys.HOMEWORK, contentType = StudentDetailKeys.HOMEWORK) {
                 HomeworkSection(
-                    state = state,
+                    owner = student?.let { Assignee.Student(it.id) },
+                    lists = state.homework,
                     messages = messages,
                     onAdd = { addingHomework = viewModel.homeworkChoice() },
                     onOpen = { openedHomework = it },
@@ -362,68 +350,6 @@ private fun StudentCard(
     }
 }
 
-/**
- * One of the card's sections: a heading with how many it holds, the latest few, and — when there are more
- * than it shows — the way to the rest.
- *
- * @param onSeeAll null when every row is already shown.
- */
-@Composable
-internal fun OverviewSection(
-    title: String,
-    count: Int,
-    onSeeAll: (() -> Unit)?,
-    modifier: Modifier = Modifier,
-    content: @Composable ColumnScope.() -> Unit,
-) {
-    SectionCard(modifier) {
-        Row(
-            Modifier
-                .fillMaxWidth()
-                .heightIn(min = MinTouchTarget)
-                .padding(start = Spacing.gutter, end = Spacing.tight, top = Spacing.tight),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            SectionTitle(title)
-            if (count > 0) {
-                Text(
-                    count.toString(),
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(start = Spacing.inline),
-                )
-            }
-            Spacer(Modifier.weight(1f))
-            if (onSeeAll != null) {
-                TextButton(onClick = onSeeAll) {
-                    Text(stringResource(R.string.section_see_all))
-                    Icon(
-                        KlasIcons.Filled.ChevronRight,
-                        contentDescription = null,
-                        Modifier.size(ButtonDefaults.IconSize),
-                    )
-                }
-            }
-        }
-        content()
-        Spacer(Modifier.height(Spacing.inline))
-    }
-}
-
-/** What a section says with nothing in it — a line, not an illustrated empty state, inside a card. */
-@Composable
-private fun SectionNote(text: String) {
-    Text(
-        text,
-        style = MaterialTheme.typography.bodyMedium,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.padding(horizontal = Spacing.gutter, vertical = Spacing.inline),
-    )
-}
-
-/** Under the card's add rows, the «+» lines up with the rows' leading edge. */
-private val AddRowInCard = Modifier.padding(start = Spacing.tight)
-
 @Composable
 private fun LessonsSection(
     overview: StudentOverview,
@@ -442,46 +368,6 @@ private fun LessonsSection(
         overview.lessons.forEach { row ->
             LessonRow(row, onClick = { onLessonClick(row.klass.id) }, colors = sectionRowColors())
         }
-    }
-}
-
-@Composable
-private fun HomeworkSection(
-    state: StudentDetails,
-    messages: Messages,
-    onAdd: () -> Unit,
-    onOpen: (HomeworkRow) -> Unit,
-    onDone: (Homework, Boolean) -> Unit,
-    onSeeAll: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val lists = state.homework
-    val shown = lists.current.take(StudentOverview.HOMEWORK_SHOWN)
-    OverviewSection(
-        title = stringResource(R.string.student_homework_title),
-        count = lists.current.size,
-        // The done ones are only on the full list, so it is worth opening while there are any.
-        onSeeAll = onSeeAll.takeIf { lists.current.size > shown.size || lists.archive.isNotEmpty() },
-        modifier = modifier,
-    ) {
-        val none = lists.current.isEmpty() && lists.archive.isEmpty()
-        if (none) SectionNote(stringResource(R.string.student_homework_empty))
-        val owner = state.student?.let { Assignee.Student(it.id) }
-        shown.forEach { row ->
-            // Keyed, so a row swiped done hands its place to the next rather than its swipe state.
-            key(row.homework.id) {
-                SwipeableHomework(
-                    row = row,
-                    onSwipe = { onDone(row.homework, true) },
-                    onClick = { onOpen(row) },
-                    messages = messages,
-                    nested = true,
-                    owner = owner,
-                    container = MaterialTheme.colorScheme.sectionSurface,
-                )
-            }
-        }
-        AddRow(stringResource(R.string.homework_add), onAdd, AddRowInCard)
     }
 }
 
@@ -537,6 +423,6 @@ private fun SubjectsSection(
                 colors = sectionRowColors(),
             )
         }
-        AddRow(stringResource(R.string.student_add_subject), onAdd, AddRowInCard)
+        AddRow(stringResource(R.string.student_add_subject), onAdd, AddRowInSection)
     }
 }

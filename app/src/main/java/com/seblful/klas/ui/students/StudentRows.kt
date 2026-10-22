@@ -40,10 +40,6 @@ import com.seblful.klas.ui.theme.KlasIcons
  * section cards, and on the page «See all» opens.
  */
 
-/** Rows inside one of the card's section cards stand on the card, not on a fill of their own. */
-@Composable
-internal fun sectionRowColors(): ListItemColors = ListItemDefaults.colors(containerColor = Color.Transparent)
-
 /**
  * A lesson of theirs. Opens the lesson: a tutor reading a student's history is the one most likely to spot one
  * to correct.

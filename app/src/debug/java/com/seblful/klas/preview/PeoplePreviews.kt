@@ -1,7 +1,9 @@
 package com.seblful.klas.preview
 
 import androidx.compose.runtime.Composable
+import com.seblful.klas.domain.model.Attended
 import com.seblful.klas.domain.model.Balance
+import com.seblful.klas.domain.model.ClassSession
 import com.seblful.klas.domain.model.Group
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
@@ -9,19 +11,21 @@ import com.seblful.klas.domain.model.Payment
 import com.seblful.klas.domain.model.Student
 import com.seblful.klas.domain.model.TutoringClass
 import com.seblful.klas.domain.reports.Taught
-import com.seblful.klas.queries.students.ClassRow
 import com.seblful.klas.queries.students.StudentDetails
+import com.seblful.klas.ui.common.OverviewSection
+import com.seblful.klas.ui.common.sectionRowColors
+import com.seblful.klas.ui.groups.EarnedCard
 import com.seblful.klas.ui.groups.GroupCard
+import com.seblful.klas.ui.groups.GroupLessonItem
+import com.seblful.klas.ui.groups.GroupLessonRow
 import com.seblful.klas.ui.groups.GroupRow
 import com.seblful.klas.ui.people.LessonLine
+import com.seblful.klas.ui.people.NextLesson
+import com.seblful.klas.ui.people.NextLessonCard
 import com.seblful.klas.ui.students.BalanceCard
-import com.seblful.klas.ui.students.NextLesson
-import com.seblful.klas.ui.students.NextLessonCard
-import com.seblful.klas.ui.students.OverviewSection
 import com.seblful.klas.ui.students.PaymentRow
 import com.seblful.klas.ui.students.StudentCard
 import com.seblful.klas.ui.students.StudentRow
-import com.seblful.klas.ui.students.sectionRowColors
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import kotlin.time.Instant
@@ -84,15 +88,14 @@ private fun GroupCardsPreview() = PreviewSurface {
 @KlasPreview
 @Composable
 private fun StudentNextLessonPreview() = PreviewSurface {
-    val lesson = TutoringClass(
-        id = 1, studentId = 1, subjectId = 1, start = Instant.parse("2026-06-04T14:00:00Z"), durationMinutes = 90,
-        status = LessonStatus.SCHEDULED, groupId = 1,
-    )
     NextLessonCard(
         NextLesson(
-            ClassRow(lesson, subjectName = "Физика", groupName = "Олимпиадная физика"),
-            LessonLine.Next(LocalDate(2026, 6, 4), LocalTime(17, 0), daysAway = 3, thisYear = 2026),
+            classId = 1,
+            line = LessonLine.Next(LocalDate(2026, 6, 4), LocalTime(17, 0), daysAway = 3, thisYear = 2026),
             running = false,
+            subjectName = "Физика",
+            durationMinutes = 90,
+            groupName = "Олимпиадная физика",
         ),
         onOpen = {},
         onBook = {},
@@ -120,5 +123,34 @@ private fun StudentBalancePreview() = PreviewSurface {
     )
     OverviewSection(title = "Платежи", count = 3, onSeeAll = {}) {
         payments.forEach { PaymentRow(it, onEdit = {}, onDelete = {}, colors = sectionRowColors()) }
+    }
+}
+
+/** What a group has earned, and its lessons section: one everybody came to, one somebody missed, one ahead. */
+@KlasPreview
+@Composable
+private fun GroupOverviewPreview() = PreviewSurface {
+    EarnedCard(
+        Taught.Totals(lessons = 18, upcoming = 4, cancelled = 0, minutes = 1620, earned = Money.ofMajor(1440)),
+    )
+    fun lesson(id: Long, start: String, status: LessonStatus, missed: Boolean = false) = GroupLessonRow(
+        session = ClassSession(
+            groupId = 1,
+            classes = (1L..3L).map { member ->
+                TutoringClass(
+                    id = id * 10 + member, lessonId = id, studentId = member, subjectId = 1,
+                    start = Instant.parse(start), durationMinutes = 90, price = Money.ofMajor(30), status = status,
+                    attended = if (missed && member == 3L) Attended.ABSENT else Attended.PRESENT,
+                )
+            },
+        ),
+        charge = Money.ofMajor(if (missed) 60 else 90).takeIf { status == LessonStatus.COMPLETED },
+    )
+    OverviewSection(title = "Занятия", count = 22, onSeeAll = {}) {
+        listOf(
+            lesson(3, "2026-05-28T15:00:00Z", LessonStatus.COMPLETED, missed = true),
+            lesson(2, "2026-05-21T15:00:00Z", LessonStatus.COMPLETED),
+            lesson(1, "2026-05-14T15:00:00Z", LessonStatus.CANCELLED),
+        ).forEach { GroupLessonItem(it, onClick = {}, colors = sectionRowColors()) }
     }
 }

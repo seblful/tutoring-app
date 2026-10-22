@@ -52,10 +52,12 @@ Build screens from shared state and controls. Feature rules belong in the domain
   bar's title (`SearchField`).
 - Follow `Spacing`; page sides use `gutter`. A row gets ripple room from card padding, keeping text
   aligned. Use top-level `ContentCard`, nested `ListItem`; top-level cards lead with a 40 dp `Avatar`
-  or `IconAvatar`. The group card is `detailCard`: identity → `StatRow` → pinned `StickyViewMenu`. The student
-  card is an overview instead: contacts, the next lesson (`primaryContainer`, its «+» books), the balance with
-  its payment button, then `OverviewSection`s — lessons, homework, payments with their latest few rows and
-  «See all» to the full list (`StudentList` route, beside People like the card), subjects in full.
+  or `IconAvatar`. Student and group cards are overviews (`OverviewSection.kt`): under the large title, one muted
+  facts line (a student's contact and lesson format with call/Telegram/email icons; a group's subject and
+  rate), the next lesson (`NextLessonCard`, `primaryContainer`, its «+» books), a headline card (the
+  student's balance with its payment button; the group's earnings), then `OverviewSection`s with their
+  latest few rows and «See all» to the full list (`StudentList`/`GroupList` routes, beside People like the
+  card). Short lists — a student's subjects, a group's members — are shown in full.
 - Items sit on `itemSurface`, sections (`SectionCard`, `StatRow`, report slices) on `sectionSurface`:
   both above the `surfaceContainer` the bar tints to. Settings and More group rows on cards too
   (`SettingsGroup`), their `ListItem`s transparent (`settingsRowColors`).

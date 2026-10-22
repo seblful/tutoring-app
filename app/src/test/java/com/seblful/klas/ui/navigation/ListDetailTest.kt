@@ -1,5 +1,6 @@
 package com.seblful.klas.ui.navigation
 
+import com.seblful.klas.ui.groups.GroupSection
 import com.seblful.klas.ui.students.StudentSection
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -44,6 +45,17 @@ class ListDetailTest {
 
         navigator.replaceAbove(Routes.People, Routes.StudentDetail(2))
         assertEquals(listOf("Schedule", "People", "StudentDetail"), stack())
+    }
+
+    @Test
+    fun `a group's full list stacks on its card beside People`() {
+        navigator.navigateToTab(TopDestination.PEOPLE)
+        navigator.replaceAbove(Routes.People, Routes.GroupDetail(2))
+
+        navigator.navigate(Routes.GroupList(2, GroupSection.LESSONS))
+
+        assertEquals(listOf("Schedule", "People", "GroupDetail", "GroupList"), stack())
+        assertEquals(Routes.People, listBesideDetail(navigator.backStack))
     }
 
     @Test
