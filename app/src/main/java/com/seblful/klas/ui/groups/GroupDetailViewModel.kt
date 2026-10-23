@@ -5,6 +5,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.CreationExtras
+import com.seblful.klas.data.billing.BalanceRepository
+import com.seblful.klas.data.billing.balanceOf
 import com.seblful.klas.data.homework.HomeworkRepository
 import com.seblful.klas.data.lessons.ClassRepository
 import com.seblful.klas.data.lessons.SessionReceipt
@@ -19,6 +21,8 @@ import com.seblful.klas.domain.lesson.CardLessons
 import com.seblful.klas.domain.lesson.SessionRules
 import com.seblful.klas.domain.model.Assignee
 import com.seblful.klas.domain.model.Attendance
+import com.seblful.klas.domain.model.Attended
+import com.seblful.klas.domain.model.Balance
 import com.seblful.klas.domain.model.ClassSession
 import com.seblful.klas.domain.model.Group
 import com.seblful.klas.domain.model.Homework
@@ -57,8 +61,16 @@ import kotlinx.coroutines.launch
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Instant
 
-/** One member of the group, with how much of the group they have actually attended. */
-data class GroupMemberRow(val student: Student, val attended: Int)
+/**
+ * A member as the group's card lists them: of the group's taught lessons they were booked into ([held]),
+ * how many they were at ([present]) — what a tutor checks about a group — and where their money stands.
+ */
+data class GroupMemberRow(
+    val student: Student,
+    val held: Int,
+    val present: Int,
+    val balance: Balance = Balance.Settled,
+)
 
 /**
  * One of the group's lessons: the classes of a single session, plus what it came to.
@@ -116,6 +128,7 @@ class GroupDetailViewModel @AssistedInject constructor(
     subjects: SubjectRepository,
     private val classes: ClassRepository,
     homework: HomeworkRepository,
+    balances: BalanceRepository,
     @param:ApplicationScope private val appScope: CoroutineScope,
     @param:Computation private val computation: CoroutineDispatcher,
     private val clock: WallClock,
@@ -169,7 +182,7 @@ class GroupDetailViewModel @AssistedInject constructor(
         // Sessions, newest first: one lesson is n member classes sharing a group and a start, and the
         // card counts lessons the tutor taught, not classes billed (see Taught.byGroup).
         val sessions = SessionRules.sessions(groupClasses).reversed()
-        val attendedByStudent = groupClasses.groupingBy { it.studentId }.eachCount()
+        val taughtByStudent = groupClasses.filter { it.status == LessonStatus.COMPLETED }.groupBy { it.studentId }
         val roster = memberIds.toSet()
         val card = GroupDetailState(
             group = group,
@@ -179,7 +192,12 @@ class GroupDetailViewModel @AssistedInject constructor(
             // The roster follows the same order students are listed in everywhere else: observeAll
             // has already applied it, so filtering preserves it rather than restating the rule.
             members = allStudents.filter { it.id in roster }
-                .map { GroupMemberRow(it, attendedByStudent[it.id] ?: 0) },
+                .map { student ->
+                    val taught = taughtByStudent[student.id].orEmpty()
+                    // Not marked absent: a lesson marked taught without a roll call happened for everyone in it.
+                    val present = taught.count { it.attended == Attended.PRESENT || it.attended == Attended.EXPECTED }
+                    GroupMemberRow(student, held = taught.size, present = present)
+                },
             lessons = sessions.map { session ->
                 GroupLessonRow(
                     session = session,
@@ -198,8 +216,9 @@ class GroupDetailViewModel @AssistedInject constructor(
     val state: StateFlow<Loadable<GroupDetailState>> = combine(
         base,
         homework.observeForGroup(groupId),
+        balances.observe(),
         clock.days(),
-    ) { base, homeworkList, today ->
+    ) { base, homeworkList, sums, today ->
         val captions = Captions.of(
             students = emptyList(),
             subjects = emptyList(),
@@ -207,6 +226,7 @@ class GroupDetailViewModel @AssistedInject constructor(
         )
         base.state.copy(
             homework = HomeworkLists.of(homeworkList, base.classes, captions, today, clock.zone),
+            members = base.state.members.map { it.copy(balance = sums.balanceOf(it.student.id).state) },
         )
     }
         .ready()

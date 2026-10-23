@@ -250,7 +250,7 @@
         <item quantity="other">%1$d students are being removed from a lesson that was taught. Their lessons will be deleted along with their charges. Save?</item>
     </plurals>
     <string name="class_subject_from_group">The group sets the subject</string>
-    <string name="class_group_price_label">Price per hour, per student</string>
+    <string name="class_group_price_label">Rate per student</string>
     <!-- The swipe gesture on a schedule card, and its accessibility label. -->
     <string name="class_mark_completed">Mark as taught</string>
 
@@ -424,10 +424,10 @@
     <string name="group_edit_title">Edit group</string>
     <string name="group_name_label">Name</string>
     <string name="group_subject_label">Subject</string>
-    <string name="group_subject_none">Not picked</string>
+    <string name="group_subject_none">No subject</string>
     <string name="group_subject_hint">Only students priced for this subject can join the group</string>
     <string name="group_subject_none_hint">Without a subject: any student, and the subject is picked when a lesson is booked</string>
-    <string name="group_price_label">Price per hour, per student</string>
+    <string name="group_price_label">Rate per student</string>
     <string name="group_price_hint">One price for every member of the group</string>
     <string name="group_members_title">Members</string>
     <string name="group_members_required">Pick at least one student</string>
@@ -982,7 +982,7 @@
     <string name="class_open_group">Open group</string>
     <string name="payment_choose_student">Who made the payment?</string>
     <string name="subject_set_price">Set subject price</string>
-    <string name="group_member_set_price">Set price</string>
+    <string name="group_member_set_price">Set rate</string>
     <string name="subject_add">Add subject</string>
     <string name="group_price_setup_hint">Set an individual subject price to add these students. Group lessons use the group rate.</string>
     <string name="class_completed_message">Marked taught</string>
@@ -1117,4 +1117,7 @@
         <item quantity="one">%1$d lesson</item>
         <item quantity="other">%1$d lessons</item>
     </plurals>
+    <string name="group_member_present">Present %1$d of %2$d</string>
+    <string name="group_member_no_lessons">No lessons yet</string>
+    <string name="price_per_hour_per_student">%1$s/h per student</string>
 </resources>

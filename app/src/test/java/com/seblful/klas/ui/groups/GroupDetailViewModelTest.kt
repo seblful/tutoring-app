@@ -4,6 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import com.seblful.klas.domain.homework.HomeworkRules
 import com.seblful.klas.domain.model.Assignee
 import com.seblful.klas.domain.model.Attendance
+import com.seblful.klas.domain.model.Balance
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.queries.homework.AssigneeChoice
 import com.seblful.klas.testutil.MainDispatcherRule
@@ -50,6 +51,7 @@ class GroupDetailViewModelTest {
             subjects = env.subjectRepo,
             classes = env.classRepo,
             homework = env.homeworkRepo,
+            balances = env.balanceRepo,
             appScope = mainRule.appScope,
             computation = mainRule.dispatcher,
             clock = env.clock,
@@ -104,7 +106,7 @@ class GroupDetailViewModelTest {
     }
 
     @Test
-    fun `a member's count is of the group's lessons they were in`() = runTest(mainRule.dispatcher) {
+    fun `a member's count is of the group's taught lessons they were in`() = runTest(mainRule.dispatcher) {
         val algebra = fixtures.subject("Алгебра")
         val anya = fixtures.student("Аня")
         val boris = fixtures.student("Борис")
@@ -116,9 +118,13 @@ class GroupDetailViewModelTest {
         observing(vm.state)
         runCurrent()
 
-        val attended = vm.state.current.members.associate { it.student.name to it.attended }
-        assertEquals(2, attended["Аня"])
-        assertEquals(1, attended["Борис"])
+        val members = vm.state.current.members.associateBy { it.student.name }
+        assertEquals(2, members.getValue("Аня").present)
+        assertEquals(2, members.getValue("Аня").held)
+        assertEquals(1, members.getValue("Борис").present)
+        assertEquals(1, members.getValue("Борис").held)
+        // Two taught lessons at the group's rate, nothing paid: each member owes for the ones they were in.
+        assertEquals(Balance.Owed(rate + rate), members.getValue("Аня").balance)
     }
 
     @Test
@@ -131,7 +137,7 @@ class GroupDetailViewModelTest {
         runCurrent()
 
         assertEquals(1, vm.state.current.members.size)
-        assertEquals(0, vm.state.current.members.single().attended)
+        assertEquals(0, vm.state.current.members.single().held)
     }
 
     @Test

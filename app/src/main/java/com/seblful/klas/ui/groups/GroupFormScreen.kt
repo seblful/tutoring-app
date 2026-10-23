@@ -11,7 +11,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -31,7 +33,6 @@ import com.seblful.klas.R
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Student
 import com.seblful.klas.ui.common.AddRow
-import com.seblful.klas.ui.common.Avatar
 import com.seblful.klas.ui.common.ConfirmDialog
 import com.seblful.klas.ui.common.DropdownField
 import com.seblful.klas.ui.common.KlasScreen
@@ -40,13 +41,13 @@ import com.seblful.klas.ui.common.MemberPickRow
 import com.seblful.klas.ui.common.MinTouchTarget
 import com.seblful.klas.ui.common.ModeField
 import com.seblful.klas.ui.common.MoneyTextField
-import com.seblful.klas.ui.common.RateHistory
 import com.seblful.klas.ui.common.SectionTitle
 import com.seblful.klas.ui.common.ShowMessagesFor
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.StillNeeded
 import com.seblful.klas.ui.common.leaveGuard
 import com.seblful.klas.ui.common.plusInset
+import com.seblful.klas.ui.common.rateChangeLine
 import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.common.supportingTextOf
@@ -55,6 +56,7 @@ import com.seblful.klas.ui.designsystem.component.FormSaveBar
 import com.seblful.klas.ui.designsystem.component.KlasButton
 import com.seblful.klas.ui.designsystem.component.KlasDivider
 import com.seblful.klas.ui.students.AddSubjectPriceDialog
+import com.seblful.klas.ui.theme.KlasIcons
 import com.seblful.klas.ui.theme.klasSemantics
 import dev.zacsweers.metrox.viewmodel.assistedMetroViewModel
 
@@ -147,6 +149,7 @@ private fun GroupFormBody(
     onAddStudent: (Long?) -> Unit,
     modifier: Modifier,
 ) {
+    var memberQuery by rememberSaveable { mutableStateOf("") }
     LazyColumn(
         modifier,
         // The list owns the gutter, as every list in the app does — see [Spacing].
@@ -156,7 +159,11 @@ private fun GroupFormBody(
         identityItems(state, viewModel)
         pricingItems(state, viewModel)
         rosterHeaderItem(state)
-        memberItems(state, viewModel, onPrice, onAddStudent)
+        if (state.candidates.size + state.unpriced.size > MemberSearchFrom) {
+            item(key = "member-search") { MemberSearch(memberQuery) { memberQuery = it } }
+        }
+        memberItems(state, viewModel, memberQuery, onPrice, onAddStudent)
+        noteItem(state, viewModel)
         // No "danger zone" any more: archiving and deleting the group are lifecycle actions and
         // they live on the group's **card**, behind the overflow, where a student's already did.
         // See [GroupDetailViewModel].
@@ -208,7 +215,10 @@ private fun LazyListScope.identityItems(state: GroupFormViewModel.UiState, viewM
             ),
         )
     }
+}
 
+private fun LazyListScope.noteItem(state: GroupFormViewModel.UiState, viewModel: GroupFormViewModel) {
+    val form = state.form
     item(key = "note") {
         OutlinedTextField(
             value = form.note,
@@ -232,21 +242,14 @@ private fun LazyListScope.pricingItems(state: GroupFormViewModel.UiState, viewMo
             field = form.price,
             onValueChange = { v -> viewModel.update { it.copy(price = it.price.typed(v)) } },
             label = stringResource(R.string.group_price_label),
-            // The reason it exists, unless it is wrong — and blank is required-and-unfilled, which
-            // the hint says without shouting.
+            // Blank is required-and-unfilled, said without shouting; once filled, what the rate used to
+            // be, where it is typed — as a student's subject row says it — or else what it means.
             hint = if (form.price.text.isBlank()) {
                 stringResource(R.string.field_required)
             } else {
-                stringResource(R.string.group_price_hint)
+                rateChangeLine(state.rateHistory) ?: stringResource(R.string.group_price_hint)
             },
         )
-    }
-
-    // What the rate used to be, where the rate is typed — the argument the student's reprice
-    // dialog makes in its own KDoc. It was an expander on the group's *card*, which is the one
-    // screen that cannot change the number it was annotating.
-    if (!viewModel.isNew) {
-        item(key = "rate-history") { RateHistory(state.rateHistory) }
     }
 
     item(key = "mode") {
@@ -272,7 +275,7 @@ private fun LazyListScope.rosterHeaderItem(state: GroupFormViewModel.UiState) {
                 // can strand a tick on someone the new subject excludes.
                 if (state.selectedMemberIds.isNotEmpty()) {
                     Text(
-                        stringResource(R.string.group_members_selected, state.selectedMemberIds.size),
+                        state.selectedMemberIds.size.toString(),
                         style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -302,11 +305,14 @@ private fun LazyListScope.rosterHeaderItem(state: GroupFormViewModel.UiState) {
 private fun LazyListScope.memberItems(
     state: GroupFormViewModel.UiState,
     viewModel: GroupFormViewModel,
+    query: String,
     onPrice: (Long) -> Unit,
     onAddStudent: (Long?) -> Unit,
 ) {
     val form = state.form
-    items(state.candidates, key = { it.id }) { student ->
+    val candidates = state.candidates.matching(query)
+    val unpriced = state.unpriced.matching(query)
+    items(candidates, key = { it.id }) { student ->
         MemberPickRow(
             student = student,
             selected = student.id in form.memberIds,
@@ -314,7 +320,7 @@ private fun LazyListScope.memberItems(
         )
     }
 
-    if (state.unpriced.isNotEmpty()) {
+    if (unpriced.isNotEmpty()) {
         item(key = "unpriced-help") {
             Text(
                 stringResource(R.string.group_price_setup_hint),
@@ -323,9 +329,9 @@ private fun LazyListScope.memberItems(
                 modifier = Modifier.padding(top = Spacing.itemGap),
             )
         }
-        // Laid out as the member rows above, so the roster reads as one list: the same avatar and
-        // name, with the step that makes them eligible where the checkbox would be.
-        items(state.unpriced, key = { "unpriced:${it.id}" }) { student ->
+        // Laid out as the member rows above, so the roster reads as one list: an unticked box that cannot
+        // be ticked yet, the name, and the step that makes them eligible.
+        items(unpriced, key = { "unpriced:${it.id}" }) { student ->
             UnpricedMemberRow(student, onSetPrice = { onPrice(student.id) })
         }
     }
@@ -343,7 +349,7 @@ private fun UnpricedMemberRow(student: Student, onSetPrice: () -> Unit) {
             .padding(horizontal = Spacing.inline, vertical = Spacing.tight),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Avatar(student.name, student.id)
+        Checkbox(checked = false, onCheckedChange = null, enabled = false)
         Text(
             student.name,
             style = MaterialTheme.typography.bodyLarge,

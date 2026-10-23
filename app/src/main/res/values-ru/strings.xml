@@ -301,7 +301,7 @@
         <item quantity="other">%1$d ученика будут убраны из проведённого занятия — их занятия и начисленный доход будут удалены. Сохранить?</item>
     </plurals>
     <string name="class_subject_from_group">Предмет задан группой</string>
-    <string name="class_group_price_label">Цена за час с ученика</string>
+    <string name="class_group_price_label">Ставка с ученика</string>
     <!-- The swipe gesture on a schedule card, and its accessibility label. -->
     <string name="class_mark_completed">Отметить проведённым</string>
 
@@ -498,10 +498,10 @@
     <string name="group_edit_title">Изменить группу</string>
     <string name="group_name_label">Название</string>
     <string name="group_subject_label">Предмет</string>
-    <string name="group_subject_none">Не выбран</string>
+    <string name="group_subject_none">Без предмета</string>
     <string name="group_subject_hint">В группу можно добавить только учеников с ценой на этот предмет</string>
     <string name="group_subject_none_hint">Без предмета: любой ученик, предмет выбирается при записи занятия</string>
-    <string name="group_price_label">Цена за час с ученика</string>
+    <string name="group_price_label">Ставка с ученика</string>
     <string name="group_price_hint">Одна цена для всех участников группы</string>
     <string name="group_members_title">Участники</string>
     <string name="group_members_required">Выберите хотя бы одного ученика</string>
@@ -1119,7 +1119,7 @@
     <string name="class_open_group">Карточка группы</string>
     <string name="payment_choose_student">От кого оплата?</string>
     <string name="subject_set_price">Указать цену предмета</string>
-    <string name="group_member_set_price">Указать цену</string>
+    <string name="group_member_set_price">Указать ставку</string>
     <string name="subject_add">Добавить предмет</string>
     <string name="group_price_setup_hint">Чтобы добавить этих учеников, укажите их цену предмета. Групповые занятия оплачиваются по цене группы.</string>
     <string name="class_completed_message">Занятие проведено</string>
@@ -1266,4 +1266,7 @@
         <item quantity="many">%1$d занятий</item>
         <item quantity="other">%1$d занятия</item>
     </plurals>
+    <string name="group_member_present">Был на %1$d из %2$d</string>
+    <string name="group_member_no_lessons">Занятий ещё не было</string>
+    <string name="price_per_hour_per_student">%1$s/час с ученика</string>
 </resources>

@@ -396,12 +396,13 @@ fun MemberPickRow(
     modifier: Modifier = Modifier,
 ) {
     val toggleFeedback = rememberToggleFeedback()
-    // Material's checkbox list row: the tick says it is chosen, and the row adds no tint of its own. It
-    // reaches into the form's padding by the list item's extra inset, so avatar and tick keep the form's edge.
+    // Material's checkbox list row, the tick leading as every selection control does (R6): it says it is
+    // chosen, and the row adds no tint of its own. It reaches into the form's padding by the list item's
+    // extra inset, so the tick keeps the form's edge.
     ListItem(
         headlineContent = { Text(student.name) },
-        leadingContent = { Avatar(student.name, student.id) },
-        trailingContent = { Checkbox(checked = selected, onCheckedChange = null) },
+        leadingContent = { Checkbox(checked = selected, onCheckedChange = null) },
+        trailingContent = { Avatar(student.name, student.id) },
         colors = ListItemDefaults.colors(containerColor = Color.Transparent),
         modifier = modifier
             .fillMaxWidth()
@@ -412,6 +413,7 @@ fun MemberPickRow(
             }),
     )
 }
+
 /**
  * The search field the list screens carry in place of their title while searching: Material's search bar
  * input on its own rounded container. Not `SearchBar` itself, whose 360 dp minimum does not fit a phone's

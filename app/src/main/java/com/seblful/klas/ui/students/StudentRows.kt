@@ -33,6 +33,7 @@ import com.seblful.klas.ui.common.classStatusLabel
 import com.seblful.klas.ui.common.dateTimeText
 import com.seblful.klas.ui.common.insetRowPress
 import com.seblful.klas.ui.common.paymentMethodLabel
+import com.seblful.klas.ui.common.rateChangeLine
 import com.seblful.klas.ui.common.text
 import com.seblful.klas.ui.homework.HomeworkUndo
 import com.seblful.klas.ui.homework.homeworkUndo
@@ -119,25 +120,11 @@ internal fun SubjectRow(
     modifier: Modifier = Modifier,
     colors: ListItemColors = ListItemDefaults.colors(),
 ) {
-    // The last change, said only when there was one and its day is known: "since 1 Sep · was 20 $/h".
-    val change = subject.history.firstOrNull()
-    val from = change?.from
-    val at = change?.at
+    val changed = rateChangeLine(subject.history)
     ListItem(
         headlineContent = { Text(subject.subject.name) },
-        supportingContent = if (from != null && at != null) {
-            {
-                Text(
-                    stringResource(
-                        R.string.rate_since_was,
-                        at.formatDate(),
-                        stringResource(R.string.price_per_hour, from.text()),
-                    ),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        } else {
-            null
+        supportingContent = changed?.let { line ->
+            { Text(line, color = MaterialTheme.colorScheme.onSurfaceVariant) }
         },
         trailingContent = {
             Row(verticalAlignment = Alignment.CenterVertically) {

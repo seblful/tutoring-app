@@ -183,6 +183,15 @@ private fun GroupCard(
             item(key = GroupDetailKeys.EARNED, contentType = GroupDetailKeys.EARNED) {
                 EarnedCard(state.totals, modifier = animateInPlace(cardModifier))
             }
+            // Members before lessons: who is in it, who comes and who owes is what a tutor checks first.
+            item(key = GroupDetailKeys.MEMBERS, contentType = GroupDetailKeys.MEMBERS) {
+                MembersSection(
+                    members = state.members,
+                    onMemberClick = navigation.member,
+                    onEditMembers = navigation.edit,
+                    modifier = animateInPlace(cardModifier),
+                )
+            }
             item(key = GroupDetailKeys.LESSONS, contentType = GroupDetailKeys.LESSONS) {
                 LessonsSection(
                     overview = overview,
@@ -200,14 +209,6 @@ private fun GroupCard(
                     onOpen = { openedHomework = it },
                     onDone = homeworkUndo::swiped,
                     onSeeAll = { navigation.seeAll(GroupSection.HOMEWORK) },
-                    modifier = animateInPlace(cardModifier),
-                )
-            }
-            item(key = GroupDetailKeys.MEMBERS, contentType = GroupDetailKeys.MEMBERS) {
-                MembersSection(
-                    members = state.members,
-                    onMemberClick = navigation.member,
-                    onEditMembers = navigation.edit,
                     modifier = animateInPlace(cardModifier),
                 )
             }
@@ -298,7 +299,7 @@ private fun GroupHeader(state: GroupDetailState, modifier: Modifier = Modifier) 
             FactsLine(
                 listOf(
                     state.subjectName ?: stringResource(R.string.group_no_subject),
-                    stringResource(R.string.price_per_hour, group.price.text()),
+                    stringResource(R.string.price_per_hour_per_student, group.price.text()),
                 ),
                 modifier = Modifier.weight(1f, fill = false),
             )

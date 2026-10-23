@@ -83,6 +83,11 @@ Build screens from shared state and controls. Feature rules belong in the domain
 - A student's lesson history is a card per month (`LessonMonth`) titled by the month, summed as held
   lessons · hours · earned (planned money is a forecast, so it is not summed). Its chips are Planned,
   Taught and Cancelled with counts, each tapped again to let go; a student taught both ways adds the kinds.
+- A group's overview lists members before lessons: each with "Present 7 of 8" of the taught lessons they
+  were booked into (not marked absent counts as there) and, when they owe, the debt. Its facts line says
+  the rate as "12 $/h per student". The group form runs name, subject, rate, place, members, note; ticks
+  lead the member rows, a roster longer than eight can be searched, and the rate field's hint carries its
+  last change.
 - People's students and groups are one surface with dividers (`SurfaceRow`, `SlicePosition`; D3), the
   divider drawn over each row's edge so rows keep one height; lessons stay a card each. Each side has its
   own orders behind the bar's sort button, tinted when not the first: students by name or debt, groups by
