@@ -183,10 +183,9 @@ internal fun studentHomeworkUndo(viewModel: StudentDetailViewModel, messages: Me
 @Composable
 internal fun paymentDeleteWithUndo(viewModel: StudentDetailViewModel, messages: Messages): (Payment) -> Unit {
     val deleted = stringResource(R.string.payment_deleted)
-    val undo = stringResource(R.string.action_undo)
     return { payment ->
         viewModel.deletePayment(payment)
-        messages.show(deleted, undo) { viewModel.restorePayment(payment) }
+        messages.undoable(deleted) { viewModel.restorePayment(payment) }
     }
 }
 
@@ -200,16 +199,15 @@ internal fun Messages.showStudentEvent(
     resources: Resources,
     viewModel: StudentDetailViewModel,
 ) {
-    val undo = resources.getString(R.string.action_undo)
     when (event) {
         StudentDetailViewModel.Event.RemoveBlockedHasClasses ->
             show(resources.getString(R.string.student_subject_remove_blocked))
         is StudentDetailViewModel.Event.Archived ->
-            show(resources.archivedMessage(event.cancelled.size), undo) { viewModel.undoArchive(event) }
+            undoable(resources.archivedMessage(event.cancelled.size)) { viewModel.undoArchive(event) }
         is StudentDetailViewModel.Event.ArchiveUndoKept ->
             show(resources.getQuantityString(R.plurals.archive_undo_kept, event.count, event.count))
         is StudentDetailViewModel.Event.PaymentCorrected ->
-            show(resources.getString(R.string.payment_corrected), undo) { viewModel.undoPaymentCorrection(event) }
+            undoable(resources.getString(R.string.payment_corrected)) { viewModel.undoPaymentCorrection(event) }
         StudentDetailViewModel.Event.PaymentChangedSince -> show(resources.getString(R.string.payment_undo_changed))
         StudentDetailViewModel.Event.WriteFailed -> show(resources.getString(R.string.action_failed))
     }

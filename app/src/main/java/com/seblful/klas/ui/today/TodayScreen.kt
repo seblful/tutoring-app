@@ -82,9 +82,8 @@ fun TodayScreen(
     LaunchedEffect(viewModel, messages) {
         viewModel.events.stream.collect { event ->
             when (event) {
-                is TodayViewModel.Event.Marked -> messages.show(
+                is TodayViewModel.Event.Marked -> messages.undoable(
                     resources.getQuantityString(R.plurals.today_marked, event.sessions.size, event.sessions.size),
-                    resources.getString(R.string.action_undo),
                 ) { viewModel.undo(event) }
                 TodayViewModel.Event.UndoChanged -> messages.show(resources.getString(R.string.class_undo_changed))
             }

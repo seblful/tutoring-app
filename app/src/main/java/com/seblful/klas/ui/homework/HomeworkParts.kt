@@ -412,16 +412,16 @@ class HomeworkUndo internal constructor(
     /** [item] swiped onto the done list, or back off it — put back exactly as it was if taken back. */
     fun swiped(item: Homework, done: Boolean) {
         setDone(item, done)
-        messages.show(if (done) words.done else words.restored, words.undo) { putBack(item) }
+        messages.undoable(if (done) words.done else words.restored) { putBack(item) }
     }
 
     /** [item] deleted from its dialog. */
     fun deleted(item: Homework) {
         delete(item)
-        messages.show(words.deleted, words.undo) { restore(item) }
+        messages.undoable(words.deleted) { restore(item) }
     }
 
-    internal data class Words(val done: String, val restored: String, val deleted: String, val undo: String)
+    internal data class Words(val done: String, val restored: String, val deleted: String)
 }
 
 /**
@@ -443,7 +443,6 @@ fun homeworkUndo(
         done = stringResource(R.string.homework_done_message),
         restored = stringResource(R.string.homework_restored_message),
         deleted = stringResource(R.string.homework_deleted),
-        undo = stringResource(R.string.action_undo),
     )
     val currentSetDone by rememberUpdatedState(setDone)
     val currentPutBack by rememberUpdatedState(putBack)

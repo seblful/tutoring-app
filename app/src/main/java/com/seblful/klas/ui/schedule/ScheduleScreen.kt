@@ -195,16 +195,15 @@ fun ScheduleScreen(
         }
     }
     val completedMsg = stringResource(R.string.class_completed_message)
-    val undoLabel = stringResource(R.string.action_undo)
-    LaunchedEffect(viewModel, completedMsg, undoLabel) {
+    LaunchedEffect(viewModel, completedMsg) {
         viewModel.completions.stream.collect { completed ->
-            messages.show(completedMsg, undoLabel) { viewModel.correctCompletion(completed, undo = true) }
+            messages.undoable(completedMsg) { viewModel.correctCompletion(completed, undo = true) }
         }
     }
     val undoableMsgs = UndoableChange.entries.associateWith { stringResource(it.message) }
-    LaunchedEffect(viewModel, undoableMsgs, undoLabel) {
+    LaunchedEffect(viewModel, undoableMsgs) {
         viewModel.undoables.stream.collect { change ->
-            messages.show(undoableMsgs.getValue(change.change), undoLabel) { viewModel.undo(change) }
+            messages.undoable(undoableMsgs.getValue(change.change)) { viewModel.undo(change) }
         }
     }
 

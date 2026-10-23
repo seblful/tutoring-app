@@ -75,10 +75,9 @@ fun SubjectsScreen(
     }
     // No confirm: only an unused subject can be deleted, so the Undo can always put it back.
     val deletedMsg = stringResource(R.string.subject_deleted)
-    val undoLabel = stringResource(R.string.action_undo)
-    LaunchedEffect(viewModel, deletedMsg, undoLabel) {
+    LaunchedEffect(viewModel, deletedMsg) {
         viewModel.deletions.stream.collect { subject ->
-            messages.show(deletedMsg, undoLabel) { viewModel.restore(subject) }
+            messages.undoable(deletedMsg) { viewModel.restore(subject) }
         }
     }
 

@@ -48,12 +48,11 @@ class HomeworkBatch(private val actions: HomeworkActions<*>, private val current
 @Composable
 internal fun MarkPickedDone(batch: HomeworkBatch, messages: Messages) {
     val resources = LocalResources.current
-    val undo = stringResource(R.string.action_undo)
     fun markDone() {
         val moved = batch.markDone()
         if (moved.isEmpty()) return
         val said = resources.getQuantityString(R.plurals.homework_batch_done, moved.size, moved.size)
-        messages.show(said, undo) { batch.undo(moved) }
+        messages.undoable(said) { batch.undo(moved) }
     }
     NamedIconButton(KlasIcons.Outlined.CheckCircle, stringResource(R.string.homework_batch_mark_done), ::markDone)
 }

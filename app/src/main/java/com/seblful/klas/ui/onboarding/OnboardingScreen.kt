@@ -172,11 +172,10 @@ fun OnboardingScreen(
     // Said **after** the row has gone, not beside the call that removes it. Announcing it up front would
     // be «Предмет удалён» followed by «Не удалось удалить предмет» on a refusal — and a «Вернуть» offered
     // in between would add a *second* subject of the same name, which nothing refuses.
-    val undoLabel = stringResource(R.string.action_undo)
     val subjectRemovedMsg = stringResource(R.string.onboarding_subject_removed)
     fun removeSubject(subject: Subject) {
         viewModel.removeSubject(subject) {
-            messages.show(subjectRemovedMsg, undoLabel) { viewModel.addSubject(subject.name) }
+            messages.undoable(subjectRemovedMsg) { viewModel.addSubject(subject.name) }
         }
     }
 

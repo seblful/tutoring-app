@@ -24,15 +24,12 @@ internal fun BatchMessages(batch: LessonBatch, messages: Messages) {
     val resources by rememberUpdatedState(LocalResources.current)
     LaunchedEffect(batch, messages) {
         batch.done.stream.collect { done ->
-            val undo = resources.getString(R.string.action_undo)
             when (done) {
-                is LessonBatch.Done.Marked -> messages.show(
+                is LessonBatch.Done.Marked -> messages.undoable(
                     resources.getQuantityString(R.plurals.today_marked, done.sessions.size, done.sessions.size),
-                    undo,
                 ) { batch.undo(done) }
-                is LessonBatch.Done.Cancelled -> messages.show(
+                is LessonBatch.Done.Cancelled -> messages.undoable(
                     resources.getQuantityString(R.plurals.batch_cancelled, done.receipts.size, done.receipts.size),
-                    undo,
                 ) { batch.undo(done) }
                 is LessonBatch.Done.ChangedSince -> messages.show(
                     resources.getQuantityString(R.plurals.batch_changed_since, done.count, done.count),

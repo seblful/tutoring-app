@@ -19,7 +19,7 @@ class PermissionAskTest {
         val prompt = PermissionPrompt(launch = { launches++ }, rationaleDue = { due })
     }
 
-    private fun TestScope.messages(host: SnackbarHostState) = Messages(host, backgroundScope)
+    private fun TestScope.messages(host: SnackbarHostState) = Messages(host, backgroundScope, "Undo")
 
     @Test
     fun `a first ask shows the prompt straight away`() = runTest {

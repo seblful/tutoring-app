@@ -267,10 +267,8 @@ internal fun ShowGroupMessages(viewModel: GroupDetailViewModel, messages: Messag
             when (event) {
                 GroupDetailViewModel.Event.DeleteBlockedHasLessons ->
                     messages.show(resources.getString(R.string.group_delete_blocked))
-                is GroupDetailViewModel.Event.Archived -> messages.show(
-                    resources.archivedMessage(event.cancelled.size),
-                    resources.getString(R.string.action_undo),
-                ) { viewModel.undoArchive(event) }
+                is GroupDetailViewModel.Event.Archived ->
+                    messages.undoable(resources.archivedMessage(event.cancelled.size)) { viewModel.undoArchive(event) }
                 is GroupDetailViewModel.Event.ArchiveUndoKept -> messages.show(
                     resources.getQuantityString(R.plurals.archive_undo_kept, event.count, event.count),
                 )
