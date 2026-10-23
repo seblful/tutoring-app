@@ -149,7 +149,7 @@ class DetailsSectionTest : ClassEditTestFixture() {
         val vm = vm(day = day, studentId = studentId)
         open(vm)
 
-        tapRow("Price")
+        tapRow("Rate")
         press("Raise the rate")
 
         assertEquals(Money.ofMajor(35), vm.state.current.form.price.amount)
@@ -160,7 +160,7 @@ class DetailsSectionTest : ClassEditTestFixture() {
         val vm = vm(day = day)
         open(vm)
 
-        tapRow("Price")
+        tapRow("Rate")
         compose.onNodeWithContentDescription("Raise the rate").assertExists()
         compose.onNodeWithText("Remote").assertDoesNotExist()
 

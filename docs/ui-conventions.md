@@ -296,3 +296,21 @@ Build screens from shared state and controls. Feature rules belong in the domain
   one Export menu. The hero carries Earned/Received and the period's lessons · hours · ahead; a student's
   income row opens them, with a chevron, as a debt's does. The funnel narrows the report, its chip under
   the period.
+
+## Words
+
+One word per thing, in every screen, notification and file; `GlossaryTest` fails on a retired word coming
+back. Russian follows the same table.
+
+| Thing | Say | Not |
+|---|---|---|
+| A lesson that happened | Taught; «Mark lessons taught automatically» | completed, auto-completion |
+| Money per hour | Rate (rate per hour, rate per student) | price, priced |
+| Finished homework | the Done side; Restore | Archive, Bring back |
+| A retired student or group | Archived; Restore; Show archived | Show archive |
+| Making a lesson | Book; screen «New lesson» | Book lesson |
+| A student's page | Profile; «Open profile» | card, Open the card, Open student |
+| Setting a rate | Set rate | Set price, Set subject price |
+| A saved file | Backup saved · Report saved · Crash log saved | Data saved |
+| Who homework is for | Assigned to | For |
+| A group with no subject | No subject; the count beside «Members» | Not picked, Picked: 4 |

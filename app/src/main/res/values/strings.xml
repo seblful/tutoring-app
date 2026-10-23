@@ -96,7 +96,7 @@
     <!-- What the schedule says before anything can be booked. Both the page and the add button carry
          the way out of it, which is what the first version was missing. -->
     <string name="schedule_empty_no_setup">Nothing to plan yet</string>
-    <string name="schedule_empty_no_setup_detail">A lesson is booked for a student and a priced subject. Start with a student.</string>
+    <string name="schedule_empty_no_setup_detail">A lesson is booked for a student and a subject with a rate. Start with a student.</string>
     <string name="schedule_add_student">Add a student</string>
     <!-- Narrowing the schedule to one student. The chip is the point: a filtered calendar that looks
          empty has to say why, so the name stays on screen and carries its own way out. -->
@@ -139,9 +139,9 @@
     <!-- The booking form's three sections and the save bar under them. -->
     <string name="class_section_who">Who</string>
     <string name="class_section_when">When</string>
-    <string name="class_section_price">Price</string>
+    <string name="class_section_price">Rate</string>
     <string name="class_section_format">Format</string>
-    <string name="class_terms_price_needed">Set a price</string>
+    <string name="class_terms_price_needed">Set a rate</string>
     <string name="class_who_label">Student or group</string>
     <string name="class_book_action">Book</string>
     <string name="class_still_needed">Still needed</string>
@@ -159,7 +159,7 @@
     <string name="class_gap_date">date</string>
     <string name="class_gap_start">start time</string>
     <string name="class_gap_length">length</string>
-    <string name="class_gap_price">price</string>
+    <string name="class_gap_price">rate</string>
     <plurals name="class_series_lessons">
         <item quantity="one">%1$d lesson</item>
         <item quantity="other">%1$d lessons</item>
@@ -167,7 +167,7 @@
     <string name="class_edit_title">Edit lesson</string>
     <string name="class_student_label">Student</string>
     <string name="class_subject_label">Subject</string>
-    <string name="class_no_subjects_for_student">This student has no priced subjects. Set a price on their card.</string>
+    <string name="class_no_subjects_for_student">This student has no subjects with a rate. Set one on their profile.</string>
     <!--
       Length, chosen as a duration rather than as an end time: a tutor arranges "an hour and a half",
       not "ends at 15:30". The chips carry the common answers; "Other" asks for the rest.
@@ -287,9 +287,9 @@
     <!-- Students -->
     <string name="students_title">Students</string>
     <string name="students_empty">No students yet</string>
-    <string name="students_empty_detail">A student is a name, their subjects and a price per hour. After that you can book lessons and track payments.</string>
+    <string name="students_empty_detail">A student is a name, their subjects and a rate per hour. After that you can book lessons and track payments.</string>
     <string name="students_add">Add a student</string>
-    <string name="students_show_archived">Show archive</string>
+    <string name="students_show_archived">Show archived</string>
     <string name="student_archived_badge">Archived</string>
     <string name="student_add_title">New student</string>
     <string name="student_edit_title">Edit student</string>
@@ -299,8 +299,8 @@
     <string name="student_email_label">Email</string>
     <string name="student_email_hint">Optional · for lesson invitations, if they are on in Settings</string>
     <string name="student_note_label">Note</string>
-    <string name="student_form_subjects_title">Subjects and prices</string>
-    <string name="student_form_subjects_required">Pick at least one subject and set its price</string>
+    <string name="student_form_subjects_title">Subjects and rates</string>
+    <string name="student_form_subjects_required">Pick at least one subject and set its rate</string>
     <string name="student_form_no_subjects">Add subjects first</string>
     <string name="student_mode_label">Where lessons happen</string>
     <string name="student_subjects_title">Subjects</string>
@@ -332,7 +332,7 @@
     <string name="student_last_payment">Last payment %1$s</string>
     <string name="student_lessons_empty">No lessons yet</string>
     <string name="student_subject_remove">Remove %1$s</string>
-    <string name="student_subject_remove_confirm">Remove %1$s from this student? Its price and price history will be deleted.</string>
+    <string name="student_subject_remove_confirm">Remove %1$s from this student? Its rate and rate history will be deleted.</string>
     <string name="student_classes_title">Lessons</string>
     <string name="student_homework_title">Homework</string>
     <string name="student_next_lesson">Next lesson</string>
@@ -353,8 +353,8 @@
     <string name="stat_cancelled">%1$d cancelled</string>
 
     <!-- Rate history -->
-    <string name="rate_history_title">Price history</string>
-    <string name="rate_history_empty">The price has not changed</string>
+    <string name="rate_history_title">Rate history</string>
+    <string name="rate_history_empty">The rate has not changed</string>
     <!-- The tail of a long log, collapsed, so a rate that has moved a dozen times does not push the
          group form's roster off the screen. -->
     <plurals name="rate_history_older">
@@ -373,8 +373,8 @@
     <string name="balance_owes">Owes %1$s</string>
 
     <!-- Price -->
-    <string name="price_edit_title">Change the price</string>
-    <string name="price_label">Price per hour</string>
+    <string name="price_edit_title">Change the rate</string>
+    <string name="price_label">Rate per hour</string>
     <string name="price_per_lesson_hint">%1$s for a %2$s lesson</string>
     <string name="price_per_hour">%1$s/h</string>
 
@@ -402,7 +402,7 @@
     <!-- Subjects -->
     <string name="subjects_title">Subjects</string>
     <string name="subjects_empty">No subjects yet</string>
-    <string name="subjects_empty_detail">A subject is what you teach. Prices and lessons both start from one.</string>
+    <string name="subjects_empty_detail">A subject is what you teach. Rates and lessons both start from one.</string>
     <string name="subjects_add">Add a subject</string>
     <string name="subject_add_title">New subject</string>
     <string name="subject_edit_title">Edit subject</string>
@@ -413,34 +413,33 @@
     <string name="subject_delete_blocked">Cannot delete the subject: it has lessons. Delete those first.</string>
     <!-- A group is taught the subject. A different fix from removing lessons — the group may have none. -->
     <string name="subject_delete_blocked_group">Cannot delete the subject: a group studies it. Change the group\'s subject first.</string>
-    <string name="subject_delete_blocked_students">Cannot delete the subject: a student takes it. Remove it from their card first.</string>
+    <string name="subject_delete_blocked_students">Cannot delete the subject: a student takes it. Remove it from their profile first.</string>
 
     <!-- Groups -->
     <string name="groups_title">Groups</string>
     <string name="groups_empty">No groups yet</string>
-    <string name="groups_empty_detail">A group is several students sharing one price. One lesson is booked for all of them at once.</string>
+    <string name="groups_empty_detail">A group is several students sharing one rate. One lesson is booked for all of them at once.</string>
     <string name="groups_add">Create a group</string>
     <string name="group_add_title">New group</string>
     <string name="group_edit_title">Edit group</string>
     <string name="group_name_label">Name</string>
     <string name="group_subject_label">Subject</string>
     <string name="group_subject_none">No subject</string>
-    <string name="group_subject_hint">Only students priced for this subject can join the group</string>
+    <string name="group_subject_hint">Only students with a rate for this subject can join the group</string>
     <string name="group_subject_none_hint">Without a subject: any student, and the subject is picked when a lesson is booked</string>
     <string name="group_price_label">Rate per student</string>
-    <string name="group_price_hint">One price for every member of the group</string>
+    <string name="group_price_hint">One rate for every member of the group</string>
     <string name="group_members_title">Members</string>
     <string name="group_members_required">Pick at least one student</string>
-    <string name="group_members_selected">Picked: %1$d</string>
     <string name="group_no_students">Add students first</string>
-    <string name="group_no_students_for_subject">No students are priced for this subject</string>
+    <string name="group_no_students_for_subject">No students have a rate for this subject</string>
     <string name="group_no_members">No members</string>
     <!-- Spoken only. What a row of overlapping monograms is, for a screen reader — and it names every
          member, not just the four drawn: the "+2" is a concession to the width of a list row. -->
     <!-- The save kept only the members priced for the group's subject; somebody was left out. -->
     <plurals name="group_members_leaving_confirm">
-        <item quantity="one">%1$d member has no price for the group\'s subject and will leave the group. Save?</item>
-        <item quantity="other">%1$d members have no price for the group\'s subject and will leave the group. Save?</item>
+        <item quantity="one">%1$d member has no rate for the group\'s subject and will leave the group. Save?</item>
+        <item quantity="other">%1$d members have no rate for the group\'s subject and will leave the group. Save?</item>
     </plurals>
     <string name="group_delete_confirm">Delete this group? The students and their lessons stay.</string>
     <string name="group_delete_blocked">Cannot delete the group: it has lessons. Archive it instead.</string>
@@ -449,11 +448,11 @@
     <string name="group_students_title">Members</string>
     <string name="group_lessons_title">Lessons</string>
     <string name="group_lessons_empty">This group has no lessons yet</string>
-    <string name="group_no_subject">No subject picked</string>
+    <string name="group_no_subject">No subject</string>
     <!-- The way out of an empty roster tab. It leads to the group's form, since that is the only place
          a roster changes. -->
     <string name="group_edit_members">Change the roster</string>
-    <string name="group_member_open">Open the student\'s card</string>
+    <string name="group_member_open">Open profile</string>
     <!-- %1$d of %2$d: how many of a group lesson's students were actually in it. Only shown when
          somebody was not, so it never says "3 of 3". -->
     <string name="group_lesson_present">Attended: %1$d of %2$d</string>
@@ -501,17 +500,17 @@
     <string name="settings_calendar_invites_off">Sync on · Invitations off</string>
     <string name="settings_all_notifications_blocked">Your phone is blocking notifications</string>
     <string name="settings_notifications_fix">Allow notifications</string>
-    <string name="settings_completion_notifications_blocked">Automatic completion still runs, but your phone is blocking its reports</string>
+    <string name="settings_completion_notifications_blocked">Automatic marking still runs, but your phone is blocking its reports</string>
     <string name="settings_system_notifications">Phone notification settings</string>
     <string name="settings_system_notifications_desc">Sounds, vibration and notification types</string>
     <string name="settings_calendar_fix">Restore calendar access</string>
     <string name="settings_calendar_fix_desc">Allow calendar access in your phone\'s settings</string>
     <string name="settings_email_invites_disabled">Turn on calendar sync to invite students</string>
-    <string name="settings_reminder_timing">Shared reminder timing</string>
+    <string name="settings_reminder_timing">Reminder time</string>
     <string name="settings_reminder_shared">Used for phone and calendar email reminders. Changing it updates existing calendar events.</string>
     <string name="settings_reminder_enable">Turn on lesson reminders or calendar sync to change this time</string>
     <string name="settings_summary_enable">Turn on this summary to change its schedule</string>
-    <string name="settings_unfinished_autocomplete">List ended lessons awaiting a status. Automatic completion is on, so there will usually be nothing to report.</string>
+    <string name="settings_unfinished_autocomplete">List ended lessons awaiting a status. Automatic marking is on, so there will usually be nothing to report.</string>
     <string name="settings_default_lesson_desc">Pre-fills new bookings; existing lessons keep their duration</string>
     <string name="settings_currency_desc">Changes the currency label on all amounts, including history. Amounts are not converted.</string>
     <plurals name="settings_notification_types">
@@ -603,23 +602,23 @@
         <item>Saturday</item>
         <item>Sunday</item>
     </string-array>
-    <string name="settings_autocomplete">Complete lessons automatically</string>
+    <string name="settings_autocomplete">Mark lessons taught automatically</string>
     <string name="settings_autocomplete_desc">Mark ended lessons as taught and charge them to student balances automatically</string>
     <!-- Confirm backlog completion and billing before enabling automatic completion. -->
     <plurals name="settings_autocomplete_sweep_confirm">
-        <item quantity="one">%1$d past lesson will be marked as taught and billed. Turn on auto-completion?</item>
-        <item quantity="other">%1$d past lessons will be marked as taught and billed. Turn on auto-completion?</item>
+        <item quantity="one">%1$d past lesson will be marked as taught and billed. Turn on automatic marking?</item>
+        <item quantity="other">%1$d past lessons will be marked as taught and billed. Turn on automatic marking?</item>
     </plurals>
     <!-- What the sweep actually settled. Said even when it was not asked about, so no lesson is ever
          completed in silence by a switch. -->
     <plurals name="settings_autocomplete_swept">
-        <item quantity="one">%1$d lesson completed</item>
-        <item quantity="other">%1$d lessons completed</item>
+        <item quantity="one">%1$d lesson marked taught</item>
+        <item quantity="other">%1$d lessons marked taught</item>
     </plurals>
     <string name="settings_default_lesson">Default lesson duration</string>
     <string name="settings_currency">Currency</string>
     <string name="settings_default_group_price">Default group hourly rate</string>
-    <string name="settings_default_group_price_desc">Pre-fills a new group: price per hour, per student</string>
+    <string name="settings_default_group_price_desc">Pre-fills a new group: rate per hour, per student</string>
     <string name="settings_not_set">Not set</string>
     <string name="settings_theme">Theme</string>
     <string name="theme_system">System</string>
@@ -639,7 +638,7 @@
     <string name="settings_dynamic_color">Colours from wallpaper</string>
     <string name="settings_dynamic_color_desc">Take the shades from your phone\'s wallpaper instead of the app\'s own colours</string>
     <string name="settings_currency_change">Change</string>
-    <string name="settings_currency_change_confirm">Amounts are not converted at any exchange rate. Prices, payments and reports will use %1$s as their currency label. The numbers stay the same.</string>
+    <string name="settings_currency_change_confirm">Amounts are not converted at any exchange rate. Rates, payments and reports will use %1$s as their currency label. The numbers stay the same.</string>
     <string name="minutes_short">%1$d&#160;min</string>
     <string name="hours_one">1&#160;h</string>
     <string name="hours_one_and_half">1.5&#160;h</string>
@@ -667,7 +666,7 @@
     -->
     <string name="onboarding_locale_title">The basics</string>
     <string name="onboarding_locale_desc">Already chosen for you. Change anything now or later in Settings.</string>
-    <string name="onboarding_lesson_length_desc">Pre-fills new lessons. Prices are per hour, so each lesson is billed for its length.</string>
+    <string name="onboarding_lesson_length_desc">Pre-fills new lessons. Rates are per hour, so each lesson is billed for its length.</string>
     <string name="onboarding_locale_currency_desc">Amounts are only labelled with it — nothing is converted.</string>
     <string name="onboarding_subjects_title">Subjects</string>
     <string name="onboarding_subjects_desc">Tap what you teach, or add your own. You can change them later.</string>
@@ -684,7 +683,7 @@
     <string name="onboarding_subject_removed">Subject deleted</string>
     <string name="onboarding_subject_remove_failed">Could not delete the subject</string>
     <string name="onboarding_student_title">First student</string>
-    <string name="onboarding_student_desc">Just a name and a price. A phone, email and note can be added on the student\'s card later.</string>
+    <string name="onboarding_student_desc">Just a name and a rate. A phone, email and note can be added on the student\'s profile later.</string>
     <string name="onboarding_continue">Next</string>
     <string name="onboarding_finish">Done</string>
 
@@ -738,13 +737,13 @@
     <string name="debts_channel_desc">Weekly summary: who owes what</string>
     <string name="debts_title">Debts</string>
 
-    <string name="upkeep_channel_name">Auto-completion</string>
-    <string name="upkeep_channel_desc">A report of the lessons completed automatically</string>
+    <string name="upkeep_channel_name">Lessons marked taught</string>
+    <string name="upkeep_channel_desc">A report of the lessons marked taught automatically</string>
     <!--
       The one thing the app announces about something it did on its own initiative. Completing a lesson
       bills it, so a background pass had been recognising income in total silence.
     -->
-    <string name="upkeep_completed_title">Lessons completed automatically</string>
+    <string name="upkeep_completed_title">Lessons marked taught automatically</string>
 
     <!-- A students or groups card's lesson line: %1$s a time, or a date -->
     <string name="people_next_today">Today %1$s</string>
@@ -780,7 +779,7 @@
     <string name="reports_percent_signed_down">−%1$d%%</string>
     <string name="reports_percent_signed_same">0%%</string>
     <!-- Debts are the most action-shaped list in the app; each row opens the person who owes. -->
-    <string name="reports_open_student">Open the card</string>
+    <string name="reports_open_student">Open profile</string>
     <!-- CSV, because a backup is for restoring and a spreadsheet is for the tax office. -->
     <string name="reports_export">Export to CSV</string>
     <string name="reports_export_filename">klas-report.csv</string>
@@ -859,7 +858,7 @@
     <string name="backup_import">Import data</string>
     <string name="backup_import_desc">Restore your data from a file</string>
     <string name="backup_import_confirm">Importing will replace everything that is here. Continue?</string>
-    <string name="backup_export_success">Data saved</string>
+    <string name="backup_export_success">Backup saved</string>
     <string name="backup_import_success">Data restored</string>
     <string name="backup_importing">Restoring your data…</string>
     <string name="backup_restore_holds">This backup, made %1$s, holds %2$s.</string>
@@ -923,7 +922,7 @@
     -->
     <string name="homework_label">Homework</string>
     <string name="homework_add">Set homework</string>
-    <string name="homework_assignee_label">For</string>
+    <string name="homework_assignee_label">Assigned to</string>
     <string name="homework_text_label">Task</string>
     <!-- Under the text of a new one. %1$s: when the lesson it will be attached to starts. -->
     <string name="homework_attached_to">For the lesson on %1$s</string>
@@ -944,7 +943,7 @@
     <string name="homework_set_on">Set on %1$s</string>
     <!-- What the swipe promises, behind the row: into the archive, or back out of it. -->
     <string name="homework_done">Done</string>
-    <string name="homework_restore">Mark not done</string>
+    <string name="homework_restore">Restore</string>
     <string name="homework_done_message">Marked done</string>
     <string name="homework_restored_message">Moved back to Current</string>
     <string name="homework_deleted">Homework deleted</string>
@@ -974,17 +973,17 @@
     <string name="diagnostics_clear">Clear</string>
     <string name="diagnostics_clear_confirm">Delete the saved crash reports?</string>
     <string name="diagnostics_filename">klas-crash-log.txt</string>
-    <string name="diagnostics_export_success">Report saved</string>
+    <string name="diagnostics_export_success">Crash log saved</string>
     <string name="diagnostics_error">Could not save the file</string>
     <string name="diagnostics_test_crash">Trigger a test crash</string>
-    <string name="class_book">Book lesson</string>
-    <string name="class_open_student">Open student</string>
+    <string name="class_book">Book</string>
+    <string name="class_open_student">Open profile</string>
     <string name="class_open_group">Open group</string>
     <string name="payment_choose_student">Who made the payment?</string>
-    <string name="subject_set_price">Set subject price</string>
+    <string name="subject_set_price">Set rate</string>
     <string name="group_member_set_price">Set rate</string>
     <string name="subject_add">Add subject</string>
-    <string name="group_price_setup_hint">Set an individual subject price to add these students. Group lessons use the group rate.</string>
+    <string name="group_price_setup_hint">Set an individual subject rate to add these students. Group lessons use the group rate.</string>
     <string name="class_completed_message">Marked taught</string>
     <string name="class_cancelled_message">Lesson cancelled</string>
     <string name="class_replanned_message">Lesson planned again</string>
@@ -1083,7 +1082,7 @@
     <string name="groups_sort_next">By next lesson</string>
     <string name="form_gap_name">a name</string>
     <string name="form_gap_subject">a subject</string>
-    <string name="form_gap_price">a price</string>
+    <string name="form_gap_price">a rate</string>
     <string name="form_gap_members">members</string>
     <string name="filter_more">Filter</string>
     <string name="filter_all">All</string>

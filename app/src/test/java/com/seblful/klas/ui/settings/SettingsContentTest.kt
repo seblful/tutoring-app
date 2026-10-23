@@ -139,7 +139,7 @@ class SettingsContentTest {
             KlasTheme { LessonSettingsContent(settings, actions.update, onAutoComplete = {}) }
         }
         val order = listOf(
-            "Lessons", "Default lesson duration", "Complete lessons automatically",
+            "Lessons", "Default lesson duration", "Mark lessons taught automatically",
             "Billing", "Currency", "Default group hourly rate",
         ).map { compose.onNodeWithText(it).fetchSemanticsNode().positionInRoot.y }
 
