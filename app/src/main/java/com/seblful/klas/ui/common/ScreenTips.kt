@@ -7,8 +7,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.compose.currentStateAsState
 import com.seblful.klas.data.settings.GuideRepository
 import com.seblful.klas.di.ApplicationScope
 import com.seblful.klas.domain.guide.Tip
@@ -62,7 +65,9 @@ class ScreenTip(val tip: Tip?, val dismiss: () -> Unit, val done: (Tip) -> Unit)
 /**
  * **One tip per visit to a screen.** [pick] chooses among those not yet seen; once one has been read, the next
  * waits until the screen is left and come back to, so tips never follow one another like a tour. Nothing opens
- * while [blocked] — a sheet, a dialog, a selection in front of what the tip is about.
+ * while [blocked] — a sheet, a dialog, a selection in front of what the tip is about — nor while the screen is
+ * not resumed: the system's own dialogs, such as the notification permission asked for after a first booking,
+ * cover it without the screen knowing, and a tip opening under one is read by nobody.
  */
 @Composable
 fun rememberScreenTip(
@@ -71,9 +76,11 @@ fun rememberScreenTip(
     pick: (seen: Set<Tip>) -> Tip?,
 ): ScreenTip {
     val seen by viewModel.seen.collectAsStateWithLifecycle()
+    val lifecycle by LocalLifecycleOwner.current.lifecycle.currentStateAsState()
+    val resumed = lifecycle.isAtLeast(Lifecycle.State.RESUMED)
     // Remembered rather than saved: a screen leaving composition is a visit ending.
     var read by remember { mutableStateOf(false) }
-    val tip = seen?.takeUnless { read || blocked }?.let(pick)
+    val tip = seen?.takeUnless { read || blocked || !resumed }?.let(pick)
     // Read at the gesture, so a swipe made long after the tutor saw its tip writes nothing.
     val latestSeen by rememberUpdatedState(seen)
     return remember(tip, viewModel) {

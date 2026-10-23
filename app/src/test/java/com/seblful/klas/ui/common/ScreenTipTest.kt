@@ -3,6 +3,7 @@ package com.seblful.klas.ui.common
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.material3.Text
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -12,6 +13,10 @@ import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.LifecycleRegistry
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.seblful.klas.domain.guide.Guide
 import com.seblful.klas.domain.guide.Tip
 import com.seblful.klas.testutil.AppLocaleRule
@@ -47,20 +52,28 @@ class ScreenTipTest {
     private val guide by lazy { GuideViewModel(env.guideRepo, mainRule.appScope) }
 
     private var blocked by mutableStateOf(false)
+
+    /** The screen's own lifecycle, to pause the way a system dialog over it does. */
+    private val screen = object : LifecycleOwner {
+        val registry = LifecycleRegistry(this).apply { currentState = Lifecycle.State.RESUMED }
+        override val lifecycle: Lifecycle get() = registry
+    }
     private val held = mutableListOf<String>()
 
     /** A screen with two tips to give — the date's, then picking's — on one anchor that a long-press picks. */
     @OptIn(ExperimentalFoundationApi::class)
     private fun show() = compose.setContent {
         KlasTheme {
-            val tip = rememberScreenTip(blocked, guide) { seen ->
-                listOf(Tip.SCHEDULE_DATE, Tip.LESSON_PICK).firstOrNull { it !in seen }
-            }
-            CoachMark(text = "Tip about ${tip.tip}", visible = tip.tip != null, onDismiss = tip.dismiss) {
-                Text(
-                    "Anchor ${tip.tip}",
-                    Modifier.combinedClickable(onLongClick = { held += "picked" }) { tip.done(Tip.SCHEDULE_DATE) },
-                )
+            CompositionLocalProvider(LocalLifecycleOwner provides screen) {
+                val tip = rememberScreenTip(blocked, guide) { seen ->
+                    listOf(Tip.SCHEDULE_DATE, Tip.LESSON_PICK).firstOrNull { it !in seen }
+                }
+                CoachMark(text = "Tip about ${tip.tip}", visible = tip.tip != null, onDismiss = tip.dismiss) {
+                    Text(
+                        "Anchor ${tip.tip}",
+                        Modifier.combinedClickable(onLongClick = { held += "picked" }) { tip.done(Tip.SCHEDULE_DATE) },
+                    )
+                }
             }
         }
     }
@@ -99,6 +112,19 @@ class ScreenTipTest {
         settle()
         compose.onNodeWithText("Anchor SCHEDULE_DATE").assertExists()
         compose.onNodeWithText("Tip about SCHEDULE_DATE").assertExists()
+    }
+
+    @Test
+    fun `nothing opens under a system dialog - the tip waits for the screen to be resumed`() {
+        screen.registry.currentState = Lifecycle.State.STARTED
+        show()
+        settle()
+        compose.onNodeWithText("Tip about", substring = true).assertDoesNotExist()
+
+        compose.runOnIdle { screen.registry.currentState = Lifecycle.State.RESUMED }
+        settle()
+        compose.onNodeWithText("Tip about SCHEDULE_DATE").assertExists()
+        assertTrue("not read while it was covered", seen().isEmpty())
     }
 
     @Test

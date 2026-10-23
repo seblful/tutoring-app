@@ -174,7 +174,9 @@ Build screens from shared state and controls. Feature rules belong in the domain
   no screen shows get one `CoachMark` each, on the thing they work on, the first time it is in reach
   (`Tip`): the schedule's swipe and long-press on a lesson card and its date title, homework's swipe on the
   first current card. One per visit (`rememberScreenTip`), after the screen has been still for a moment,
-  never over a sheet, dialog or selection; «Got it», a tap elsewhere or making the gesture marks it seen.
+  never over a sheet, dialog or selection, and only while the screen is resumed — a system dialog such as
+  the notification permission covers it unseen, and a tap on that dialog would count as a tap elsewhere;
+  «Got it», a tap elsewhere or making the gesture marks it seen.
   A swipe tip peeks the row short of the mark (`SwipeToConfirmBox(peek)`) and, under TalkBack, names the
   row's action instead. An install already through setup when it upgrades to v14, and a restored backup,
   start with it done; Settings' «Show tips again» brings it all back.
