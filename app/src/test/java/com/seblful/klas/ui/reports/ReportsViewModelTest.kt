@@ -254,8 +254,7 @@ class ReportsViewModelTest {
         vm.share(
             filename = "klas-report.csv",
             subject = "Отчёт Klas",
-            header = header,
-            lines = lines,
+            file = ReportsViewModel.ReportFile.Summary(header, lines),
         )
         runCurrent()
 
@@ -283,7 +282,11 @@ class ReportsViewModelTest {
         var received: ReportsViewModel.ExportEvent? = null
         val job = backgroundScope.launch { vm.events.stream.collect { received = it } }
 
-        vm.share(filename = "klas-report.csv", subject = "x", header = emptyList(), lines = emptyList())
+        vm.share(
+            filename = "klas-report.csv",
+            subject = "x",
+            file = ReportsViewModel.ReportFile.Summary(emptyList(), emptyList()),
+        )
         runCurrent()
         job.cancel()
 

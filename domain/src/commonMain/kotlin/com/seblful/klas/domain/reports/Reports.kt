@@ -136,6 +136,21 @@ object Reports {
     )
 
     /**
+     * One line of the ledger: a lesson a student was billed for, or a payment they made, on [day].
+     *
+     * @param subject the lesson's subject, null for a payment.
+     * @param method how a payment was made, null for a lesson or a payment that did not say.
+     */
+    data class LedgerEntry(
+        val day: LocalDate,
+        val student: String,
+        val subject: String?,
+        val payment: Boolean,
+        val method: PaymentMethod?,
+        val amount: Money,
+    )
+
+    /**
      * Income for one kind of teaching.
      */
     data class KindLine(val kind: LessonKind, val amount: Money, val percent: Int)
@@ -182,6 +197,8 @@ object Reports {
         val previousPeriod: ReportPeriod? = null,
         /** What was paid in [period] — see [Received]. */
         val received: Received = Received.NONE,
+        /** Every taught lesson and every payment in [period], by day — the ledger export, [ReportCsv.buildLedger]. */
+        val ledger: List<LedgerEntry> = emptyList(),
     ) {
         /** The period earned nothing — the sections below the total have nothing to break down. */
         val noIncome: Boolean get() = totalIncome.isZero
@@ -288,7 +305,48 @@ object Reports {
             changeToDate = elapsed != null && previous != null,
             previousPeriod = previous,
             received = received(payments.filter { it.studentId in studentIds }, period, zone),
+            ledger = ledger(
+                Billing.billable(inPeriod),
+                payments.filter { it.studentId in studentIds && period.contains(it.date, zone) },
+                studentNames,
+                subjectNames,
+                zone,
+            ),
         )
+    }
+
+    /**
+     * [classes] billed and [payments] made, one entry each, by day — a lesson before a payment on the same
+     * day, each by its time: the same report whatever order its rows came in.
+     */
+    private fun ledger(
+        classes: List<TutoringClass>,
+        payments: List<Payment>,
+        studentNames: Map<StudentId, String>,
+        subjectNames: Map<SubjectId, String>,
+        zone: TimeZone,
+    ): List<LedgerEntry> {
+        val lessons = classes.sortedWith(compareBy({ it.start }, { it.id }, { it.studentId })).map {
+            LedgerEntry(
+                day = it.start.toLocalDateTime(zone).date,
+                student = studentNames[StudentId(it.studentId)].orEmpty(),
+                subject = subjectNames[SubjectId(it.subjectId)],
+                payment = false,
+                method = null,
+                amount = it.charge,
+            )
+        }
+        val paid = payments.sortedWith(compareBy({ it.date }, { it.id }, { it.studentId }, { it.amount.minor })).map {
+            LedgerEntry(
+                day = it.date.toLocalDateTime(zone).date,
+                student = studentNames[StudentId(it.studentId)].orEmpty(),
+                subject = null,
+                payment = true,
+                method = it.method,
+                amount = it.amount,
+            )
+        }
+        return (lessons + paid).sortedWith(compareBy<LedgerEntry> { it.day }.thenBy { it.payment })
     }
 
     /**

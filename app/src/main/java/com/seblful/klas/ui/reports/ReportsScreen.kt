@@ -171,23 +171,12 @@ fun ReportsScreen(
         }
     }
 
-    // Assembled here, where the section headings are string resources and the rows are already in
-    // the order the screen shows them — so the file reads like the report rather than like a dump.
-    val csvHeader = listOf(
-        stringResource(R.string.reports_csv_section),
-        stringResource(R.string.reports_csv_label),
-        stringResource(R.string.reports_csv_amount),
-    )
-    // Remembered: this walks every group, subject, student and debt row, and recomposition is not
-    // a new report. Rebuilt only when the report itself changes.
-    val csvHeadings = csvHeadings(period)
-    val csvLines = remember(exportable, csvHeadings) {
-        exportable?.let { ReportCsv.linesFor(it, csvHeadings) }.orEmpty()
-    }
+    val files = rememberReportFiles(exportable, period)
+    // Which file the picker was opened for: one picker serves both, as one menu offers both.
+    var saving by remember { mutableStateOf<ReportsViewModel.ReportFile?>(null) }
     val export = rememberCreateDocument(CSV_MIME_TYPE, noPickerMsg, messages) { document ->
-        viewModel.export(document, csvHeader, csvLines)
+        saving?.let { viewModel.export(document, it) }
     }
-    val exportFilename = stringResource(R.string.reports_export_filename)
     // Names the period, so a report arriving in somebody's mail says which month it is.
     val shareSubject = stringResource(R.string.reports_share_subject, periodTitle(period))
 
@@ -209,13 +198,14 @@ fun ReportsScreen(
                 // Kept on screen while a new period assembles, so they don't blink with every arrow tap;
                 // a tap inside that frame or two sends nothing rather than the previous period's file.
                 // One Export menu (R1): two look-alike icons left the tutor to guess which sent and which saved.
-                ExportMenu(
-                    onShare = {
-                        if (exportable != null) {
-                            viewModel.share(ReportCsv.fileName(period), shareSubject, csvHeader, csvLines)
-                        }
+                ReportExportMenu(
+                    files = files,
+                    period = period,
+                    onShare = { name, file -> viewModel.share(name, shareSubject, file) },
+                    onSave = { name, file ->
+                        saving = file
+                        export(name)
                     },
-                    onSave = { if (exportable != null) export(exportFilename) },
                 )
                 ScopeMenu(scopes, scope, viewModel::setScope)
             }
@@ -282,7 +272,7 @@ private val SectionCardHeight = 132.dp
 private const val CSV_MIME_TYPE = "text/csv"
 
 @Composable
-private fun csvHeadings(period: ReportPeriod): ReportCsv.Headings = ReportCsv.Headings(
+private fun csvHeadings(period: ReportPeriod, methods: Map<PaymentMethod?, String>) = ReportCsv.Headings(
     total = stringResource(R.string.reports_total_income),
     period = periodTitle(period),
     byGroup = stringResource(R.string.reports_by_group),
@@ -291,10 +281,49 @@ private fun csvHeadings(period: ReportPeriod): ReportCsv.Headings = ReportCsv.He
     debts = stringResource(R.string.reports_debts),
     outstanding = stringResource(R.string.reports_total_outstanding),
     received = stringResource(R.string.reports_received),
-    methods = (PaymentMethod.entries + null).associateWith { method ->
-        method?.let { paymentMethodLabel(it) } ?: stringResource(R.string.payment_method_none)
-    },
+    methods = methods,
 )
+
+/** The two files a report leaves as, for the report [exportable] — null while there is none to send. */
+private class ReportFiles(val summary: ReportsViewModel.ReportFile, val ledger: ReportsViewModel.ReportFile)
+
+/**
+ * Assembled here, where the headings are string resources and the rows already in the order the screen
+ * shows them — so the summary reads like the report rather than like a dump. Remembered: it walks every
+ * row of the report, and recomposition is not a new report.
+ */
+@Composable
+private fun rememberReportFiles(exportable: Reports.Report?, period: ReportPeriod): ReportFiles? {
+    val methods = (PaymentMethod.entries + null).associateWith { method ->
+        method?.let { paymentMethodLabel(it) } ?: stringResource(R.string.payment_method_none)
+    }
+    val summaryHeader = listOf(
+        stringResource(R.string.reports_csv_section),
+        stringResource(R.string.reports_csv_label),
+        stringResource(R.string.reports_csv_amount),
+    )
+    val ledgerHeader = listOf(
+        stringResource(R.string.reports_ledger_day),
+        stringResource(R.string.reports_ledger_entry),
+        stringResource(R.string.reports_ledger_student),
+        stringResource(R.string.reports_ledger_detail),
+        stringResource(R.string.reports_csv_amount),
+    )
+    val words = ReportCsv.LedgerWords(
+        lesson = stringResource(R.string.reports_ledger_lesson),
+        payment = stringResource(R.string.reports_ledger_payment),
+        methods = methods,
+    )
+    val headings = csvHeadings(period, methods)
+    return remember(exportable, headings, words) {
+        exportable?.let { report ->
+            ReportFiles(
+                summary = ReportsViewModel.ReportFile.Summary(summaryHeader, ReportCsv.linesFor(report, headings)),
+                ledger = ReportsViewModel.ReportFile.Ledger(ledgerHeader, report, words),
+            )
+        }
+    }
+}
 
 /**
  * The report as one list, or on an expanded window as Material's supporting pane: what the period came to
@@ -557,9 +586,35 @@ private fun ScopeMenu(choices: List<ScopeChoice>, scope: ReportScope, onSelect: 
     )
 }
 
+/**
+ * [ExportMenu] over [files]: each sent under the period's own name ([ReportCsv.fileName]), or saved under
+ * a plain one the tutor renames in the picker. Taps before the report has arrived send nothing.
+ */
+@Composable
+private fun ReportExportMenu(
+    files: ReportFiles?,
+    period: ReportPeriod,
+    onShare: (name: String, file: ReportsViewModel.ReportFile) -> Unit,
+    onSave: (name: String, file: ReportsViewModel.ReportFile) -> Unit,
+) {
+    val summaryName = stringResource(R.string.reports_export_filename)
+    val ledgerName = stringResource(R.string.reports_ledger_filename)
+    ExportMenu(
+        onShare = { files?.let { onShare(ReportCsv.fileName(period), it.summary) } },
+        onSave = { files?.let { onSave(summaryName, it.summary) } },
+        onShareLedger = { files?.let { onShare(ReportCsv.ledgerFileName(period), it.ledger) } },
+        onSaveLedger = { files?.let { onSave(ledgerName, it.ledger) } },
+    )
+}
+
 /** «⤓» and the two ways a report leaves the phone: sent, or saved as a file. */
 @Composable
-internal fun ExportMenu(onShare: () -> Unit, onSave: () -> Unit) {
+internal fun ExportMenu(
+    onShare: () -> Unit,
+    onSave: () -> Unit,
+    onShareLedger: () -> Unit = {},
+    onSaveLedger: () -> Unit = {},
+) {
     var open by remember { mutableStateOf(false) }
     Box {
         NamedIconButton(KlasIcons.Filled.Download, stringResource(R.string.reports_export_menu), { open = true })
@@ -573,6 +628,18 @@ internal fun ExportMenu(onShare: () -> Unit, onSave: () -> Unit) {
                 text = { Text(stringResource(R.string.reports_export)) },
                 leadingIcon = { Icon(KlasIcons.Filled.Download, contentDescription = null) },
                 onClick = { open = false; onSave() },
+            )
+            // Every lesson and payment, a row each — what an accountant reconciles, beside the summary a
+            // tutor reads.
+            MenuItem(
+                text = { Text(stringResource(R.string.reports_share_ledger)) },
+                leadingIcon = { Icon(KlasIcons.Outlined.Share, contentDescription = null) },
+                onClick = { open = false; onShareLedger() },
+            )
+            MenuItem(
+                text = { Text(stringResource(R.string.reports_export_ledger)) },
+                leadingIcon = { Icon(KlasIcons.Filled.Download, contentDescription = null) },
+                onClick = { open = false; onSaveLedger() },
             )
         }
     }

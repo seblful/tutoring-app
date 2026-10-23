@@ -101,28 +101,45 @@ class ReportsViewModel @Inject constructor(
 
     val events = UiEvents<ExportEvent>()
 
-    /** Writes the report to the document the tutor picked. */
-    fun export(ref: DocumentRef, header: List<String>, lines: List<ReportCsv.Line>) {
+    /** A file the report leaves the phone as: its summary, or its ledger of every lesson and payment. */
+    sealed interface ReportFile {
+        /** The file's text, punctuated for [dialect] — see [ReportCsv.Dialect]. */
+        fun text(dialect: ReportCsv.Dialect): String
+
+        class Summary(private val header: List<String>, private val lines: List<ReportCsv.Line>) : ReportFile {
+            override fun text(dialect: ReportCsv.Dialect) = ReportCsv.build(header, lines, dialect)
+        }
+
+        class Ledger(
+            private val header: List<String>,
+            private val report: Reports.Report,
+            private val words: ReportCsv.LedgerWords,
+        ) : ReportFile {
+            override fun text(dialect: ReportCsv.Dialect) = ReportCsv.buildLedger(header, report, words, dialect)
+        }
+    }
+
+    /** Writes [file] to the document the tutor picked. */
+    fun export(ref: DocumentRef, file: ReportFile) {
         viewModelScope.launch {
             val ok = runCatchingCancellable {
-                documents.write(ref, csv(header, lines))
+                documents.write(ref, csv(file))
             }.isSuccess
             events.send(if (ok) ExportEvent.OK else ExportEvent.ERROR)
         }
     }
 
-    private fun csv(header: List<String>, lines: List<ReportCsv.Line>): String =
-        ReportCsv.build(header, lines, ReportCsv.Dialect.forDecimal(AppLocale.decimalSeparator))
+    private fun csv(file: ReportFile): String = file.text(ReportCsv.Dialect.forDecimal(AppLocale.decimalSeparator))
 
-    /** Hands the same report to another app, through the system share sheet. */
-    fun share(filename: String, subject: String, header: List<String>, lines: List<ReportCsv.Line>) {
+    /** Hands [file] to another app, through the system share sheet. */
+    fun share(filename: String, subject: String, file: ReportFile) {
         viewModelScope.launch {
             val ok = runCatchingCancellable {
                 sharing.share(
                     filename = filename,
                     mimeType = CSV_MIME_TYPE,
                     subject = subject,
-                    text = csv(header, lines),
+                    text = csv(file),
                 )
             }.isSuccess
             events.send(if (ok) ExportEvent.SHARED else ExportEvent.ERROR)

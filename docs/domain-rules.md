@@ -29,6 +29,9 @@ mirrors and [database and backup](database-and-backup.md) for persistence contra
 - Income is what was **earned** (taught, billable lessons); **received** is what was paid in the period
   (`Reports.received`, by the day a payment lands on). They differ by every advance and every debt, so the
   report's hero switches between them and exports them as two sections (D6), never one number.
+- The ledger (`Report.ledger`, `ReportCsv.buildLedger`) is the second export: every billed lesson and
+  every payment in the period, a row each, by ISO day, a lesson before a payment on the same day. It is
+  what an accountant reconciles; the summary is what a tutor reads.
 - A report narrows to one student or one subject (`ReportScope`). A student's narrows lessons, payments
   and debts; a subject's narrows lessons only — no payment belongs to a subject, so received is not offered.
 - Auto-completion is opt-in: scheduled lessons become completed, and therefore billable, after ending.

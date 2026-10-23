@@ -1273,4 +1273,13 @@
     <string name="reports_filter">Фильтр отчёта</string>
     <string name="reports_filter_all">Все ученики и предметы</string>
     <string name="onboarding_subject_field_hint">Введите название и нажмите Ввод</string>
+    <string name="reports_share_ledger">Отправить журнал</string>
+    <string name="reports_export_ledger">Сохранить журнал в CSV</string>
+    <string name="reports_ledger_filename">klas-ledger.csv</string>
+    <string name="reports_ledger_day">Дата</string>
+    <string name="reports_ledger_entry">Запись</string>
+    <string name="reports_ledger_student">Ученик</string>
+    <string name="reports_ledger_detail">Предмет или способ</string>
+    <string name="reports_ledger_lesson">Занятие</string>
+    <string name="reports_ledger_payment">Оплата</string>
 </resources>
