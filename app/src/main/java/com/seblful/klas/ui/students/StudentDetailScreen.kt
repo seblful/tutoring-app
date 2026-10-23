@@ -250,7 +250,6 @@ private fun StudentCard(
                 PaymentsSection(
                     payments = state.payments,
                     onEdit = { editingPayment = it },
-                    onDelete = deletePayment,
                     onSeeAll = { navigation.seeAll(StudentSection.PAYMENTS) },
                     modifier = animateInPlace(cardModifier),
                 )
@@ -259,8 +258,7 @@ private fun StudentCard(
                 SubjectsSection(
                     state = state,
                     onAdd = { addingSubject = true },
-                    onReprice = { pricingSubjectId = it },
-                    onRemove = { removingSubjectId = it },
+                    onOpen = { pricingSubjectId = it },
                     modifier = animateInPlace(cardModifier),
                 )
             }
@@ -304,6 +302,7 @@ private fun StudentCard(
                 subjectPrice = sp,
                 onConfirm = { viewModel.setPrice(subjectId, it) },
                 onDismiss = { pricingSubjectId = null },
+                onRemove = { removingSubjectId = subjectId },
             )
         }
     }
@@ -311,6 +310,7 @@ private fun StudentCard(
         viewModel = viewModel,
         adding = addingPayment,
         editing = editingPayment,
+        onDelete = deletePayment,
         onDismiss = { addingPayment = false; editingPayment = null },
     )
     CardHomeworkDialogs(
@@ -374,7 +374,6 @@ private fun LessonsSection(
 private fun PaymentsSection(
     payments: List<Payment>,
     onEdit: (Payment) -> Unit,
-    onDelete: (Payment) -> Unit,
     onSeeAll: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -391,7 +390,6 @@ private fun PaymentsSection(
             PaymentRow(
                 payment,
                 onEdit = { onEdit(payment) },
-                onDelete = { onDelete(payment) },
                 colors = sectionRowColors(),
             )
         }
@@ -403,8 +401,7 @@ private fun PaymentsSection(
 private fun SubjectsSection(
     state: StudentDetails,
     onAdd: () -> Unit,
-    onReprice: (Long) -> Unit,
-    onRemove: (Long) -> Unit,
+    onOpen: (Long) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     OverviewSection(
@@ -417,8 +414,7 @@ private fun SubjectsSection(
         state.subjects.forEach { sp ->
             SubjectRow(
                 sp,
-                onReprice = { onReprice(sp.subject.id) },
-                onRemove = { onRemove(sp.subject.id) },
+                onOpen = { onOpen(sp.subject.id) },
                 colors = sectionRowColors(),
             )
         }

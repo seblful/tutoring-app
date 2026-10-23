@@ -75,6 +75,14 @@ Build screens from shared state and controls. Feature rules belong in the domain
   student's balance with its payment button; the group's earnings), then `OverviewSection`s with their
   latest few rows and «See all» to the full list (`StudentList`/`GroupList` routes, beside People like the
   card). Short lists — a student's subjects, a group's members — are shown in full.
+- Rows on an overview have one trailing slot and no bin (R1). A lesson row: date and subject, status,
+  the amount trailing — muted for a planned lesson's expected charge (`ClassRow.expectedCharge`); no
+  person glyph, every row is theirs. A payment row: the day as title, the method under it, the amount
+  trailing; deleting is in its dialog, with Undo. A subject row: the rate trailing with a chevron, its last
+  change under the name ("since 1 Sep · was 20 $/h"); a tap opens the rate, where Remove also lives.
+- A student's lesson history is a card per month (`LessonMonth`) titled by the month, summed as held
+  lessons · hours · earned (planned money is a forecast, so it is not summed). Its chips are Planned,
+  Taught and Cancelled with counts, each tapped again to let go; a student taught both ways adds the kinds.
 - People's students and groups are one surface with dividers (`SurfaceRow`, `SlicePosition`; D3), the
   divider drawn over each row's edge so rows keep one height; lessons stay a card each. Each side has its
   own orders behind the bar's sort button, tinted when not the first: students by name or debt, groups by

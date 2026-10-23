@@ -1111,4 +1111,10 @@
     <string name="homework_section_today">Today</string>
     <string name="homework_section_next_7_days">Next 7 days</string>
     <string name="homework_section_later">Later</string>
+    <string name="rate_since_was">since %1$s · was %2$s</string>
+    <string name="lesson_month_earned">%1$s earned</string>
+    <plurals name="lesson_count">
+        <item quantity="one">%1$d lesson</item>
+        <item quantity="other">%1$d lessons</item>
+    </plurals>
 </resources>

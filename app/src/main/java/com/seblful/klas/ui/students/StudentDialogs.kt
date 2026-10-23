@@ -99,6 +99,8 @@ internal fun RepriceDialog(
     subjectPrice: SubjectPrice,
     onConfirm: (Money) -> Unit,
     onDismiss: () -> Unit,
+    /** Takes the subject off them — asked to be confirmed by the caller, since lessons may still use it. */
+    onRemove: () -> Unit,
 ) {
     // The text, saveable, with the field derived from it: a half-typed rate survives the dialog being
     // recreated, which a `remember`ed field did not.
@@ -114,6 +116,11 @@ internal fun RepriceDialog(
             enabled = field.isValid,
         ),
         onDismiss = onDismiss,
+        extra = DialogAction(
+            label = stringResource(R.string.action_remove),
+            onClick = { onDismiss(); onRemove() },
+            destructive = true,
+        ),
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.itemGap)) {
             MoneyTextField(
@@ -138,6 +145,8 @@ internal fun PaymentDialog(
     onDismiss: () -> Unit,
     /** Offered on a new payment only: a correction is of an amount already typed. */
     suggestions: PaymentSuggestions = PaymentSuggestions.NONE,
+    /** Offered on a correction only, undone from the snackbar it leaves. */
+    onDelete: (() -> Unit)? = null,
 ) {
     // Saveable, as every typed dialog field is: the text, with the field derived from it.
     var text by rememberSaveable { mutableStateOf(initialAmount?.toAmountInput().orEmpty()) }
@@ -162,6 +171,13 @@ internal fun PaymentDialog(
             enabled = field.isValid,
         ),
         onDismiss = onDismiss,
+        extra = onDelete?.let { delete ->
+            DialogAction(
+                label = stringResource(R.string.action_delete),
+                onClick = { onDismiss(); delete() },
+                destructive = true,
+            )
+        },
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.itemGap)) {
             MoneyTextField(

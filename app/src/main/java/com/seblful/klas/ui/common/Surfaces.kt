@@ -128,13 +128,17 @@ fun SectionTitle(text: String, modifier: Modifier = Modifier, color: Color = Col
     )
 }
 
-/** Money at the trailing edge of a nested row — what a taught lesson was billed. */
+/**
+ * Money at the trailing edge of a nested row — what a taught lesson was billed.
+ *
+ * @param forecast for money not yet owed — a planned lesson's — drawn fainter than money that is.
+ */
 @Composable
-fun TrailingAmount(text: String, modifier: Modifier = Modifier) {
+fun TrailingAmount(text: String, modifier: Modifier = Modifier, forecast: Boolean = false) {
     Text(
         text,
         style = MaterialTheme.typography.bodyMedium,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = if (forecast) DimmedAlpha else 1f),
         maxLines = 1,
         modifier = modifier,
     )

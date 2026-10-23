@@ -3,14 +3,13 @@ package com.seblful.klas.ui.students
 import android.content.res.Resources
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Row
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemColors
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
@@ -24,8 +23,8 @@ import com.seblful.klas.format.toLocalDate
 import com.seblful.klas.queries.students.ClassRow
 import com.seblful.klas.queries.students.SubjectPrice
 import com.seblful.klas.ui.common.BadgeLine
-import com.seblful.klas.ui.common.LessonKindIcon
 import com.seblful.klas.ui.common.Messages
+import com.seblful.klas.ui.common.OpensScreenMark
 import com.seblful.klas.ui.common.StatusBadge
 import com.seblful.klas.ui.common.TrailingAmount
 import com.seblful.klas.ui.common.archivedMessage
@@ -37,7 +36,6 @@ import com.seblful.klas.ui.common.paymentMethodLabel
 import com.seblful.klas.ui.common.text
 import com.seblful.klas.ui.homework.HomeworkUndo
 import com.seblful.klas.ui.homework.homeworkUndo
-import com.seblful.klas.ui.theme.KlasIcons
 
 /*
  * The rows a student's lessons, payments and subjects are listed in — the same on their card, inside its
@@ -56,7 +54,6 @@ internal fun LessonRow(
     colors: ListItemColors = ListItemDefaults.colors(),
 ) {
     ListItem(
-        leadingContent = { LessonKindIcon(row.kind) },
         headlineContent = {
             Text(
                 // When first, as on the group card: it is what tells one row from the next, so it is the half
@@ -82,74 +79,74 @@ internal fun LessonRow(
                 }
             }
         },
-        trailingContent = { row.shownCharge?.let { TrailingAmount(it.text()) } },
+        trailingContent = {
+            row.shownCharge?.let { TrailingAmount(it.text()) }
+                ?: row.expectedCharge?.let { TrailingAmount(it.text(), forecast = true) }
+        },
         colors = colors,
         modifier = modifier.insetRowPress { Modifier.clickable(it, indication = null, onClick = onClick) },
     )
 }
 
 /**
- * A payment. Tapping it corrects it; the bin removes it. Correcting is the commoner of the two — a wrong
- * amount is a typo, not a payment that did not happen.
+ * A payment, laid out as a lesson is: the day as its title, the money trailing (R1). Tapping it corrects it,
+ * and deleting is in there too — a wrong amount is a typo far oftener than a payment that did not happen.
  */
 @Composable
 internal fun PaymentRow(
     payment: Payment,
     onEdit: () -> Unit,
-    onDelete: () -> Unit,
     modifier: Modifier = Modifier,
     colors: ListItemColors = ListItemDefaults.colors(),
 ) {
     ListItem(
-        headlineContent = { Text(payment.amount.text()) },
-        supportingContent = {
-            Text(bulletJoin(listOfNotNull(payment.date.formatDate(), payment.method?.let { paymentMethodLabel(it) })))
-        },
-        trailingContent = {
-            IconButton(onClick = onDelete) {
-                Icon(
-                    KlasIcons.Outlined.Delete,
-                    stringResource(R.string.payment_delete, payment.amount.text(), payment.date.formatDate()),
-                )
-            }
-        },
+        headlineContent = { Text(payment.date.formatDate()) },
+        supportingContent = payment.method?.let { method -> { Text(paymentMethodLabel(method)) } },
+        trailingContent = { TrailingAmount(payment.amount.text()) },
         colors = colors,
         modifier = modifier.insetRowPress { Modifier.clickable(it, indication = null, onClick = onEdit) },
     )
 }
 
-/** A subject they take, at its price, re-priced or taken off from the row. */
+/**
+ * A subject they take: its rate trailing, its last change under the name. Tapping it opens the rate, where
+ * the subject is also taken off — one target instead of a pencil and a bin beside the number.
+ */
 @Composable
 internal fun SubjectRow(
     subject: SubjectPrice,
-    onReprice: () -> Unit,
-    onRemove: () -> Unit,
+    onOpen: () -> Unit,
     modifier: Modifier = Modifier,
     colors: ListItemColors = ListItemDefaults.colors(),
 ) {
+    // The last change, said only when there was one and its day is known: "since 1 Sep · was 20 $/h".
+    val change = subject.history.firstOrNull()
+    val from = change?.from
+    val at = change?.at
     ListItem(
         headlineContent = { Text(subject.subject.name) },
-        supportingContent = {
-            Text(
-                stringResource(R.string.price_per_hour, subject.price.text()),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+        supportingContent = if (from != null && at != null) {
+            {
+                Text(
+                    stringResource(
+                        R.string.rate_since_was,
+                        at.formatDate(),
+                        stringResource(R.string.price_per_hour, from.text()),
+                    ),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        } else {
+            null
         },
         trailingContent = {
-            Row {
-                IconButton(onClick = onReprice) {
-                    Icon(KlasIcons.Outlined.Edit, stringResource(R.string.price_edit_title))
-                }
-                IconButton(onClick = onRemove) {
-                    Icon(
-                        KlasIcons.Outlined.Delete,
-                        stringResource(R.string.student_subject_remove, subject.subject.name),
-                    )
-                }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                TrailingAmount(stringResource(R.string.price_per_hour, subject.price.text()))
+                OpensScreenMark()
             }
         },
         colors = colors,
-        modifier = modifier,
+        modifier = modifier.insetRowPress { Modifier.clickable(it, indication = null, onClick = onOpen) },
     )
 }
 
@@ -159,6 +156,7 @@ internal fun PaymentDialogs(
     viewModel: StudentDetailViewModel,
     adding: Boolean,
     editing: Payment?,
+    onDelete: (Payment) -> Unit,
     onDismiss: () -> Unit,
 ) {
     if (adding) {
@@ -179,6 +177,7 @@ internal fun PaymentDialogs(
             initialDate = payment.date.toLocalDate(),
             initialMethod = payment.method,
             onConfirm = { amount, date, method -> viewModel.editPayment(payment, amount, date, method) },
+            onDelete = { onDelete(payment) },
             onDismiss = onDismiss,
         )
     }

@@ -1258,4 +1258,12 @@
     <string name="homework_section_today">Сегодня</string>
     <string name="homework_section_next_7_days">Ближайшие 7 дней</string>
     <string name="homework_section_later">Позже</string>
+    <string name="rate_since_was">с %1$s · было %2$s</string>
+    <string name="lesson_month_earned">заработано %1$s</string>
+    <plurals name="lesson_count">
+        <item quantity="one">%1$d занятие</item>
+        <item quantity="few">%1$d занятия</item>
+        <item quantity="many">%1$d занятий</item>
+        <item quantity="other">%1$d занятия</item>
+    </plurals>
 </resources>

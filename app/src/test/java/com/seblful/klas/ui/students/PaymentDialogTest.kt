@@ -54,6 +54,39 @@ class PaymentDialogTest {
     }
 
     @Test
+    fun `a correction is deleted from its dialog`() {
+        var deleted = 0
+        var dismissed = 0
+        compose.setContent {
+            KlasTheme {
+                PaymentDialog(
+                    "Payment",
+                    Money.ofMajor(10),
+                    today,
+                    null,
+                    { _, _, _ -> },
+                    { dismissed++ },
+                    onDelete = { deleted++ },
+                )
+            }
+        }
+
+        compose.onNodeWithText("Delete").performClick()
+
+        assertEquals(1, deleted)
+        assertEquals(1, dismissed)
+    }
+
+    @Test
+    fun `a new payment has no delete`() {
+        compose.setContent {
+            KlasTheme { PaymentDialog("Payment", null, today, null, { _, _, _ -> }, {}) }
+        }
+
+        compose.onNodeWithText("Delete").assertDoesNotExist()
+    }
+
+    @Test
     fun `a typed amount survives recreation of the payment dialog`() {
         val restoration = StateRestorationTester(compose)
         restoration.setContent {

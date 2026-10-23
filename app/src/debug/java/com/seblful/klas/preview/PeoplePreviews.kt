@@ -122,7 +122,7 @@ private fun StudentBalancePreview() = PreviewSurface {
         onAddPayment = {},
     )
     OverviewSection(title = "Платежи", count = 3, onSeeAll = {}) {
-        payments.forEach { PaymentRow(it, onEdit = {}, onDelete = {}, colors = sectionRowColors()) }
+        payments.forEach { PaymentRow(it, onEdit = {}, colors = sectionRowColors()) }
     }
 }
 
