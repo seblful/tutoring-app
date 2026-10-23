@@ -68,8 +68,8 @@
         <item quantity="one">%1$d more — refine the search</item>
         <item quantity="other">%1$d more — refine the search</item>
     </plurals>
-    <string name="students_search_hint">Student name</string>
-    <string name="groups_search_hint">Group name</string>
+    <string name="students_search_hint">Search students</string>
+    <string name="groups_search_hint">Search groups</string>
     <string name="subjects_search_hint">Subject name</string>
 
     <!-- Sorting the students list: the tutor's two questions are "who is this" and "who owes me" -->
@@ -1144,4 +1144,6 @@
     <string name="class_step_earlier_to">Earlier, to %1$s</string>
     <string name="class_step_later_to">Later, to %1$s</string>
     <string name="class_step_first_free">− or + takes %1$s, the first free time</string>
+    <string name="fab_new_student">New student</string>
+    <string name="fab_new_group">New group</string>
 </resources>

@@ -24,6 +24,20 @@ class GlossaryTest {
         assertEquals("A string uses a retired word. Use the glossary's instead.", emptyList<String>(), found)
     }
 
+    /** A FAB keeps its label at 1.5× in Russian, the longest case, only while it is short (R3). */
+    @Test
+    fun `every FAB label is at most fourteen characters in both languages`() {
+        val long = listOf("values", "values-ru").flatMap { folder ->
+            val strings = stringsIn(folder)
+            FAB_LABELS.mapNotNull { key ->
+                val label = strings.getValue(key)
+                "$folder/$key: «$label»".takeIf { label.length > MAX_FAB_LABEL }
+            }
+        }
+
+        assertEquals(emptyList<String>(), long)
+    }
+
     private class Retired(regex: String, val use: String, private val only: String? = null) {
         val pattern = Regex(regex, setOf(RegexOption.IGNORE_CASE))
 
@@ -43,6 +57,9 @@ class GlossaryTest {
     }
 
     private companion object {
+        val FAB_LABELS = listOf("class_book", "fab_new_student", "fab_new_group", "homework_add")
+        const val MAX_FAB_LABEL = 14
+
         // `(?U)` makes `\b` see Cyrillic letters as word letters.
         val RETIRED: Map<String, List<Retired>> = mapOf(
             "values" to listOf(

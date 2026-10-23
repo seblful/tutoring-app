@@ -84,7 +84,7 @@ fun TodayScreen(
         title = stringResource(R.string.nav_today),
         messages = messages,
         actions = { SettingsGear(onSettings) },
-        floatingActionButton = { KlasFab(stringResource(R.string.schedule_add_class), onClick = onBook) },
+        floatingActionButton = { KlasFab(stringResource(R.string.class_book), onClick = onBook) },
     ) { modifier, bottomInset ->
         when (val loaded = state) {
             Loadable.Loading -> ListSkeleton(modifier)

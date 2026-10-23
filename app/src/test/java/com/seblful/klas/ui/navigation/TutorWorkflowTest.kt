@@ -149,7 +149,7 @@ class TutorWorkflowTest {
         runBlocking { graph.subjects.upsert(Subject(name = "Science")) }
         ActivityScenario.launch(MainActivity::class.java).use {
             waitForText("Workflow student")
-            compose.onNodeWithContentDescription(text(R.string.schedule_add_class)).performClick()
+            compose.onNodeWithContentDescription(text(R.string.class_book)).performClick()
             waitFor(R.string.class_add_title)
             // The title is drawn while the form still loads; the «Who» list comes with the loaded form, and
             // adding a group is in it.
@@ -308,7 +308,7 @@ class TutorWorkflowTest {
     fun `notification and widget arrivals preserve the typed booking until Back returns to it`() {
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
             waitForText("Workflow student")
-            compose.onNodeWithContentDescription(text(R.string.schedule_add_class)).performClick()
+            compose.onNodeWithContentDescription(text(R.string.class_book)).performClick()
             waitFor(R.string.class_add_title)
             // Price is folded to a line; the rate is typed once it is opened.
             compose.onNodeWithText(text(R.string.class_section_price)).performScrollTo().performClick()

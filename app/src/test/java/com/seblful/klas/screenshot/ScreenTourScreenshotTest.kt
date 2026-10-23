@@ -119,7 +119,7 @@ class ScreenTourScreenshotTest {
             capture(variant, "lesson-sheet")
             back(scenario)
 
-            describedClick(R.string.schedule_add_class)
+            describedClick(R.string.class_book)
             capture(variant, "booking")
             back(scenario)
 

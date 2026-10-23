@@ -15,7 +15,7 @@ import androidx.compose.ui.semantics.semantics
 import com.seblful.klas.ui.theme.KlasIcons
 
 /**
- * The screen's one add action, **labelled**: "Book a lesson", not a bare "+" that meant four things on four
+ * The screen's one add action, **labelled**: "Book", not a bare "+" that meant four things on four
  * tabs. It shrinks to its icon when [expanded] is false (a list scrolled away from its top) and at a font
  * scale of 1.5 and above, where the label would cover the content it adds to. Either way it is named for
  * TalkBack by [label], read once.

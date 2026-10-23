@@ -96,8 +96,8 @@
         <item quantity="many">Ещё %1$d — уточните поиск</item>
         <item quantity="other">Ещё %1$d — уточните поиск</item>
     </plurals>
-    <string name="students_search_hint">Имя ученика</string>
-    <string name="groups_search_hint">Название группы</string>
+    <string name="students_search_hint">Поиск учеников</string>
+    <string name="groups_search_hint">Поиск групп</string>
     <string name="subjects_search_hint">Название предмета</string>
 
     <!-- Sorting the students list: the tutor's two questions are "who is this" and "who owes me" -->
@@ -1293,4 +1293,6 @@
     <string name="class_step_earlier_to">Раньше, на %1$s</string>
     <string name="class_step_later_to">Позже, на %1$s</string>
     <string name="class_step_first_free">− или + ставит %1$s — первое свободное время</string>
+    <string name="fab_new_student">Новый ученик</string>
+    <string name="fab_new_group">Новая группа</string>
 </resources>

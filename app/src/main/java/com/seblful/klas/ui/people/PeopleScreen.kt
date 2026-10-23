@@ -115,7 +115,11 @@ fun PeopleScreen(
         floatingActionButton = {
             // Named for what it adds, which the side decides: a bare «Добавить» said neither.
             KlasFab(
-                label = stringResource(if (tab == PeopleTab.STUDENTS) R.string.students_add else R.string.groups_add),
+                label = stringResource(
+                    if (tab ==
+                        PeopleTab.STUDENTS
+                    ) R.string.fab_new_student else R.string.fab_new_group,
+                ),
                 onClick = if (tab == PeopleTab.STUDENTS) onAddStudent else onAddGroup,
             )
         },

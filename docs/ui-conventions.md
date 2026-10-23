@@ -343,3 +343,6 @@ back. Russian follows the same table.
 | Who homework is for | Assigned to | For |
 | A group with no subject | No subject; the count beside «Members» | Not picked, Picked: 4 |
 | Where lessons happen | Place: In person / Remote (RU «Где: Очно / Онлайн») | Format, Where lessons happen |
+| Taking a change back | Undo; RU «Вернуть», since «Отменено» is a status and «Отменить» would read as cancel | RU «Отменить» on a snackbar |
+| The add button | A verb of at most 14 characters: Book, New student, New group, Set homework | Book a lesson, Add a student |
+| Search | named by its scope («Search students»), closed with ✕ | Student name, a crossed-out lens |

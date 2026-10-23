@@ -176,7 +176,7 @@ fun KlasScreen(
             // Closing search clears it. The screen's own actions stay hidden while the box is open —
             // the bar is one row, and a search field plus three icons is not a row.
             NamedIconButton(
-                KlasIcons.Filled.SearchOff,
+                KlasIcons.Filled.Close,
                 stringResource(R.string.search_close),
                 onClick = { searching = false; openSearch.onClose() },
             )

@@ -257,7 +257,7 @@ fun ScheduleScreen(
                 // way out arrive together. The empty state below still offers the same step for a tutor who
                 // reads the page instead of reaching for the button.
                 KlasFab(
-                    label = stringResource(R.string.schedule_add_class),
+                    label = stringResource(R.string.class_book),
                     onClick = {
                         // Before the setup has been read there is no answer yet, and the tap waits for it.
                         when (canAddClass.valueOrNull()) {
