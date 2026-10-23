@@ -9,8 +9,9 @@ import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Instant
 
 /**
- * Where current homework sits on the tab, by when it is due — the tutor scans for what is late, then for
- * today. "Next 7 days" rather than "this week", so a Saturday does not leave Monday's homework under Later.
+ * Where current homework sits on the tab, by the lesson it is for — the tutor scans for past lessons' homework
+ * still open, then today's. "Next 7 days" rather than "this week", so a Saturday does not leave Monday's
+ * homework under Later.
  */
 enum class HomeworkSection {
     OVERDUE,

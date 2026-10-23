@@ -318,8 +318,10 @@ Build screens from shared state and controls. Feature rules belong in the domain
   not done) — the widget's tick, which Today's lessons to mark lead with too — the swipe's visible twin
   sharing its undo; the task text is the title, whom and when the line
   under it; Send sits behind the row's ⋮, its one trailing slot. The tab's current side is cut into
-  Overdue, Today, Next 7 days, Later and No lesson booked (`HomeworkSection`); its other side is "Done",
-  never "Archive", which belongs to retired students and groups.
+  sections by the lesson it is for — Past lessons, Today's lessons, Lessons in the next 7 days, Later lessons
+  and No lesson booked (`HomeworkSection`) — and a row under them gives the lesson's time alone; nowhere does
+  homework say «due», having no date but its lesson's. Its other side is "Done", never "Archive", which
+  belongs to retired students and groups.
 - Students and groups are one `PeopleCard` anatomy, roomier than a lesson card: avatar; name with a balance or `ArchivedBadge` at its
   end; one line of facts — `LessonLine` first, as the line is cut at its end: the next lesson («Today
   16:00», a weekday within a week, else a date) or, with none booked, the last · subjects (a group's

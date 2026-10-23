@@ -250,7 +250,7 @@ private fun HomeworkList(
         if (side == HomeworkSide.ARCHIVE) {
             items(rows, key = { it.homework.id }) { card(it) }
         } else {
-            // By when it is due: what is late first, then today's — the order the tutor works through it.
+            // By the lesson it is for: past lessons' first, then today's — the order the tutor works through it.
             bySection(rows).forEach { (section, inSection) ->
                 item(key = section.name, span = { GridItemSpan(maxLineSpan) }, contentType = "section") {
                     SectionTitle(
@@ -295,7 +295,7 @@ private fun HomeworkEmpty(side: HomeworkSide, filterName: String?, onAdd: () -> 
 @Composable
 private fun sectionLabel(section: HomeworkSection): String = stringResource(
     when (section) {
-        HomeworkSection.OVERDUE -> R.string.homework_section_overdue
+        HomeworkSection.OVERDUE -> R.string.homework_section_past
         HomeworkSection.TODAY -> R.string.homework_section_today
         HomeworkSection.NEXT_7_DAYS -> R.string.homework_section_next_7_days
         HomeworkSection.LATER -> R.string.homework_section_later

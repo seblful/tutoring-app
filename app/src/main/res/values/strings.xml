@@ -937,11 +937,9 @@
     <!-- %1$s: the side's name, %2$d: how many are on it -->
     <string name="homework_side_count">%1$s · %2$d</string>
     <!-- The line under whose it is. %1$s: when the lesson it is attached to starts. -->
-    <string name="homework_due">Due %1$s</string>
+    <string name="homework_lesson_at">Lesson %1$s</string>
     <!-- %1$s: the time of today's lesson it is attached to -->
-    <string name="homework_due_today">Due today, %1$s</string>
-    <!-- %1$s: when the lesson it was attached to started — that lesson is past and it is still not done -->
-    <string name="homework_overdue">Overdue · %1$s</string>
+    <string name="homework_lesson_today">Today\'s lesson, %1$s</string>
     <string name="homework_unbooked">No lesson booked</string>
     <!-- In the archive. %1$s: the date it was set -->
     <string name="homework_set_on">Set on %1$s</string>
@@ -1109,10 +1107,10 @@
         <item quantity="other">%1$d marked done</item>
     </plurals>
     <string name="homework_batch_mark_done">Mark done</string>
-    <string name="homework_section_overdue">Overdue</string>
-    <string name="homework_section_today">Today</string>
-    <string name="homework_section_next_7_days">Next 7 days</string>
-    <string name="homework_section_later">Later</string>
+    <string name="homework_section_past">Past lessons</string>
+    <string name="homework_section_today">Today\'s lessons</string>
+    <string name="homework_section_next_7_days">Lessons in the next 7 days</string>
+    <string name="homework_section_later">Later lessons</string>
     <string name="rate_since_was">since %1$s · was %2$s</string>
     <string name="lesson_month_earned">%1$s earned</string>
     <plurals name="lesson_count">

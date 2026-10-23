@@ -259,7 +259,7 @@ private fun HomeworkCard(
                     maxLines = HomeworkPreviewLines,
                     overflow = TextOverflow.Ellipsis,
                 )
-                DueLine(row, prefix = row.title)
+                DueLine(row, prefix = row.title, underSection = true)
             }
             HomeworkMenu(row, messages)
         }
@@ -294,14 +294,22 @@ private fun HomeworkListItem(
 
 private const val HomeworkPreviewLines = 4
 
+/**
+ * Whom it is for and the lesson it is for — never «due»: homework has no date of its own, only its lesson's
+ * (domain-rules). [underSection]: under the tab's section titles, which already say which lessons, the line
+ * is the lesson's time alone; in a student's card, which has none, it says «Lesson Fri 16:00».
+ */
 @Composable
-private fun DueLine(row: HomeworkRow, prefix: String? = null) {
+private fun DueLine(row: HomeworkRow, prefix: String? = null, underSection: Boolean = false) {
     val at = row.lessonAt
     val text = when (row.due) {
-        HomeworkRules.Due.OVERDUE -> stringResource(R.string.homework_overdue, at?.dateTimeText().orEmpty())
-        HomeworkRules.Due.TODAY -> stringResource(R.string.homework_due_today, at?.timeText().orEmpty())
-        HomeworkRules.Due.LATER -> stringResource(R.string.homework_due, at?.dateTimeText().orEmpty())
-        HomeworkRules.Due.UNBOOKED -> stringResource(R.string.homework_unbooked)
+        HomeworkRules.Due.TODAY ->
+            if (underSection) at?.timeText().orEmpty()
+            else stringResource(R.string.homework_lesson_today, at?.timeText().orEmpty())
+        HomeworkRules.Due.OVERDUE, HomeworkRules.Due.LATER ->
+            if (underSection) at?.dateTimeText().orEmpty()
+            else stringResource(R.string.homework_lesson_at, at?.dateTimeText().orEmpty())
+        HomeworkRules.Due.UNBOOKED -> if (underSection) "" else stringResource(R.string.homework_unbooked)
         null -> stringResource(R.string.homework_set_on, row.homework.givenAt.formatDate())
     }
     Text(
