@@ -19,6 +19,7 @@ import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import com.seblful.klas.MainActivity
 import com.seblful.klas.R
+import com.seblful.klas.format.formatDay
 import com.seblful.klas.store.DemoTutor
 import com.seblful.klas.store.StoreApp
 import com.seblful.klas.store.StoreGraph
@@ -28,6 +29,7 @@ import com.seblful.klas.testutil.RecordingDigestScheduler
 import com.seblful.klas.testutil.RecordingReminderScheduler
 import dev.zacsweers.metro.createGraphFactory
 import kotlinx.coroutines.runBlocking
+import kotlinx.datetime.LocalDate
 import org.junit.After
 import org.junit.Before
 import org.junit.Rule
@@ -128,7 +130,9 @@ class CancelLessonFlowTest {
         compose.waitForIdle()
         click(R.string.schedule_view_month)
         compose.onAllNodesWithText(day).filterToOne(isSelectable()).performClick()
-        compose.waitForIdle()
+        // Its own header: the day's week is a read the test clock does not wait for, and until it lands the
+        // list is still today's, whose lessons [lesson] would find.
+        waitFor(LocalDate(DemoTutor.NOW.year, DemoTutor.NOW.month, day.toInt()).formatDay())
     }
 
     private fun lesson(@StringRes status: Int) =

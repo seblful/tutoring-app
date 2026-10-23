@@ -21,6 +21,7 @@ import com.github.takahirom.roborazzi.captureScreenRoboImage
 import com.seblful.klas.MainActivity
 import com.seblful.klas.R
 import com.seblful.klas.domain.model.ThemeChoice
+import com.seblful.klas.format.formatDay
 import com.seblful.klas.store.DemoTutor
 import com.seblful.klas.store.StoreApp
 import com.seblful.klas.store.StoreGraph
@@ -30,6 +31,7 @@ import com.seblful.klas.testutil.RecordingDigestScheduler
 import com.seblful.klas.testutil.RecordingReminderScheduler
 import dev.zacsweers.metro.createGraphFactory
 import kotlinx.coroutines.runBlocking
+import kotlinx.datetime.LocalDate
 import org.junit.After
 import org.junit.Rule
 import org.junit.Test
@@ -114,6 +116,7 @@ class ScreenTourScreenshotTest {
             waitFor(string(R.string.class_status_in_progress))
             click(R.string.schedule_view_month)
             compose.onAllNodesWithText(LATER_DAY).filterToOne(isSelectable()).performClick()
+            laterDayShown()
             settle()
             compose.onAllNodes(hasText(string(R.string.class_status_scheduled), substring = true) and hasClickAction())
                 .onFirst().performClick()
@@ -200,6 +203,11 @@ class ScreenTourScreenshotTest {
                 .fetchSemanticsNodes().isNotEmpty()
         }
     }
+
+    /** The later day's own header: it is the new week's read, which the test clock does not wait for. */
+    private fun laterDayShown() = waitFor(
+        LocalDate(DemoTutor.NOW.year, DemoTutor.NOW.month, LATER_DAY.toInt()).formatDay(),
+    )
 
     private fun settle() {
         compose.mainClock.advanceTimeBy(SETTLE_MS)
