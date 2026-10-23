@@ -287,13 +287,12 @@ Build screens from shared state and controls. Feature rules belong in the domain
   line. A value row's value trails as text (`ValueRow`: «1 hour before», the currency), never a ▾ that
   reads as a form field. Dependent controls stay visible and explain how to enable them. Shared reminder
   timing is editable when lesson reminders **or** calendar sync is enabled, from either category.
-- Status is never colour alone. Month and week cells draw a `StatusMark` per lesson — taught a dot,
-  planned a ring, cancelled a cross — up to `CalendarLayout.MAX_MARKS` and «+n», with a `StatusLegend`
-  under the grid; each cell still speaks its counts. The report chart's accent bar is named under it
-  («Best month»), since the chart itself is not read aloud.
+- Month and week cells print one number per status, tinted by it (`DayLoad.tallies`) — the owner's choice
+  over a shape per lesson, which read as a row of dots; each cell speaks its counts in words. The report
+  chart's accent bar is named under it («Best month»), since the chart itself is not read aloud.
 - Schedule Day/Week/Month share `ScheduleViewModel.content`'s week assembly, avoiding reads for switches
   inside the week. Summaries are count·hours·billed money (`DaySummary`) — a day still to come is lessons and
-  hours, no money; show “now” only today. Day lessons are cards; Week and Month draw each day as a section
+  hours, no money; “now” marks only the Day view, and only today. Day lessons are cards; Week and Month draw each day as a section
   card whose top slice is the date and summary (`SliceHeader`) and whose lessons are its slices
   (`SurfaceRow`). A Week day with planned lessons offers «Cancel day» (one batch, one Undo); Month's chosen
   day offers «Open day» to the Day view; tapping a strip day scrolls to its section. Completion is

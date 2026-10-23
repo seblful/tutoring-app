@@ -25,14 +25,8 @@ object CalendarLayout {
 
     const val DAYS_IN_WEEK = 7
 
-    /** A cell draws at most this many marks; the rest are counted beside them. */
-    const val MAX_MARKS = 4
-
-    /** What a calendar cell draws: a mark per lesson in [shown], and how many lessons [more] did not fit. */
-    data class Marks(val shown: List<LessonStatus>, val more: Int)
-
     /**
-     * How many of a day's lessons sit in one status — what a calendar cell says of its day aloud.
+     * How many of a day's lessons sit in one status — one tinted number in its calendar cell.
      *
      * Every lesson lands in one of the three, [ClassSession.status] having an answer for a group whose
      * members were corrected apart. There used to be a fourth, null bucket for that lesson, which is
@@ -46,23 +40,15 @@ object CalendarLayout {
         val total: Int get() = counts.values.sum()
 
         /**
-         * The counts per status, in [LessonStatus]'s own declaration order (scheduled → completed →
-         * cancelled), so the actionable one comes first, and statuses the day has none of are left out
-         * rather than said as a zero.
+         * The numbers the cell prints, left to right. Ordered by [LessonStatus]'s own declaration
+         * (scheduled → completed → cancelled), so the actionable count reads first, and statuses the
+         * day has none of are left out rather than printed as a zero. There are only three statuses,
+         * so a cell tops out at three numbers however busy the day is — no marker cap to apply, and
+         * nothing about the day left unsaid.
          */
         val tallies: List<Tally>
             get() = LessonStatus.entries.mapNotNull { status ->
                 counts[status]?.let { Tally(status, it) }
-            }
-
-        /**
-         * One mark per lesson, in [tallies]' order, so a status reads by its shape and not by colour
-         * alone. A busy day draws [MAX_MARKS] and counts the rest: five lessons are four marks and «+1».
-         */
-        val marks: Marks
-            get() {
-                val all = tallies.flatMap { tally -> List(tally.count) { tally.status } }
-                return Marks(all.take(MAX_MARKS), (all.size - MAX_MARKS).coerceAtLeast(0))
             }
     }
 

@@ -99,6 +99,25 @@ class ScheduleClockTest : ScheduleTestFixture() {
         assertNull("tomorrow has no now", vm.nowMark.value)
     }
 
+    @Test
+    fun `only the Day view marks now, not the month's chosen day`() = runTest(mainRule.dispatcher) {
+        val day = LocalDate(2026, 5, 18)
+        val clock = MutableClock(day.atTime(12, 0).toInstant(zone), zone)
+
+        val vm = vm(clock)
+        observing(vm.content)
+        observing(vm.nowMark)
+        vm.setViewMode(ScheduleViewMode.MONTH)
+        advanceTimeBy(1)
+
+        assertNull("the month draws no now", vm.nowMark.value)
+
+        vm.setViewMode(ScheduleViewMode.DAY)
+        advanceTimeBy(1)
+
+        assertEquals(0, vm.nowMark.value)
+    }
+
     /**
      * The screen used to read `LocalDate.now()` in its own body, evaluated per composition and never
      * again on its own — so an app left open overnight went on marking yesterday as today.

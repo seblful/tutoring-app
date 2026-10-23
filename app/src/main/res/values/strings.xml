@@ -1035,7 +1035,6 @@
     <string name="app_lock_prompt_title">Unlock %1$s</string>
     <string name="app_lock_locked">%1$s is locked</string>
     <string name="app_lock_unlock">Unlock</string>
-    <string name="calendar_more_marks">+%1$d</string>
     <string name="reports_best_month">Best month: %1$s</string>
     <string name="reports_best_year">Best year: %1$s</string>
     <string name="nav_today">Today</string>

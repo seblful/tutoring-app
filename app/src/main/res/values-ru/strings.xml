@@ -1172,7 +1172,6 @@
     <string name="app_lock_prompt_title">Разблокируйте %1$s</string>
     <string name="app_lock_locked">%1$s заблокирован</string>
     <string name="app_lock_unlock">Разблокировать</string>
-    <string name="calendar_more_marks">+%1$d</string>
     <string name="reports_best_month">Лучший месяц: %1$s</string>
     <string name="reports_best_year">Лучший год: %1$s</string>
     <string name="nav_today">Сегодня</string>

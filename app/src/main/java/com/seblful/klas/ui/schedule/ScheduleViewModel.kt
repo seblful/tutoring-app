@@ -342,13 +342,14 @@ class ScheduleViewModel @Inject constructor(
 
     /**
      * Where the **"you are here"** mark goes in the selected day's list: the index it sits before, or
-     * null when there is no mark to draw — see [NowMarker].
+     * null when there is no mark to draw — see [NowMarker]. Only the Day view draws one: under the month
+     * the chosen day is a glance at a cell, not a timeline to place yourself on.
      */
     val nowMark: StateFlow<Int?> =
-        combine(shownDay, minutes) { shown, now ->
+        combine(shownDay, minutes, _viewMode) { shown, now, mode ->
+            if (mode != ScheduleViewMode.DAY) return@combine null
             // Among the rows that are drawn, on the day they are — [shownDay]'s date, which for the frames
-            // a step into another week takes to read is still the previous day. Not gated on the view:
-            // the week agenda draws no mark, so a mark computed under it is simply never read.
+            // a step into another week takes to read is still the previous day.
             val day = shown.valueOrNull() ?: return@combine null
             NowMarker.positionIn(day.rows.map { it.session }, day.date, now, zone)
         }
