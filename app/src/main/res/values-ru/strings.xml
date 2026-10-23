@@ -1208,4 +1208,15 @@
     <string name="payment_method_none">Не указано</string>
     <string name="payment_fill_balance">Весь долг · %1$s</string>
     <string name="payment_fill_lesson">Одно занятие · %1$s</string>
+    <string name="share_with">Отправить через</string>
+    <string name="student_send_reminder">Напомнить об оплате</string>
+    <string name="student_share_statement">Отправить выписку</string>
+    <string name="reminder_text">Здравствуйте, %1$s! Напоминаю, что за занятия к оплате %2$s. Спасибо!</string>
+    <string name="statement_title">%1$s: занятия и оплаты</string>
+    <string name="statement_lesson">Занятие, %1$s</string>
+    <string name="statement_payment">Оплата</string>
+    <string name="statement_line">%1$s · %2$s · %3$s · баланс %4$s</string>
+    <string name="statement_owed">К оплате: %1$s</string>
+    <string name="statement_credit">Оплачено вперёд: %1$s</string>
+    <string name="statement_settled">Оплачено полностью</string>
 </resources>

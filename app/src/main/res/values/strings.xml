@@ -1069,4 +1069,15 @@
     <string name="payment_method_none">Not said</string>
     <string name="payment_fill_balance">Full balance · %1$s</string>
     <string name="payment_fill_lesson">One lesson · %1$s</string>
+    <string name="share_with">Send with</string>
+    <string name="student_send_reminder">Remind about payment</string>
+    <string name="student_share_statement">Share statement</string>
+    <string name="reminder_text">Hello, %1$s! A reminder that %2$s is due for lessons. Thank you!</string>
+    <string name="statement_title">%1$s: lessons and payments</string>
+    <string name="statement_lesson">Lesson, %1$s</string>
+    <string name="statement_payment">Payment</string>
+    <string name="statement_line">%1$s · %2$s · %3$s · balance %4$s</string>
+    <string name="statement_owed">To pay: %1$s</string>
+    <string name="statement_credit">Paid in advance: %1$s</string>
+    <string name="statement_settled">Nothing to pay</string>
 </resources>

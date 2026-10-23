@@ -23,6 +23,9 @@ mirrors and [database and backup](database-and-backup.md) for persistence contra
   before schema v13 have none — and moves no money; a new payment is offered as the student's last.
   A new payment also offers its amount at a tap (`PaymentSuggestions`): the whole balance owed, and the
   last billed lesson's charge — never the same amount twice.
+- A student's statement (`Statement`) is every billed lesson and payment in time order with the balance
+  each left; its last balance is `Billing`'s. It and a reminder of what is owed (offered only while
+  something is) leave through the share sheet, where Telegram, SMS and mail already are.
 - Income is what was **earned** (taught, billable lessons); **received** is what was paid in the period
   (`Reports.received`, by the day a payment lands on). They differ by every advance and every debt, so the
   report shows them as two cards and exports them as two sections (D6), never one number.

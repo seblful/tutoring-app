@@ -172,6 +172,7 @@ private fun StudentCard(
             if (student != null) {
                 StudentOverflowMenu(
                     student = student,
+                    shares = rememberAccountShares(state, externalApps, noAppMsg),
                     // The same launches the contact block makes, through the same guard: a tablet with no
                     // dialler must not crash the card.
                     onCall = { phone -> externalApps.open(ExternalTarget.Dial(phone), noAppMsg) },

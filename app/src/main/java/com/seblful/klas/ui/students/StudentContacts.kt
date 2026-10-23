@@ -82,6 +82,7 @@ internal fun StudentOverflowMenu(
     onTelegram: (String) -> Unit,
     onEmail: (String) -> Unit,
     onArchive: () -> Unit,
+    shares: AccountShares? = null,
 ) {
     val phone = Phone.contactOf(student.phone)
     OverflowMenu { close ->
@@ -107,6 +108,21 @@ internal fun StudentOverflowMenu(
             )
         }
         if (phone != null || student.email.isNotBlank()) {
+            KlasDivider()
+        }
+        if (shares != null) {
+            shares.remind?.let { remind ->
+                ContactMenuItem(
+                    label = stringResource(R.string.student_send_reminder),
+                    icon = KlasIcons.Outlined.Payments,
+                    onClick = { close(); remind() },
+                )
+            }
+            ContactMenuItem(
+                label = stringResource(R.string.student_share_statement),
+                icon = KlasIcons.Outlined.Share,
+                onClick = { close(); shares.statement() },
+            )
             KlasDivider()
         }
         ArchiveMenuItem(student.archived) { close(); onArchive() }
