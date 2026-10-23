@@ -264,8 +264,11 @@ Build screens from shared state and controls. Feature rules belong in the domain
 - Homework filters offer assignees with current/archived work, including a student's group work; the
   add dialog offers everyone, orders by nearest lesson and names the destination lesson. Card entry
   preselects its owner; tab entry preselects nobody. Reassignment previews the first lesson after the
-  original given time, including historical lessons. Rows carry Send and a Done/Restore icon button,
-  the swipe's visible twin, sharing its undo.
+  original given time, including historical lessons. A row leads with a tick (empty circle → done, filled →
+  not done), the swipe's visible twin sharing its undo; the task text is the title, whom and when the line
+  under it; Send sits behind the row's ⋮, its one trailing slot. The tab's current side is cut into
+  Overdue, Today, Next 7 days, Later and No lesson booked (`HomeworkSection`); its other side is "Done",
+  never "Archive", which belongs to retired students and groups.
 - Students and groups are one `PeopleCard` anatomy, roomier than a lesson card: avatar; name with a balance or `ArchivedBadge` at its
   end; one line of facts — `LessonLine` first, as the line is cut at its end: the next lesson («Today
   16:00», a weekday within a week, else a date) or, with none booked, the last · subjects (a group's

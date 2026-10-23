@@ -6,6 +6,8 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyGridItemScope
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material3.Icon
@@ -17,6 +19,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -27,6 +30,8 @@ import com.seblful.klas.domain.model.Assignee
 import com.seblful.klas.queries.homework.AssigneeChoice
 import com.seblful.klas.queries.homework.HomeworkLists
 import com.seblful.klas.queries.homework.HomeworkRow
+import com.seblful.klas.queries.homework.HomeworkSection
+import com.seblful.klas.queries.homework.bySection
 import com.seblful.klas.ui.common.EmptyState
 import com.seblful.klas.ui.common.FabClearance
 import com.seblful.klas.ui.common.FilterChipRow
@@ -36,6 +41,7 @@ import com.seblful.klas.ui.common.LessonKindIcon
 import com.seblful.klas.ui.common.ListSkeleton
 import com.seblful.klas.ui.common.Messages
 import com.seblful.klas.ui.common.PickBackHandler
+import com.seblful.klas.ui.common.SectionTitle
 import com.seblful.klas.ui.common.SegmentedPage
 import com.seblful.klas.ui.common.SettingsGear
 import com.seblful.klas.ui.common.ShowMessagesFor
@@ -48,6 +54,7 @@ import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.common.titleOrPicked
 import com.seblful.klas.ui.designsystem.component.KlasFab
 import com.seblful.klas.ui.theme.KlasIcons
+import com.seblful.klas.ui.theme.klasSemantics
 import dev.zacsweers.metrox.viewmodel.metroViewModel
 import kotlinx.coroutines.launch
 
@@ -207,33 +214,8 @@ private fun HomeworkList(
     bottomInset: PaddingValues,
 ) {
     val rows = if (side == HomeworkSide.CURRENT) lists.current else lists.archive
-    if (rows.isEmpty() && filterName != null) {
-        // The way out is the chip above, which is where the tutor put the filter.
-        EmptyState(
-            title = stringResource(R.string.homework_filter_empty, filterName),
-            detail = stringResource(R.string.homework_filter_empty_detail),
-            icon = KlasIcons.Outlined.Assignment,
-            modifier = Modifier.padding(bottomInset),
-        )
-        return
-    }
     if (rows.isEmpty()) {
-        when (side) {
-            HomeworkSide.CURRENT -> EmptyState(
-                title = stringResource(R.string.homework_empty_current),
-                detail = stringResource(R.string.homework_empty_current_detail),
-                icon = KlasIcons.Outlined.Assignment,
-                actionLabel = stringResource(R.string.homework_add),
-                onAction = onAdd,
-                modifier = Modifier.padding(bottomInset),
-            )
-            HomeworkSide.ARCHIVE -> EmptyState(
-                title = stringResource(R.string.homework_empty_archive),
-                detail = stringResource(R.string.homework_empty_archive_detail),
-                icon = KlasIcons.Outlined.Inventory2,
-                modifier = Modifier.padding(bottomInset),
-            )
-        }
+        HomeworkEmpty(side, filterName, onAdd, Modifier.padding(bottomInset))
         return
     }
     // Cards side by side once the window holds two: a column of them on a tablet is a strip down the middle.
@@ -249,7 +231,7 @@ private fun HomeworkList(
         horizontalArrangement = Arrangement.spacedBy(Spacing.itemGap),
         verticalArrangement = Arrangement.spacedBy(Spacing.itemGap),
     ) {
-        items(rows, key = { it.homework.id }) { row ->
+        val card: @Composable LazyGridItemScope.(HomeworkRow) -> Unit = { row ->
             SwipeableHomework(
                 row = row,
                 onSwipe = { undo.swiped(row.homework, done = side == HomeworkSide.CURRENT) },
@@ -260,8 +242,61 @@ private fun HomeworkList(
                 picking = picking,
             )
         }
+        if (side == HomeworkSide.ARCHIVE) {
+            items(rows, key = { it.homework.id }) { card(it) }
+        } else {
+            // By when it is due: what is late first, then today's — the order the tutor works through it.
+            bySection(rows).forEach { (section, inSection) ->
+                item(key = section.name, span = { GridItemSpan(maxLineSpan) }, contentType = "section") {
+                    SectionTitle(
+                        sectionLabel(section),
+                        modifier = animateInPlace().padding(top = Spacing.inline),
+                        color = if (section == HomeworkSection.OVERDUE) klasSemantics.overdue else Color.Unspecified,
+                    )
+                }
+                items(inSection, key = { it.homework.id }) { card(it) }
+            }
+        }
     }
 }
+
+@Composable
+private fun HomeworkEmpty(side: HomeworkSide, filterName: String?, onAdd: () -> Unit, modifier: Modifier) {
+    when {
+        // The way out is the chip above, which is where the tutor put the filter.
+        filterName != null -> EmptyState(
+            title = stringResource(R.string.homework_filter_empty, filterName),
+            detail = stringResource(R.string.homework_filter_empty_detail),
+            icon = KlasIcons.Outlined.Assignment,
+            modifier = modifier,
+        )
+        side == HomeworkSide.CURRENT -> EmptyState(
+            title = stringResource(R.string.homework_empty_current),
+            detail = stringResource(R.string.homework_empty_current_detail),
+            icon = KlasIcons.Outlined.Assignment,
+            actionLabel = stringResource(R.string.homework_add),
+            onAction = onAdd,
+            modifier = modifier,
+        )
+        else -> EmptyState(
+            title = stringResource(R.string.homework_empty_archive),
+            detail = stringResource(R.string.homework_empty_archive_detail),
+            icon = KlasIcons.Outlined.Inventory2,
+            modifier = modifier,
+        )
+    }
+}
+
+@Composable
+private fun sectionLabel(section: HomeworkSection): String = stringResource(
+    when (section) {
+        HomeworkSection.OVERDUE -> R.string.homework_section_overdue
+        HomeworkSection.TODAY -> R.string.homework_section_today
+        HomeworkSection.NEXT_7_DAYS -> R.string.homework_section_next_7_days
+        HomeworkSection.LATER -> R.string.homework_section_later
+        HomeworkSection.UNBOOKED -> R.string.homework_unbooked
+    },
+)
 
 /** The narrowest a homework card gets before the grid drops a column: its share button and tick still fit. */
 private val MinCardWidth = 340.dp

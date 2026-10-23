@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
@@ -33,7 +34,6 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextOverflow
 import com.seblful.klas.R
 import com.seblful.klas.domain.homework.HomeworkRules
-import com.seblful.klas.domain.lesson.LessonKind
 import com.seblful.klas.domain.model.Assignee
 import com.seblful.klas.domain.model.Homework
 import com.seblful.klas.format.bulletJoin
@@ -46,9 +46,10 @@ import com.seblful.klas.ui.common.ChoiceField
 import com.seblful.klas.ui.common.ContentCard
 import com.seblful.klas.ui.common.EmptyState
 import com.seblful.klas.ui.common.ExternalTarget
-import com.seblful.klas.ui.common.LessonKindIcon
+import com.seblful.klas.ui.common.MenuItem
 import com.seblful.klas.ui.common.Messages
 import com.seblful.klas.ui.common.NamedIconButton
+import com.seblful.klas.ui.common.OverflowMenu
 import com.seblful.klas.ui.common.SectionTitle
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.SwipeReveal
@@ -247,34 +248,21 @@ private fun HomeworkCard(
         onLongClickLabel = stringResource(R.string.batch_select),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                // **The kind glyph prefixes the name**, as on the schedule's card, and the lines below start
-                // on the glyph's edge, as they do there.
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    LessonKindIcon(
-                        if (row.isGroup) LessonKind.GROUP else LessonKind.INDIVIDUAL,
-                        Modifier.padding(end = Spacing.inline),
-                    )
-                    Text(
-                        row.title,
-                        style = MaterialTheme.typography.titleMedium,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-                DueLine(row)
+            HomeworkTick(row, onDone)
+            // **The task leads**: it is what the tutor scans for; whom it is for and when follow it.
+            Column(Modifier.weight(1f).padding(horizontal = Spacing.inline)) {
+                // A few lines, not the whole of a pasted exercise list: the card is also what is swiped, and a
+                // card several screens tall is a poor target. The dialog holds the full text.
+                Text(
+                    row.text,
+                    style = MaterialTheme.typography.bodyLarge,
+                    maxLines = HomeworkPreviewLines,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                DueLine(row, prefix = row.title)
             }
-            HomeworkActions(row, messages, onDone)
+            HomeworkMenu(row, messages)
         }
-        // A few lines, not the whole of a pasted exercise list: the card is also what is swiped, and a card
-        // several screens tall is a poor target. The dialog holds the full text.
-        Text(
-            row.text,
-            style = MaterialTheme.typography.bodyMedium,
-            maxLines = HomeworkPreviewLines,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(top = Spacing.inline),
-        )
     }
 }
 
@@ -289,10 +277,10 @@ private fun HomeworkListItem(
     modifier: Modifier,
 ) {
     ListItem(
-        leadingContent = { LessonKindIcon(if (row.isGroup) LessonKind.GROUP else LessonKind.INDIVIDUAL) },
+        leadingContent = { HomeworkTick(row, onDone) },
         headlineContent = { Text(row.text, maxLines = HomeworkPreviewLines, overflow = TextOverflow.Ellipsis) },
         supportingContent = { DueLine(row, prefix = row.title.takeIf { named }) },
-        trailingContent = { HomeworkActions(row, messages, onDone) },
+        trailingContent = { HomeworkMenu(row, messages) },
         colors = ListItemDefaults.colors(containerColor = container),
         modifier = Modifier
             // Edge to edge, under the inset press shape: the swipe's panel lies behind this row, and the
@@ -510,39 +498,40 @@ private fun attachedText(choice: AssigneeChoice): String =
 private const val HomeworkDialogLines = 3
 
 /**
- * A row's buttons: Send while it is current, then Done or Restore — the swipe, for whoever does not know to
- * swipe. Icons, not words, so a list of homework is not a column of buttons.
+ * A row's leading tick (R1, as on Today and the widget): marks current homework done, or a done piece not
+ * done — the swipe, for whoever does not know to swipe.
  */
 @Composable
-private fun HomeworkActions(row: HomeworkRow, messages: Messages, onDone: () -> Unit) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        if (row.isCurrent) SendHomeworkButton(row, messages)
-        NamedIconButton(
-            if (row.isCurrent) KlasIcons.Outlined.CheckCircle else KlasIcons.Filled.Undo,
-            stringResource(if (row.isCurrent) R.string.homework_done else R.string.homework_restore),
-            onClick = onDone,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    }
+private fun HomeworkTick(row: HomeworkRow, onDone: () -> Unit) {
+    NamedIconButton(
+        if (row.isCurrent) KlasIcons.Outlined.Circle else KlasIcons.Filled.CheckCircle,
+        stringResource(if (row.isCurrent) R.string.homework_done else R.string.homework_restore),
+        onClick = onDone,
+        tint = if (row.isCurrent) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.primary,
+    )
 }
 
 /**
- * «Отправить»: the homework, worded for the student, into the phone's share sheet — a messenger, in
- * practice, which is where a tutor sends it.
+ * «⋮» with «Отправить» while it is current — the row's one trailing slot. Send puts the homework, worded
+ * for the student, into the phone's share sheet: a messenger, in practice, which is where a tutor sends it.
  */
 @Composable
-fun SendHomeworkButton(row: HomeworkRow, messages: Messages) {
+private fun HomeworkMenu(row: HomeworkRow, messages: Messages) {
+    if (!row.isCurrent) return
     val externalApps = rememberExternalApps(messages)
     val text = homeworkShareText(row)
     val chooserTitle = stringResource(R.string.homework_send)
     val failed = stringResource(R.string.student_contact_failed)
-    NamedIconButton(
-        KlasIcons.Outlined.Share,
-        chooserTitle,
-        onClick = { externalApps.open(ExternalTarget.ShareText(text, chooserTitle), failed) },
-        // Quiet: one on every current card, and a column of accent-coloured buttons outshouts the homework.
-        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-    )
+    OverflowMenu { close ->
+        MenuItem(
+            text = { Text(chooserTitle) },
+            leadingIcon = { Icon(KlasIcons.Outlined.Share, contentDescription = null) },
+            onClick = {
+                close()
+                externalApps.open(ExternalTarget.ShareText(text, chooserTitle), failed)
+            },
+        )
+    }
 }
 
 /**

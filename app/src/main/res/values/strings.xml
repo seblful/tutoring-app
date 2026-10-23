@@ -930,7 +930,7 @@
     <string name="homework_attached_none">No lesson booked — it will go to the next one</string>
     <!-- The tab's two sides. The count is added to the first only when there is one. -->
     <string name="homework_side_current">Current</string>
-    <string name="homework_side_archive">Archive</string>
+    <string name="homework_side_archive">Done</string>
     <!-- %1$s: the side's name, %2$d: how many are on it -->
     <string name="homework_side_count">%1$s · %2$d</string>
     <!-- The line under whose it is. %1$s: when the lesson it is attached to starts. -->
@@ -944,14 +944,14 @@
     <string name="homework_set_on">Set on %1$s</string>
     <!-- What the swipe promises, behind the row: into the archive, or back out of it. -->
     <string name="homework_done">Done</string>
-    <string name="homework_restore">Bring back</string>
-    <string name="homework_done_message">Moved to the archive</string>
+    <string name="homework_restore">Mark not done</string>
+    <string name="homework_done_message">Marked done</string>
     <string name="homework_restored_message">Moved back to Current</string>
     <string name="homework_deleted">Homework deleted</string>
     <string name="homework_empty_current">No current homework</string>
     <string name="homework_empty_current_detail">Set homework for a student or a group — it is attached to their next lesson.</string>
-    <string name="homework_empty_archive">The archive is empty</string>
-    <string name="homework_empty_archive_detail">Done homework goes here. Swipe a piece of homework to the right to mark it done.</string>
+    <string name="homework_empty_archive">Nothing done yet</string>
+    <string name="homework_empty_archive_detail">Homework marked done goes here. Tap the circle on a piece of homework, or swipe it to the right, to mark it done.</string>
     <string name="homework_need_student">Add a student first</string>
     <!-- The tab's filter: one student (with their groups') or one group. -->
     <string name="homework_filter">Show one student or group</string>
@@ -1103,8 +1103,12 @@
     <string name="batch_mark_taught">Mark taught</string>
     <string name="batch_cancel">Cancel lessons</string>
     <plurals name="homework_batch_done">
-        <item quantity="one">%1$d moved to the archive</item>
-        <item quantity="other">%1$d moved to the archive</item>
+        <item quantity="one">%1$d marked done</item>
+        <item quantity="other">%1$d marked done</item>
     </plurals>
     <string name="homework_batch_mark_done">Mark done</string>
+    <string name="homework_section_overdue">Overdue</string>
+    <string name="homework_section_today">Today</string>
+    <string name="homework_section_next_7_days">Next 7 days</string>
+    <string name="homework_section_later">Later</string>
 </resources>

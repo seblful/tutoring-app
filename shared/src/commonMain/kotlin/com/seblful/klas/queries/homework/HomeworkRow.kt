@@ -17,12 +17,14 @@ import kotlin.time.Instant
  * @param lessonAt when the lesson it is attached to starts, or null while none is booked — and always
  * null in the archive, where which lesson it went to is no longer the question.
  * @param due where a current one stands today, or null for a done one.
+ * @param section where the tab lists a current one, or null for a done one.
  */
 data class HomeworkRow(
     val homework: Homework,
     val title: String,
     val lessonAt: Instant?,
     val due: HomeworkRules.Due?,
+    val section: HomeworkSection? = null,
 ) {
     val isGroup: Boolean get() = homework.assignee is Assignee.Group
 
@@ -32,13 +34,21 @@ data class HomeworkRow(
     val text: String get() = homework.text
 
     companion object {
-        fun current(current: HomeworkRules.Current, captions: Captions, today: LocalDate, zone: TimeZone) =
-            HomeworkRow(
+        fun current(
+            current: HomeworkRules.Current,
+            captions: Captions,
+            today: LocalDate,
+            zone: TimeZone,
+        ): HomeworkRow {
+            val due = current.due(today, zone)
+            return HomeworkRow(
                 homework = current.homework,
                 title = captions.titleOf(current.homework.assignee),
                 lessonAt = current.lesson?.start,
-                due = current.due(today, zone),
+                due = due,
+                section = HomeworkSection.of(due, current.lesson?.start, today, zone),
             )
+        }
 
         fun done(homework: Homework, captions: Captions) =
             HomeworkRow(homework = homework, title = captions.titleOf(homework.assignee), lessonAt = null, due = null)

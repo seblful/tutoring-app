@@ -1067,7 +1067,7 @@
     <string name="homework_attached_none">Занятие не назначено — задание прикрепится к ближайшему</string>
     <!-- The tab's two sides. The count is added to the first only when there is one. -->
     <string name="homework_side_current">Текущие</string>
-    <string name="homework_side_archive">Архив</string>
+    <string name="homework_side_archive">Сделанные</string>
     <!-- %1$s: the side's name, %2$d: how many are on it -->
     <string name="homework_side_count">%1$s · %2$d</string>
     <!-- The line under whose it is. %1$s: when the lesson it is attached to starts. -->
@@ -1081,14 +1081,14 @@
     <string name="homework_set_on">Задано %1$s</string>
     <!-- What the swipe promises, behind the row: into the archive, or back out of it. -->
     <string name="homework_done">Сделано</string>
-    <string name="homework_restore">Вернуть</string>
-    <string name="homework_done_message">Задание в архиве</string>
+    <string name="homework_restore">Не сделано</string>
+    <string name="homework_done_message">Задание сделано</string>
     <string name="homework_restored_message">Задание снова в текущих</string>
     <string name="homework_deleted">Задание удалено</string>
     <string name="homework_empty_current">Текущих заданий нет</string>
     <string name="homework_empty_current_detail">Задайте домашнее задание ученику или группе — оно прикрепится к их следующему занятию.</string>
-    <string name="homework_empty_archive">Архив пуст</string>
-    <string name="homework_empty_archive_detail">Здесь будут сделанные задания. Смахните задание вправо, чтобы отметить его сделанным.</string>
+    <string name="homework_empty_archive">Сделанных заданий пока нет</string>
+    <string name="homework_empty_archive_detail">Здесь будут сделанные задания. Нажмите кружок у задания или смахните его вправо, чтобы отметить его сделанным.</string>
     <string name="homework_need_student">Сначала добавьте ученика</string>
     <!-- The tab's filter: one student (with their groups') or one group. -->
     <string name="homework_filter">Показать одного ученика или группу</string>
@@ -1248,10 +1248,14 @@
     <string name="batch_mark_taught">Отметить проведёнными</string>
     <string name="batch_cancel">Отменить занятия</string>
     <plurals name="homework_batch_done">
-        <item quantity="one">В архив: %1$d</item>
-        <item quantity="few">В архив: %1$d</item>
-        <item quantity="many">В архив: %1$d</item>
-        <item quantity="other">В архив: %1$d</item>
+        <item quantity="one">Сделано: %1$d</item>
+        <item quantity="few">Сделано: %1$d</item>
+        <item quantity="many">Сделано: %1$d</item>
+        <item quantity="other">Сделано: %1$d</item>
     </plurals>
     <string name="homework_batch_mark_done">Отметить выполненными</string>
+    <string name="homework_section_overdue">Просрочено</string>
+    <string name="homework_section_today">Сегодня</string>
+    <string name="homework_section_next_7_days">Ближайшие 7 дней</string>
+    <string name="homework_section_later">Позже</string>
 </resources>
