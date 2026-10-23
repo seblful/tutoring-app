@@ -27,7 +27,10 @@ import com.seblful.klas.ui.common.DurationPickerModal
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.currencyChoiceLabel
 import com.seblful.klas.ui.common.currencyChoices
+import com.seblful.klas.ui.designsystem.component.Banner
+import com.seblful.klas.ui.designsystem.component.BannerKind
 import com.seblful.klas.ui.designsystem.component.ChoiceDialog
+import com.seblful.klas.ui.designsystem.component.SectionAction
 import com.seblful.klas.ui.designsystem.component.SettingsGroup
 import dev.zacsweers.metrox.viewmodel.metroViewModel
 
@@ -39,10 +42,14 @@ fun LessonSettingsScreen(onBack: (() -> Unit)?, viewModel: SettingsViewModel = m
         val notify = rememberNotificationAction(viewModel, messages)
         LessonSettingsContent(settings, viewModel::update, viewModel::setAutoCompleteEnabled, modifier, bottomInset) {
             if (settings.autoCompleteEnabled && page.notifications == NotificationDelivery.BLOCKED) {
-                SystemSettingsRow(
-                    title = stringResource(R.string.settings_notifications_fix),
-                    description = stringResource(R.string.settings_completion_notifications_blocked),
-                    onClick = { notify(viewModel.unblockNotifications()) },
+                // Under the switch it concerns, as the blocking banner every blocked feature is (R2).
+                Banner(
+                    title = stringResource(R.string.settings_completion_notifications_blocked),
+                    kind = BannerKind.Blocking,
+                    modifier = Modifier.padding(horizontal = Spacing.gutter, vertical = Spacing.inline),
+                    action = SectionAction(stringResource(R.string.action_allow)) {
+                        notify(viewModel.unblockNotifications())
+                    },
                 )
             }
         }

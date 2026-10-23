@@ -259,11 +259,15 @@ Build screens from shared state and controls. Feature rules belong in the domain
 
 - Settings opens an index with current values, ordered Language & appearance, Notifications,
   Lessons & billing, Calendar & invitations, then a second card of Subjects, Backup, About and Diagnostics —
-  what the «Ещё» tab held. Each settings destination owns its view model, dialogs and permission launchers. Its loaded
+  what the «Ещё» tab held — each saying its own live («3 subjects», «Never · set up weekly», the version,
+  «No crashes recorded»; `IndexFacts`). Each settings destination owns its view model, dialogs and permission launchers. Its loaded
   state joins preferences and permission status so the index never shows invented delivery defaults.
 - Notification status covers lesson reminders, all summaries and auto-completion reports. A blocked
-  feature keeps its chosen switch state and offers system recovery; exact-alarm access concerns only
-  lesson reminders. Dependent controls stay visible and explain how to enable them. Shared reminder
+  feature keeps its chosen switch state and says so as a blocking `Banner` with «Allow» — on the index, the
+  Notifications page and under auto-completion; exact-alarm access concerns only lesson reminders. Banners
+  come in two kinds (`BannerKind`): blocking (something does not work) and advisory (worth doing: a backup
+  missing or over two weeks old, on Today and Backup), each a polite live region. A value row's value trails
+  as text (`ValueRow`: «1 hour before», the currency), never a ▾ that reads as a form field. Dependent controls stay visible and explain how to enable them. Shared reminder
   timing is editable when lesson reminders **or** calendar sync is enabled, from either category.
 - Status is never colour alone. Month and week cells draw a `StatusMark` per lesson — taught a dot,
   planned a ring, cancelled a cross — up to `CalendarLayout.MAX_MARKS` and «+n», with a `StatusLegend`

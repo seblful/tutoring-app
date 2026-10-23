@@ -11,6 +11,7 @@ import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isSelected
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -59,7 +60,7 @@ class SettingsContentTest {
         }
 
         compose.onNodeWithText("Your phone is blocking notifications").assertExists()
-        compose.onNodeWithText("Allow notifications").performClick()
+        compose.onNodeWithText("Allow").performClick()
         assertEquals(1, notificationFixes)
         assertFalse(settings.notificationsEnabled)
         assertTrue(settings.dailyAgendaEnabled)
@@ -181,7 +182,9 @@ class SettingsContentTest {
                 )
             }
         }
-        compose.onNodeWithText("Your phone is blocking notifications").assertExists()
+        // Said twice: the banner above, with «Allow», and the Notifications row's summary.
+        compose.onAllNodesWithText("Your phone is blocking notifications").assertCountEquals(2)
+        compose.onNodeWithText("Allow").assertExists()
         val categories = mapOf(
             "Lessons & billing" to "lessons",
             "Notifications" to "notifications",
@@ -194,6 +197,28 @@ class SettingsContentTest {
             assertEquals(destination, opened)
         }
         compose.onNodeWithText("Lesson reminders").assertDoesNotExist()
+    }
+
+    @Test
+    fun `the index says live what the app holds, and a blocked feature's banner allows it`() {
+        var allowed = 0
+        compose.setContent {
+            KlasTheme {
+                SettingsIndex(
+                    AppSettings(), NotificationDelivery.BLOCKED, ReminderDelivery.BLOCKED, CalendarDelivery.OFF,
+                    SettingsNavigation({}, {}, {}, {}, {}, {}),
+                    facts = IndexFacts(subjects = 3, version = "0.4.6", crashRecorded = false),
+                    onAllowNotifications = { allowed++ },
+                )
+            }
+        }
+
+        compose.onNodeWithText("3 subjects").performScrollTo().assertExists()
+        compose.onNodeWithText("Never · set up weekly").assertExists()
+        compose.onNodeWithText("Version 0.4.6").assertExists()
+        compose.onNodeWithText("No crashes recorded").performScrollTo().assertExists()
+        compose.onNodeWithText("Allow").performScrollTo().performClick()
+        assertEquals(1, allowed)
     }
 
     @Test

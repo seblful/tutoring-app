@@ -46,6 +46,8 @@ import com.seblful.klas.ui.common.timeText
 import com.seblful.klas.ui.designsystem.component.AccentCard
 import com.seblful.klas.ui.designsystem.component.AmountMeaning
 import com.seblful.klas.ui.designsystem.component.AmountText
+import com.seblful.klas.ui.designsystem.component.Banner
+import com.seblful.klas.ui.designsystem.component.BannerKind
 import com.seblful.klas.ui.designsystem.component.ButtonKind
 import com.seblful.klas.ui.designsystem.component.HeaderedCard
 import com.seblful.klas.ui.designsystem.component.KlasButton
@@ -165,32 +167,14 @@ internal fun TodayContent(
 /** Advisory, not an error: nothing is broken, but a lost phone would take everything since [at] with it. */
 @Composable
 private fun BackupBanner(at: Instant?, onBackup: () -> Unit) {
-    val roles = klasSemantics
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(Spacing.inline),
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = Spacing.itemGap)
-            .background(roles.advisory, MaterialTheme.shapes.medium)
-            .padding(start = Spacing.gutter, end = Spacing.inline, top = Spacing.inline, bottom = Spacing.inline),
-    ) {
-        Icon(KlasIcons.Outlined.Warning, contentDescription = null, tint = roles.onAdvisory)
-        Column(Modifier.weight(1f)) {
-            Text(
-                at?.let { stringResource(R.string.today_backup_old, it.formatDate()) }
-                    ?: stringResource(R.string.today_backup_never),
-                style = MaterialTheme.typography.titleSmall,
-                color = roles.onAdvisory,
-            )
-            Text(
-                stringResource(R.string.today_backup_detail),
-                style = MaterialTheme.typography.bodySmall,
-                color = roles.onAdvisory,
-            )
-        }
-        KlasButton(onClick = onBackup, kind = ButtonKind.Quiet) { Text(stringResource(R.string.today_backup_action)) }
-    }
+    Banner(
+        title = at?.let { stringResource(R.string.today_backup_old, it.formatDate()) }
+            ?: stringResource(R.string.today_backup_never),
+        kind = BannerKind.Advisory,
+        modifier = Modifier.padding(top = Spacing.itemGap),
+        detail = stringResource(R.string.today_backup_detail),
+        action = SectionAction(stringResource(R.string.today_backup_action), onBackup),
+    )
 }
 
 /**

@@ -578,13 +578,12 @@
     <string name="currency_choice_label">%1$s — %2$s (%3$s)</string>
     <string name="settings_system_language">Язык системы</string>
     <string name="settings_theme_summary">%1$s тема</string>
-    <string name="settings_diagnostics_summary">Отчёты о сбоях</string>
+    <string name="settings_diagnostics_none">Сбоев не было</string>
     <string name="settings_notifications_delayed">Напоминания о занятиях могут опаздывать</string>
     <string name="settings_off">Выключено</string>
     <string name="settings_calendar_invites_on">Синхронизация вкл. · Приглашения вкл.</string>
     <string name="settings_calendar_invites_off">Синхронизация вкл. · Приглашения выкл.</string>
     <string name="settings_all_notifications_blocked">Телефон блокирует уведомления</string>
-    <string name="settings_notifications_fix">Разрешить уведомления</string>
     <string name="settings_completion_notifications_blocked">Автоотметка работает, но телефон блокирует отчёты о ней</string>
     <string name="settings_system_notifications">Уведомления в настройках телефона</string>
     <string name="settings_system_notifications_desc">Звук, вибрация и виды уведомлений</string>
@@ -1196,9 +1195,9 @@
         <item quantity="many">Отмечено проведёнными: %1$d занятий</item>
         <item quantity="other">Отмечено проведёнными: %1$d занятия</item>
     </plurals>
-    <string name="settings_subjects_summary">Предметы, которые вы ведёте</string>
-    <string name="settings_backup_summary">Экспорт, импорт и еженедельная копия</string>
-    <string name="settings_about_summary">Версия, конфиденциальность и лицензии</string>
+    <string name="settings_subjects_none">Предметов пока нет</string>
+    <string name="settings_backup_never">Ни разу · настройте еженедельную</string>
+    <string name="settings_backup_last">Последняя %1$s · настройте еженедельную</string>
     <string name="schedule_pick_date">Выбрать дату</string>
     <string name="payment_method_cash">Наличные</string>
     <string name="payment_method_card">Карта</string>
@@ -1313,4 +1312,14 @@
     <string name="people_archived">Архив</string>
     <string name="people_sort">Порядок: %1$s</string>
     <string name="people_all_subjects">Все предметы</string>
+    <string name="settings_backup_weekly">Еженедельно · последняя %1$s</string>
+    <string name="settings_backup_weekly_none">Еженедельно · пока ни одной</string>
+    <string name="settings_backup_failed">Еженедельная копия не записалась</string>
+    <string name="settings_diagnostics_crash">Есть отчёт о сбое</string>
+    <plurals name="settings_subjects_count">
+        <item quantity="one">%d предмет</item>
+        <item quantity="few">%d предмета</item>
+        <item quantity="many">%d предметов</item>
+        <item quantity="other">%d предмета</item>
+    </plurals>
 </resources>

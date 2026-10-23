@@ -23,6 +23,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.seblful.klas.R
 import com.seblful.klas.data.settings.AppSettings
 import com.seblful.klas.domain.model.AppLanguage
+import com.seblful.klas.format.formatDate
+import com.seblful.klas.format.toLocalDate
 import com.seblful.klas.ui.common.IconAvatar
 import com.seblful.klas.ui.common.KlasScreen
 import com.seblful.klas.ui.common.ListSkeleton
@@ -35,6 +37,9 @@ import com.seblful.klas.ui.common.insetRowPress
 import com.seblful.klas.ui.common.languageLabel
 import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.state.Loadable
+import com.seblful.klas.ui.designsystem.component.Banner
+import com.seblful.klas.ui.designsystem.component.BannerKind
+import com.seblful.klas.ui.designsystem.component.SectionAction
 import com.seblful.klas.ui.designsystem.component.SettingsGroup
 import com.seblful.klas.ui.designsystem.component.settingsRowColors
 import com.seblful.klas.ui.theme.KlasIcons
@@ -51,13 +56,16 @@ fun SettingsScreen(
     open: SettingsCategory? = null,
     viewModel: SettingsViewModel = metroViewModel(),
 ) {
-    SettingsPage(R.string.settings_title, onBack, viewModel) { page, modifier, bottomInset, _ ->
+    SettingsPage(R.string.settings_title, onBack, viewModel) { page, modifier, bottomInset, messages ->
+        val allow = rememberNotificationAction(viewModel, messages)
         SettingsIndex(
             page.settings, page.notifications, page.reminders, page.calendar,
             navigation,
             open,
             modifier,
             bottomInset,
+            facts = page.facts,
+            onAllowNotifications = { allow(viewModel.unblockNotifications()) },
         )
     }
 }
@@ -87,8 +95,14 @@ internal fun SettingsIndex(
     open: SettingsCategory? = null,
     modifier: Modifier = Modifier,
     bottomInset: PaddingValues = PaddingValues(),
+    facts: IndexFacts = IndexFacts(),
+    onAllowNotifications: () -> Unit = {},
 ) {
     Column(modifier.verticalScroll(rememberScrollState()).padding(bottom = Spacing.gutter).padding(bottomInset)) {
+        // Something that does not work, above everything that is merely set (R2).
+        if (notifications == NotificationDelivery.BLOCKED) {
+            NotificationsBlockedBanner(onAllowNotifications, Modifier.padding(horizontal = Spacing.gutter))
+        }
         SettingsGroup { SettingsCategories(settings, notifications, reminders, calendar, navigation, open) }
         // Its own card: the app's data and the app itself, which «Ещё» held when it was a tab. Secondary to
         // the settings above, and the break between them says so.
@@ -96,28 +110,38 @@ internal fun SettingsIndex(
             SettingsCategoryRow(
                 KlasIcons.Outlined.MenuBook,
                 stringResource(R.string.more_subjects),
-                stringResource(R.string.settings_subjects_summary),
+                if (facts.subjects == 0) {
+                    stringResource(R.string.settings_subjects_none)
+                } else {
+                    pluralStringResource(R.plurals.settings_subjects_count, facts.subjects, facts.subjects)
+                },
                 navigation.subjects,
                 selected = false,
             )
             SettingsCategoryRow(
                 KlasIcons.Outlined.Save,
                 stringResource(R.string.more_backup),
-                stringResource(R.string.settings_backup_summary),
+                backupSummary(settings),
                 navigation.backup,
                 selected = false,
             )
             SettingsCategoryRow(
                 KlasIcons.Outlined.Info,
                 stringResource(R.string.about_title),
-                stringResource(R.string.settings_about_summary),
+                stringResource(R.string.about_version, facts.version),
                 navigation.about,
                 selected = false,
             )
             SettingsCategoryRow(
                 KlasIcons.Outlined.QueryStats,
                 stringResource(R.string.diagnostics_title),
-                stringResource(R.string.settings_diagnostics_summary),
+                stringResource(
+                    if (facts.crashRecorded) {
+                        R.string.settings_diagnostics_crash
+                    } else {
+                        R.string.settings_diagnostics_none
+                    },
+                ),
                 navigation.diagnostics,
                 selected = open == SettingsCategory.DIAGNOSTICS,
             )
@@ -226,6 +250,30 @@ private fun notificationSummary(
     settings.enabledNotificationCount == 0 -> stringResource(R.string.settings_off)
     else -> pluralStringResource(
         R.plurals.settings_notification_types, settings.enabledNotificationCount, settings.enabledNotificationCount,
+    )
+}
+
+/** «Never · set up weekly», «Weekly · last 3 Oct» — whether a lost phone would take the data with it. */
+@Composable
+private fun backupSummary(settings: AppSettings): String {
+    val last = settings.lastExportAt?.toLocalDate()?.formatDate()
+    return when {
+        settings.autoBackupFailed -> stringResource(R.string.settings_backup_failed)
+        settings.autoBackupFolder != null && last != null -> stringResource(R.string.settings_backup_weekly, last)
+        settings.autoBackupFolder != null -> stringResource(R.string.settings_backup_weekly_none)
+        last != null -> stringResource(R.string.settings_backup_last, last)
+        else -> stringResource(R.string.settings_backup_never)
+    }
+}
+
+/** Notifications the phone blocks, as the blocking banner every page says it with (R2). */
+@Composable
+internal fun NotificationsBlockedBanner(onAllow: () -> Unit, modifier: Modifier = Modifier) {
+    Banner(
+        title = stringResource(R.string.settings_all_notifications_blocked),
+        kind = BannerKind.Blocking,
+        modifier = modifier.padding(top = Spacing.itemGap),
+        action = SectionAction(stringResource(R.string.action_allow), onAllow),
     )
 }
 

@@ -58,13 +58,7 @@ internal fun NotificationSettingsContent(
 ) {
     Column(modifier.verticalScroll(rememberScrollState()).padding(bottom = Spacing.gutter).padding(bottomInset)) {
         if (notifications == NotificationDelivery.BLOCKED) {
-            SettingsGroup {
-                SystemSettingsRow(
-                    title = stringResource(R.string.settings_notifications_fix),
-                    description = stringResource(R.string.settings_all_notifications_blocked),
-                    onClick = actions.fixNotifications,
-                )
-            }
+            NotificationsBlockedBanner(actions.fixNotifications, Modifier.padding(horizontal = Spacing.gutter))
         }
         SettingsGroup(stringResource(R.string.settings_section_reminders)) {
             LessonReminderSettings(settings, reminders, actions)

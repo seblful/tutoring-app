@@ -28,3 +28,14 @@ class FilterOption(
     val onClick: () -> Unit,
     val leading: (@Composable () -> Unit)? = null,
 )
+
+/**
+ * How much a [Banner] matters. Neither is amber, which means «on now».
+ */
+enum class BannerKind {
+    /** Something does not work until the tutor acts — notifications blocked. The error container. */
+    Blocking,
+
+    /** Worth doing, nothing broken — a backup grown old. The tertiary container. */
+    Advisory,
+}

@@ -43,6 +43,8 @@ import com.seblful.klas.ui.common.rememberOpenDocument
 import com.seblful.klas.ui.common.rememberOpenFolder
 import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.common.state.valueOrNull
+import com.seblful.klas.ui.designsystem.component.Banner
+import com.seblful.klas.ui.designsystem.component.BannerKind
 import com.seblful.klas.ui.designsystem.component.SettingsGroup
 import com.seblful.klas.ui.designsystem.component.settingsRowColors
 import com.seblful.klas.ui.theme.KlasIcons
@@ -226,15 +228,7 @@ internal fun BackupContent(
         // An action under way rather than a screen loading, so a bar and not a skeleton: the rows are
         // already drawn, and what the tutor needs to know is that the tap took and to wait.
         if (importing) LinearProgressIndicator(Modifier.fillMaxWidth())
-        SettingsGroup {
-            when (lastExportAt) {
-                Loadable.Loading -> SkeletonBlock(
-                    LastExportRowHeight,
-                    Modifier.padding(horizontal = Spacing.gutter, vertical = Spacing.inline),
-                )
-                is Loadable.Ready -> LastExportRow(lastExportAt.value, stale)
-            }
-        }
+        LastExport(lastExportAt, stale)
         SettingsGroup(stringResource(R.string.backup_weekly_header)) {
             when (weekly) {
                 Loadable.Loading -> SkeletonBlock(
@@ -322,39 +316,50 @@ private fun WeeklyRows(weekly: WeeklyBackupViewModel.Weekly, onPickFolder: () ->
     )
 }
 
-/** When the last copy was made — in the warning colour when there is none, or none for [stale] weeks. */
+/**
+ * When the last copy was made: a row while it is recent; missing or [stale], the advisory banner (R2) — nothing
+ * is broken, but a lost phone would take everything since with it.
+ */
 @Composable
-private fun LastExportRow(at: Instant?, stale: Boolean) {
-    val never = at == null
-    val warn = never || stale
+private fun LastExport(lastExportAt: Loadable<Instant?>, stale: Boolean) {
+    val at = when (lastExportAt) {
+        Loadable.Loading -> {
+            SettingsGroup {
+                SkeletonBlock(
+                    LastExportRowHeight,
+                    Modifier.padding(horizontal = Spacing.gutter, vertical = Spacing.inline),
+                )
+            }
+            return
+        }
+        is Loadable.Ready -> lastExportAt.value
+    }
+    if (at != null && !stale) {
+        SettingsGroup { LastExportRow(at) }
+        return
+    }
+    Banner(
+        title = at?.let { stringResource(R.string.backup_last_export, it.toLocalDate().formatDate()) }
+            ?: stringResource(R.string.backup_never),
+        kind = BannerKind.Advisory,
+        detail = stringResource(if (at == null) R.string.backup_never_detail else R.string.backup_stale_detail),
+        modifier = Modifier.padding(start = Spacing.gutter, end = Spacing.gutter, top = Spacing.itemGap),
+    )
+}
+
+/** When the last copy was made, while it is recent; an old or missing one is a banner instead. */
+@Composable
+private fun LastExportRow(at: Instant) {
     ListItem(
         leadingContent = {
             Icon(
-                if (warn) KlasIcons.Outlined.Warning else KlasIcons.Outlined.Schedule,
+                KlasIcons.Outlined.Schedule,
                 contentDescription = null,
-                tint = if (warn) klasSemantics.attention else MaterialTheme.colorScheme.onSurfaceVariant,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         },
-        headlineContent = {
-            Text(
-                if (never) {
-                    stringResource(R.string.backup_never)
-                } else {
-                    stringResource(R.string.backup_last_export, at.toLocalDate().formatDate())
-                },
-            )
-        },
-        supportingContent = {
-            Text(
-                stringResource(
-                    when {
-                        never -> R.string.backup_never_detail
-                        stale -> R.string.backup_stale_detail
-                        else -> R.string.backup_last_export_detail
-                    },
-                ),
-            )
-        },
+        headlineContent = { Text(stringResource(R.string.backup_last_export, at.toLocalDate().formatDate())) },
+        supportingContent = { Text(stringResource(R.string.backup_last_export_detail)) },
         colors = settingsRowColors(),
     )
 }

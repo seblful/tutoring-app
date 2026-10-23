@@ -35,6 +35,9 @@ import com.seblful.klas.ui.common.SectionCard
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.designsystem.component.ButtonKind
 import com.seblful.klas.ui.designsystem.component.KlasButton
+import com.seblful.klas.ui.designsystem.component.KlasRow
+import com.seblful.klas.ui.designsystem.component.RowEnd
+import com.seblful.klas.ui.designsystem.component.RowStart
 import com.seblful.klas.ui.theme.KlasIcons
 
 /** What the app is and which build of it this is. */
@@ -91,23 +94,15 @@ fun AboutScreen(onBack: () -> Unit, onBackup: () -> Unit) {
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                    // Outlined, not filled: this screen has no primary action — it is a statement —
-                    // and the button is the way to act on one sentence of it.
-                    KlasButton(
-                        onClick = onBackup,
-                        modifier = Modifier.align(Alignment.End),
-                        kind = ButtonKind.Outlined,
-                    ) {
-                        // Filled: it is a button's glyph, and the app's rule is filled for actions,
-                        // outlined for art. «Ещё»'s row uses the outlined one for the same screen,
-                        // correctly — that is a leading picture, this is the thing being pressed.
-                        Icon(KlasIcons.Filled.Save, contentDescription = null)
-                        Text(
-                            stringResource(R.string.more_backup),
-                            Modifier.padding(start = Spacing.inline),
-                        )
-                    }
                 }
+                // A row to the page, as Settings lists it: this screen has no primary action — it is a
+                // statement — and the row is the way to act on one sentence of it.
+                KlasRow(
+                    title = stringResource(R.string.more_backup),
+                    start = RowStart.Icon(KlasIcons.Outlined.Save),
+                    end = RowEnd.Opens,
+                    onClick = onBackup,
+                )
             }
             // The typeface credit, last and quietest — an obligation rather than a feature. The face
             // ships inside the APK, so the OFL's notice ships with it, and a notice nobody can reach is

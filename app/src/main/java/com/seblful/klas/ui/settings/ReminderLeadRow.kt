@@ -44,15 +44,9 @@ internal fun ReminderLeadRow(minutes: Int, enabled: Boolean, onSelect: (Int) -> 
     var expanded by rememberSaveable { mutableStateOf(false) }
     var custom by rememberSaveable { mutableStateOf(false) }
     Box {
-        ListItem(
-            headlineContent = { Text(stringResource(R.string.settings_reminder_lead)) },
-            supportingContent = { Text(reminderLeadLabel(minutes)) },
-            trailingContent = { Icon(KlasIcons.Filled.ArrowDropDown, contentDescription = null) },
-            colors = settingsRowColors(enabled),
-            modifier = Modifier.insetRowPress {
-                Modifier.clickable(it, indication = null, enabled = enabled, onClick = { expanded = true })
-            },
-        )
+        ValueRow(stringResource(R.string.settings_reminder_lead), reminderLeadLabel(minutes), enabled) {
+            expanded = true
+        }
         KlasMenu(expanded = expanded && enabled, onDismissRequest = { expanded = false }) {
             LeadPresets.forEach { preset ->
                 TickedMenuItem(
@@ -92,15 +86,9 @@ internal fun SharedReminderTimingRow(minutes: Int, enabled: Boolean, onSelect: (
     var editing by rememberSaveable { mutableStateOf(false) }
     val description =
         stringResource(if (enabled) R.string.settings_reminder_shared else R.string.settings_reminder_enable)
-    ListItem(
-        headlineContent = { Text(reminderLeadLabel(minutes)) },
-        supportingContent = { Text(description) },
-        trailingContent = { Icon(KlasIcons.Filled.ArrowDropDown, contentDescription = null) },
-        colors = settingsRowColors(enabled),
-        modifier = Modifier.insetRowPress {
-            Modifier.clickable(it, indication = null, enabled = enabled, onClick = { editing = true })
-        },
-    )
+    ValueRow(stringResource(R.string.settings_reminder_lead), reminderLeadLabel(minutes), enabled, description) {
+        editing = true
+    }
     if (editing && enabled) {
         ReminderLeadPickerModal(
             initialMinutes = minutes,
