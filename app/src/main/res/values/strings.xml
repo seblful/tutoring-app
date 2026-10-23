@@ -1080,4 +1080,5 @@
     <string name="statement_owed">To pay: %1$s</string>
     <string name="statement_credit">Paid in advance: %1$s</string>
     <string name="statement_settled">Nothing to pay</string>
+    <string name="groups_sort_next">By next lesson</string>
 </resources>

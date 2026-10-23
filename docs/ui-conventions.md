@@ -76,7 +76,9 @@ Build screens from shared state and controls. Feature rules belong in the domain
   latest few rows and «See all» to the full list (`StudentList`/`GroupList` routes, beside People like the
   card). Short lists — a student's subjects, a group's members — are shown in full.
 - People's students and groups are one surface with dividers (`SurfaceRow`, `SlicePosition`; D3), the
-  divider drawn over each row's edge so rows keep one height; lessons stay a card each.
+  divider drawn over each row's edge so rows keep one height; lessons stay a card each. Each side has its
+  own orders behind the bar's sort button, tinted when not the first: students by name or debt, groups by
+  name or next lesson. The archive is last in every order.
 - Items sit on `itemSurface`, sections (`SectionCard`, `StatRow`, report slices) on `sectionSurface`:
   both above the `surfaceContainer` the bar tints to. Settings groups rows on cards too
   (`SettingsGroup`), their `ListItem`s transparent (`settingsRowColors`).

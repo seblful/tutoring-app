@@ -1219,4 +1219,5 @@
     <string name="statement_owed">К оплате: %1$s</string>
     <string name="statement_credit">Оплачено вперёд: %1$s</string>
     <string name="statement_settled">Оплачено полностью</string>
+    <string name="groups_sort_next">По ближайшему занятию</string>
 </resources>

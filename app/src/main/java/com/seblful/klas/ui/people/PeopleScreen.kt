@@ -26,6 +26,7 @@ import com.seblful.klas.ui.common.SegmentedPage
 import com.seblful.klas.ui.common.SettingsGear
 import com.seblful.klas.ui.common.TickedMenuItem
 import com.seblful.klas.ui.designsystem.component.KlasFab
+import com.seblful.klas.ui.groups.GroupSort
 import com.seblful.klas.ui.groups.GroupsList
 import com.seblful.klas.ui.groups.GroupsViewModel
 import com.seblful.klas.ui.students.StudentSort
@@ -61,6 +62,7 @@ fun PeopleScreen(
     val studentRows by studentsViewModel.rows.collectAsStateWithLifecycle()
     val studentSort by studentsViewModel.sort.collectAsStateWithLifecycle()
     val groupRows by groupsViewModel.rows.collectAsStateWithLifecycle()
+    val groupSort by groupsViewModel.sort.collectAsStateWithLifecycle()
 
     // Whichever side is on top answers the bar's buttons; the other keeps its own state untouched.
     val side: PeopleSide = when (tab) {
@@ -87,9 +89,12 @@ fun PeopleScreen(
             onClose = { studentsViewModel.setQuery(""); groupsViewModel.setQuery("") },
         ),
         actions = {
-            // Sorting by debt is a students question; a group carries no balance.
-            if (tab == PeopleTab.STUDENTS) {
-                SortMenu(selected = studentSort, onSelect = studentsViewModel::setSort)
+            // Each side its own orders: debt is a students question, and when a group next meets a groups one.
+            when (tab) {
+                PeopleTab.STUDENTS ->
+                    SortMenu(StudentSort.entries, studentSort, studentsViewModel::setSort) { studentSortLabel(it) }
+                PeopleTab.GROUPS ->
+                    SortMenu(GroupSort.entries, groupSort, groupsViewModel::setSort) { groupSortLabel(it) }
             }
             // A toggle, and said as one: the tint alone told a screen reader nothing about whether the
             // archive was showing — «Показать архив» was read the same either way.
@@ -155,8 +160,9 @@ fun PeopleScreen(
     }
 }
 
+/** The bar's sort button, over [options] — the first being the default order, which leaves it untinted. */
 @Composable
-private fun SortMenu(selected: StudentSort, onSelect: (StudentSort) -> Unit) {
+private fun <T> SortMenu(options: List<T>, selected: T, onSelect: (T) -> Unit, label: (T) -> Int) {
     var expanded by remember { mutableStateOf(false) }
     Box {
         NamedIconButton(
@@ -165,12 +171,12 @@ private fun SortMenu(selected: StudentSort, onSelect: (StudentSort) -> Unit) {
             onClick = { expanded = true },
             // Tinted while the list is in a non-default order, so a surprising order has a visible cause
             // in the bar above it.
-            tint = MaterialTheme.colorScheme.primary.takeIf { selected != StudentSort.NAME },
+            tint = MaterialTheme.colorScheme.primary.takeIf { selected != options.first() },
         )
         KlasMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            StudentSort.entries.forEach { option ->
+            options.forEach { option ->
                 TickedMenuItem(
-                    text = stringResource(sortLabel(option)),
+                    text = stringResource(label(option)),
                     selected = option == selected,
                     onClick = { onSelect(option); expanded = false },
                 )
@@ -179,7 +185,12 @@ private fun SortMenu(selected: StudentSort, onSelect: (StudentSort) -> Unit) {
     }
 }
 
-private fun sortLabel(sort: StudentSort): Int = when (sort) {
+private fun studentSortLabel(sort: StudentSort): Int = when (sort) {
     StudentSort.NAME -> R.string.students_sort_name
     StudentSort.DEBT -> R.string.students_sort_debt
+}
+
+private fun groupSortLabel(sort: GroupSort): Int = when (sort) {
+    GroupSort.NAME -> R.string.students_sort_name
+    GroupSort.NEXT_LESSON -> R.string.groups_sort_next
 }
