@@ -31,6 +31,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -105,6 +106,15 @@ fun KlasScreen(
     // The search box, or null when there is none or it is shut — one value rather than a flag plus a
     // nullable, so the two cannot be tested separately and disagree.
     val openSearch = search?.takeIf { searching }
+    // `/` on a hardware keyboard opens this search while the screen is on show.
+    val searchKey = LocalSearchKey.current
+    if (search != null && searchKey != null) {
+        DisposableEffect(searchKey) {
+            val open = { searching = true }
+            searchKey.claim(open)
+            onDispose { searchKey.release(open) }
+        }
+    }
 
     val scrollBehavior = when (titleSize) {
         TitleSize.Compact -> TopAppBarDefaults.pinnedScrollBehavior()

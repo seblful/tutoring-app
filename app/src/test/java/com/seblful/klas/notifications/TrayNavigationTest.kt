@@ -115,6 +115,7 @@ class TrayNavigationTest {
         assertEquals(TrayNavigation.Destination.NewLesson, link("klas://book?from=calendar"))
         assertEquals(TrayNavigation.Destination.LessonOnSchedule(42L), link("klas://lesson/42"))
         assertEquals(TrayNavigation.Destination.Day(LocalDate(2026, 10, 23)), link("klas://day/2026-10-23"))
+        assertEquals(TrayNavigation.Destination.Student(7L), link("klas://student/7"))
     }
 
     /** The activity is exported: a link is anyone's to write, so one the app cannot read goes nowhere. */
@@ -127,6 +128,8 @@ class TrayNavigationTest {
         assertNull(link("klas://lesson/0"))
         assertNull(link("klas://lesson/abc"))
         assertNull(link("klas://day/yesterday"))
+        assertNull(link("klas://student/0"))
+        assertNull(link("klas://student"))
         assertNull(link(null))
     }
 

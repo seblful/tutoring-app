@@ -26,6 +26,14 @@ class EntryPointsTest {
     }
 
     @Test
+    fun `a bare N books and a bare T opens today, and other keys mean nothing`() {
+        assertEquals(TrayNavigation.ACTION_BOOK_LESSON, KeyboardShortcuts.keyActionFor(KeyEvent.KEYCODE_N))
+        assertEquals(TrayNavigation.ACTION_OPEN_TODAY, KeyboardShortcuts.keyActionFor(KeyEvent.KEYCODE_T))
+        assertNull(KeyboardShortcuts.keyActionFor(KeyEvent.KEYCODE_Q))
+        assertNull(KeyboardShortcuts.keyActionFor(KeyEvent.KEYCODE_SLASH))
+    }
+
+    @Test
     fun `every chord goes somewhere the tray can send the tutor`() {
         KeyboardShortcuts.chords.forEach { chord ->
             val destination = TrayNavigation.destinationFor(chord.action, classId = 0)

@@ -127,6 +127,9 @@ object TrayNavigation {
 
         /** Settings, over the tab the tutor was on. */
         data object Settings : Destination
+
+        /** A student's profile, on the People tab — a `klas://student/<id>` link. */
+        data class Student(val studentId: Long) : Destination
     }
 
     /**
@@ -167,7 +170,7 @@ object TrayNavigation {
      * `klas://book` opens an empty form, it does not book.
      *
      * `klas://today`, `schedule`, `people`, `homework`, `reports`, `debts`, `book`, `settings`,
-     * `lesson/<id>` (its sheet on the schedule) and `day/<yyyy-mm-dd>`.
+     * `lesson/<id>` (its sheet on the schedule), `day/<yyyy-mm-dd>` and `student/<id>` (their profile).
      */
     fun destinationForLink(link: String?): Destination? {
         val path = link?.takeIf { it.startsWith("$LINK_SCHEME://") }
@@ -180,6 +183,7 @@ object TrayNavigation {
         return when (path.first()) {
             "lesson" -> argument?.toLongOrNull()?.let(::lessonIdOrNull)?.let { Destination.LessonOnSchedule(it) }
             "day" -> argument?.let { runCatching { LocalDate.parse(it) }.getOrNull() }?.let { Destination.Day(it) }
+            "student" -> argument?.toLongOrNull()?.takeIf { it > 0 }?.let { Destination.Student(it) }
             else -> linked[path.first()]
         }
     }

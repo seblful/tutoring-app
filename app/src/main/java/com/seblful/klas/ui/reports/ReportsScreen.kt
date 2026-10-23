@@ -57,6 +57,7 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -778,10 +779,13 @@ private fun IncomeTrendChart(trend: Reports.Trend, labelOf: (Reports.Trend.Bar) 
                     },
                 )
                 // Shrinks rather than clipping: a twelfth of a phone at a large font scale cut «сен» to «се».
+                // The peak's name in its bar's accent and bold, tying it to the legend under the chart.
+                val isPeak = bar.key == peak.key
                 Text(
                     labelOf(bar),
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = if (isPeak) filled else MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontWeight = if (isPeak) FontWeight.Bold else null,
                     maxLines = 1,
                     softWrap = false,
                     textAlign = TextAlign.Center,

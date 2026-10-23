@@ -176,9 +176,13 @@ Build screens from shared state and controls. Feature rules belong in the domain
 - Every way into the app but its icon is a `TrayNavigation` entry, so each lands where the same tap in
   the tray or on the widget does: notifications, widgets, the launcher's long-press shortcuts
   (`AppShortcuts`: Book a lesson, Today, Homework, Debts — published in the app's language), `klas://`
-  links (today, schedule, people, homework, reports, debts, book, settings, `lesson/<id>`, `day/<date>`;
+  links (today, schedule, people, homework, reports, debts, book, settings, `lesson/<id>`, `day/<date>`,
+  `student/<id>`;
   they only ever open somewhere, never write) and Ctrl-chords on a hardware keyboard (`KeyboardShortcuts`:
-  Ctrl+1–5 the tabs, Ctrl+N a new lesson, Ctrl+, Settings, listed under Meta+/).
+  Ctrl+1–5 the tabs, Ctrl+N a new lesson, Ctrl+, Settings, listed under Meta+/). Bare keys work when no
+  field has the keyboard (`MainActivity.onKeyDown`): N a new lesson, T Today, / the search of the screen in
+  front (`SearchKey`, claimed by `KlasScreen`). ← → page dates on the focused date title only, never on
+  rows, where arrows move focus.
 - Tabs are Today, Schedule, People, Homework, Reports; Today opens first (`TopDestination.START`),
   Students/Groups share People. Settings is a gear (`SettingsGear`) last among every tab's actions, pushed over
   that tab, not a tab: it is visited, not worked in. Today links out rather than repeating a tab: a lesson
@@ -228,7 +232,7 @@ Build screens from shared state and controls. Feature rules belong in the domain
   layout or draw (`graphicsLayer`, `drawBehind`, `offset {}`), not in composition. A list row does no work
   that every row shares (a measured width, the clock format, a pulse): it is done once above the list.
 - A row swipe claims only its own direction (`SwipeToward`); the other way turns a `SegmentedPage`.
-- A long-press only ever selects (R7). On the schedule it picks lessons (`LessonBatch`, `LessonPicking`): the
+- A long-press only ever selects (R7), and a right click is a long-press (`rightClickAsLongPress`). On the schedule it picks lessons (`LessonBatch`, `LessonPicking`): the
   bar then counts them and offers Mark taught and Cancel, each undone for the lot as one; a tap picks too and
   the swipe rests while any are picked; Back or the arrow lets go. Only planned lessons are acted on.
   Current homework picks the same way (`HomeworkBatch`, `HomeworkPicking`) for Mark done; the archive and the

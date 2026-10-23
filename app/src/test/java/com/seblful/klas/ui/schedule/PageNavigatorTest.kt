@@ -1,11 +1,16 @@
 package com.seblful.klas.ui.schedule
 
+import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performKeyInput
+import androidx.compose.ui.test.pressKey
+import androidx.compose.ui.test.requestFocus
 import com.seblful.klas.testutil.AppLocaleRule
 import com.seblful.klas.ui.theme.KlasTheme
 import kotlinx.datetime.LocalDate
@@ -52,6 +57,36 @@ class PageNavigatorTest {
 
         assertEquals(listOf(selected), picked)
         compose.onNodeWithText("Done").assertDoesNotExist()
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun `arrow keys on the focused title page the dates`() {
+        val steps = mutableListOf<String>()
+        compose.setContent {
+            KlasTheme {
+                PageNavigator(
+                    title = "June 2026",
+                    previousDescription = "Previous",
+                    nextDescription = "Next",
+                    onPrevious = { steps += "previous" },
+                    onNext = { steps += "next" },
+                    onToday = {},
+                    selected = selected,
+                    onPick = {},
+                )
+            }
+        }
+
+        val title = compose.onNodeWithText("June 2026")
+        title.performKeyInput { pressKey(Key.Tab) }
+        title.requestFocus()
+        title.performKeyInput {
+            pressKey(Key.DirectionRight)
+            pressKey(Key.DirectionLeft)
+        }
+
+        assertEquals(listOf("next", "previous"), steps)
     }
 
     @Test

@@ -27,13 +27,27 @@ object KeyboardShortcuts {
         Chord(KeyEvent.KEYCODE_COMMA, R.string.settings_title, TrayNavigation.ACTION_OPEN_SETTINGS),
     )
 
+    /**
+     * Bare keys, for when no text field has the keyboard (a field takes its own): N a new lesson, T today.
+     * `/` searches too, but opens the screen in front's own search rather than going anywhere.
+     */
+    val keys: List<Chord> = listOf(
+        Chord(KeyEvent.KEYCODE_N, R.string.schedule_add_class, TrayNavigation.ACTION_BOOK_LESSON),
+        Chord(KeyEvent.KEYCODE_T, R.string.nav_today, TrayNavigation.ACTION_OPEN_TODAY),
+    )
+
+    /** The tray action the bare [keyCode] stands for, or null for any other key. */
+    fun keyActionFor(keyCode: Int): String? = keys.firstOrNull { it.keyCode == keyCode }?.action
+
     /** The tray action [keyCode] stands for with Ctrl held, or null for any other key. */
     fun actionFor(keyCode: Int, ctrl: Boolean): String? =
         chords.firstOrNull { ctrl && it.keyCode == keyCode }?.action
 
-    /** The chords as the system lists them, in [context]'s language. */
+    /** The chords and keys as the system lists them, in [context]'s language. */
     fun group(context: Context): KeyboardShortcutGroup = KeyboardShortcutGroup(
         context.getString(R.string.app_name),
-        chords.map { KeyboardShortcutInfo(context.getString(it.label), it.keyCode, KeyEvent.META_CTRL_ON) },
+        chords.map { KeyboardShortcutInfo(context.getString(it.label), it.keyCode, KeyEvent.META_CTRL_ON) } +
+            keys.map { KeyboardShortcutInfo(context.getString(it.label), it.keyCode, 0) } +
+            KeyboardShortcutInfo(context.getString(R.string.action_search), KeyEvent.KEYCODE_SLASH, 0),
     )
 }

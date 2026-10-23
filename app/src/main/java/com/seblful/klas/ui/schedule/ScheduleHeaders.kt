@@ -23,8 +23,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -44,6 +46,7 @@ import com.seblful.klas.ui.common.LocalCurrency
 import com.seblful.klas.ui.common.PageStepper
 import com.seblful.klas.ui.common.SectionTitle
 import com.seblful.klas.ui.common.Spacing
+import com.seblful.klas.ui.common.pageByArrow
 import com.seblful.klas.ui.designsystem.component.KlasDivider
 import com.seblful.klas.ui.theme.KlasIcons
 import kotlinx.datetime.LocalDate
@@ -124,6 +127,7 @@ internal fun PageNavigator(
     onPick: (LocalDate) -> Unit,
 ) {
     var picking by rememberSaveable { mutableStateOf(false) }
+    val direction = LocalLayoutDirection.current
     PageStepper(
         previousDescription = previousDescription,
         nextDescription = nextDescription,
@@ -137,6 +141,7 @@ internal fun PageNavigator(
             modifier = Modifier
                 .weight(1f, fill = false)
                 .clip(MaterialTheme.shapes.small)
+                .onKeyEvent { pageByArrow(it, direction, onPrevious, onNext) }
                 .clickable(
                     onClickLabel = stringResource(R.string.schedule_pick_date),
                     role = Role.Button,

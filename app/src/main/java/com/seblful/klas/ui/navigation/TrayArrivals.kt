@@ -81,6 +81,11 @@ private fun KlasNavigator.arrive(
         TrayNavigation.Destination.NewLesson -> openOnTop(Routes.classEdit(0))
         TrayNavigation.Destination.NewStudent -> openOnTop(Routes.StudentAdd)
         TrayNavigation.Destination.Settings -> openOnTop(Routes.Settings)
+        // Beside People's list on a wide window, as a tap on the student's row would put it.
+        is TrayNavigation.Destination.Student -> {
+            openTabFromTray(TopDestination.PEOPLE)
+            replaceAbove(Routes.People, Routes.StudentDetail(destination.studentId))
+        }
         else -> Unit
     }
 }

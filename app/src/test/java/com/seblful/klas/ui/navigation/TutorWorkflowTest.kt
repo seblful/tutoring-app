@@ -1,6 +1,8 @@
 package com.seblful.klas.ui.navigation
 
 import android.content.Intent
+import android.net.Uri
+import android.view.KeyEvent
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasText
@@ -9,6 +11,7 @@ import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -242,6 +245,41 @@ class TutorWorkflowTest {
         ActivityScenario.launch<MainActivity>(today).use {
             waitFor(R.string.today_lessons)
             compose.onNode(hasText(text(R.string.nav_today)) and isSelectable()).assertIsSelected()
+        }
+    }
+
+    @Test
+    fun `bare keys open today and the search of the tab in front`() {
+        ActivityScenario.launch(MainActivity::class.java).use { scenario ->
+            waitForText("Workflow student")
+            compose.onNode(hasText(text(R.string.nav_people)) and isSelectable()).performClick()
+            waitForText("Workflow student")
+            fun press(keyCode: Int) = scenario.onActivity {
+                it.onKeyDown(keyCode, KeyEvent(KeyEvent.ACTION_DOWN, keyCode))
+            }
+
+            press(KeyEvent.KEYCODE_SLASH)
+            compose.waitUntil(5_000) {
+                compose.onAllNodesWithContentDescription(text(R.string.search_close)).fetchSemanticsNodes().isNotEmpty()
+            }
+            compose.onNodeWithContentDescription(text(R.string.search_close)).performClick()
+
+            press(KeyEvent.KEYCODE_T)
+            waitFor(R.string.today_lessons)
+            compose.onNode(hasText(text(R.string.nav_today)) and isSelectable()).assertIsSelected()
+        }
+    }
+
+    @Test
+    fun `a student link opens their profile on the People tab`() {
+        val link = Intent(Intent.ACTION_VIEW, Uri.parse("klas://student/$studentId"))
+            .setClass(ApplicationProvider.getApplicationContext(), MainActivity::class.java)
+        ActivityScenario.launch<MainActivity>(link).use {
+            compose.waitUntil(10_000) {
+                compose.onAllNodesWithContentDescription(text(R.string.action_edit)).fetchSemanticsNodes().isNotEmpty()
+            }
+            compose.onNode(hasText(text(R.string.nav_people)) and isSelectable()).assertIsSelected()
+            compose.onAllNodesWithText("Workflow student").onFirst().assertExists()
         }
     }
 

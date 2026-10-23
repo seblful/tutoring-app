@@ -27,6 +27,8 @@ import com.seblful.klas.lock.canUnlock
 import com.seblful.klas.notifications.AppShortcuts
 import com.seblful.klas.ui.AppRoot
 import com.seblful.klas.ui.RootViewModel
+import com.seblful.klas.ui.common.LocalSearchKey
+import com.seblful.klas.ui.common.SearchKey
 import com.seblful.klas.ui.navigation.KeyboardShortcuts
 import dev.zacsweers.metrox.viewmodel.LocalMetroViewModelFactory
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -35,6 +37,7 @@ import kotlinx.coroutines.launch
 
 /** The one activity — a [FragmentActivity] because the app lock's [BiometricPrompt] needs one. */
 class MainActivity : FragmentActivity() {
+    private val searchKey = SearchKey()
 
     private val rootViewModel: RootViewModel by viewModels { appGraph.metroViewModelFactory }
 
@@ -71,7 +74,10 @@ class MainActivity : FragmentActivity() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) window.isNavigationBarContrastEnforced = false
         setContent {
             // Every `metroViewModel()` below finds the graph's factory here.
-            CompositionLocalProvider(LocalMetroViewModelFactory provides appGraph.metroViewModelFactory) {
+            CompositionLocalProvider(
+                LocalMetroViewModelFactory provides appGraph.metroViewModelFactory,
+                LocalSearchKey provides searchKey,
+            ) {
                 // Theme is applied inside AppRoot, driven by the user's theme setting.
                 AppRoot(rootViewModel, onUnlock = ::promptUnlock)
             }
@@ -111,6 +117,21 @@ class MainActivity : FragmentActivity() {
             ?: return super.onKeyShortcut(keyCode, event)
         onNewIntent(Intent(action, null, this, MainActivity::class.java))
         return true
+    }
+
+    /**
+     * A bare key nothing on screen took — a text field takes its own: `/` opens the search in front, and
+     * [KeyboardShortcuts.keys] go where their tray entries do.
+     */
+    override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
+        val handled = event.hasNoModifiers() && when (val action = KeyboardShortcuts.keyActionFor(keyCode)) {
+            null -> keyCode == KeyEvent.KEYCODE_SLASH && searchKey.press()
+            else -> {
+                onNewIntent(Intent(action, null, this, MainActivity::class.java))
+                true
+            }
+        }
+        return handled || super.onKeyDown(keyCode, event)
     }
 
     override fun onProvideKeyboardShortcuts(data: MutableList<KeyboardShortcutGroup>, menu: Menu?, deviceId: Int) {

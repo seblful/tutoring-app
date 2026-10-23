@@ -58,6 +58,7 @@ val ColorScheme.sectionSurface: Color get() = surfaceContainerHighest
  * legible (it is still a record of something) but stops competing with the lessons that are on.
  * @param selected for the item open beside its list, tinted as the rail marks its tab.
  * @param onLongClick picks the item (R7: a long-press only ever selects), named for TalkBack by [onLongClickLabel].
+ *   A mouse's right click does the same.
  */
 @Composable
 fun ContentCard(
@@ -77,6 +78,7 @@ fun ContentCard(
             .fillMaxWidth()
             .then(if (selected) Modifier.semantics { this.selected = true } else Modifier)
             .clip(shape)
+            .rightClickAsLongPress(onLongClick)
             .combinedClickable(onClick = onClick, onLongClick = onLongClick, onLongClickLabel = onLongClickLabel),
         // The content colour is named: a translucent container matches no role for `contentColorFor` to find.
         colors = CardDefaults.cardColors(
