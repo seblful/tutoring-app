@@ -59,6 +59,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
@@ -334,7 +335,12 @@ class ClassEditViewModel @AssistedInject constructor(
                 ),
             )
         }
+            .keepingTheDayDrawn()
             .derive(this, computation, Loadable.Loading)
+
+    /** What is drawn, when it is this form's day — not the day before one just chosen, still on screen. */
+    private val drawn: ClassFormState?
+        get() = state.value.valueOrNull()?.takeIf { it.form.date == currentForm.date }
 
     /** A new booking's «Who» list — see [TargetChoices.pick]. An edit never reads it, so never queries. */
     val targetChoices: StateFlow<List<TargetChoice>> =
@@ -495,7 +501,7 @@ class ClassEditViewModel @AssistedInject constructor(
 
     /** One press of the When section's stepper — see [ClassFormState.stepped]. */
     fun step(later: Boolean) {
-        state.value.valueOrNull()?.stepped(later)?.let(::startAt)
+        drawn?.stepped(later)?.let(::startAt)
     }
 
     /** Moves the lesson [days] on, or back when negative, keeping its time; from [datePickerDefault] without a day. */
@@ -557,7 +563,7 @@ class ClassEditViewModel @AssistedInject constructor(
      */
     fun timePickerDefault(): LocalTime =
         currentForm.timeFrom
-            ?: state.value.valueOrNull()?.suggestion?.start?.toLocalDateTime(zone)?.time
+            ?: drawn?.suggestion?.start?.toLocalDateTime(zone)?.time
             ?: LocalTime(DayTimeline.FIRST_HOUR, 0)
 
     /**
@@ -794,5 +800,21 @@ class ClassEditViewModel @AssistedInject constructor(
          */
         fun <T> List<T>.offered(selected: Long?, archived: (T) -> Boolean, id: (T) -> Long): List<T> =
             filter { !archived(it) || id(it) == selected }
+
+        /**
+         * Keeps what is on screen while a day just chosen has its lessons read — a frame or two — so the day and
+         * what is free in it change together, rather than the When section emptying and filling again between
+         * them; the first day picked included. On opening there is nothing drawn yet, so nothing is held.
+         */
+        fun Flow<Loadable<ClassFormState>>.keepingTheDayDrawn(): Flow<Loadable<ClassFormState>> = flow {
+            var shown: ClassFormState? = null
+            collect { next ->
+                val ready = next.valueOrNull()
+                val reading = ready != null && ready.form.date != null && ready.timeline == null
+                if (reading && shown != null) return@collect
+                shown = ready
+                emit(next)
+            }
+        }
     }
 }
