@@ -131,9 +131,12 @@ fun ScheduleScreen(
     val loads by viewModel.dayLoads.collectAsStateWithLifecycle()
     val timeConflict by viewModel.timeConflict.collectAsStateWithLifecycle()
     // Where "now" falls in the selected day's list, or null when that day is not today — see [NowMarker].
-    val nowMark by viewModel.nowMark.collectAsStateWithLifecycle()
     // Where each lesson stands this minute — being taught, or over and unmarked — see [ScheduleViewModel.phases].
-    val phases by viewModel.phases.collectAsStateWithLifecycle()
+    // **Read here, as values, not as delegates the list's builder reads.** Both come a moment after the rows
+    // they describe; read only inside the builder, one arriving a frame after its rows was sometimes never
+    // drawn — a lesson put back in the plan kept «Planned» where it is «Not marked».
+    val nowMark = viewModel.nowMark.collectAsStateWithLifecycle().value
+    val phases = viewModel.phases.collectAsStateWithLifecycle().value
     // What the schedule is narrowed to. Both the chips and the queries read this one value, so the schedule
     // can never be quietly narrowed with nothing saying so.
     val filter by viewModel.filter.collectAsStateWithLifecycle()

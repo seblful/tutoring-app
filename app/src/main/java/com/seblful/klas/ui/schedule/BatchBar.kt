@@ -47,7 +47,8 @@ internal fun BatchMessages(batch: LessonBatch, messages: Messages) {
                     resources.getQuantityString(R.plurals.batch_cancelled, done.receipts.size, done.receipts.size),
                 ) { batch.undo(done) }
                 is LessonBatch.Done.Replanned -> {
-                    val clashed = resources.getQuantityString(R.plurals.batch_replan_clashed, done.clashed, done.clashed)
+                    val clashed =
+                        resources.getQuantityString(R.plurals.batch_replan_clashed, done.clashed, done.clashed)
                     if (done.receipts.isEmpty()) {
                         messages.show(clashed)
                     } else {

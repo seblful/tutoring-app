@@ -13,7 +13,9 @@ Build screens from shared state and controls. Feature rules belong in the domain
   placeholders 150 ms; a skeleton's blocks share one `SkeletonPulse`. `readyOrLoadingAfter` keeps previous content briefly during paging; label it
   with its own key/date, never the newly requested one.
 - Collect with `collectAsStateWithLifecycle`, so a backgrounded screen stops its flows. End flows with
-  `derive`/`hold`; a table several flows combine is read once through `shared`. Events use
+  `derive`/`hold`; a table several flows combine is read once through `shared`. State a lazy list's
+  builder reads beside its rows, from a separate flow, is collected as a value (`.value`), not a `by`
+  delegate: read only inside the builder, an update a frame after the rows was sometimes never drawn. Events use
   `ShowMessagesFor`/`rememberMessages`. Save through
   `appScope.write(events, failure)` or awaited `writeAwaited`; homework shares `HomeworkActions`.
 - Screens open other apps via `rememberExternalApps(messages)`/`ExternalTarget`, files via
