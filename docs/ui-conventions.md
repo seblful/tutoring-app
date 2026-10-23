@@ -167,6 +167,17 @@ Build screens from shared state and controls. Feature rules belong in the domain
   from the `FormSaveBar` every form saves from (R3). No step books a lesson: setup stays a minute long. After
   it, one optional page offers «Book the first lesson» for the student just added, «Not now» in the bar; booking
   hands the student to the app (`FirstLesson`), which opens the booking form for them over Today, once.
+- After setup a new tutor gets a guide, never a tour (`GuideRepository`). Today shows «First steps» under
+  what needs doing now: book, mark taught, record a payment, set homework, turn on reminders (`FirstSteps`),
+  each ticked from the data, not by its row's tap; a row opens where the step is done (payment and homework
+  on the first student's card). Hide puts it away with Undo; done, it says so and waits for Close. Gestures
+  no screen shows get one `CoachMark` each, on the thing they work on, the first time it is in reach
+  (`Tip`): the schedule's swipe and long-press on a lesson card and its date title, homework's swipe on the
+  first current card. One per visit (`rememberScreenTip`), after the screen has been still for a moment,
+  never over a sheet, dialog or selection; «Got it», a tap elsewhere or making the gesture marks it seen.
+  A swipe tip peeks the row short of the mark (`SwipeToConfirmBox(peek)`) and, under TalkBack, names the
+  row's action instead. An install already through setup when it upgrades to v14, and a restored backup,
+  start with it done; Settings' «Show tips again» brings it all back.
 - Apply `AppLanguage` with `ProvideLocalizedResources`, never `Locale.setDefault()`. `StringCoverageTest`
   checks resource parity; language changes re-sync baked calendar text. Setup and Settings share
   `LanguageChoices`: System first, followed by all 25 variants in stable autonym order in a scrollable
@@ -290,7 +301,8 @@ Build screens from shared state and controls. Feature rules belong in the domain
 ## Feature conventions
 
 - Settings opens an index with current values, ordered Language & appearance, Notifications,
-  Lessons & billing, Calendar & invitations, then a second card of Subjects, Backup, About and Diagnostics —
+  Lessons & billing, Calendar & invitations, then a second card of Subjects, Backup, Show tips again (an
+  act in place, so no chevron), About and Diagnostics —
   what the «Ещё» tab held — each saying its own live («3 subjects», «Never · set up weekly», the version,
   «No crashes recorded»; `IndexFacts`). Each settings destination owns its view model, dialogs and permission launchers. Its loaded
   state joins preferences and permission status so the index never shows invented delivery defaults.

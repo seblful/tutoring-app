@@ -62,6 +62,7 @@ import com.seblful.klas.ui.common.rememberExternalApps
 import com.seblful.klas.ui.common.rememberRevealedFocus
 import com.seblful.klas.ui.common.swipeAction
 import com.seblful.klas.ui.common.timeText
+import com.seblful.klas.ui.designsystem.component.CoachMark
 import com.seblful.klas.ui.designsystem.component.DialogAction
 import com.seblful.klas.ui.designsystem.component.FormDialog
 import com.seblful.klas.ui.theme.KlasIcons
@@ -171,6 +172,7 @@ object HomeworkItemKeys {
  * @param owner the card a nested row stands in; its own homework goes unnamed — see [homeworkItems].
  * @param container what a nested row stands on, painted under it to cover the swipe's panel: the page, or
  * the section card it is listed in.
+ * @param tip the tab's tip about the swipe, when this row carries it.
  */
 @Composable
 fun SwipeableHomework(
@@ -183,6 +185,32 @@ fun SwipeableHomework(
     owner: Assignee? = null,
     container: Color = ListItemDefaults.containerColor,
     picking: HomeworkPicking = HomeworkPicking.NONE,
+    tip: HomeworkTip? = null,
+) {
+    if (tip != null) {
+        CoachMark(tip.text, visible = true, onDismiss = tip.onDismiss, modifier = modifier) {
+            HomeworkSwipeRow(row, onSwipe, onClick, messages, nested, Modifier, owner, container, picking, tip.peek)
+        }
+        return
+    }
+    HomeworkSwipeRow(row, onSwipe, onClick, messages, nested, modifier, owner, container, picking, peek = false)
+}
+
+/** The homework tab's tip, on the row it is about: [peek] shows the swipe too, unless a screen reader is on. */
+class HomeworkTip(val text: String, val onDismiss: () -> Unit, val peek: Boolean)
+
+@Composable
+private fun HomeworkSwipeRow(
+    row: HomeworkRow,
+    onSwipe: () -> Unit,
+    onClick: () -> Unit,
+    messages: Messages,
+    nested: Boolean,
+    modifier: Modifier,
+    owner: Assignee?,
+    container: Color,
+    picking: HomeworkPicking,
+    peek: Boolean,
 ) {
     if (picking.active && !nested) {
         HomeworkCard(row, messages, { picking.toggle(row) }, onSwipe, modifier, picking)
@@ -196,6 +224,7 @@ fun SwipeableHomework(
         onConfirm = onSwipe,
         modifier = modifier,
         toward = toward,
+        peek = peek,
         reveal = { armed -> HomeworkReveal(done = row.isCurrent, armed = armed, shape = shape, toward = toward) },
     ) {
         // The swipe's twin for a screen reader, on the same node it reads and taps.

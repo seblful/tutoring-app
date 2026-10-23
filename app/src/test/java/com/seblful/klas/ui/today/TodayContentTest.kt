@@ -21,6 +21,8 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeUp
 import androidx.compose.ui.unit.dp
+import com.seblful.klas.domain.guide.FirstStep
+import com.seblful.klas.domain.guide.FirstSteps
 import com.seblful.klas.domain.lesson.LessonPhase
 import com.seblful.klas.domain.model.ClassSession
 import com.seblful.klas.domain.model.LessonStatus
@@ -82,6 +84,8 @@ class TodayContentTest {
                     openLesson = { asked += "open $it" },
                     markTaught = { asked += "mark ${it.who}" },
                     undoMark = { asked += "undo ${it.who}" },
+                    hideFirstSteps = { asked += "hide" },
+                    firstStep = { step, student -> asked += "$step $student" },
                 ),
             )
         }
@@ -115,6 +119,33 @@ class TodayContentTest {
             .performClick()
 
         assertEquals(listOf("mark Olivia Brooks", "open 1"), asked)
+    }
+
+    @Test
+    fun `the first steps tick what is done and open the rest`() {
+        val steps = FirstSteps(setOf(FirstStep.BOOK, FirstStep.REMINDERS))
+        show(state(emptyList()).copy(firstSteps = FirstStepsCard(steps, student = 7)))
+
+        compose.onNodeWithText("2 of 5").assertExists()
+        compose.onNodeWithText("Book your first lesson")
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Done"))
+        compose.onNodeWithText("Pick a day and a time").assertDoesNotExist()
+        compose.onNodeWithText("Record a payment")
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Not done yet"))
+            .performClick()
+        compose.onNodeWithText("Hide").performClick()
+
+        assertEquals(listOf("PAYMENT 7", "hide"), asked)
+    }
+
+    @Test
+    fun `with every step done the card says so and closes`() {
+        show(state(emptyList()).copy(firstSteps = FirstStepsCard(FirstSteps(FirstStep.entries.toSet()), student = 7)))
+
+        compose.onNodeWithText("You're all set").assertExists()
+        compose.onNodeWithText("Close").performClick()
+
+        assertEquals(listOf("hide"), asked)
     }
 
     @Test

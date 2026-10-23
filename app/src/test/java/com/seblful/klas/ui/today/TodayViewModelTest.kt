@@ -1,17 +1,20 @@
 package com.seblful.klas.ui.today
 
 import com.seblful.klas.data.lessons.LessonWrite
+import com.seblful.klas.domain.guide.FirstStep
 import com.seblful.klas.domain.lesson.LessonPhase
 import com.seblful.klas.domain.model.Assignee
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.notifications.RecentMarks
+import com.seblful.klas.testutil.FakeNotificationPermission
 import com.seblful.klas.testutil.MainDispatcherRule
 import com.seblful.klas.testutil.TestEnv
 import com.seblful.klas.testutil.current
 import com.seblful.klas.testutil.observing
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
@@ -21,6 +24,8 @@ import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -43,6 +48,7 @@ class TodayViewModelTest {
     private val fixtures get() = env.fixtures
 
     private val marks = RecentMarks()
+    private val permission = FakeNotificationPermission(granted = true)
 
     private fun vm() = mainRule.own(
         TodayViewModel(
@@ -54,6 +60,8 @@ class TodayViewModelTest {
             homework = env.homeworkRepo,
             settings = env.settingsRepo,
             payments = env.paymentRepo,
+            guide = env.guideRepo,
+            notificationPermission = permission,
             recentMarks = marks,
             clock = env.clock,
             appScope = mainRule.appScope,
@@ -235,6 +243,74 @@ class TodayViewModelTest {
         env.settingsRepo.update { it.copy(lastExportAt = env.clock.now() - 2.days) }
         runCurrent()
         assertFalse(vm.state.current.backupStale)
+    }
+
+    @Test
+    fun `the first steps tick themselves as each deed is done`() = runTest(mainRule.dispatcher) {
+        val vm = vm()
+        observing(vm.state)
+        runCurrent()
+        val fresh = vm.state.current.firstSteps!!
+        assertEquals("reminders are on and allowed out of the box", setOf(FirstStep.REMINDERS), fresh.steps.done)
+        assertNull("nobody to pay yet", fresh.student)
+
+        val people = day()
+        runCurrent()
+        vm.markAllTaught()
+        env.paymentRepo.record(people.anya, Money.ofMajor(10), TODAY)
+        fixtures.homework(Assignee.Student(people.boris))
+        runCurrent()
+
+        val card = vm.state.current.firstSteps!!
+        assertTrue(card.steps.complete)
+        assertEquals("the first student taken on", people.anya, card.student)
+    }
+
+    @Test
+    fun `reminders the phone blocks are not a step done - until it allows them`() = runTest(mainRule.dispatcher) {
+        permission.granted = false
+        val vm = vm()
+        observing(vm.state)
+        runCurrent()
+        assertFalse(FirstStep.REMINDERS in vm.state.current.firstSteps!!.steps.done)
+
+        permission.granted = true
+        vm.refreshPermission()
+        runCurrent()
+        assertTrue(FirstStep.REMINDERS in vm.state.current.firstSteps!!.steps.done)
+
+        env.settingsRepo.update { it.copy(notificationsEnabled = false) }
+        runCurrent()
+        assertFalse("switched off in the app", FirstStep.REMINDERS in vm.state.current.firstSteps!!.steps.done)
+    }
+
+    @Test
+    fun `hiding the first steps puts the card away - and its undo brings it back`() = runTest(mainRule.dispatcher) {
+        val vm = vm()
+        observing(vm.state)
+        val events = mutableListOf<TodayViewModel.Event>()
+        backgroundScope.launch { vm.events.stream.collect { events += it } }
+        runCurrent()
+
+        vm.hideFirstSteps()
+        runCurrent()
+        assertNull(vm.state.current.firstSteps)
+        assertEquals(listOf<TodayViewModel.Event>(TodayViewModel.Event.FirstStepsHidden), events)
+
+        vm.showFirstSteps()
+        runCurrent()
+        assertNotNull(vm.state.current.firstSteps)
+    }
+
+    @Test
+    fun `whoever restored a backup is not shown the first steps`() = runTest(mainRule.dispatcher) {
+        day()
+        env.backupRestore.restore(env.backupManager.exportJson())
+        val vm = vm()
+        observing(vm.state)
+        runCurrent()
+
+        assertNull(vm.state.current.firstSteps)
     }
 
     private fun LocalDate.minusDay(): LocalDate = LocalDate.fromEpochDays(toEpochDays() - 1)

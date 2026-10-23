@@ -2,6 +2,7 @@ package com.seblful.klas.data.backup
 
 import com.seblful.klas.calendar.CalendarMirror
 import com.seblful.klas.data.settings.SettingsRepository
+import com.seblful.klas.domain.guide.Guide
 import com.seblful.klas.domain.reminders.ReminderScheduler
 import com.seblful.klas.domain.time.WallClock
 import com.seblful.klas.runCatchingCancellable
@@ -61,7 +62,8 @@ class BackupRestore @Inject constructor(
     private suspend fun replaceWith(json: String) {
         calendar.remirrorAfter {
             backup.importJson(json)
-            settings.update { it.copy(onboardingComplete = true) }
+            // Whoever restores already knows the app, so the new tutor's guide is not shown to them.
+            settings.update { it.copy(onboardingComplete = true, guide = Guide.DONE) }
         }
         // Imported classes change what's upcoming/overdue — re-run auto-complete & reminders. After the
         // re-mirror rather than inside it: the rows are already replaced, and a failure here must not

@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.seblful.klas.R
+import com.seblful.klas.domain.guide.Tip
 import com.seblful.klas.domain.lesson.LessonKind
 import com.seblful.klas.domain.model.Assignee
 import com.seblful.klas.queries.homework.AssigneeChoice
@@ -41,6 +42,7 @@ import com.seblful.klas.ui.common.KlasScreen
 import com.seblful.klas.ui.common.LessonKindIcon
 import com.seblful.klas.ui.common.ListSkeleton
 import com.seblful.klas.ui.common.Messages
+import com.seblful.klas.ui.common.ScreenTip
 import com.seblful.klas.ui.common.ScrollsToTopOnReselect
 import com.seblful.klas.ui.common.SectionTitle
 import com.seblful.klas.ui.common.SegmentedPage
@@ -52,8 +54,10 @@ import com.seblful.klas.ui.common.animateInPlace
 import com.seblful.klas.ui.common.constrainedContent
 import com.seblful.klas.ui.common.plusInset
 import com.seblful.klas.ui.common.rememberMessages
+import com.seblful.klas.ui.common.rememberScreenTip
 import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.designsystem.component.KlasFab
+import com.seblful.klas.ui.designsystem.component.rememberTouchExploration
 import com.seblful.klas.ui.theme.KlasIcons
 import com.seblful.klas.ui.theme.klasSemantics
 import dev.zacsweers.metrox.viewmodel.metroViewModel
@@ -101,6 +105,10 @@ fun HomeworkScreen(
     }
 
     val loaded = (state as? Loadable.Ready)?.value
+    val (screenTip, tip) = rememberHomeworkTip(
+        current = loaded?.lists?.current?.takeIf { side == HomeworkSide.CURRENT && picked.isEmpty() },
+        dialogOpen = listOf(adding, opened).any { it != null },
+    )
     KlasScreen(
         title = stringResource(R.string.nav_homework),
         page = side,
@@ -146,6 +154,8 @@ fun HomeworkScreen(
                         onAdd = ::add,
                         onOpen = { row -> scope.launch { opened = Opened(row, viewModel.choicesFor(row)) } },
                         bottomInset = bottomInset,
+                        tip = tip,
+                        onSwiped = { screenTip.done(Tip.HOMEWORK_SWIPE) },
                     )
                 }
             }
@@ -168,6 +178,23 @@ fun HomeworkScreen(
             onDismiss = { opened = null },
         )
     }
+}
+
+/**
+ * The swipe's tip and the card form it takes, for the first current card — never over a dialog, a selection or
+ * the archive.
+ *
+ * @param current the current homework while the tip may open: null on the archive, while picking or loading.
+ */
+@Composable
+private fun rememberHomeworkTip(current: List<HomeworkRow>?, dialogOpen: Boolean): Pair<ScreenTip, HomeworkTip?> {
+    val screenTip = rememberScreenTip(blocked = current == null || dialogOpen) { seen ->
+        Tip.forHomework(seen, current = current.orEmpty().size)
+    }
+    val reader = rememberTouchExploration()
+    val text = stringResource(if (reader) R.string.tip_homework_swipe_reader else R.string.tip_homework_swipe)
+    val tip = HomeworkTip(text, screenTip.dismiss, peek = !reader).takeIf { screenTip.tip == Tip.HOMEWORK_SWIPE }
+    return screenTip to tip
 }
 
 @Composable
@@ -207,6 +234,8 @@ private fun HomeworkList(
     onAdd: () -> Unit,
     onOpen: (HomeworkRow) -> Unit,
     bottomInset: PaddingValues,
+    tip: HomeworkTip? = null,
+    onSwiped: () -> Unit = {},
 ) {
     val rows = if (side == HomeworkSide.CURRENT) lists.current else lists.archive
     if (rows.isEmpty()) {
@@ -229,15 +258,25 @@ private fun HomeworkList(
         horizontalArrangement = Arrangement.spacedBy(Spacing.itemGap),
         verticalArrangement = Arrangement.spacedBy(Spacing.itemGap),
     ) {
+        // The card first in the list as drawn: by section on the current side.
+        val tipped = if (tip == null || side == HomeworkSide.ARCHIVE) {
+            null
+        } else {
+            bySection(rows).firstOrNull()?.second?.firstOrNull()
+        }
         val card: @Composable LazyGridItemScope.(HomeworkRow) -> Unit = { row ->
             SwipeableHomework(
                 row = row,
-                onSwipe = { undo.swiped(row.homework, done = side == HomeworkSide.CURRENT) },
+                onSwipe = {
+                    if (side == HomeworkSide.CURRENT) onSwiped()
+                    undo.swiped(row.homework, done = side == HomeworkSide.CURRENT)
+                },
                 onClick = { onOpen(row) },
                 messages = messages,
                 nested = false,
                 modifier = animateInPlace(),
                 picking = picking,
+                tip = tip.takeIf { row == tipped },
             )
         }
         if (side == HomeworkSide.ARCHIVE) {

@@ -1,6 +1,8 @@
 package com.seblful.klas.preview
 
 import androidx.compose.runtime.Composable
+import com.seblful.klas.domain.guide.FirstStep
+import com.seblful.klas.domain.guide.FirstSteps
 import com.seblful.klas.domain.homework.HomeworkRules
 import com.seblful.klas.domain.lesson.LessonPhase
 import com.seblful.klas.domain.model.Assignee
@@ -11,6 +13,7 @@ import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.TutoringClass
 import com.seblful.klas.domain.reports.Reports
 import com.seblful.klas.queries.homework.HomeworkRow
+import com.seblful.klas.ui.today.FirstStepsCard
 import com.seblful.klas.ui.today.TodayActions
 import com.seblful.klas.ui.today.TodayContent
 import com.seblful.klas.ui.today.TodayLessonRow
@@ -78,6 +81,25 @@ private fun TodayEmptyPreview() = PreviewSurface {
             homework = emptyList(),
             lastBackupAt = Instant.parse("2026-05-30T10:00:00Z"),
             backupStale = false,
+        ),
+        TodayActions(),
+    )
+}
+
+/** A new tutor's first day: one lesson booked for the evening, and the first steps still mostly to do. */
+@KlasPreview
+@Composable
+private fun TodayFirstStepsPreview() = PreviewSurface {
+    TodayContent(
+        TodayState(
+            lessons = listOf(
+                row(4, "Пётр Иванов", "2026-06-01T15:00:00Z", LessonPhase.UPCOMING, LessonStatus.SCHEDULED),
+            ),
+            outstanding = Reports.Outstanding(students = 0, total = Money.ZERO),
+            homework = emptyList(),
+            lastBackupAt = null,
+            backupStale = false,
+            firstSteps = FirstStepsCard(FirstSteps(setOf(FirstStep.BOOK, FirstStep.REMINDERS)), student = 4),
         ),
         TodayActions(),
     )

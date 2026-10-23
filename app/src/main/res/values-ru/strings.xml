@@ -1364,4 +1364,32 @@
     <string name="statement_balance_after">Баланс после: %1$s</string>
     <string name="statement_filename">Выписка — %1$s.pdf</string>
     <string name="money_range" translatable="false">%1$s–%2$s</string>
+    <string name="tip_got_it">Понятно</string>
+    <string name="tip_schedule_date">Нажмите на дату, чтобы перейти к любому дню.</string>
+    <string name="tip_lesson_swipe">Смахните занятие, чтобы отметить его проведённым. Нажмите на него — для оплаты, задания или переноса.</string>
+    <string name="tip_lesson_swipe_reader">«Отметить проведённым» — среди действий занятия. Нажмите на него — для оплаты, задания или переноса.</string>
+    <string name="tip_lesson_pick">Удерживайте занятие, чтобы выбрать несколько и отметить или отменить их вместе.</string>
+    <string name="tip_homework_swipe">Смахните задание, когда оно сделано. Удерживайте, чтобы выбрать несколько.</string>
+    <string name="tip_homework_swipe_reader">«Сделано» — среди действий задания. Удерживайте, чтобы выбрать несколько.</string>
+    <string name="first_steps_title">Первые шаги</string>
+    <string name="first_steps_all_set">Всё готово</string>
+    <string name="first_steps_count">%1$d из %2$d</string>
+    <string name="first_steps_hide">Скрыть</string>
+    <string name="first_steps_close">Закрыть</string>
+    <string name="first_steps_hidden">Первые шаги скрыты. Их можно вернуть в настройках.</string>
+    <string name="first_step_done">Сделано</string>
+    <string name="first_step_to_do">Ещё не сделано</string>
+    <string name="first_step_book">Запишите первое занятие</string>
+    <string name="first_step_book_hint">Выберите день и время</string>
+    <string name="first_step_mark">Отметьте занятие проведённым</string>
+    <string name="first_step_mark_hint">В расписании, когда оно закончится</string>
+    <string name="first_step_payment">Запишите оплату</string>
+    <string name="first_step_payment_hint">Сколько и как заплатил ученик</string>
+    <string name="first_step_homework">Задайте задание</string>
+    <string name="first_step_homework_hint">Что сделать к следующему занятию</string>
+    <string name="first_step_reminders">Включите напоминания о занятиях</string>
+    <string name="first_step_reminders_hint">Уведомление перед каждым занятием</string>
+    <string name="settings_tips_again">Показать подсказки снова</string>
+    <string name="settings_tips_again_summary">Первые шаги на «Сегодня» и жесты</string>
+    <string name="settings_tips_shown_again">Подсказки появятся снова</string>
 </resources>

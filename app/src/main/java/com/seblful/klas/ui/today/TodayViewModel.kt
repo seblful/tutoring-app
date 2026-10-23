@@ -11,9 +11,11 @@ import com.seblful.klas.data.lessons.LessonWrite
 import com.seblful.klas.data.people.GroupRepository
 import com.seblful.klas.data.people.StudentRepository
 import com.seblful.klas.data.people.SubjectRepository
+import com.seblful.klas.data.settings.GuideRepository
 import com.seblful.klas.data.settings.SettingsRepository
 import com.seblful.klas.di.ApplicationScope
 import com.seblful.klas.di.Computation
+import com.seblful.klas.domain.guide.FirstSteps
 import com.seblful.klas.domain.homework.HomeworkRules
 import com.seblful.klas.domain.lesson.LessonPhase
 import com.seblful.klas.domain.lesson.SessionRules
@@ -27,6 +29,7 @@ import com.seblful.klas.domain.schedule.DaySummary
 import com.seblful.klas.domain.time.WallClock
 import com.seblful.klas.format.days
 import com.seblful.klas.format.minutes
+import com.seblful.klas.notifications.NotificationPermission
 import com.seblful.klas.notifications.RecentMarks
 import com.seblful.klas.queries.homework.HomeworkLists
 import com.seblful.klas.queries.homework.HomeworkRow
@@ -44,9 +47,12 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlin.time.Duration.Companion.days
@@ -83,6 +89,7 @@ data class TodayState(
     val recentMarks: List<TodayMark> = emptyList(),
     val lastBackupAt: Instant?,
     val backupStale: Boolean,
+    val firstSteps: FirstStepsCard? = null,
 ) {
     /** Over and unaccounted for — the ones "Mark all taught" settles. */
     val toMark: List<TodayLessonRow> get() = lessons.filter { it.phase.isUnfinished }
@@ -94,6 +101,12 @@ data class TodayState(
     val next: TodayLessonRow?
         get() = lessons.firstOrNull { it.phase.isRunning } ?: lessons.firstOrNull { it.phase == LessonPhase.UPCOMING }
 }
+
+/**
+ * The first-steps card while it is out: which steps are done, and the student a payment or homework step opens
+ * — the first one taken on, null if there is none to open.
+ */
+data class FirstStepsCard(val steps: FirstSteps, val student: Long?)
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @ViewModelKey
@@ -107,6 +120,8 @@ class TodayViewModel @Inject constructor(
     homework: HomeworkRepository,
     settings: SettingsRepository,
     payments: PaymentRepository,
+    private val guide: GuideRepository,
+    private val notificationPermission: NotificationPermission,
     private val recentMarks: RecentMarks,
     private val clock: WallClock,
     @param:ApplicationScope private val appScope: CoroutineScope,
@@ -119,6 +134,9 @@ class TodayViewModel @Inject constructor(
 
         /** An undo found a lesson changed since it was marked, and left it. */
         data object UndoChanged : Event
+
+        /** The first-steps card was put away, for the snackbar's Undo. */
+        data object FirstStepsHidden : Event
     }
 
     val events = UiEvents<Event>()
@@ -196,7 +214,33 @@ class TodayViewModel @Inject constructor(
             s.lastExportAt to (active.isNotEmpty() && AutoBackup.isStale(s.lastExportAt, now))
         }
 
-    val state: StateFlow<Loadable<TodayState>> =
+    /** Whether the phone lets reminders through — asked again on every return to Today (see [refreshPermission]). */
+    private val permitted = MutableStateFlow(notificationPermission.isGranted())
+
+    /**
+     * The card until it is put away. Not read at all after that, so a tutor long past their first week does not
+     * keep a query of every table running for a card nobody sees.
+     */
+    private val firstSteps: Flow<FirstStepsCard?> = guide.guide.map { it.firstStepsHidden }.distinctUntilChanged()
+        .flatMapLatest { hidden ->
+            if (hidden) {
+                flowOf(null)
+            } else {
+                combine(guide.progress, settings.observe(), permitted, students.observeActive()) {
+                        done,
+                        current,
+                        allowed,
+                        active,
+                    ->
+                    FirstStepsCard(
+                        steps = FirstSteps.of(done, reminded = current.notificationsEnabled && allowed),
+                        student = active.minByOrNull { it.id }?.id,
+                    )
+                }
+            }
+        }
+
+    private val day: Flow<TodayState> =
         combine(lessons, owed, homeworkDue, backup, recent) {
                 rows,
                 (total, debtors),
@@ -214,10 +258,29 @@ class TodayViewModel @Inject constructor(
                 backupStale = stale,
             )
         }
+
+    val state: StateFlow<Loadable<TodayState>> =
+        combine(day, firstSteps) { today, steps -> today.copy(firstSteps = steps) }
             .ready()
             .derive(this, computation, Loadable.Loading)
 
     fun markTaught(row: TodayLessonRow) = mark(listOf(row.session))
+
+    /** Asks the platform again: the tutor may have allowed notifications in system settings meanwhile. */
+    fun refreshPermission() {
+        permitted.value = notificationPermission.isGranted()
+    }
+
+    fun hideFirstSteps() {
+        appScope.launch {
+            guide.setFirstStepsHidden(true)
+            events.send(Event.FirstStepsHidden)
+        }
+    }
+
+    fun showFirstSteps() {
+        appScope.launch { guide.setFirstStepsHidden(false) }
+    }
 
     /** Every lesson over and still unmarked, taught in one go — and taken back in one go. */
     fun markAllTaught() = mark(state.value.valueOrNull()?.toMark.orEmpty().map { it.session })

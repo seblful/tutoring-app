@@ -40,7 +40,9 @@ Preserve on-device data and existing backup files when changing storage. Before 
 
 ## Backup and restore
 
-- Settings are a device-local Room row, written under a `Mutex` and excluded from backup. Android
+- Settings are a device-local Room row, written under a `Mutex` and excluded from backup — the guide's
+  seen tips and hidden card (v14, `tipsSeen`, `firstStepsHidden`) included: a restore marks the guide done
+  instead of carrying another phone's. Android
   automatic backup is disabled; manual JSON export through SAF moves tutoring data between devices.
   SAF supports cloud destinations such as Drive without app-held cloud credentials. The export screen
   states that app preferences remain on the current phone.

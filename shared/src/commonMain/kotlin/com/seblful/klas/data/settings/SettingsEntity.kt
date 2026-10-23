@@ -170,6 +170,15 @@ data class SettingsEntity(
     /** Whether the last weekly copy could not be written — the folder has to be picked again. */
     @ColumnInfo(defaultValue = "0")
     val autoBackupFailed: Boolean = false,
+    /**
+     * The guide a new tutor gets (`Guide`): the [com.seblful.klas.domain.guide.Tip]s seen on this phone, as
+     * their names joined by commas, and whether the first-steps card is put away. Added by v13 → v14, which
+     * marks both done for an install already through setup — the guide is for someone new to the app.
+     */
+    @ColumnInfo(defaultValue = "")
+    val tipsSeen: String = "",
+    @ColumnInfo(defaultValue = "0")
+    val firstStepsHidden: Boolean = false,
 ) {
     companion object {
         const val SINGLETON_ID = 0

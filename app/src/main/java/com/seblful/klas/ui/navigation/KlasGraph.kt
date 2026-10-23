@@ -81,22 +81,7 @@ class KlasGraph(
         // This screen's own back, not "whatever is on top": see [KlasNavigator.close].
         val back = { navigator.close(screen) }
         when (val route = screen.route) {
-            Routes.Today -> TodayScreen(
-                onSettings = settings,
-                onOpenLesson = {
-                    navigator.openTabFromTray(TopDestination.SCHEDULE)
-                    arriveAtSchedule(ScheduleTarget.Lesson(it))
-                },
-                onBook = { go(Routes.classEdit(0)) },
-                onDebts = {
-                    navigator.openTabFromTray(TopDestination.REPORTS)
-                    arriveAtDebts()
-                },
-                onHomework = { navigator.navigateToTab(TopDestination.HOMEWORK) },
-                onBackup = { go(Routes.Backup) },
-                onSchedule = { navigator.navigateToTab(TopDestination.SCHEDULE) },
-                onOpenStudent = { go(Routes.StudentDetail(it)) },
-            )
+            Routes.Today -> Today()
             Routes.Schedule -> Schedule(screen.id)
             Routes.Reports -> ReportsScreen(
                 onStudentClick = { go(Routes.StudentDetail(it)) },
@@ -138,6 +123,30 @@ class KlasGraph(
             // is also where its one obligation is stated — so the way to act on it is here.
             Routes.About -> AboutScreen(onBack = back, onBackup = { go(Routes.Backup) })
         }
+    }
+
+    @Composable
+    private fun Today() {
+        TodayScreen(
+            onSettings = settings,
+            onOpenLesson = {
+                navigator.openTabFromTray(TopDestination.SCHEDULE)
+                arriveAtSchedule(ScheduleTarget.Lesson(it))
+            },
+            onBook = { go(Routes.classEdit(0)) },
+            onDebts = {
+                navigator.openTabFromTray(TopDestination.REPORTS)
+                arriveAtDebts()
+            },
+            onHomework = { navigator.navigateToTab(TopDestination.HOMEWORK) },
+            onBackup = { go(Routes.Backup) },
+            onSchedule = { navigator.navigateToTab(TopDestination.SCHEDULE) },
+            onOpenStudent = { go(Routes.StudentDetail(it)) },
+            onRecordPayment = { go(Routes.StudentDetail(it, task = StudentTask.PAYMENT)) },
+            onGiveHomework = { go(Routes.StudentDetail(it, task = StudentTask.HOMEWORK)) },
+            onPeople = { navigator.navigateToTab(TopDestination.PEOPLE) },
+            onReminders = { go(Routes.NotificationSettings) },
+        )
     }
 
     @Composable

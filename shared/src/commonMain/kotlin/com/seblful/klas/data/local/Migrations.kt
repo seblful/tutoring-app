@@ -256,6 +256,22 @@ object Migrations {
         }
     }
 
+    /**
+     * The guide a new tutor gets. An install already through setup has found its way without it, so it starts
+     * with every tip of this version seen and the first-steps card put away. The names are frozen here: a tip
+     * added later is one these tutors have not seen either.
+     */
+    val MIGRATION_13_14 = object : Migration(13, 14) {
+        override fun migrate(connection: SQLiteConnection) {
+            connection.execSQL("ALTER TABLE settings ADD COLUMN tipsSeen TEXT NOT NULL DEFAULT ''")
+            connection.execSQL("ALTER TABLE settings ADD COLUMN firstStepsHidden INTEGER NOT NULL DEFAULT 0")
+            connection.execSQL(
+                "UPDATE settings SET tipsSeen = 'SCHEDULE_DATE,LESSON_SWIPE,LESSON_PICK,HOMEWORK_SWIPE', " +
+                    "firstStepsHidden = 1 WHERE onboardingComplete = 1",
+            )
+        }
+    }
+
     /** Everything above, in the order Room should be handed it. See `di/DatabaseModule`. */
     val ALL: Array<Migration> = arrayOf(
         MIGRATION_5_6,
@@ -266,5 +282,6 @@ object Migrations {
         MIGRATION_10_11,
         MIGRATION_11_12,
         MIGRATION_12_13,
+        MIGRATION_13_14,
     )
 }

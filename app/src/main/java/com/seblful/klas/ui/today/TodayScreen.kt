@@ -21,8 +21,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.seblful.klas.R
+import com.seblful.klas.domain.guide.FirstStep
 import com.seblful.klas.domain.lesson.LessonPhase
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.format.bulletJoin
@@ -75,6 +77,10 @@ fun TodayScreen(
     onBackup: () -> Unit,
     onSchedule: () -> Unit = {},
     onOpenStudent: (Long) -> Unit = {},
+    onRecordPayment: (studentId: Long) -> Unit = {},
+    onGiveHomework: (studentId: Long) -> Unit = {},
+    onPeople: () -> Unit = {},
+    onReminders: () -> Unit = {},
     viewModel: TodayViewModel = metroViewModel(),
 ) {
     val messages = rememberMessages()
@@ -87,8 +93,15 @@ fun TodayScreen(
                     resources.getQuantityString(R.plurals.today_marked, event.sessions.size, event.sessions.size),
                 ) { viewModel.undo(event) }
                 TodayViewModel.Event.UndoChanged -> messages.show(resources.getString(R.string.class_undo_changed))
+                TodayViewModel.Event.FirstStepsHidden ->
+                    messages.undoable(resources.getString(R.string.first_steps_hidden)) { viewModel.showFirstSteps() }
             }
         }
+    }
+    // Reminders may have been allowed in system settings while the app was away, which ticks a first step.
+    LifecycleResumeEffect(viewModel) {
+        viewModel.refreshPermission()
+        onPauseOrDispose { }
     }
     KlasScreen(
         title = stringResource(R.string.nav_today),
@@ -110,6 +123,16 @@ fun TodayScreen(
                     schedule = onSchedule,
                     openStudent = onOpenStudent,
                     undoMark = viewModel::undo,
+                    hideFirstSteps = viewModel::hideFirstSteps,
+                    firstStep = { step, student ->
+                        when (step) {
+                            FirstStep.BOOK -> onBook()
+                            FirstStep.MARK_TAUGHT -> onSchedule()
+                            FirstStep.PAYMENT -> student?.let(onRecordPayment) ?: onPeople()
+                            FirstStep.HOMEWORK -> student?.let(onGiveHomework) ?: onHomework()
+                            FirstStep.REMINDERS -> onReminders()
+                        }
+                    },
                 ),
                 modifier = modifier,
                 bottomInset = bottomInset,
@@ -129,12 +152,15 @@ class TodayActions(
     val schedule: () -> Unit = {},
     val openStudent: (Long) -> Unit = {},
     val undoMark: (TodayMark) -> Unit = {},
+    val hideFirstSteps: () -> Unit = {},
+    /** Opens where [FirstStep] is done — for a payment or homework, on [student]'s card when there is one. */
+    val firstStep: (step: FirstStep, student: Long?) -> Unit = { _, _ -> },
 )
 
 /**
  * The day in the order it is acted on: an old backup first, since it is the one thing here about not losing
- * everything; the lesson now or next; what is over and still to mark; the rest of the day; then money and
- * homework, which have their own tabs and appear only when there is something.
+ * everything; the lesson now or next; what is over and still to mark; a new tutor's first steps; the rest of the
+ * day; then money and homework, which have their own tabs and appear only when there is something.
  */
 @Composable
 internal fun TodayContent(
@@ -159,6 +185,8 @@ internal fun TodayContent(
         state.next?.let { NextCard(it, actions.openLesson) }
         if (state.toMark.isNotEmpty()) ToMark(state.toMark, actions)
         if (state.recentMarks.isNotEmpty()) RecentlyMarked(state.recentMarks, actions.undoMark)
+        // Under what the day needs doing now, above the rest of it: a new tutor's day is mostly this card.
+        state.firstSteps?.let { FirstStepsSection(it, actions) }
         DayLessons(state, actions)
         if (state.outstanding.students > 0) Owed(state, actions)
         if (state.homework.isNotEmpty()) HomeworkDue(state.homework, actions.homework)

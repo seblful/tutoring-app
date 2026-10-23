@@ -46,4 +46,28 @@ class SwipeRevealTest {
         compose.waitForIdle()
         assertTrue("the drag uncovers the panel", drawn)
     }
+
+    @Test
+    fun `a peek shows the panel and comes back - without confirming anything`() {
+        var drawn = false
+        var confirmed = false
+        compose.setContent {
+            KlasTheme {
+                SwipeToConfirmBox(
+                    onConfirm = { confirmed = true },
+                    reveal = { drawn = true },
+                    modifier = Modifier.testTag("row").fillMaxWidth().height(72.dp),
+                    peek = true,
+                ) { Text("Алгебра") }
+            }
+        }
+        compose.mainClock.autoAdvance = false
+        compose.mainClock.advanceTimeBy(1_000)
+        assertTrue("on its way out the row uncovers the panel", drawn)
+
+        compose.mainClock.autoAdvance = true
+        compose.mainClock.advanceTimeBy(3_000)
+        compose.waitForIdle()
+        assertFalse("a peek stops short of the mark, and is never a swipe", confirmed)
+    }
 }

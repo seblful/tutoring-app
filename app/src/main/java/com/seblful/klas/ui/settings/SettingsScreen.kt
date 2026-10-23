@@ -25,6 +25,7 @@ import com.seblful.klas.data.settings.AppSettings
 import com.seblful.klas.domain.model.AppLanguage
 import com.seblful.klas.format.formatDate
 import com.seblful.klas.format.toLocalDate
+import com.seblful.klas.ui.common.GuideViewModel
 import com.seblful.klas.ui.common.IconAvatar
 import com.seblful.klas.ui.common.KlasScreen
 import com.seblful.klas.ui.common.ListSkeleton
@@ -55,9 +56,11 @@ fun SettingsScreen(
     navigation: SettingsNavigation,
     open: SettingsCategory? = null,
     viewModel: SettingsViewModel = metroViewModel(),
+    guide: GuideViewModel = metroViewModel(),
 ) {
     SettingsPage(R.string.settings_title, onBack, viewModel) { page, modifier, bottomInset, messages ->
         val allow = rememberNotificationAction(viewModel, messages)
+        val shownAgain = stringResource(R.string.settings_tips_shown_again)
         SettingsIndex(
             page.settings, page.notifications, page.reminders, page.calendar,
             navigation,
@@ -66,6 +69,10 @@ fun SettingsScreen(
             bottomInset,
             facts = page.facts,
             onAllowNotifications = { allow(viewModel.unblockNotifications()) },
+            onShowTipsAgain = {
+                guide.showAgain()
+                messages.show(shownAgain)
+            },
         )
     }
 }
@@ -97,6 +104,7 @@ internal fun SettingsIndex(
     bottomInset: PaddingValues = PaddingValues(),
     facts: IndexFacts = IndexFacts(),
     onAllowNotifications: () -> Unit = {},
+    onShowTipsAgain: () -> Unit = {},
 ) {
     Column(modifier.verticalScroll(rememberScrollState()).padding(bottom = Spacing.gutter).padding(bottomInset)) {
         // Something that does not work, above everything that is merely set (R2).
@@ -124,6 +132,15 @@ internal fun SettingsIndex(
                 backupSummary(settings),
                 navigation.backup,
                 selected = false,
+            )
+            // An act, not a page: it puts the first steps and every tip back, and says so.
+            SettingsCategoryRow(
+                KlasIcons.Outlined.Lightbulb,
+                stringResource(R.string.settings_tips_again),
+                stringResource(R.string.settings_tips_again_summary),
+                onShowTipsAgain,
+                selected = false,
+                opens = false,
             )
             SettingsCategoryRow(
                 KlasIcons.Outlined.Info,
@@ -205,7 +222,10 @@ private fun SettingsCategories(
     )
 }
 
-/** @param selected for the page open beside the index, tinted within the row's press shape. */
+/**
+ * @param selected for the page open beside the index, tinted within the row's press shape.
+ * @param opens false for a row that does something in place rather than opening a page: it has no chevron.
+ */
 @Composable
 private fun SettingsCategoryRow(
     icon: ImageVector,
@@ -213,14 +233,19 @@ private fun SettingsCategoryRow(
     summary: String,
     onClick: () -> Unit,
     selected: Boolean,
+    opens: Boolean = true,
 ) {
     ListItem(
         leadingContent = { IconAvatar(icon, selected = selected) },
         headlineContent = { Text(title) },
         supportingContent = { Text(summary) },
-        trailingContent = {
-            val colors = MaterialTheme.colorScheme
-            OpensScreenMark(if (selected) colors.onSecondaryContainer else colors.onSurfaceVariant)
+        trailingContent = if (opens) {
+            {
+                val colors = MaterialTheme.colorScheme
+                OpensScreenMark(if (selected) colors.onSecondaryContainer else colors.onSurfaceVariant)
+            }
+        } else {
+            null
         },
         colors = if (selected) {
             val onSelected = MaterialTheme.colorScheme.onSecondaryContainer

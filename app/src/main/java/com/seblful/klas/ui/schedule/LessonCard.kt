@@ -18,6 +18,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import com.seblful.klas.R
+import com.seblful.klas.domain.guide.Tip
 import com.seblful.klas.domain.lesson.LessonKind
 import com.seblful.klas.domain.lesson.LessonPhase
 import com.seblful.klas.domain.model.LessonStatus
@@ -39,6 +40,7 @@ import com.seblful.klas.ui.common.popsOnChange
 import com.seblful.klas.ui.common.sectionSurface
 import com.seblful.klas.ui.common.swipeAction
 import com.seblful.klas.ui.common.timeText
+import com.seblful.klas.ui.designsystem.component.CoachMark
 import com.seblful.klas.ui.designsystem.component.SlicePosition
 import com.seblful.klas.ui.designsystem.component.SurfaceRow
 import com.seblful.klas.ui.designsystem.component.shapeOf
@@ -56,14 +58,66 @@ internal fun LazyItemScope.SwipeToCompleteCard(
     slice: SlicePosition? = null,
 ) {
     val picking = LocalLessonPicking.current
+    val lessonTip = LocalLessonTip.current
+    val tip = lessonTip.on(row)
+    val reader = lessonTip.reader
     val tap = if (picking.active) ({ picking.toggle(row) }) else onClick
+    // However it is marked — swiped, or through the action a screen reader offers — the swipe has been learned.
+    val complete = {
+        lessonTip.screen.done(Tip.LESSON_SWIPE)
+        onComplete()
+    }
     if (!row.canSwipeComplete || picking.active) {
-        ScheduleCard(row, phase, timeWidth, tap, animateInPlace(modifier), picking, slice)
+        LessonCoachMark(tip, reader, lessonTip.screen.dismiss, animateInPlace(modifier)) { anchored ->
+            ScheduleCard(row, phase, timeWidth, tap, anchored, picking, slice)
+        }
         return
     }
+    LessonCoachMark(tip, reader, lessonTip.screen.dismiss, animateInPlace(modifier)) { anchored ->
+        val peek = tip == Tip.LESSON_SWIPE && !reader
+        SwipeCard(row, phase, timeWidth, tap, complete, anchored, slice, picking, peek)
+    }
+}
+
+/**
+ * [content] under the schedule's tip when this card carries one — its modifier then goes on the bubble's anchor,
+ * which is the list item's root — and as it is otherwise.
+ */
+@Composable
+private fun LessonCoachMark(
+    tip: Tip?,
+    reader: Boolean,
+    onDismiss: () -> Unit,
+    modifier: Modifier,
+    content: @Composable (Modifier) -> Unit,
+) {
+    if (tip == null) {
+        content(modifier)
+        return
+    }
+    val text = when (tip) {
+        Tip.LESSON_SWIPE -> if (reader) R.string.tip_lesson_swipe_reader else R.string.tip_lesson_swipe
+        else -> R.string.tip_lesson_pick
+    }
+    CoachMark(stringResource(text), visible = true, onDismiss = onDismiss, modifier = modifier) { content(Modifier) }
+}
+
+@Composable
+private fun SwipeCard(
+    row: ScheduleRow,
+    phase: LessonPhase,
+    timeWidth: Dp,
+    onClick: () -> Unit,
+    onComplete: () -> Unit,
+    modifier: Modifier,
+    slice: SlicePosition?,
+    picking: LessonPicking,
+    peek: Boolean,
+) {
     SwipeToConfirmBox(
         onConfirm = onComplete,
-        modifier = animateInPlace(modifier),
+        modifier = modifier,
+        peek = peek,
         // **Green, the container tone of the badge this gesture produces.** It was `tertiaryContainer`, which
         // in this palette is a pale cyan — so the swipe promised «Проведено» in a blue, the colour a lesson
         // *still to come* is written in, and then handed back a badge of another colour entirely. Now the
@@ -85,7 +139,7 @@ internal fun LazyItemScope.SwipeToCompleteCard(
             row,
             phase,
             timeWidth,
-            tap,
+            onClick,
             Modifier.swipeAction(stringResource(R.string.class_mark_completed), onComplete),
             picking,
             slice,

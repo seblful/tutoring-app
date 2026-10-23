@@ -11,6 +11,7 @@ import com.seblful.klas.data.lessons.LessonDao
 import com.seblful.klas.data.people.GroupDao
 import com.seblful.klas.data.people.StudentDao
 import com.seblful.klas.data.people.SubjectDao
+import com.seblful.klas.data.settings.GuideDao
 import com.seblful.klas.data.settings.SettingsDao
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.BindingContainer
@@ -35,6 +36,7 @@ object PersistenceBindings {
     @Provides fun providePaymentDao(db: AppDatabase): PaymentDao = db.paymentDao()
     @Provides fun provideBalanceDao(db: AppDatabase): BalanceDao = db.balanceDao()
     @Provides fun provideSettingsDao(db: AppDatabase): SettingsDao = db.settingsDao()
+    @Provides fun provideGuideDao(db: AppDatabase): GuideDao = db.guideDao()
     @Provides fun provideHomeworkDao(db: AppDatabase): HomeworkDao = db.homeworkDao()
     @Provides fun provideSnapshotDao(db: AppDatabase): SnapshotDao = db.snapshotDao()
 

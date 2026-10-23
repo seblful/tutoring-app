@@ -42,6 +42,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.seblful.klas.R
+import com.seblful.klas.domain.guide.Tip
 import com.seblful.klas.domain.lesson.DeleteWarning
 import com.seblful.klas.domain.lesson.LessonPhase
 import com.seblful.klas.domain.model.LessonStatus
@@ -69,6 +70,7 @@ import com.seblful.klas.ui.common.rememberColumnTimeWidth
 import com.seblful.klas.ui.common.rememberConfirmFeedback
 import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.rememberRejectFeedback
+import com.seblful.klas.ui.common.rememberScreenTip
 import com.seblful.klas.ui.common.roomForSupportingPane
 import com.seblful.klas.ui.common.sectionSurface
 import com.seblful.klas.ui.common.state.Loadable
@@ -78,6 +80,7 @@ import com.seblful.klas.ui.designsystem.component.KlasDivider
 import com.seblful.klas.ui.designsystem.component.KlasFab
 import com.seblful.klas.ui.designsystem.component.SectionAction
 import com.seblful.klas.ui.designsystem.component.SlicePosition
+import com.seblful.klas.ui.designsystem.component.rememberTouchExploration
 import com.seblful.klas.ui.navigation.Arrival
 import com.seblful.klas.ui.theme.KlasIcons
 import dev.zacsweers.metrox.viewmodel.metroViewModel
@@ -231,7 +234,37 @@ fun ScheduleScreen(
     // On an expanded window the month is Material's supporting pane: the grid beside the day it picks.
     val monthBeside = viewMode == ScheduleViewMode.MONTH && roomForSupportingPane()
     val picking = LessonPicking(picked) { viewModel.batch.toggle(it.session.first.id) }
-    CompositionLocalProvider(LocalLessonPicking provides picking) {
+
+    // The one tip this visit may show, on the card or title it is about. Lessons on screen are the week's in the
+    // week view, else the chosen day's; nothing opens over a sheet, a dialog or a selection.
+    val shownRows = if (viewMode == ScheduleViewMode.WEEK) {
+        contentState.valueOrNull()?.rowsShown
+    } else {
+        dayContent.valueOrNull()?.rows
+    }
+    val swipeAnchor = shownRows?.firstOrNull { it.canSwipeComplete }
+    val screenTip = rememberScreenTip(
+        blocked = shownRows == null || picked.isNotEmpty() || timeConflict != null ||
+            listOf(sheetFor, movingRow, deletingRow, paymentFor, correctingRow).any { it != null },
+    ) { seen -> Tip.forSchedule(seen, swipeable = swipeAnchor != null, lessons = shownRows.orEmpty().size) }
+    val lessonTip = LessonTip(
+        lessonId = when (screenTip.tip) {
+            Tip.LESSON_SWIPE -> swipeAnchor
+            Tip.LESSON_PICK -> shownRows?.firstOrNull()
+            else -> null
+        }?.session?.first?.id,
+        screen = screenTip,
+        reader = rememberTouchExploration(),
+    )
+    // A long-press that picked something has taught itself.
+    LaunchedEffect(picked.isNotEmpty()) {
+        if (picked.isNotEmpty()) screenTip.done(Tip.LESSON_PICK)
+    }
+    val pickDate = { day: LocalDate ->
+        screenTip.done(Tip.SCHEDULE_DATE)
+        viewModel.selectDate(day)
+    }
+    CompositionLocalProvider(LocalLessonPicking provides picking, LocalLessonTip provides lessonTip) {
         KlasScreen(
             title = stringResource(R.string.schedule_title),
             page = viewMode,
@@ -297,36 +330,38 @@ fun ScheduleScreen(
                 headerMaxWidth = if (monthBeside) CalendarPaneWidth else MaxContentWidth,
                 header = {
                     // The navigator stays pinned in every mode, so paging is always one tap away.
-                    when (viewMode) {
-                        ScheduleViewMode.DAY -> {
-                            DayNavigator(
-                                // The day the list *is* — see [ScheduleContent.Day.date]. Paging still
-                                // steps from the selected day; this only keeps the title and the rows
-                                // turning over in the same frame.
-                                date = dayContent.valueOrNull()?.date ?: date,
-                                onPrevious = viewModel::goToPreviousDay,
-                                onNext = viewModel::goToNextDay,
+                    DateTip(screenTip) {
+                        when (viewMode) {
+                            ScheduleViewMode.DAY -> {
+                                DayNavigator(
+                                    // The day the list *is* — see [ScheduleContent.Day.date]. Paging still
+                                    // steps from the selected day; this only keeps the title and the rows
+                                    // turning over in the same frame.
+                                    date = dayContent.valueOrNull()?.date ?: date,
+                                    onPrevious = viewModel::goToPreviousDay,
+                                    onNext = viewModel::goToNextDay,
+                                    onToday = viewModel::goToToday,
+                                    selected = date,
+                                    onPick = pickDate,
+                                )
+                            }
+                            ScheduleViewMode.WEEK -> WeekNavigator(
+                                days = week,
+                                onPrevious = viewModel::goToPreviousWeek,
+                                onNext = viewModel::goToNextWeek,
                                 onToday = viewModel::goToToday,
                                 selected = date,
-                                onPick = viewModel::selectDate,
+                                onPick = pickDate,
+                            )
+                            ScheduleViewMode.MONTH -> MonthNavigator(
+                                month = month,
+                                onPrevious = viewModel::goToPreviousMonth,
+                                onNext = viewModel::goToNextMonth,
+                                onToday = viewModel::goToToday,
+                                selected = date,
+                                onPick = pickDate,
                             )
                         }
-                        ScheduleViewMode.WEEK -> WeekNavigator(
-                            days = week,
-                            onPrevious = viewModel::goToPreviousWeek,
-                            onNext = viewModel::goToNextWeek,
-                            onToday = viewModel::goToToday,
-                            selected = date,
-                            onPick = viewModel::selectDate,
-                        )
-                        ScheduleViewMode.MONTH -> MonthNavigator(
-                            month = month,
-                            onPrevious = viewModel::goToPreviousMonth,
-                            onNext = viewModel::goToNextMonth,
-                            onToday = viewModel::goToToday,
-                            selected = date,
-                            onPick = viewModel::selectDate,
-                        )
                     }
                     // What the schedule is narrowed to, and the Day view's summary — what the day comes to,
                     // under the day it names.

@@ -23,7 +23,7 @@ class ComponentCatalogTest {
         /** A top-level `@Composable fun Name(` that is public or internal — a part features build with. */
         val Composable = Regex("""@Composable\s+(?:internal\s+)?fun ([A-Z]\w*)\(""")
 
-        /** Dialogs and the sheet open windows of their own; a static page cannot show them. */
-        val OwnWindows = setOf("FormDialog", "ChoiceDialog", "KlasSheet")
+        /** Dialogs, the sheet and a tip's bubble open windows of their own; a static page cannot show them. */
+        val OwnWindows = setOf("FormDialog", "ChoiceDialog", "KlasSheet", "CoachMark")
     }
 }

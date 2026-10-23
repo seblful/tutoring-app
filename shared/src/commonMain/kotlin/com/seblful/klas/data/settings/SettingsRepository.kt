@@ -1,5 +1,7 @@
 package com.seblful.klas.data.settings
 
+import com.seblful.klas.domain.guide.Guide
+import com.seblful.klas.domain.guide.Tip
 import com.seblful.klas.domain.model.AppLanguage
 import com.seblful.klas.domain.model.Currency
 import com.seblful.klas.domain.model.Money
@@ -82,6 +84,8 @@ data class AppSettings(
     val autoBackupFolder: String? = null,
     /** The last weekly copy could not be written to [autoBackupFolder]. */
     val autoBackupFailed: Boolean = false,
+    /** The tips seen and whether the first-steps card is put away — see [GuideRepository]. */
+    val guide: Guide = Guide.FRESH,
 )
 
 /**
@@ -224,6 +228,11 @@ class SettingsRepository @Inject constructor(
             ),
             autoBackupFolder = autoBackupFolder,
             autoBackupFailed = autoBackupFailed,
+            guide = Guide(
+                // A name no tip has any more is dropped, so the tip renamed to it is shown again.
+                seen = tipsSeen.split(',').mapNotNull { name -> Tip.entries.firstOrNull { it.name == name } }.toSet(),
+                firstStepsHidden = firstStepsHidden,
+            ),
         ),
     )
 
@@ -260,5 +269,7 @@ class SettingsRepository @Inject constructor(
         hideInRecents = privacy.hideInRecents,
         autoBackupFolder = autoBackupFolder,
         autoBackupFailed = autoBackupFailed,
+        tipsSeen = Tip.entries.filter { it in guide.seen }.joinToString(",") { it.name },
+        firstStepsHidden = guide.firstStepsHidden,
     )
 }

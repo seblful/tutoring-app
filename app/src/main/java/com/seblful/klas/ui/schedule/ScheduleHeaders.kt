@@ -37,6 +37,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.seblful.klas.R
+import com.seblful.klas.domain.guide.Tip
 import com.seblful.klas.domain.schedule.DaySummary
 import com.seblful.klas.format.daySummaryText
 import com.seblful.klas.format.formatDay
@@ -45,9 +46,11 @@ import com.seblful.klas.format.formatWeekRange
 import com.seblful.klas.ui.common.DatePickerModal
 import com.seblful.klas.ui.common.LocalCurrency
 import com.seblful.klas.ui.common.PageStepper
+import com.seblful.klas.ui.common.ScreenTip
 import com.seblful.klas.ui.common.SectionTitle
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.pageByArrow
+import com.seblful.klas.ui.designsystem.component.CoachMark
 import com.seblful.klas.ui.designsystem.component.KlasDivider
 import com.seblful.klas.ui.designsystem.component.SectionAction
 import com.seblful.klas.ui.designsystem.component.SliceHeader
@@ -262,3 +265,13 @@ internal fun NowLine(modifier: Modifier = Modifier) {
 }
 
 private val NowDotSize = 6.dp
+
+/** The page title under the schedule's date tip while it carries it — see [Tip.SCHEDULE_DATE]. */
+@Composable
+internal fun DateTip(tip: ScreenTip, content: @Composable () -> Unit) {
+    if (tip.tip != Tip.SCHEDULE_DATE) {
+        content()
+        return
+    }
+    CoachMark(stringResource(R.string.tip_schedule_date), visible = true, onDismiss = tip.dismiss, content = content)
+}

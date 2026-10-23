@@ -7,6 +7,7 @@ import com.seblful.klas.data.people.EnrollmentRepository
 import com.seblful.klas.data.people.GroupRepository
 import com.seblful.klas.data.people.SubjectRepository
 import com.seblful.klas.data.settings.SettingsRepository
+import com.seblful.klas.domain.guide.Guide
 import com.seblful.klas.domain.lesson.ClassRules
 import com.seblful.klas.domain.model.Assignee
 import com.seblful.klas.domain.model.Group
@@ -56,6 +57,8 @@ internal class DemoSeeder @Inject constructor(
         settings.update {
             it.copy(
                 onboardingComplete = true,
+                // Half a year in, the first steps are long done and every tip read.
+                guide = Guide.DONE,
                 language = tutor.language,
                 currency = tutor.currency,
                 themeMode = ThemeChoice.LIGHT,
