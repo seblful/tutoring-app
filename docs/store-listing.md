@@ -22,9 +22,21 @@ for a nonstandard installation). Upload per language in Play Console → Store p
 
 `StoreScreenshots` runs `MainActivity` under Robolectric with `StoreGraph`, real repositories/database
 and `DemoTutor` data. Device clock/locale/calendar/schedulers are replaced; time stops mid-lesson on
-14 October 2026, 15:20. It writes raw captures, geometry/colors (`shots.json`) and actual notification
-content (`notifications.json`) to `store/build/raw/<locale>/`. Film-only captures run last because they
-change data. Without `-PstoreScreenshots`, capture is skipped by ordinary tests/CI.
+14 October 2026, 15:20, with one earlier lesson left unmarked (Today's «Over and not marked») and a backup
+two days old (no backup banner). It writes raw captures, geometry/colors (`shots.json`) and actual
+notification content (`notifications.json`) to `store/build/raw/<locale>/`. Film-only captures run last
+because they change data. Without `-PstoreScreenshots`, capture is skipped by ordinary tests/CI.
+
+The tour opens on Today, as the app does. At the end of the film captures, after the video's swipe,
+`StoreWidgets` renders the home-screen widgets the way a launcher does (`WidgetScreenshotTest`) at the
+capture's density, over transparency: `widget-today`, `widget-today-ticked` (the lesson on now ticked, as
+the video's tap leaves it) and `widget-shortcuts`. That lesson is then marked taught in the data for
+`film-today-dark`, the dark Today the video ends on. `HOME` in `store/lib/phone.mjs` places them on the drawn home screen at the sizes
+`StoreWidgets` renders.
+
+Swipes press and cross the touch slop in one `performTouchInput` batch: between batches the test clock runs
+on, and a press held that long starts long-press picking instead. Drags are bounded and fail with
+`_failed.png` rather than hang.
 
 Settings captures open the index, then Calendar & invitations for `settings-calendar` and Language &
 appearance for the theme transition, both through the gear on a tab's bar. Navigate back through the index
@@ -38,10 +50,11 @@ resolution and downsample. Lock-screen entries use recorded notifications; descr
 
 | Change | Edit |
 |---|---|
-| Captions, order, screen choice, tagline/CTA | `store/listing.json`; `film` overrides a caption for video. |
-| Highlighted rows / composition | `callout` mark names, `layout: "tilted"`, or `layout: "pair"` with `behind`. Pixel finders handle `status`/`income-card`. |
+| Captions, order, screen choice, tagline/CTA | `store/listing.json`; `film` overrides a caption for video; `filmOnly` holds captions shown only in the video (calendar sync). |
+| Highlighted rows / composition | `callout` mark names, `layout: "tilted"`, or `layout: "pair"` with `behind`. Pixel finders handle `status`/`income-card`; drawn screens (`kind: "lockscreen"`/`"homescreen"`) lift `reminder`/`widget`. |
 | Demo data | `DemoTutor.kt`; Russian uses BYN/Belarusian names, English USD. Keep both in the same week (`DemoTutorTest`); select roles like `onNow`/`debtor`, never list positions. |
-| New screen / geometry / redrawn text | `StoreScreenshots.tour()` and `capture(...)`'s `marks`/`texts`, then reference in `listing.json`. |
+| New screen / geometry / redrawn text | `StoreScreenshots.tour()` and `capture(...)`'s `marks`/`texts` (`firsts` for a mark that matches more than once), then reference in `listing.json`. |
+| Widgets on the home screen | `StoreWidgets` (sizes, rows) and `HOME`/`homeScreen` in `store/lib/phone.mjs`. |
 | Description | `store/text/<locale>/*.txt`; claim only implemented features. |
 | Video motion and sound | `store/film/film.js`: `POSES`, `CAPTIONS`, `CALLOUTS`, `TAPS`; music in `sound.js`, sections at the end of `film.js`. |
 
@@ -60,7 +73,11 @@ node store/video.mjs --software                       # screenshot fallback; slo
 ```
 
 Reuse the captures above; Node/Chrome suffice, with no ffmpeg or npm dependencies. Generated files in
-`store/build/video/` are uncommitted: H.264/AAC, 60 fps, 42 seconds.
+`store/build/video/` are uncommitted: H.264/AAC, 60 fps, 46 seconds.
+
+Scenes, on 2-second bars: Today (the lesson on now, the one to mark), the schedule swipe that marks it,
+who owes, the month's income, the home screen's Today widget with its tick tapped, reminders on the lock
+screen, homework swiped and typed, calendar sync, and the dark theme ending on Today.
 
 | File | Dimensions | Use |
 |---|---|---|
@@ -75,14 +92,17 @@ Sound is deterministic synthesis in `sound.js`, with no sampled recordings.
 
 - **Interaction:** `TAPS` reproduces clipped ripples; only swipes show a thumb. Standalone cards/buttons
   also press inward, segments only ripple. Draw feedback inside the affected screen so overlays cover it.
-- **Capture workarounds:** cancelled status overlays only the re-opened sheet's status control, avoiding
-  changed homework; homework typing is drawn from app strings because its dialog never idles under
-  Robolectric. Swipe panels and post-swipe list positions come from actual intermediate captures.
+- **Capture workarounds:** homework typing is drawn from app strings because its dialog never idles under
+  Robolectric. Swipe panels and post-swipe list positions come from actual intermediate captures. The
+  widget's tick fades `widget-today-ticked` in over `widget-today`.
   Reports join `reports`/`film-reports-end` at a matching row; count-up uses captured typography.
-  Theme transition uses `film-theme`/`film-theme-dark`.
+  Theme transition uses `film-theme`/`film-theme-dark`, then `today-dark`.
 - **Rendering:** `gpu.js` uses Chrome's experimental html-in-canvas (`CanvasDrawElement`), accumulates
   WebGL exposures and passes the canvas to WebCodecs. Unsupported Chrome or `--software` uses screenshots.
-  `encoder.js` encodes; `lib/mp4.mjs` writes the MP4 index first. `lib/chrome.mjs` selects the fastest GPU.
+  `encoder.js` encodes; `lib/mp4.mjs` writes the MP4 index first. `lib/chrome.mjs` asks for the
+  high-performance GPU, and `video.mjs` prints the one it got («Drawing on …»): on a two-GPU laptop it
+  should name the discrete card. The stills (`render.mjs`) draw in software on purpose: reading pages
+  back from a discrete GPU was over ten times slower.
 - **GPU constraints:** html-in-canvas uses page order, ignoring depth sorting: do not rely on
   `translateZ` for occlusion. Put the face after the edge; implement the final fade with `#fade`, since
   the stage's own styles are ignored.

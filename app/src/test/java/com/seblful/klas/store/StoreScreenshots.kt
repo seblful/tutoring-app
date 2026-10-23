@@ -43,6 +43,7 @@ import com.github.takahirom.roborazzi.RoborazziTaskType
 import com.github.takahirom.roborazzi.captureScreenRoboImage
 import com.seblful.klas.MainActivity
 import com.seblful.klas.R
+import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.ThemeChoice
 import com.seblful.klas.testutil.FakeCalendarPermission
 import com.seblful.klas.testutil.FakeCalendarSync
@@ -89,6 +90,9 @@ class StoreScreenshots {
     private lateinit var graph: StoreGraph
 
     private lateinit var seeded: DemoSeeder.Seeded
+
+    /** Who the lesson left unmarked is with ([DemoSeeder.Seeded.bookUnmarkedLesson]): Today's one to mark. */
+    private lateinit var unmarked: String
 
     private val settings get() = graph.settings
     private val classes get() = graph.classes
@@ -138,6 +142,7 @@ class StoreScreenshots {
         )
         ApplicationProvider.getApplicationContext<StoreApp>().graph = graph
         seeded = runBlocking { graph.seeder.seed(tutor) }
+        unmarked = runBlocking { seeded.bookUnmarkedLesson() }
 
         launchOnToday()
         writeManifest()
@@ -180,23 +185,11 @@ class StoreScreenshots {
         val student = tutor.debtor.name
         val group = tutor.group.name
 
-        tab(R.string.nav_schedule)
-        waitFor(string(R.string.class_status_in_progress))
-        capture("schedule-day", marks = mapOf("onNow" to row(tutor.onNow.name)))
+        // The app opens on Today: the lesson on now leads, and the one over and not marked is under it.
+        waitFor(string(R.string.today_to_mark))
+        capture("today", marks = mapOf("next" to nowCard(), "toMark" to row(unmarked)), firsts = setOf("toMark"))
 
-        click(group)
-        settle()
-        capture("lesson-sheet")
-        back()
-
-        click(string(R.string.schedule_view_week))
-        settle()
-        capture("schedule-week")
-
-        click(string(R.string.schedule_view_month))
-        settle()
-        capture("schedule-month")
-        click(string(R.string.schedule_view_day))
+        scheduleTour()
 
         tab(R.string.nav_people)
         waitFor(student)
@@ -243,6 +236,36 @@ class StoreScreenshots {
         filmTour()
     }
 
+    private fun scheduleTour() {
+        tab(R.string.nav_schedule)
+        waitFor(string(R.string.class_status_in_progress))
+        capture("schedule-day", marks = mapOf("onNow" to row(tutor.onNow.name)))
+
+        click(tutor.group.name)
+        settle()
+        // The sheet's buttons: «Taught» and «Edit» told from the day's badges and rows by «Reschedule» beside them.
+        val move = string(R.string.class_move)
+        val beside = hasAnySibling(hasText(move))
+        capture(
+            "lesson-sheet",
+            marks = mapOf(
+                "taught" to (hasText(string(R.string.class_status_completed)) and hasClickAction() and beside),
+                "move" to (hasText(move) and hasClickAction()),
+                "edit" to (hasText(string(R.string.action_edit)) and hasClickAction() and beside),
+            ),
+        )
+        back()
+
+        click(string(R.string.schedule_view_week))
+        settle()
+        capture("schedule-week")
+
+        click(string(R.string.schedule_view_month))
+        settle()
+        capture("schedule-month")
+        click(string(R.string.schedule_view_day))
+    }
+
     private fun reportsTour() {
         val label = string(R.string.reports_total_income)
         val byStudent = string(R.string.reports_by_student)
@@ -280,6 +303,9 @@ class StoreScreenshots {
         back()
 
         runBlocking { settings.update { it.copy(themeMode = ThemeChoice.DARK) } }
+        tab(R.string.nav_today)
+        waitFor(string(R.string.today_to_mark))
+        capture("today-dark", dark = true)
         tab(R.string.nav_schedule)
         waitFor(string(R.string.class_status_in_progress))
         capture("schedule-day-dark", dark = true)
@@ -291,25 +317,12 @@ class StoreScreenshots {
 
     private fun filmTour() {
         val student = tutor.onNow.name
-        val unmarked = row(runBlocking { seeded.bookUnmarkedLesson() })
-        val last = tutor.lastToday.name
-        val cancelled = hasText(string(R.string.class_status_cancelled)) and isSelectable()
+        val unmarked = row(unmarked)
         tab(R.string.nav_schedule)
         waitFor(string(R.string.class_status_in_progress))
-        capture("film-day", marks = mapOf("swipe" to unmarked, "cancel" to row(last)))
+        capture("film-day", marks = mapOf("swipe" to unmarked))
         swipe(unmarked, "film-swipe")
-        capture("film-swiped", marks = mapOf("swipe" to unmarked, "cancel" to row(last)))
-        click(last)
-        settle()
-        capture("film-sheet", marks = mapOf("cancelled" to cancelled))
-        compose.onNode(cancelled).performClick()
-        settle()
-        capture("film-cancelled", marks = mapOf("cancel" to row(last)))
-        click(last)
-        settle()
-        capture("film-sheet-cancelled", marks = mapOf("cancelled" to cancelled))
-        back()
-        settle()
+        capture("film-swiped", marks = mapOf("swipe" to unmarked))
 
         val homework = row(student)
         val add = hasContentDescription(string(R.string.homework_add)) and hasClickAction()
@@ -322,9 +335,31 @@ class StoreScreenshots {
         runBlocking { seeded.giveTypedHomework() }
         waitFor(tutor.typedHomework)
         capture("film-homework", marks = mapOf("added" to row(tutor.typedHomework)))
+
+        // The widgets as the day now stands, the swiped lesson taught; then the lesson on now marked taught,
+        // as the video's tap on the widget's tick does, for the dark Today the video ends on.
+        StoreWidgets(graph, tutor.locale, out).capture().forEach { (name, marks) ->
+            shots += Shot(name, top = 0, bottom = 0, dark = false, marks = marks, texts = emptyMap())
+        }
+        runBlocking {
+            markOnNowTaught()
+            settings.update { it.copy(themeMode = ThemeChoice.DARK) }
+        }
+        tab(R.string.nav_today)
+        waitFor(string(R.string.today_lessons))
+        capture("film-today-dark", dark = true)
+        runBlocking { settings.update { it.copy(themeMode = ThemeChoice.LIGHT) } }
         File(out, "film.json").writeText(
             "{ \"student\": ${json(student)}, \"homework\": ${json(tutor.typedHomework)} }\n",
         )
+    }
+
+    private suspend fun markOnNowTaught() {
+        val now = DemoTutor.CLOCK.now()
+        val day = DemoTutor.NOW.date.atStartOfDayIn(DemoTutor.ZONE)
+        val lesson = classes.getBetween(day, day.plus(SECONDS_PER_DAY.seconds))
+            .single { it.start <= now && now < it.end }
+        classes.setStatus(classes.getSessionFor(lesson.id)!!, LessonStatus.COMPLETED)
     }
 
     private fun swipe(matcher: SemanticsMatcher, name: String) {
@@ -333,9 +368,21 @@ class StoreScreenshots {
         val width = row.fetchSemanticsNode().size.width
         fun dragged() = compose.onNode(matcher).fetchSemanticsNode().positionOnScreen.x - home
         fun dragTo(fraction: Float, step: Float) {
-            while (dragged() < width * fraction) row.performTouchInput { moveBy(Offset(step, 0f)) }
+            // Bounded, so a row that stops following the finger fails the capture rather than hanging it.
+            repeat((width / step).toInt()) {
+                if (dragged() >= width * fraction) return
+                row.performTouchInput { moveBy(Offset(step, 0f)) }
+            }
+            val seen = File(out, "_failed.png")
+            captureScreenRoboImage(seen, RoborazziOptions(taskType = RoborazziTaskType.Record))
+            error("«$name»: the row moved ${dragged()} px of ${width * fraction}; what was there: $seen")
         }
-        row.performTouchInput { down(Offset(width * SWIPE_FROM, height / 2f)) }
+        // Pressed and dragged past the touch slop in one batch: between batches the test's clock runs on, and a
+        // press held that long picks the row (long-press picking) instead of swiping it.
+        row.performTouchInput {
+            down(Offset(width * SWIPE_FROM, height / 2f))
+            moveBy(Offset(viewConfiguration.touchSlop + SWIPE_STEP, 0f))
+        }
         dragTo(SWIPE_MARK - SHORT_OF_MARK, SWIPE_STEP)
         capture("$name-unarmed", marks = mapOf("swipe" to matcher))
         dragTo(SWIPE_ARMED, SWIPE_STEP * 4)
@@ -422,6 +469,7 @@ class StoreScreenshots {
         dark: Boolean = false,
         marks: Map<String, SemanticsMatcher> = emptyMap(),
         texts: Map<String, SemanticsMatcher> = emptyMap(),
+        firsts: Set<String> = emptySet(),
     ) {
         settle()
         checkAmounts(name)
@@ -434,17 +482,23 @@ class StoreScreenshots {
             top = image.getRGB(probeX, 1),
             bottom = image.getRGB(probeX, image.height - 2),
             dark = dark,
-            marks = marks.mapValues { (mark, node) -> bounds(name, mark, node) },
+            marks = marks.mapValues { (mark, node) -> bounds(name, mark, node, first = mark in firsts) },
             texts = texts.mapValues { (mark, node) -> textStyle(name, mark, node) },
         )
     }
 
     private fun row(text: String) = hasText(text, substring = true) and hasClickAction()
 
-    private fun bounds(shot: String, mark: String, matcher: SemanticsMatcher): List<Int> {
+    /** Today's card for the lesson on now, which the whole card opens. */
+    private fun nowCard() = hasText(string(R.string.today_now)) and hasClickAction()
+
+    /** [matcher]'s box on screen; with [first], the first of several in reading order, else the only one. */
+    private fun bounds(shot: String, mark: String, matcher: SemanticsMatcher, first: Boolean = false): List<Int> {
         val nodes = compose.onAllNodes(matcher).fetchSemanticsNodes()
-        check(nodes.size == 1) { "«$shot» mark «$mark» matches ${nodes.size} nodes, not one" }
-        val node = nodes.single()
+        check(nodes.size == 1 || (first && nodes.isNotEmpty())) {
+            "«$shot» mark «$mark» matches ${nodes.size} nodes, not one"
+        }
+        val node = nodes.first()
         val at = node.positionOnScreen
         val size = node.size.toSize()
         val corner = (node.config.getOrNull(SemanticsProperties.Shape) as? CornerBasedShape)

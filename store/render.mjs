@@ -15,7 +15,7 @@ import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { evaluate, openChrome } from "./lib/chrome.mjs";
-import { ICON_MARK, LOGO, PHONE_CSS, appScreen, fontFaces, lines, lockScreen, text, url } from "./lib/phone.mjs";
+import { ICON_MARK, LOGO, PHONE_CSS, appScreen, fontFaces, homeScreen, lines, lockScreen, text, url } from "./lib/phone.mjs";
 import { cardAround, outlinedRow } from "./lib/find.mjs";
 import { decode, encode } from "./lib/png.mjs";
 
@@ -48,6 +48,8 @@ const PHONE = { width: 1010, left: 215 };
 const LIFT = 1.12;
 /** A row lifted off a screen with no card of its own still gets a gentle rounding: 12 dp. */
 const ROW_CORNER = 12 * 4;
+/** How far inside its mark a lifted copy is cut, in capture pixels: half a dp, too little to see. */
+const LIFT_INSET = 2;
 /**
  * Things a screenshot can call out that StoreScreenshots did not mark, found on the capture instead: the
  * lesson sheet's row of statuses, and the report's whole income card around its label.
@@ -60,6 +62,15 @@ const FOUND = {
     return cardAround(image, label[0] - 48, Math.round((label[1] + label[3]) / 2), 16 * 4);
   },
 };
+/**
+ * What a drawn screen can call out, by the name `callout` gives it: on the lock screen the reminder — the
+ * card with the buttons; on the home screen the Today widget.
+ */
+const DRAWN_CALLOUTS = {
+  reminder: `[...phone.querySelectorAll(".card")].find((c) => c.querySelector(".card-actions"))`,
+  widget: `phone.querySelector(".widget.today")`,
+};
+
 /**
  * A caption's least contrast with what is behind it — WCAG's for body text, though the captions are large:
  * Play shows a screenshot at a fraction of its size, where large text is small again.
@@ -95,15 +106,17 @@ for (const [locale, words] of Object.entries(listing.locales)) {
 
   const themes = listing.screenshots.map((entry) => entry.theme ?? "light");
   for (const [i, entry] of listing.screenshots.entries()) {
-    const shot = entry.kind === "lockscreen" ? null : shots[entry.shot] ?? fail(`${locale}: no capture named "${entry.shot}"`);
+    const drawn = isDrawn(entry);
+    const shot = drawn ? null : shots[entry.shot] ?? fail(`${locale}: no capture named "${entry.shot}"`);
     const copy = entry[locale] ?? fail(`${locale}: no caption for "${entry.shot}"`);
     const name = `${String(i + 1).padStart(2, "0")}-${entry.shot}`;
-    const screen = entry.kind === "lockscreen"
-      ? lockScreen(JSON.parse(readFileSync(join(raw, "notifications.json"), "utf8")))
+    const tray = () => JSON.parse(readFileSync(join(raw, "notifications.json"), "utf8"));
+    const screen = entry.kind === "lockscreen" ? lockScreen(tray())
+      : entry.kind === "homescreen" ? homeScreen(raw, { ...tray(), homeClock: words.clock })
       : appScreen(raw, entry.shot, shot ?? {}, words.clock);
     const behind = entry.behind &&
       appScreen(raw, entry.behind, shots[entry.behind] ?? fail(`${locale}: no capture named "${entry.behind}"`), words.clock);
-    const lifts = entry.kind === "lockscreen" ? "" : callouts(raw, entry, shot, `${locale} ${entry.shot}`);
+    const lifts = drawn ? "" : callouts(raw, entry, shot, `${locale} ${entry.shot}`);
     await draw(screenshotPage({ screen, behind, lifts, entry, copy, index: i, themes }), SHOT,
       join(out, "phoneScreenshots", `${name}.png`), `${locale}-${name}`);
   }
@@ -144,8 +157,11 @@ function callouts(raw, entry, shot, name) {
     const box = FOUND[mark]?.(image, shot.marks) ?? shot.marks[mark] ?? fail(`${name}: no mark «${mark}» to call out`);
     return [...box.slice(0, 4), box[4] ?? 0];
   });
-  const [l, t, r, b] = [0, 1, 2, 3].map((k) => (k < 2 ? Math.min : Math.max)(...boxes.map((box) => box[k])));
-  const corner = Math.max(ROW_CORNER, ...boxes.map((box) => box[4]));
+  // Cut a little inside the marks: scaled, the copy's outermost pixels blend with what lies just outside
+  // the card, and a lighter screen behind it drew a pale rim round it.
+  const [l, t, r, b] = [0, 1, 2, 3].map((k) => (k < 2 ? Math.min : Math.max)(...boxes.map((box) => box[k])) +
+    (k < 2 ? LIFT_INSET : -LIFT_INSET));
+  const corner = Math.max(ROW_CORNER, ...boxes.map((box) => box[4] - LIFT_INSET));
   // As shares of the phone's width, as PHONE_CSS draws it — a 2.2% bezel, a 95.6% screen, a 9.2% status
   // bar — so the lift fits a phone of any size.
   const k = 0.956 / image.width, of = (share) => `calc(var(--phone) * ${share})`;
@@ -183,19 +199,24 @@ function screenshotPage({ screen, behind, lifts, entry, copy, index, themes }) {
       </header>
       ${phones[layout] ?? fail(`No screenshot layout «${layout}»`)}
     </div>
-    ${entry.kind === "lockscreen" && entry.callout?.includes("reminder") ? liftReminder() : ""}
+    ${isDrawn(entry) ? (entry.callout ?? []).map((name) => liftDrawn(DRAWN_CALLOUTS[name] ?? fail(`No drawn callout «${name}»`))).join("") : ""}
     ${fitCaption()}`);
 }
 
+/** Whether [entry]'s screen is drawn here — the lock screen, the home screen — rather than captured. */
+function isDrawn(entry) {
+  return entry.kind === "lockscreen" || entry.kind === "homescreen";
+}
+
 /**
- * The lock screen's reminder — the card with the buttons — lifted off it, as an app screen's row is: a
- * copy of the card over it, grown, standing out from the tilted phone.
+ * A part of a drawn screen lifted off it, as an app screen's row is: a copy of it over it, grown, standing
+ * out from the phone. [find] is the script that picks it out of `phone`.
  */
-function liftReminder() {
+function liftDrawn(find) {
   return `<script>
     document.fonts.ready.then(() => {
       const phone = document.querySelector(".phone");
-      const card = [...phone.querySelectorAll(".card")].find((c) => c.querySelector(".card-actions"));
+      const card = ${find};
       let x = 0, y = 0;
       for (let el = card; el && el !== phone; el = el.offsetParent) { x += el.offsetLeft; y += el.offsetTop; }
       const lift = card.cloneNode(true);

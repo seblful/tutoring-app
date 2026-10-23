@@ -1,4 +1,4 @@
-// The phone the app is shown in — its frame, status bar and lock screen — and the app's font, shared by
+// The phone the app is shown in — its frame, status bar, lock screen and home screen — and the app's font, shared by
 // the listing's stills (render.mjs) and the promo video (video.mjs), so both show the same phone.
 
 import { dirname, join, resolve } from "node:path";
@@ -63,7 +63,18 @@ export const PHONE_CSS = `
     .card-text { margin-top: calc(var(--phone) * .01); font-size: calc(var(--phone) * .038); line-height: 1.35; color: #303038; }
     .card-lines { margin-top: calc(var(--phone) * .012); font-size: calc(var(--phone) * .035); line-height: 1.45; color: #303038; }
     .card-actions { margin-top: calc(var(--phone) * .03); display: flex; gap: calc(var(--phone) * .06);
-      font-weight: 600; font-size: calc(var(--phone) * .037); color: #4c5bc4; }`;
+      font-weight: 600; font-size: calc(var(--phone) * .037); color: #4c5bc4; }
+
+    /* The home screen (homeScreen): the lock screen's wallpaper, with the app's widgets laid on it. */
+    .home > :not(.status) { position: absolute; }
+    .home-date { font-weight: 500; font-size: calc(var(--phone) * .052); color: #fff; }
+    .widget { border-radius: calc(var(--phone) * .058); overflow: hidden;
+      box-shadow: 0 calc(var(--phone) * .008) calc(var(--phone) * .03) rgba(8, 10, 48, .28); }
+    .widget-face { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+    .widget-face.ticked { opacity: 0; }
+    .home-search { border-radius: 999px; background: rgba(251, 248, 255, .92); display: flex; align-items: center;
+      padding-left: calc(var(--phone) * .045); }
+    .home-search svg { width: calc(var(--phone) * .06); }`;
 
 /** The phone's screen: a status bar in the colour the capture starts with, then the app. */
 export function appScreen(raw, shot, colors, clock) {
@@ -109,6 +120,42 @@ export function lockScreen(tray) {
         <div class="lock-clock">${text(tray.clock)}</div>
         <div class="lock-date">${text(tray.date)}</div>
         <div class="cards">${cards}</div>
+      </div>
+    </div>`;
+}
+
+/**
+ * The home screen, in the 412 × 915 dp grid of the app's captures under the status bar (4 capture pixels a
+ * dp): the date, the Today widget and the shortcuts bar under it, and a search pill. The
+ * widgets are the app's own, drawn by StoreWidgets; boxes here are where they sit, so a mark on a widget's
+ * capture lands on the screen at its box's offset, as one on an app capture does.
+ */
+export const HOME = {
+  today: { left: 16, top: 64, width: 380, height: 400 },
+  shortcuts: { left: 16, top: 480, width: 380, height: 76 },
+};
+
+export function homeScreen(raw, tray) {
+  const dp = (n, from = 0) => `calc(var(--phone) * ${(from + 0.956 * n / 412).toFixed(5)})`;
+  // Down from under the status bar, as the captures are.
+  const down = (n) => dp(n, 0.092);
+  const box = ({ left, top, width, height }) =>
+    `left: ${dp(left)}; top: ${down(top)}; width: ${dp(width)}; height: ${dp(height)};`;
+  return `
+    <div class="screen">
+      <div class="lock home">
+        ${statusBar("transparent", "#ffffff", tray.homeClock ?? "")}
+        <div class="home-date" style="left: ${dp(24)}; top: ${down(14)};">${text(tray.date)}</div>
+        <div class="widget today" style="${box(HOME.today)}">
+          <img class="widget-face" src="${url(join(raw, "widget-today.png"))}">
+          <img class="widget-face ticked" src="${url(join(raw, "widget-today-ticked.png"))}">
+        </div>
+        <div class="widget" style="${box(HOME.shortcuts)}">
+          <img class="widget-face" src="${url(join(raw, "widget-shortcuts.png"))}">
+        </div>
+        <div class="home-search" style="left: ${dp(24)}; top: ${down(812)}; width: ${dp(364)}; height: ${dp(56)};">
+          <svg viewBox="0 0 24 24"><path fill="#46464f" d="M9.5 3a6.5 6.5 0 0 1 5.2 10.4l5.4 5.4-1.4 1.4-5.4-5.4A6.5 6.5 0 1 1 9.5 3Zm0 2a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9Z"/></svg>
+        </div>
       </div>
     </div>`;
 }

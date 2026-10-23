@@ -49,10 +49,6 @@ internal data class DemoTutor(
     /** The student whose lesson is under way at [NOW]. */
     val onNow: DemoStudent get() = students.first { s -> s.slots.any { it.covers(NOW) } }
 
-    /** The student whose one-to-one lesson is the day's last: the one the promo video calls off. */
-    val lastToday: DemoStudent
-        get() = students.filter { it.slotsOn(TODAY).isNotEmpty() }.maxBy { it.slotsOn(TODAY).first().time }
-
     /** The first student with no lesson today: the one [UNMARKED] is booked with. */
     val freeToday: DemoStudent get() = students.first { it.slotsOn(TODAY).isEmpty() }
 

@@ -21,6 +21,7 @@ import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.minus
 import kotlinx.datetime.plus
+import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.minutes
 
 internal class DemoSeeder @Inject constructor(
@@ -59,6 +60,8 @@ internal class DemoSeeder @Inject constructor(
                 onboardingComplete = true,
                 // Half a year in, the first steps are long done and every tip read.
                 guide = Guide.DONE,
+                // And backed up lately, so Today does not open on the banner asking for one.
+                lastExportAt = DemoTutor.CLOCK.now() - 2.days,
                 language = tutor.language,
                 currency = tutor.currency,
                 themeMode = ThemeChoice.LIGHT,

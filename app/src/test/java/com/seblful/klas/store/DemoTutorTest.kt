@@ -33,18 +33,6 @@ class DemoTutorTest {
     }
 
     @Test
-    fun `the lesson called off is the day's last one-to-one, still to come`() {
-        for (t in tutors) {
-            val last = t.lastToday.slotsOn(DemoTutor.TODAY).single()
-            assertTrue(last.startOn(DemoTutor.TODAY) > DemoTutor.CLOCK.now())
-            for (s in t.students) {
-                for (slot in s.slotsOn(DemoTutor.TODAY)) assertFalse(slot.time > last.time)
-            }
-        }
-        assertEquals("Noah Bennett", DemoTutor.english.lastToday.name)
-    }
-
-    @Test
     fun `the unmarked lesson is over and clashes with nothing that day`() {
         val unmarked = DemoTutor.UNMARKED
         assertEquals(DemoTutor.NOW.dayOfWeek, unmarked.day)

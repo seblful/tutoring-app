@@ -1,5 +1,5 @@
 {
-  "$comment": "What the Play listing's graphics say, per language. Order = order on the store page (Play shows up to 8). `shot` names a raw capture from StoreScreenshots (spares: student, schedule-week, schedule-month, group, settings, more, reports-dark); `kind: lockscreen` draws the notifications it recorded instead; `theme` picks the backdrop. Titles break at \n. The promo video (video.mjs) reuses the captions, the tagline and `cta`; a caption's `film` is its wording in the video instead, where the video shows more than the still. See docs/store-listing.md.",
+  "$comment": "What the Play listing's graphics say, per language. Order = order on the store page (Play shows up to 8). `shot` names a raw capture from StoreScreenshots (spares: schedule-day, student, schedule-week, schedule-month, group, settings, settings-calendar, reports-dark); `kind: lockscreen` draws the notifications it recorded instead, `kind: homescreen` the widgets on a home screen; `theme` picks the backdrop. Titles break at \n. The promo video (video.mjs) reuses the captions — and shows `filmOnly`'s, which are not stills — the tagline and `cta`; a caption's `film` is its wording in the video instead, where the video shows more than the still. See docs/store-listing.md.",
   "locales": {
     "en-US": {
       "clock": "3:20",
@@ -14,23 +14,27 @@
   },
   "screenshots": [
     {
-      "shot": "schedule-day",
-      "callout": ["onNow"],
+      "shot": "today",
+      "callout": [
+        "next"
+      ],
       "en-US": {
         "title": "Your teaching day,\nat a glance",
-        "subtitle": "What's done, what's on now and who's next"
+        "subtitle": "What's on now, what's left to mark and who owes"
       },
       "ru-RU": {
         "title": "Весь рабочий день —\nна одном экране",
-        "subtitle": "Что проведено, что идёт сейчас и кто следующий"
+        "subtitle": "Что идёт сейчас, что осталось отметить и кто должен"
       }
     },
     {
       "shot": "lesson-sheet",
-      "callout": ["status"],
+      "callout": [
+        "taught"
+      ],
       "en-US": {
         "title": "Lessons marked\nin one tap",
-        "subtitle": "Status, homework and rescheduling in one place",
+        "subtitle": "Taught, rescheduled or edited from the lesson itself",
         "film": {
           "title": "Lessons marked\nin a tap or a swipe",
           "subtitle": "Swipe a lesson to mark it taught, or open it for the rest"
@@ -38,7 +42,7 @@
       },
       "ru-RU": {
         "title": "Отметить урок —\nв одно касание",
-        "subtitle": "Статус, задание и перенос — в одном окне",
+        "subtitle": "Проведён, перенос или правка — прямо из урока",
         "film": {
           "title": "Отметить урок —\nкасанием или свайпом",
           "subtitle": "Смахните урок, чтобы отметить, или откройте его для остального"
@@ -47,7 +51,9 @@
     },
     {
       "shot": "people",
-      "callout": ["debtor"],
+      "callout": [
+        "debtor"
+      ],
       "en-US": {
         "title": "See who owes\nat a glance",
         "subtitle": "Balances worked out from every lesson and payment"
@@ -59,7 +65,9 @@
     },
     {
       "shot": "reports",
-      "callout": ["income-card"],
+      "callout": [
+        "income-card"
+      ],
       "en-US": {
         "title": "Watch your\nincome grow",
         "subtitle": "By month, subject, student and group — with CSV export"
@@ -70,9 +78,26 @@
       }
     },
     {
+      "shot": "widgets",
+      "kind": "homescreen",
+      "callout": [
+        "widget"
+      ],
+      "en-US": {
+        "title": "Your day on the\nhome screen",
+        "subtitle": "Tick a lesson taught without opening the app"
+      },
+      "ru-RU": {
+        "title": "Уроки — на главном\nэкране",
+        "subtitle": "Отметьте урок проведённым, не открывая приложение"
+      }
+    },
+    {
       "shot": "reminders",
       "kind": "lockscreen",
-      "callout": ["reminder"],
+      "callout": [
+        "reminder"
+      ],
       "layout": "tilted",
       "en-US": {
         "title": "Never miss\na lesson",
@@ -85,7 +110,9 @@
     },
     {
       "shot": "homework",
-      "callout": ["first"],
+      "callout": [
+        "first"
+      ],
       "en-US": {
         "title": "Homework that finds\nthe next lesson",
         "subtitle": "Set it once — it rides on the student's next class"
@@ -96,19 +123,7 @@
       }
     },
     {
-      "shot": "settings-calendar",
-      "callout": ["sync", "invites"],
-      "en-US": {
-        "title": "Lessons in your\nphone's calendar",
-        "subtitle": "Kept in sync for you, with email invites for students"
-      },
-      "ru-RU": {
-        "title": "Уроки — в календаре\nтелефона",
-        "subtitle": "Синхронизируются сами, а ученикам приходит приглашение на почту"
-      }
-    },
-    {
-      "shot": "schedule-day-dark",
+      "shot": "today-dark",
       "theme": "dark",
       "layout": "pair",
       "behind": "schedule-day",
@@ -122,7 +137,20 @@
       }
     }
   ],
+  "filmOnly": [
+    {
+      "shot": "settings-calendar",
+      "en-US": {
+        "title": "Lessons in your\nphone's calendar",
+        "subtitle": "Kept in sync for you, with email invites for students"
+      },
+      "ru-RU": {
+        "title": "Уроки — в календаре\nтелефона",
+        "subtitle": "Синхронизируются сами, а ученикам приходит приглашение на почту"
+      }
+    }
+  ],
   "featureGraphic": {
-    "shot": "schedule-day"
+    "shot": "today"
   }
 }

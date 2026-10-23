@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // The promo video: the real app's captures in motion, with music and sound, per locale in listing.json —
-// 42 seconds, wide (16:9) or tall (9:16). No npm dependencies and no ffmpeg — a
+// 46 seconds, wide (16:9) or tall (9:16). No npm dependencies and no ffmpeg — a
 // headless Chrome lays out each frame (store/film/film.js), draws it on the GPU (store/film/gpu.js),
 // synthesises the soundtrack (store/film/sound.js) and encodes both with its own WebCodecs encoders
 // (store/film/encoder.js); store/lib/mp4.mjs writes the file. Where Chrome cannot draw the page on the GPU,
@@ -20,7 +20,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { evaluate, openChrome } from "./lib/chrome.mjs";
 import { mp4 } from "./lib/mp4.mjs";
-import { ICON_MARK, LOGO, PHONE_CSS, RES, fontFaces, lockScreen, statusBar, text, url } from "./lib/phone.mjs";
+import { HOME, ICON_MARK, LOGO, PHONE_CSS, RES, fontFaces, homeScreen, lockScreen, statusBar, text, url } from "./lib/phone.mjs";
 import { decode } from "./lib/png.mjs";
 import { difference } from "./lib/compare.mjs";
 import { joinScroll } from "./lib/scroll.mjs";
@@ -44,24 +44,25 @@ const GPU_MEAN = 3;
 const GPU_OFF = 0.01;
 const CALENDAR_ICON = `<svg viewBox="0 0 24 24"><path fill="#4c5bc4" d="M7 2h2v2h6V2h2v2h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2V2Zm12 8H5v10h14V10Z"/></svg>`;
 
-/** The captures on the phone's screen during the film; the lock screen is drawn from notifications.json. */
-const SHOTS = ["film-day", "film-swiped", "film-sheet", "film-cancelled", "people", "reports", "film-homework-list",
-  "film-homework-done", "film-homework", "settings-calendar", "film-theme", "film-theme-dark", "schedule-day-dark"];
 /**
- * Captures the film takes parts of rather than whole screens: the status control with «Cancelled» chosen,
- * and rows shot mid-swipe, short of the mark and past it.
+ * The captures on the phone's screen during the film; the lock screen is drawn from notifications.json, the
+ * home screen from the widgets' captures.
  */
-const PIECES = ["film-sheet-cancelled", "film-swipe-unarmed", "film-swipe-armed", "film-homework-swipe-unarmed", "film-homework-swipe-armed"];
+const SHOTS = ["today", "film-day", "film-swiped", "people", "reports", "film-homework-list",
+  "film-homework-done", "film-homework", "settings-calendar", "film-theme", "film-theme-dark", "film-today-dark"];
+/** Captures the film takes parts of rather than whole screens: rows shot mid-swipe, short of the mark and past it. */
+const PIECES = ["film-swipe-unarmed", "film-swipe-armed", "film-homework-swipe-unarmed", "film-homework-swipe-armed"];
 /**
  * The screens shown after the lock screen's reminder, whose status bar reads its time rather than the
- * schedule's: the clock must not run backwards. The schedule's day keeps its own, as its «now» line is
- * drawn at it — but not after dark, which follows the 3:30 of Settings straight on.
+ * schedule's: the clock must not run backwards. Today and the schedule keep their own, as the day's «now» is
+ * drawn at it — and so does the home screen, shown before the reminder — but not Today after dark, which
+ * follows Settings straight on.
  */
-const AFTER_REMINDER = ["film-homework-list", "film-homework-done", "film-homework", "settings-calendar", "film-theme", "film-theme-dark", "schedule-day-dark"];
+const AFTER_REMINDER = ["film-homework-list", "film-homework-done", "film-homework", "settings-calendar", "film-theme", "film-theme-dark", "film-today-dark"];
 /** Which side of the frame each caption is on, when wide: the phone is on the other. */
 const CAPTION_SIDES = {
-  "schedule-day": "left", "lesson-sheet": "left", people: "right", reports: "left", reminders: "right",
-  homework: "left", "settings-calendar": "right top", "schedule-day-dark": "left",
+  today: "left", "lesson-sheet": "left", people: "right", reports: "left", widgets: "right", reminders: "right",
+  homework: "left", "settings-calendar": "right top", "today-dark": "left",
 };
 
 const options = parseArgs(process.argv.slice(2));
@@ -70,6 +71,7 @@ const locales = options.locale ? [options.locale] : Object.keys(listing.locales)
 let browser, send;
 /** Whether frames are drawn on the GPU, until a page says this Chrome cannot (see [load]). */
 let onGpu = !options.software;
+let gpuNamed = false;
 await launch();
 mkdirSync(WORK, { recursive: true });
 mkdirSync(OUT, { recursive: true });
@@ -112,6 +114,14 @@ async function load(source, stage, scale) {
     onGpu = false;
     await launch();
     await load(source, stage, scale);
+  } else if (onGpu && !gpuNamed) {
+    // Said once: on a laptop with two GPUs, which one Chrome was given decides how long the video takes.
+    gpuNamed = true;
+    console.log(`Drawing on ${await evaluate(send, `(() => {
+      const gl = document.createElement("canvas").getContext("webgl2");
+      const info = gl?.getExtension("WEBGL_debug_renderer_info");
+      return info ? gl.getParameter(info.UNMASKED_RENDERER_WEBGL) : "an unnamed GPU";
+    })()`)}`);
   }
 }
 
@@ -310,7 +320,7 @@ function page({ locale, layout, stage, words, raw, shots, tray, typed }) {
       <div class="bar"></div><h1>${title}</h1><p>${text(copy.subtitle)}</p>
     </div>`;
   };
-  const used = listing.screenshots.filter((entry) => entry.shot in CAPTION_SIDES);
+  const used = [...listing.screenshots, ...(listing.filmOnly ?? [])].filter((entry) => entry.shot in CAPTION_SIDES);
   const shot = (name) => shots[name] ?? fail(`${locale}: no capture named «${name}»; take the captures again`);
   const layer = (name) => {
     const s = shot(name);
@@ -335,14 +345,16 @@ function page({ locale, layout, stage, words, raw, shots, tray, typed }) {
   const sides = Array.from({ length: 7 }, (_, i) =>
     `<div class="side${i === 6 ? " back" : ""}" style="--z: ${((i + 1) * 0.012).toFixed(3)}"></div>`).join("");
 
-  const sheet = decode(readFileSync(join(raw, "film-sheet.png")));
+  const today = decode(readFileSync(join(raw, "today.png")));
   const data = {
     layout, stage,
-    capture: { width: sheet.width, height: sheet.height },
-    shots: Object.fromEntries([...SHOTS, ...PIECES].map((name) => [name, { src: url(join(raw, `${name}.png`)), marks: shot(name).marks }])),
+    capture: { width: today.width, height: today.height },
+    shots: {
+      ...Object.fromEntries([...SHOTS, ...PIECES].map((name) => [name, { src: url(join(raw, `${name}.png`)), marks: shot(name).marks }])),
+      homescreen: homeMarks(raw, shot("widget-today")),
+    },
     words: { tagline: words.tagline },
     film: typed,
-    sheetTop: sheetTop(sheet, shot("film-sheet").bottom),
     ...reportParts(raw, shot("reports"), shot("film-reports-end")),
     closeUp: closeUp(raw, shot("film-homework-list")),
   };
@@ -365,6 +377,7 @@ function page({ locale, layout, stage, words, raw, shots, tray, typed }) {
       <div class="face"></div>
       <div class="screen"><div class="stack">
         ${SHOTS.map(layer).join("")}
+        <div class="layer" data-shot="homescreen">${homeScreen(raw, { ...tray, homeClock: words.clock })}</div>
         <div class="layer" data-shot="lockscreen">${lockScreen(tray)}</div>
       </div></div>
       <div class="glass"></div>
@@ -447,20 +460,20 @@ function closeUp(raw, before) {
 }
 
 /**
- * Where the lesson sheet's top edge is on its capture: the first run of rows, straight down the middle,
- * in the sheet's own colour — the scrim above it darkens everything it covers.
+ * The home screen's marks, in capture pixels as an app screen's are: the Today widget where HOME puts it,
+ * and its tick for the lesson on now, from the widget's own capture. The widget's corner is the rounding
+ * phone.mjs draws it with.
  */
-function sheetTop({ width, height, channels, pixels }, color) {
-  const want = [1, 3, 5].map((i) => parseInt(color.slice(i, i + 2), 16));
-  const x = Math.floor(width / 2);
-  let run = 0;
-  for (let y = 0; y < height; y++) {
-    const at = (y * width + x) * channels;
-    const off = want.reduce((sum, v, k) => sum + Math.abs(pixels[at + k] - v), 0);
-    run = off < 12 ? run + 1 : 0;
-    if (run === 24) return y - run + 1;
-  }
-  return fail("Could not find the lesson sheet's top edge on film-sheet.png");
+function homeMarks(raw, widget) {
+  const { left, top, width, height } = HOME.today, x = left * 4, y = top * 4;
+  const [l, t, r, b] = widget.marks.tick ?? fail("No «tick» mark on widget-today; take the captures again");
+  return {
+    src: url(join(raw, "widget-today.png")),
+    marks: {
+      widget: [x, y, x + width * 4, y + height * 4, Math.round((0.058 / 0.956) * 1648)],
+      tick: [x + l, y + t, x + r, y + b, Math.round((r - l) / 2)],
+    },
+  };
 }
 
 /** The app's own words for what the film draws of it (the homework dialog), in [locale]'s language. */
