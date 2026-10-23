@@ -6,6 +6,7 @@
 //
 //   ./gradlew :app:testDebugUnitTest --tests "*StoreScreenshots*" -PstoreScreenshots   # captures
 //   node store/render.mjs                                                              # graphics
+//   node store/render.mjs --gpu                                                        # drawn on the GPU
 //
 // Writes store/listing/<locale>/{phoneScreenshots/NN-<shot>.png, featureGraphic.png, icon.png} and copies
 // the listing's words from store/text/<locale>/ beside them, checked against Play's length limits.
@@ -87,7 +88,8 @@ const PLAY_BUTTON = { x: 512, y: 250, r: 96 };
 const listing = JSON.parse(readFileSync(join(STORE, "listing.json"), "utf8"));
 let browser;
 // A profile of its own, so the listing can be drawn while video.mjs encodes in its own Chrome.
-browser = await openChrome(join(STORE, "build", "chrome-profile-listing")).catch((e) => fail(e.message));
+browser = await openChrome(join(STORE, "build", "chrome-profile-listing"), { gpu: process.argv.includes("--gpu") })
+  .catch((e) => fail(e.message));
 
 rmSync(WORK, { recursive: true, force: true });
 mkdirSync(WORK, { recursive: true });
