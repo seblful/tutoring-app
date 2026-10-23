@@ -1,6 +1,8 @@
 package com.seblful.klas.ui.designsystem.component
 
 import android.view.accessibility.AccessibilityManager
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.RichTooltip
 import androidx.compose.material3.Text
@@ -19,7 +21,13 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntRect
+import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.window.PopupPositionProvider
 import com.seblful.klas.R
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -33,6 +41,9 @@ import kotlin.time.Duration.Companion.milliseconds
  *
  * A long-press on the content stays the content's: a lesson card is picked by one, so the bubble never opens
  * on it the way a held icon's name does ([com.seblful.klas.ui.common.HoldToName]).
+ *
+ * @param side where the bubble goes. A tip about an item of a list opens [CoachMarkSide.Above] it, so it never
+ * covers the items after — the next lesson the tip is about; with no room above, it opens below after all.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -41,6 +52,7 @@ fun CoachMark(
     visible: Boolean,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
+    side: CoachMarkSide = CoachMarkSide.Below,
     content: @Composable () -> Unit,
 ) {
     val state = rememberTooltipState(isPersistent = true)
@@ -53,7 +65,7 @@ fun CoachMark(
         state.show()
     }
     TooltipBox(
-        positionProvider = TooltipDefaults.rememberTooltipPositionProvider(TooltipAnchorPosition.Below),
+        positionProvider = rememberCoachMarkPosition(side),
         tooltip = {
             RichTooltip(
                 action = {
@@ -80,6 +92,42 @@ fun CoachMark(
         hasAction = true,
         content = content,
     )
+}
+
+/** Which side of what it is about a [CoachMark] opens on. */
+enum class CoachMarkSide { Above, Below }
+
+/**
+ * Below, or above while the bubble fits between the status bar and the anchor — decided here rather than left to
+ * the provider, so a bubble never opens under the status bar nor, flipped, over the anchor itself.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun rememberCoachMarkPosition(side: CoachMarkSide): PopupPositionProvider {
+    val below = TooltipDefaults.rememberTooltipPositionProvider(TooltipAnchorPosition.Below)
+    val above = TooltipDefaults.rememberTooltipPositionProvider(TooltipAnchorPosition.Above)
+    val top = WindowInsets.safeDrawing.getTop(LocalDensity.current)
+    return remember(side, below, above, top) {
+        if (side == CoachMarkSide.Below) below else PreferAbove(above, below, top)
+    }
+}
+
+/** [above] while what it places fits between [top] and the anchor, else [below]. */
+internal class PreferAbove(
+    private val above: PopupPositionProvider,
+    private val below: PopupPositionProvider,
+    private val top: Int,
+) : PopupPositionProvider {
+    override fun calculatePosition(
+        anchorBounds: IntRect,
+        windowSize: IntSize,
+        layoutDirection: LayoutDirection,
+        popupContentSize: IntSize,
+    ): IntOffset {
+        val over = above.calculatePosition(anchorBounds, windowSize, layoutDirection, popupContentSize)
+        val fits = over.y >= top && over.y + popupContentSize.height <= anchorBounds.top
+        return if (fits) over else below.calculatePosition(anchorBounds, windowSize, layoutDirection, popupContentSize)
+    }
 }
 
 object CoachMarkDefaults {

@@ -41,6 +41,7 @@ import com.seblful.klas.ui.common.sectionSurface
 import com.seblful.klas.ui.common.swipeAction
 import com.seblful.klas.ui.common.timeText
 import com.seblful.klas.ui.designsystem.component.CoachMark
+import com.seblful.klas.ui.designsystem.component.CoachMarkSide
 import com.seblful.klas.ui.designsystem.component.SlicePosition
 import com.seblful.klas.ui.designsystem.component.SurfaceRow
 import com.seblful.klas.ui.designsystem.component.shapeOf
@@ -99,7 +100,13 @@ private fun LessonCoachMark(
         Tip.LESSON_SWIPE -> if (reader) R.string.tip_lesson_swipe_reader else R.string.tip_lesson_swipe
         else -> R.string.tip_lesson_pick
     }
-    CoachMark(stringResource(text), visible = true, onDismiss = onDismiss, modifier = modifier) { content(Modifier) }
+    CoachMark(
+        stringResource(text),
+        visible = true,
+        onDismiss = onDismiss,
+        modifier = modifier,
+        side = CoachMarkSide.Above,
+    ) { content(Modifier) }
 }
 
 @Composable

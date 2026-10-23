@@ -63,6 +63,7 @@ import com.seblful.klas.ui.common.rememberRevealedFocus
 import com.seblful.klas.ui.common.swipeAction
 import com.seblful.klas.ui.common.timeText
 import com.seblful.klas.ui.designsystem.component.CoachMark
+import com.seblful.klas.ui.designsystem.component.CoachMarkSide
 import com.seblful.klas.ui.designsystem.component.DialogAction
 import com.seblful.klas.ui.designsystem.component.FormDialog
 import com.seblful.klas.ui.theme.KlasIcons
@@ -188,7 +189,13 @@ fun SwipeableHomework(
     tip: HomeworkTip? = null,
 ) {
     if (tip != null) {
-        CoachMark(tip.text, visible = true, onDismiss = tip.onDismiss, modifier = modifier) {
+        CoachMark(
+            tip.text,
+            visible = true,
+            onDismiss = tip.onDismiss,
+            modifier = modifier,
+            side = CoachMarkSide.Above,
+        ) {
             HomeworkSwipeRow(row, onSwipe, onClick, messages, nested, Modifier, owner, container, picking, tip.peek)
         }
         return
