@@ -173,6 +173,12 @@ Build screens from shared state and controls. Feature rules belong in the domain
 
 ## Motion, navigation and accessibility
 
+- Every way into the app but its icon is a `TrayNavigation` entry, so each lands where the same tap in
+  the tray or on the widget does: notifications, widgets, the launcher's long-press shortcuts
+  (`AppShortcuts`: Book a lesson, Today, Homework, Debts — published in the app's language), `klas://`
+  links (today, schedule, people, homework, reports, debts, book, settings, `lesson/<id>`, `day/<date>`;
+  they only ever open somewhere, never write) and Ctrl-chords on a hardware keyboard (`KeyboardShortcuts`:
+  Ctrl+1–5 the tabs, Ctrl+N a new lesson, Ctrl+, Settings, listed under Meta+/).
 - Tabs are Today, Schedule, People, Homework, Reports; Today opens first (`TopDestination.START`),
   Students/Groups share People. Settings is a gear (`SettingsGear`) last among every tab's actions, pushed over
   that tab, not a tab: it is visited, not worked in. Today links out rather than repeating a tab: a lesson

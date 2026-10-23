@@ -75,6 +75,16 @@
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- The app's own links, klas://today and the like (TrayNavigation.destinationForLink). They only
+                 ever open somewhere: any app or page can send one, so none of them writes anything. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data android:scheme="klas" />
+            </intent-filter>
         </activity>
 
         <!-- Where a due reminder lands. Not exported: only this app's own alarms address it. -->

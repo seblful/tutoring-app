@@ -1,8 +1,12 @@
 package com.seblful.klas
 
 import android.content.Context
+import android.content.Intent
 import android.os.Build
 import android.os.Bundle
+import android.view.KeyEvent
+import android.view.KeyboardShortcutGroup
+import android.view.Menu
 import android.view.WindowManager
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -20,8 +24,10 @@ import com.seblful.klas.format.inLanguage
 import com.seblful.klas.format.localeFor
 import com.seblful.klas.lock.UNLOCK_WITH
 import com.seblful.klas.lock.canUnlock
+import com.seblful.klas.notifications.AppShortcuts
 import com.seblful.klas.ui.AppRoot
 import com.seblful.klas.ui.RootViewModel
+import com.seblful.klas.ui.navigation.KeyboardShortcuts
 import dev.zacsweers.metrox.viewmodel.LocalMetroViewModelFactory
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
@@ -70,6 +76,13 @@ class MainActivity : FragmentActivity() {
                 AppRoot(rootViewModel, onUnlock = ::promptUnlock)
             }
         }
+        // The launcher's shortcuts, in the app's language — again whenever that changes.
+        lifecycleScope.launch {
+            rootViewModel.settings
+                .map { rootViewModel.localeFor(it) }
+                .distinctUntilChanged()
+                .collect { AppShortcuts.publish(inLanguage(it)) }
+        }
         // Whatever the app lock hides must not show in recent apps either, or the lock hides nothing.
         lifecycleScope.launch {
             rootViewModel.settings
@@ -87,6 +100,22 @@ class MainActivity : FragmentActivity() {
     override fun onStop() {
         super.onStop()
         if (!isChangingConfigurations) rootViewModel.appLock.backgrounded()
+    }
+
+    /**
+     * A Ctrl-chord nothing on screen took — see [KeyboardShortcuts]. Handed to the same listener a tray
+     * tap reaches, so a chord goes where that tap would.
+     */
+    override fun onKeyShortcut(keyCode: Int, event: KeyEvent): Boolean {
+        val action = KeyboardShortcuts.actionFor(keyCode, event.isCtrlPressed)
+            ?: return super.onKeyShortcut(keyCode, event)
+        onNewIntent(Intent(action, null, this, MainActivity::class.java))
+        return true
+    }
+
+    override fun onProvideKeyboardShortcuts(data: MutableList<KeyboardShortcutGroup>, menu: Menu?, deviceId: Int) {
+        super.onProvideKeyboardShortcuts(data, menu, deviceId)
+        data += KeyboardShortcuts.group(this)
     }
 
     private fun promptUnlock(title: String) {

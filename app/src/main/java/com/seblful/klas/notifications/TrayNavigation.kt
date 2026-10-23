@@ -1,5 +1,6 @@
 package com.seblful.klas.notifications
 
+import android.content.Intent
 import kotlinx.datetime.LocalDate
 
 /**
@@ -42,6 +43,14 @@ object TrayNavigation {
     const val ACTION_ADD_STUDENT = "com.seblful.klas.action.ADD_STUDENT"
     const val ACTION_OPEN_PEOPLE = "com.seblful.klas.action.OPEN_PEOPLE"
     const val ACTION_OPEN_HOMEWORK = "com.seblful.klas.action.OPEN_HOMEWORK"
+
+    /** The tabs and the page a keyboard chord can open besides the tray's — see `KeyboardShortcuts`. */
+    const val ACTION_OPEN_SCHEDULE = "com.seblful.klas.action.OPEN_SCHEDULE"
+    const val ACTION_OPEN_REPORTS = "com.seblful.klas.action.OPEN_REPORTS"
+    const val ACTION_OPEN_SETTINGS = "com.seblful.klas.action.OPEN_SETTINGS"
+
+    /** The scheme of the app's own links: `klas://today`, `klas://lesson/42` — see [destinationForLink]. */
+    const val LINK_SCHEME = "klas"
 
     /** The day an [ACTION_OPEN_DAY] entry is about, as `LocalDate.toEpochDays()`. */
     const val EXTRA_DAY = "day"
@@ -109,6 +118,15 @@ object TrayNavigation {
 
         /** The People tab — the widget's «Люди», where a balance, a payment or a contact is one tap on. */
         data object People : Destination
+
+        /** The schedule tab as it was left. */
+        data object Schedule : Destination
+
+        /** The reports tab, at its top. */
+        data object Reports : Destination
+
+        /** Settings, over the tab the tutor was on. */
+        data object Settings : Destination
     }
 
     /**
@@ -123,13 +141,16 @@ object TrayNavigation {
      * @param fromHistory the intent carries `FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY`: Recents relaunching a
      *   task whose activity Back finished (Android 11 and below), with the intent that *started* the task.
      *   If a notification started it, the tap was answered then, so it must not be replayed.
+     * @param link the intent's data, read only for a VIEW intent — see [destinationForLink].
      */
     fun destinationFor(
         action: String?,
         classId: Long,
         epochDay: Long? = null,
         fromHistory: Boolean = false,
+        link: String? = null,
     ): Destination? = if (fromHistory) null else when (action) {
+        Intent.ACTION_VIEW -> destinationForLink(link)
         ACTION_OPEN_LESSON -> lessonIdOrNull(classId)?.let { Destination.Lesson(it) }
         ACTION_SHOW_LESSON -> lessonIdOrNull(classId)?.let { Destination.LessonOnSchedule(it) }
         ACTION_OPEN_DAY ->
@@ -140,6 +161,29 @@ object TrayNavigation {
         else -> fixed[action]
     }
 
+    /**
+     * Where a `klas://` link goes, or null for one this app does not know. Only ever somewhere to look:
+     * the activity is exported and a link can come from any app or web page, so no link writes anything —
+     * `klas://book` opens an empty form, it does not book.
+     *
+     * `klas://today`, `schedule`, `people`, `homework`, `reports`, `debts`, `book`, `settings`,
+     * `lesson/<id>` (its sheet on the schedule) and `day/<yyyy-mm-dd>`.
+     */
+    fun destinationForLink(link: String?): Destination? {
+        val path = link?.takeIf { it.startsWith("$LINK_SCHEME://") }
+            ?.removePrefix("$LINK_SCHEME://")
+            ?.substringBefore('?')
+            ?.trim('/')
+            ?.split('/')
+            ?: return null
+        val argument = path.getOrNull(1)
+        return when (path.first()) {
+            "lesson" -> argument?.toLongOrNull()?.let(::lessonIdOrNull)?.let { Destination.LessonOnSchedule(it) }
+            "day" -> argument?.let { runCatching { LocalDate.parse(it) }.getOrNull() }?.let { Destination.Day(it) }
+            else -> linked[path.first()]
+        }
+    }
+
     /** The entries that carry nothing but their action. */
     private val fixed: Map<String, Destination> = mapOf(
         ACTION_OPEN_DEBTS to Destination.Debts,
@@ -148,5 +192,20 @@ object TrayNavigation {
         ACTION_ADD_STUDENT to Destination.NewStudent,
         ACTION_OPEN_HOMEWORK to Destination.Homework,
         ACTION_OPEN_PEOPLE to Destination.People,
+        ACTION_OPEN_SCHEDULE to Destination.Schedule,
+        ACTION_OPEN_REPORTS to Destination.Reports,
+        ACTION_OPEN_SETTINGS to Destination.Settings,
+    )
+
+    /** The links that name a place and nothing more. */
+    private val linked: Map<String, Destination> = mapOf(
+        "today" to Destination.Today,
+        "schedule" to Destination.Schedule,
+        "people" to Destination.People,
+        "homework" to Destination.Homework,
+        "reports" to Destination.Reports,
+        "debts" to Destination.Debts,
+        "book" to Destination.NewLesson,
+        "settings" to Destination.Settings,
     )
 }

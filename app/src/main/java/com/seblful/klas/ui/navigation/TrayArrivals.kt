@@ -37,25 +37,9 @@ internal fun OpensWhatTheTrayNames(
             epochDay = intent.takeIf { it.hasExtra(TrayNavigation.EXTRA_DAY) }
                 ?.getLongExtra(TrayNavigation.EXTRA_DAY, 0L),
             fromHistory = intent.flags and Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY != 0,
+            link = intent.dataString,
         )
-        when (destination) {
-            is TrayNavigation.Destination.Lesson -> navigator.openLessonForm(destination.classId)
-            is TrayNavigation.Destination.LessonOnSchedule ->
-                toSchedule(ScheduleTarget.Lesson(destination.classId))
-            // A form interrupted by a notification stays underneath, just as with Reschedule.
-            TrayNavigation.Destination.Debts -> {
-                navigator.openTabFromTray(TopDestination.REPORTS)
-                onDebts()
-            }
-            // The day as Today shows it — what is on, what is left to mark — rather than the schedule's list.
-            TrayNavigation.Destination.Today -> navigator.openTabFromTray(TopDestination.TODAY)
-            is TrayNavigation.Destination.Day -> toSchedule(ScheduleTarget.Day(destination.date))
-            TrayNavigation.Destination.NewLesson -> navigator.openOnTop(Routes.classEdit(0))
-            TrayNavigation.Destination.NewStudent -> navigator.openOnTop(Routes.StudentAdd)
-            TrayNavigation.Destination.Homework -> navigator.openTabFromTray(TopDestination.HOMEWORK)
-            TrayNavigation.Destination.People -> navigator.openTabFromTray(TopDestination.PEOPLE)
-            null -> Unit
-        }
+        navigator.arrive(destination, ::toSchedule, onDebts)
     }
 
     var launchIntentHandled by rememberSaveable { mutableStateOf(false) }
@@ -70,4 +54,43 @@ internal fun OpensWhatTheTrayNames(
         activity?.addOnNewIntentListener(listener)
         onDispose { activity?.removeOnNewIntentListener(listener) }
     }
+}
+
+/** Puts the tutor where [destination] asks — nowhere for null, which is the launcher's own intent. */
+private fun KlasNavigator.arrive(
+    destination: TrayNavigation.Destination?,
+    toSchedule: (ScheduleTarget) -> Unit,
+    onDebts: () -> Unit,
+) {
+    val tab = destination?.let(::tabOf)
+    if (tab != null) {
+        // A tab is all it asks for. Today's day is Today's tab — what is on, what is left to mark — rather
+        // than the schedule's list.
+        openTabFromTray(tab)
+        return
+    }
+    when (destination) {
+        is TrayNavigation.Destination.Lesson -> openLessonForm(destination.classId)
+        is TrayNavigation.Destination.LessonOnSchedule -> toSchedule(ScheduleTarget.Lesson(destination.classId))
+        // A form interrupted by a notification stays underneath, just as with Reschedule.
+        TrayNavigation.Destination.Debts -> {
+            openTabFromTray(TopDestination.REPORTS)
+            onDebts()
+        }
+        is TrayNavigation.Destination.Day -> toSchedule(ScheduleTarget.Day(destination.date))
+        TrayNavigation.Destination.NewLesson -> openOnTop(Routes.classEdit(0))
+        TrayNavigation.Destination.NewStudent -> openOnTop(Routes.StudentAdd)
+        TrayNavigation.Destination.Settings -> openOnTop(Routes.Settings)
+        else -> Unit
+    }
+}
+
+/** The tab a destination is, when a tab is all it asks for. */
+private fun tabOf(destination: TrayNavigation.Destination): TopDestination? = when (destination) {
+    TrayNavigation.Destination.Today -> TopDestination.TODAY
+    TrayNavigation.Destination.Schedule -> TopDestination.SCHEDULE
+    TrayNavigation.Destination.People -> TopDestination.PEOPLE
+    TrayNavigation.Destination.Homework -> TopDestination.HOMEWORK
+    TrayNavigation.Destination.Reports -> TopDestination.REPORTS
+    else -> null
 }
