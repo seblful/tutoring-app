@@ -9,6 +9,7 @@ import com.seblful.klas.domain.reports.Reports
 import com.seblful.klas.domain.time.WallClock
 import com.seblful.klas.domain.time.today
 import com.seblful.klas.format.AppLocale
+import com.seblful.klas.queries.reports.ReportScope
 import com.seblful.klas.queries.reports.ReportsQuery
 import com.seblful.klas.testutil.CountingDispatcher
 import com.seblful.klas.testutil.FakeDocumentStore
@@ -317,5 +318,37 @@ class ReportsViewModelTest {
         assertEquals(Money.ofMajor(50), report.totalIncome)
         assertEquals(Money.ofMajor(30), report.received.total)
         assertEquals(listOf(Reports.MethodLine(PaymentMethod.CASH, Money.ofMajor(30))), report.received.byMethod)
+    }
+
+    @Test
+    fun `a report narrowed to a student or a subject adds up only theirs`() = runTest(mainRule.dispatcher) {
+        val maths = env.fixtures.subject("Математика")
+        val physics = env.fixtures.subject("Физика")
+        val anya = env.fixtures.pricedStudent("Аня", maths)
+        val boris = env.fixtures.pricedStudent("Борис", physics)
+        completed(anya, maths, at(thisYear, 3), 50)
+        completed(boris, physics, at(thisYear, 3, 12), 70)
+        env.paymentRepo.record(anya, Money.ofMajor(30), LocalDate(thisYear, 4, 2), PaymentMethod.CASH)
+        env.paymentRepo.record(boris, Money.ofMajor(20), LocalDate(thisYear, 4, 3), PaymentMethod.CARD)
+        val vm = vm()
+        observing(vm.state)
+        observing(vm.scopes)
+        runCurrent()
+        assertEquals(Money.ofMajor(120), vm.state.current.totalIncome)
+        assertEquals(
+            listOf("Математика", "Физика", "Аня", "Борис"),
+            vm.scopes.value.map { it.name },
+        )
+
+        vm.setScope(ReportScope.Student(anya))
+        runCurrent()
+        assertEquals(Money.ofMajor(50), vm.state.current.totalIncome)
+        assertEquals(Money.ofMajor(30), vm.state.current.received.total)
+        assertEquals(listOf(anya), vm.state.current.debts.mapNotNull { it.studentId })
+
+        vm.setScope(ReportScope.Subject(physics))
+        runCurrent()
+        assertEquals(Money.ofMajor(70), vm.state.current.totalIncome)
+        assertTrue("no payment belongs to a subject", vm.state.current.received.total.isZero)
     }
 }

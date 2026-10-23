@@ -28,7 +28,9 @@ mirrors and [database and backup](database-and-backup.md) for persistence contra
   something is) leave through the share sheet, where Telegram, SMS and mail already are.
 - Income is what was **earned** (taught, billable lessons); **received** is what was paid in the period
   (`Reports.received`, by the day a payment lands on). They differ by every advance and every debt, so the
-  report shows them as two cards and exports them as two sections (D6), never one number.
+  report's hero switches between them and exports them as two sections (D6), never one number.
+- A report narrows to one student or one subject (`ReportScope`). A student's narrows lessons, payments
+  and debts; a subject's narrows lessons only — no payment belongs to a subject, so received is not offered.
 - Auto-completion is opt-in: scheduled lessons become completed, and therefore billable, after ending.
   Upkeep and app start catch up; enabling it asks before settling the backlog and reports the result.
 - Reports retain archived students' earnings and outstanding debts. Debts use all history; income means

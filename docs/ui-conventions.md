@@ -291,4 +291,7 @@ Build screens from shared state and controls. Feature rules belong in the domain
   and Billing (currency, group rate). Rows are `ListItem`s; a form field never sits in a settings card.
   Backup is built from the same `SettingsGroup` cards: the last-backup row, then export and import.
 - People lists share `PeopleSearch`: case-insensitive substrings, terms in any order. Reports use charts
-  only when shape helps; CSV delimiter follows decimal separator and exports can be saved or shared.
+  only when shape helps; CSV delimiter follows decimal separator and exports can be saved or shared from
+  one Export menu. The hero carries Earned/Received and the period's lessons · hours · ahead; a student's
+  income row opens them, with a chevron, as a debt's does. The funnel narrows the report, its chip under
+  the period.

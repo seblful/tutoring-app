@@ -900,10 +900,10 @@
       better than last month". %1$s is a signed percentage, %2$s the period being compared with.
     -->
     <string name="reports_vs_previous">%1$s к периоду «%2$s»</string>
-    <string name="reports_vs_previous_from_zero">За период «%1$s» дохода не было</string>
+    <string name="reports_vs_previous_from_zero">Нет данных за «%1$s» для сравнения</string>
     <!-- The same, while the period is still going: its days so far against as many of the previous one's. -->
     <string name="reports_vs_previous_to_date">%1$s к тем же дням периода «%2$s»</string>
-    <string name="reports_vs_previous_from_zero_to_date">За те же дни периода «%1$s» дохода не было</string>
+    <string name="reports_vs_previous_from_zero_to_date">Нет данных за те же дни «%1$s» для сравнения</string>
     <string name="reports_percent_signed_up">+%1$d&#160;%%</string>
     <string name="reports_percent_signed_down">−%1$d&#160;%%</string>
     <string name="reports_percent_signed_same">0&#160;%%</string>
@@ -1269,4 +1269,8 @@
     <string name="group_member_present">Был на %1$d из %2$d</string>
     <string name="group_member_no_lessons">Занятий ещё не было</string>
     <string name="price_per_hour_per_student">%1$s/час с ученика</string>
+    <string name="reports_earned">Заработано</string>
+    <string name="reports_export_menu">Экспорт</string>
+    <string name="reports_filter">Фильтр отчёта</string>
+    <string name="reports_filter_all">Все ученики и предметы</string>
 </resources>

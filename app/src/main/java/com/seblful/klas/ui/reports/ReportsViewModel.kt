@@ -9,7 +9,9 @@ import com.seblful.klas.domain.reports.Reports
 import com.seblful.klas.domain.time.WallClock
 import com.seblful.klas.domain.time.today
 import com.seblful.klas.format.AppLocale
+import com.seblful.klas.queries.reports.ReportScope
 import com.seblful.klas.queries.reports.ReportsQuery
+import com.seblful.klas.queries.reports.ScopeChoice
 import com.seblful.klas.runCatchingCancellable
 import com.seblful.klas.storage.DocumentRef
 import com.seblful.klas.storage.DocumentSharing
@@ -17,6 +19,7 @@ import com.seblful.klas.storage.DocumentStore
 import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.common.state.UiEvents
 import com.seblful.klas.ui.common.state.derive
+import com.seblful.klas.ui.common.state.hold
 import com.seblful.klas.ui.common.state.ready
 import com.seblful.klas.ui.navigation.Arrival
 import com.seblful.klas.ui.navigation.ArrivalGate
@@ -50,7 +53,19 @@ class ReportsViewModel @Inject constructor(
      * `Reports.Report(period)` as an initial value made every cold open of this screen state «Нет
      * данных» — that the tutor has earned nothing — before the first read came back.
      */
-    val state: StateFlow<Loadable<Reports.Report>> = reports.observe(_period)
+    private val _scope = MutableStateFlow<ReportScope>(ReportScope.Everything)
+
+    /** Whom the report is narrowed to — one student or one subject, or everything. */
+    val scope: StateFlow<ReportScope> = _scope.asStateFlow()
+
+    fun setScope(scope: ReportScope) {
+        _scope.value = scope
+    }
+
+    /** What the filter menu offers, subjects then students. */
+    val scopes: StateFlow<List<ScopeChoice>> = reports.observeScopes().hold(this, emptyList())
+
+    val state: StateFlow<Loadable<Reports.Report>> = reports.observe(_period, _scope)
         .ready()
         // The heaviest derivation in the app — every class against every payment and every student,
         // re-run on each write anywhere — and it used to run on the main thread. See [Computation].
