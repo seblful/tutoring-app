@@ -1105,6 +1105,15 @@
     <string name="batch_cancel">Cancel lessons</string>
     <string name="batch_none_marked">Only planned lessons can be marked taught</string>
     <string name="batch_none_cancelled">Those lessons are cancelled already</string>
+    <string name="batch_none_replanned">Only cancelled lessons can return to planned</string>
+    <plurals name="batch_replanned">
+        <item quantity="one">%1$d lesson back in the plan</item>
+        <item quantity="other">%1$d lessons back in the plan</item>
+    </plurals>
+    <plurals name="batch_replan_clashed">
+        <item quantity="one">%1$d kept cancelled: its hour is taken</item>
+        <item quantity="other">%1$d kept cancelled: their hours are taken</item>
+    </plurals>
     <plurals name="homework_batch_done">
         <item quantity="one">%1$d marked done</item>
         <item quantity="other">%1$d marked done</item>
