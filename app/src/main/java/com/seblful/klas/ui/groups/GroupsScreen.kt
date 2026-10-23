@@ -24,8 +24,6 @@ import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.animateInPlace
 import com.seblful.klas.ui.common.plusInset
 import com.seblful.klas.ui.common.state.Loadable
-import com.seblful.klas.ui.designsystem.component.FilterBar
-import com.seblful.klas.ui.designsystem.component.FilterOption
 import com.seblful.klas.ui.designsystem.component.SlicePosition
 import com.seblful.klas.ui.people.PeopleCard
 import com.seblful.klas.ui.people.lessonLineText
@@ -46,23 +44,13 @@ fun GroupsList(
     modifier: Modifier = Modifier,
     bottomInset: PaddingValues = PaddingValues(),
     openId: Long? = null,
-    filters: List<FilterOption> = emptyList(),
+    chips: @Composable () -> Unit = {},
 ) {
     // Above the list rather than in it, so a filter that leaves nothing can still be taken off.
     Column(modifier) {
-        if (filters.isNotEmpty()) {
-            FilterBar(filters, Modifier.padding(horizontal = Spacing.gutter, vertical = Spacing.inline))
-        }
+        chips()
         GroupRows(state, searching, onGroupClick, onAddGroup, Modifier.weight(1f), bottomInset, openId)
     }
-}
-
-/** The subjects to narrow the groups to — none unless they are taught at least two, where narrowing says anything. */
-@Composable
-fun groupSubjectFilters(choices: List<SubjectChoice>, selected: Long?, onSelect: (Long?) -> Unit): List<FilterOption> {
-    if (choices.size < 2) return emptyList()
-    val all = FilterOption(stringResource(R.string.filter_all), selected == null, { onSelect(null) })
-    return listOf(all) + choices.map { FilterOption(it.name, selected == it.id, { onSelect(it.id) }) }
 }
 
 @Composable

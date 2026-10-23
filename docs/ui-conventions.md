@@ -324,7 +324,9 @@ Build screens from shared state and controls. Feature rules belong in the domain
 - Settings sections group by subject, not by when a value applies: Lessons (duration, auto-complete)
   and Billing (currency, group rate). Rows are `ListItem`s; a form field never sits in a settings card.
   Backup is built from the same `SettingsGroup` cards: the last-backup row, then export and import.
-- People lists share `PeopleSearch`: case-insensitive substrings, terms in any order. Reports use charts
+- People lists share `PeopleSearch`: case-insensitive substrings, terms in any order. Under the tabs, chips
+  rather than bar icons (`StudentChips`, `GroupChips`): «Owes · N» narrows students to debtors, «Archived»
+  lists the retired too, and the order is a «Sort: …» `MenuChip`; groups add a subject chip once two are taught. Reports use charts
   only when shape helps; CSV delimiter follows decimal separator, and the summary and the ledger can each
   be saved or shared from one Export menu. The hero carries Earned/Received and the period's lessons · hours · ahead; a student's
   income row opens them, with a chevron, as a debt's does. The funnel narrows the report, its chip under

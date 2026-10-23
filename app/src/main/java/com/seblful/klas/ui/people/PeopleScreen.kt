@@ -29,7 +29,6 @@ import com.seblful.klas.ui.designsystem.component.KlasFab
 import com.seblful.klas.ui.groups.GroupSort
 import com.seblful.klas.ui.groups.GroupsList
 import com.seblful.klas.ui.groups.GroupsViewModel
-import com.seblful.klas.ui.groups.groupSubjectFilters
 import com.seblful.klas.ui.students.StudentSort
 import com.seblful.klas.ui.students.StudentsList
 import com.seblful.klas.ui.students.StudentsViewModel
@@ -66,6 +65,8 @@ fun PeopleScreen(
     val groupSort by groupsViewModel.sort.collectAsStateWithLifecycle()
     val groupSubject by groupsViewModel.subjectFilter.collectAsStateWithLifecycle()
     val groupSubjects by groupsViewModel.subjects.collectAsStateWithLifecycle()
+    val owing by studentsViewModel.owing.collectAsStateWithLifecycle()
+    val owesOnly by studentsViewModel.owesOnly.collectAsStateWithLifecycle()
 
     // Whichever side is on top answers the bar's buttons; the other keeps its own state untouched.
     val side: PeopleSide = when (tab) {
@@ -92,24 +93,6 @@ fun PeopleScreen(
             onClose = { studentsViewModel.setQuery(""); groupsViewModel.setQuery("") },
         ),
         actions = {
-            // Each side its own orders: debt is a students question, and when a group next meets a groups one.
-            when (tab) {
-                PeopleTab.STUDENTS ->
-                    SortMenu(StudentSort.entries, studentSort, studentsViewModel::setSort) { studentSortLabel(it) }
-                PeopleTab.GROUPS ->
-                    SortMenu(GroupSort.entries, groupSort, groupsViewModel::setSort) { groupSortLabel(it) }
-            }
-            // A toggle, and said as one: the tint alone told a screen reader nothing about whether the
-            // archive was showing — «Показать архив» was read the same either way.
-            HoldToName(stringResource(R.string.students_show_archived)) {
-                // Selected as Material's toggle icon button is: the filled glyph, in the accent.
-                IconToggleButton(checked = archived, onCheckedChange = { side.toggleArchived() }) {
-                    Icon(
-                        if (archived) KlasIcons.Filled.Inventory2 else KlasIcons.Outlined.Inventory2,
-                        stringResource(R.string.students_show_archived),
-                    )
-                }
-            }
             SettingsGear(onSettings)
         },
         floatingActionButton = {
@@ -146,7 +129,15 @@ fun PeopleScreen(
                 when (tab) {
                     PeopleTab.STUDENTS -> StudentsList(
                         state = studentRows,
-                        searching = query.isNotBlank(),
+                        // Debtors only that leaves nothing is "nothing matched", not "no students yet".
+                        searching = query.isNotBlank() || owesOnly,
+                        chips = {
+                            StudentChips(
+                                owing, owesOnly, studentsViewModel::toggleOwes,
+                                archived, side::toggleArchived,
+                                studentSort, studentsViewModel::setSort,
+                            )
+                        },
                         onStudentClick = onStudentClick,
                         onAddStudent = onAddStudent,
                         bottomInset = bottomInset,
@@ -157,7 +148,13 @@ fun PeopleScreen(
                         state = groupRows,
                         // A subject that leaves nothing is "nothing matched", not "no groups yet".
                         searching = query.isNotBlank() || groupSubject != null,
-                        filters = groupSubjectFilters(groupSubjects, groupSubject, groupsViewModel::setSubjectFilter),
+                        chips = {
+                            GroupChips(
+                                groupSubjects, groupSubject, groupsViewModel::setSubjectFilter,
+                                archived, side::toggleArchived,
+                                groupSort, groupsViewModel::setSort,
+                            )
+                        },
                         onGroupClick = onGroupClick,
                         onAddGroup = onAddGroup,
                         bottomInset = bottomInset,
@@ -167,39 +164,4 @@ fun PeopleScreen(
             }
         }
     }
-}
-
-/** The bar's sort button, over [options] — the first being the default order, which leaves it untinted. */
-@Composable
-private fun <T> SortMenu(options: List<T>, selected: T, onSelect: (T) -> Unit, label: (T) -> Int) {
-    var expanded by remember { mutableStateOf(false) }
-    Box {
-        NamedIconButton(
-            KlasIcons.Filled.Sort,
-            stringResource(R.string.students_sort),
-            onClick = { expanded = true },
-            // Tinted while the list is in a non-default order, so a surprising order has a visible cause
-            // in the bar above it.
-            tint = MaterialTheme.colorScheme.primary.takeIf { selected != options.first() },
-        )
-        KlasMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            options.forEach { option ->
-                TickedMenuItem(
-                    text = stringResource(label(option)),
-                    selected = option == selected,
-                    onClick = { onSelect(option); expanded = false },
-                )
-            }
-        }
-    }
-}
-
-private fun studentSortLabel(sort: StudentSort): Int = when (sort) {
-    StudentSort.NAME -> R.string.students_sort_name
-    StudentSort.DEBT -> R.string.students_sort_debt
-}
-
-private fun groupSortLabel(sort: GroupSort): Int = when (sort) {
-    GroupSort.NAME -> R.string.students_sort_name
-    GroupSort.NEXT_LESSON -> R.string.groups_sort_next
 }

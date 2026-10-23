@@ -1156,4 +1156,8 @@
         <item quantity="one">%1$d member</item>
         <item quantity="other">%1$d members</item>
     </plurals>
+    <string name="people_owes">Owes · %1$d</string>
+    <string name="people_archived">Archived</string>
+    <string name="people_sort">Sort: %1$s</string>
+    <string name="people_all_subjects">All subjects</string>
 </resources>

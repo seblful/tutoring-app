@@ -1307,4 +1307,8 @@
         <item quantity="many">%1$d участников</item>
         <item quantity="other">%1$d участника</item>
     </plurals>
+    <string name="people_owes">Должны · %1$d</string>
+    <string name="people_archived">Архив</string>
+    <string name="people_sort">Порядок: %1$s</string>
+    <string name="people_all_subjects">Все предметы</string>
 </resources>

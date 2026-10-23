@@ -1,6 +1,7 @@
 package com.seblful.klas.ui.students
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -47,6 +48,24 @@ fun StudentsList(
     modifier: Modifier = Modifier,
     bottomInset: PaddingValues = PaddingValues(),
     openId: Long? = null,
+    chips: @Composable () -> Unit = {},
+) {
+    // Above the list rather than in it, so a filter that leaves nothing can still be taken off.
+    Column(modifier) {
+        chips()
+        StudentRows(state, searching, onStudentClick, onAddStudent, Modifier.weight(1f), bottomInset, openId)
+    }
+}
+
+@Composable
+private fun StudentRows(
+    state: Loadable<List<StudentRow>>,
+    searching: Boolean,
+    onStudentClick: (Long) -> Unit,
+    onAddStudent: () -> Unit,
+    modifier: Modifier,
+    bottomInset: PaddingValues,
+    openId: Long?,
 ) {
     val rows = when (state) {
         Loadable.Loading -> {

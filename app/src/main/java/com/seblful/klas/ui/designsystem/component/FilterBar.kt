@@ -34,7 +34,12 @@ import com.seblful.klas.ui.theme.KlasIcons
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun FilterBar(options: List<FilterOption>, modifier: Modifier = Modifier) {
+fun FilterBar(
+    options: List<FilterOption>,
+    modifier: Modifier = Modifier,
+    /** [MenuChip]s after the toggles — an order, a choice of one among many — counted in the three. */
+    menus: @Composable () -> Unit = {},
+) {
     val shown = if (options.size > MaxChips) options.take(MaxChips - 1) else options
     val more = options.drop(shown.size)
     FlowRow(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.inline)) {
@@ -47,6 +52,7 @@ fun FilterBar(options: List<FilterOption>, modifier: Modifier = Modifier) {
             )
         }
         if (more.isNotEmpty()) MoreFilters(more)
+        menus()
     }
 }
 
