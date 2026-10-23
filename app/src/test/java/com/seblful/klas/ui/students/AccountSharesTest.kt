@@ -71,4 +71,21 @@ class AccountSharesTest {
 
         assertEquals("Nothing to pay", statementText(resources, currency, "Anna", details).lines().last())
     }
+
+    @Test
+    fun `the printed statement has a row per entry, the balance under each, and the total last`() {
+        val details = StudentDetails(
+            balance = Balance.Owed(Money(3000)),
+            classes = listOf(lesson(1, "2026-06-01T10:00:00Z", 3000)),
+        )
+
+        val sheet = statementSheet(resources, currency, "Anna", details)
+
+        assertEquals("Anna: lessons and payments", sheet.title)
+        val row = sheet.sections.single().rows.single()
+        assertTrue(row.label, row.label.endsWith("Lesson, Maths"))
+        assertEquals(Money(3000).money(currency), row.value)
+        assertEquals("Balance after: ${Money(3000).money(currency)}", row.detail)
+        assertEquals("To pay: ${Money(3000).money(currency)}", sheet.closing)
+    }
 }

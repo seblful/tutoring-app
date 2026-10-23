@@ -24,15 +24,17 @@ mirrors and [database and backup](database-and-backup.md) for persistence contra
   A new payment also offers its amount at a tap (`PaymentSuggestions`): the whole balance owed, and the
   last billed lesson's charge — never the same amount twice.
 - A student's statement (`Statement`) is every billed lesson and payment in time order with the balance
-  each left; its last balance is `Billing`'s. It (from the Balance card's header) and a reminder of what is
-  owed (the card's menu, offered only while something is) leave through the share sheet, where Telegram, SMS
-  and mail already are.
+  each left; its last balance is `Billing`'s. It (from the Balance card's header, as a message or a PDF) and
+  a reminder of what is owed (the card's menu, offered only while something is) leave through the share
+  sheet, where Telegram, SMS and mail already are.
 - Income is what was **earned** (taught, billable lessons); **received** is what was paid in the period
   (`Reports.received`, by the day a payment lands on). They differ by every advance and every debt, so the
   report's hero switches between them and exports them as two sections (D6), never one number.
 - The ledger (`Report.ledger`, `ReportCsv.buildLedger`) is the second export: every billed lesson and
   every payment in the period, a row each, by ISO day, a lesson before a payment on the same day. It is
   what an accountant reconciles; the summary is what a tutor reads.
+- The summary also prints as a PDF (`reportSheet`): the same lines under the same sections, amounts in the
+  tutor's currency, the scope under the title. A PDF is for a reader, the CSVs for a spreadsheet.
 - A report narrows to one student or one subject (`ReportScope`). A student's narrows lessons, payments
   and debts; a subject's narrows lessons only — no payment belongs to a subject, so received is not offered.
 - Auto-completion is opt-in: scheduled lessons become completed, and therefore billable, after ending.

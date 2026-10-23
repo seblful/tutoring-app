@@ -13,6 +13,7 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.seblful.klas.testutil.textLayoutOf
+import com.seblful.klas.ui.theme.KlasIcons
 import com.seblful.klas.ui.theme.KlasTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -75,7 +76,8 @@ class BarTitleFitTest {
                         KlasScreen(
                             title = title.value,
                             onBack = {},
-                            actions = { SaveAction(enabled = true, onSave = {}) },
+                            // A form saves from its bottom bar; an edit form's bar keeps only Delete.
+                            actions = { NamedIconButton(KlasIcons.Outlined.Delete, "Delete", onClick = {}) },
                         ) { _, _ -> }
                     }
                 }

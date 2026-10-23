@@ -210,5 +210,6 @@ internal fun Messages.showStudentEvent(
             undoable(resources.getString(R.string.payment_corrected)) { viewModel.undoPaymentCorrection(event) }
         StudentDetailViewModel.Event.PaymentChangedSince -> show(resources.getString(R.string.payment_undo_changed))
         StudentDetailViewModel.Event.WriteFailed -> show(resources.getString(R.string.action_failed))
+        StudentDetailViewModel.Event.ShareFailed -> show(resources.getString(R.string.student_contact_failed))
     }
 }

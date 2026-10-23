@@ -15,8 +15,8 @@ class SharedDocumentsTest {
     @Test
     fun `sharing the same filename never replaces the previous recipient's document`() {
         val documents = SharedDocuments(temporary.newFolder())
-        val first = documents.write("report.csv", "first report")
-        val second = documents.write("report.csv", "second report")
+        val first = documents.write("report.csv", "first report".encodeToByteArray())
+        val second = documents.write("report.csv", "second report".encodeToByteArray())
 
         assertNotEquals("An old URI must not address the next report", first, second)
         assertEquals("first report", first.readText())
@@ -28,9 +28,9 @@ class SharedDocumentsTest {
     fun `expired shares are removed without touching recent documents`() {
         val root = temporary.newFolder()
         val documents = SharedDocuments(root)
-        val old = documents.write("old.csv", "old")
+        val old = documents.write("old.csv", "old".encodeToByteArray())
         old.parentFile.setLastModified(1)
-        val recent = documents.write("recent.csv", "recent")
+        val recent = documents.write("recent.csv", "recent".encodeToByteArray())
 
         assertFalse(old.exists())
         assertEquals("recent", recent.readText())
@@ -40,6 +40,8 @@ class SharedDocumentsTest {
     fun `a filename cannot escape its share directory`() {
         val documents = SharedDocuments(temporary.newFolder())
 
-        assertThrows(IllegalArgumentException::class.java) { documents.write("../private.txt", "no") }
+        assertThrows(IllegalArgumentException::class.java) {
+            documents.write("../private.txt", "no".encodeToByteArray())
+        }
     }
 }

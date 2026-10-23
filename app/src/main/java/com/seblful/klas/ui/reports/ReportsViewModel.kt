@@ -9,6 +9,8 @@ import com.seblful.klas.domain.reports.Reports
 import com.seblful.klas.domain.time.WallClock
 import com.seblful.klas.domain.time.today
 import com.seblful.klas.format.AppLocale
+import com.seblful.klas.print.Sheet
+import com.seblful.klas.print.SheetPrinter
 import com.seblful.klas.queries.reports.ReportScope
 import com.seblful.klas.queries.reports.ReportsQuery
 import com.seblful.klas.queries.reports.ScopeChoice
@@ -34,6 +36,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @ViewModelKey
 @ContributesIntoMap(AppScope::class, binding = binding<ViewModel>())
@@ -41,6 +44,7 @@ class ReportsViewModel @Inject constructor(
     reports: ReportsQuery,
     private val documents: DocumentStore,
     private val sharing: DocumentSharing,
+    private val printer: SheetPrinter,
     @param:Computation private val computation: CoroutineDispatcher,
     private val clock: WallClock,
 ) : ViewModel() {
@@ -101,12 +105,21 @@ class ReportsViewModel @Inject constructor(
 
     val events = UiEvents<ExportEvent>()
 
-    /** A file the report leaves the phone as: its summary, or its ledger of every lesson and payment. */
+    /**
+     * A file the report leaves the phone as: its summary or its ledger of every lesson and payment, for a
+     * spreadsheet, or the summary printed, for a reader.
+     */
     sealed interface ReportFile {
-        /** The file's text, punctuated for [dialect] — see [ReportCsv.Dialect]. */
-        fun text(dialect: ReportCsv.Dialect): String
+        val mimeType: String
 
-        class Summary(private val header: List<String>, private val lines: List<ReportCsv.Line>) : ReportFile {
+        /** A spreadsheet file, its text punctuated for a dialect — see [ReportCsv.Dialect]. */
+        sealed interface Csv : ReportFile {
+            override val mimeType get() = CSV_MIME_TYPE
+
+            fun text(dialect: ReportCsv.Dialect): String
+        }
+
+        class Summary(private val header: List<String>, private val lines: List<ReportCsv.Line>) : Csv {
             override fun text(dialect: ReportCsv.Dialect) = ReportCsv.build(header, lines, dialect)
         }
 
@@ -114,8 +127,12 @@ class ReportsViewModel @Inject constructor(
             private val header: List<String>,
             private val report: Reports.Report,
             private val words: ReportCsv.LedgerWords,
-        ) : ReportFile {
+        ) : Csv {
             override fun text(dialect: ReportCsv.Dialect) = ReportCsv.buildLedger(header, report, words, dialect)
+        }
+
+        class Pdf(val sheet: Sheet) : ReportFile {
+            override val mimeType get() = SheetPrinter.PDF_MIME_TYPE
         }
     }
 
@@ -123,13 +140,16 @@ class ReportsViewModel @Inject constructor(
     fun export(ref: DocumentRef, file: ReportFile) {
         viewModelScope.launch {
             val ok = runCatchingCancellable {
-                documents.write(ref, csv(file))
+                documents.write(ref, bytes(file))
             }.isSuccess
             events.send(if (ok) ExportEvent.OK else ExportEvent.ERROR)
         }
     }
 
-    private fun csv(file: ReportFile): String = file.text(ReportCsv.Dialect.forDecimal(AppLocale.decimalSeparator))
+    private suspend fun bytes(file: ReportFile): ByteArray = when (file) {
+        is ReportFile.Csv -> file.text(ReportCsv.Dialect.forDecimal(AppLocale.decimalSeparator)).encodeToByteArray()
+        is ReportFile.Pdf -> withContext(computation) { printer.print(file.sheet) }
+    }
 
     /** Hands [file] to another app, through the system share sheet. */
     fun share(filename: String, subject: String, file: ReportFile) {
@@ -137,9 +157,9 @@ class ReportsViewModel @Inject constructor(
             val ok = runCatchingCancellable {
                 sharing.share(
                     filename = filename,
-                    mimeType = CSV_MIME_TYPE,
+                    mimeType = file.mimeType,
                     subject = subject,
-                    text = csv(file),
+                    bytes = bytes(file),
                 )
             }.isSuccess
             events.send(if (ok) ExportEvent.SHARED else ExportEvent.ERROR)

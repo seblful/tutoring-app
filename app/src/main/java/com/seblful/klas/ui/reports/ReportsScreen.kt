@@ -64,6 +64,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.seblful.klas.R
+import com.seblful.klas.domain.model.Currency
 import com.seblful.klas.domain.model.PaymentMethod
 import com.seblful.klas.domain.reports.ReportCsv
 import com.seblful.klas.domain.reports.ReportPeriod
@@ -73,6 +74,9 @@ import com.seblful.klas.format.bulletJoin
 import com.seblful.klas.format.formatHours
 import com.seblful.klas.format.formatMonth
 import com.seblful.klas.format.formatMonthName
+import com.seblful.klas.format.money
+import com.seblful.klas.print.Sheet
+import com.seblful.klas.print.SheetPrinter
 import com.seblful.klas.queries.reports.ReportScope
 import com.seblful.klas.queries.reports.ScopeChoice
 import com.seblful.klas.ui.common.EmptyState
@@ -82,6 +86,7 @@ import com.seblful.klas.ui.common.HeroCard
 import com.seblful.klas.ui.common.KlasMenu
 import com.seblful.klas.ui.common.KlasScreen
 import com.seblful.klas.ui.common.ListSkeleton
+import com.seblful.klas.ui.common.LocalCurrency
 import com.seblful.klas.ui.common.MaxContentWidth
 import com.seblful.klas.ui.common.MenuItem
 import com.seblful.klas.ui.common.MinTouchTarget
@@ -174,10 +179,13 @@ fun ReportsScreen(
         }
     }
 
-    val files = rememberReportFiles(exportable, period)
-    // Which file the picker was opened for: one picker serves both, as one menu offers both.
+    val files = rememberReportFiles(exportable, period, scopes.firstOrNull { it.scope == scope }?.name.orEmpty())
+    // Which file the picker was opened for: one picker per type, one menu for every file.
     var saving by remember { mutableStateOf<ReportsViewModel.ReportFile?>(null) }
-    val export = rememberCreateDocument(CSV_MIME_TYPE, noPickerMsg, messages) { document ->
+    val exportCsv = rememberCreateDocument(CSV_MIME_TYPE, noPickerMsg, messages) { document ->
+        saving?.let { viewModel.export(document, it) }
+    }
+    val exportPdf = rememberCreateDocument(SheetPrinter.PDF_MIME_TYPE, noPickerMsg, messages) { document ->
         saving?.let { viewModel.export(document, it) }
     }
     // Names the period, so a report arriving in somebody's mail says which month it is.
@@ -207,7 +215,7 @@ fun ReportsScreen(
                     onShare = { name, file -> viewModel.share(name, shareSubject, file) },
                     onSave = { name, file ->
                         saving = file
-                        export(name)
+                        if (file is ReportsViewModel.ReportFile.Pdf) exportPdf(name) else exportCsv(name)
                     },
                 )
                 ScopeMenu(scopes, scope, viewModel::setScope)
@@ -287,8 +295,12 @@ private fun csvHeadings(period: ReportPeriod, methods: Map<PaymentMethod?, Strin
     methods = methods,
 )
 
-/** The two files a report leaves as, for the report [exportable] — null while there is none to send. */
-private class ReportFiles(val summary: ReportsViewModel.ReportFile, val ledger: ReportsViewModel.ReportFile)
+/** The files a report leaves as, for the report [exportable] — null while there is none to send. */
+private class ReportFiles(
+    val summary: ReportsViewModel.ReportFile,
+    val ledger: ReportsViewModel.ReportFile,
+    val pdf: ReportsViewModel.ReportFile,
+)
 
 /**
  * Assembled here, where the headings are string resources and the rows already in the order the screen
@@ -296,7 +308,7 @@ private class ReportFiles(val summary: ReportsViewModel.ReportFile, val ledger: 
  * row of the report, and recomposition is not a new report.
  */
 @Composable
-private fun rememberReportFiles(exportable: Reports.Report?, period: ReportPeriod): ReportFiles? {
+private fun rememberReportFiles(exportable: Reports.Report?, period: ReportPeriod, scopeName: String): ReportFiles? {
     val methods = (PaymentMethod.entries + null).associateWith { method ->
         method?.let { paymentMethodLabel(it) } ?: stringResource(R.string.payment_method_none)
     }
@@ -318,15 +330,28 @@ private fun rememberReportFiles(exportable: Reports.Report?, period: ReportPerio
         methods = methods,
     )
     val headings = csvHeadings(period, methods)
-    return remember(exportable, headings, words) {
+    val title = stringResource(R.string.reports_share_subject, periodTitle(period))
+    val currency = LocalCurrency.current
+    return remember(exportable, headings, words, title, scopeName, currency) {
         exportable?.let { report ->
+            val lines = ReportCsv.linesFor(report, headings)
             ReportFiles(
-                summary = ReportsViewModel.ReportFile.Summary(summaryHeader, ReportCsv.linesFor(report, headings)),
+                summary = ReportsViewModel.ReportFile.Summary(summaryHeader, lines),
                 ledger = ReportsViewModel.ReportFile.Ledger(ledgerHeader, report, words),
+                pdf = ReportsViewModel.ReportFile.Pdf(reportSheet(title, scopeName, lines, currency)),
             )
         }
     }
 }
+
+/** The summary printed: the CSV's lines under their sections, amounts in [currency], narrowed to [scopeName]. */
+internal fun reportSheet(title: String, scopeName: String, lines: List<ReportCsv.Line>, currency: Currency) = Sheet(
+    title = title,
+    subtitle = scopeName,
+    sections = lines.groupBy { it.section }.map { (section, rows) ->
+        Sheet.Section(section, rows.map { Sheet.Row(it.label, it.amount.money(currency)) })
+    },
+)
 
 /**
  * The report as one list, or on an expanded window as Material's supporting pane: what the period came to
@@ -604,11 +629,14 @@ private fun ReportExportMenu(
 ) {
     val summaryName = stringResource(R.string.reports_export_filename)
     val ledgerName = stringResource(R.string.reports_ledger_filename)
+    val pdfName = stringResource(R.string.reports_pdf_filename)
     ExportMenu(
         onShare = { files?.let { onShare(ReportCsv.fileName(period), it.summary) } },
         onSave = { files?.let { onSave(summaryName, it.summary) } },
         onShareLedger = { files?.let { onShare(ReportCsv.ledgerFileName(period), it.ledger) } },
         onSaveLedger = { files?.let { onSave(ledgerName, it.ledger) } },
+        onSharePdf = { files?.let { onShare(ReportCsv.pdfFileName(period), it.pdf) } },
+        onSavePdf = { files?.let { onSave(pdfName, it.pdf) } },
     )
 }
 
@@ -619,6 +647,8 @@ internal fun ExportMenu(
     onSave: () -> Unit,
     onShareLedger: () -> Unit = {},
     onSaveLedger: () -> Unit = {},
+    onSharePdf: () -> Unit = {},
+    onSavePdf: () -> Unit = {},
 ) {
     var open by remember { mutableStateOf(false) }
     Box {
@@ -645,6 +675,17 @@ internal fun ExportMenu(
                 text = { Text(stringResource(R.string.reports_export_ledger)) },
                 leadingIcon = { Icon(KlasIcons.Filled.Download, contentDescription = null) },
                 onClick = { open = false; onSaveLedger() },
+            )
+            // The summary as a page to read — for someone who will not open a spreadsheet.
+            MenuItem(
+                text = { Text(stringResource(R.string.reports_share_pdf)) },
+                leadingIcon = { Icon(KlasIcons.Outlined.Share, contentDescription = null) },
+                onClick = { open = false; onSharePdf() },
+            )
+            MenuItem(
+                text = { Text(stringResource(R.string.reports_export_pdf)) },
+                leadingIcon = { Icon(KlasIcons.Filled.Download, contentDescription = null) },
+                onClick = { open = false; onSavePdf() },
             )
         }
     }

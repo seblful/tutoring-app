@@ -160,7 +160,9 @@ private fun StudentCard(
     // A student's name is what this screen is *about*, so it gets the large title Material designed for
     // exactly that — collapsing into an ordinary bar as the list scrolls. [TitleSize.Large] is that, and the
     // scroll behaviour it needs, said once.
-    val shares = rememberAccountShares(state, externalApps, noAppMsg)
+    val shares = rememberAccountShares(state, externalApps, noAppMsg, viewModel::shareStatement)
+    var choosingStatement by remember { mutableStateOf(false) }
+    if (choosingStatement) StatementChoice(shares) { choosingStatement = false }
     KlasScreen(
         title = student?.name,
         onBack = navigation.back.takeIf { navigation.backArrow },
@@ -229,7 +231,7 @@ private fun StudentCard(
                 BalanceCard(
                     state,
                     onAddPayment = { addingPayment = true },
-                    onStatement = shares.statement,
+                    onStatement = { choosingStatement = true },
                     modifier = animateInPlace(cardModifier),
                 )
             }

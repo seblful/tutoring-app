@@ -1184,4 +1184,12 @@
     <string name="onboarding_ready_body">%1$s is in. Book their first lesson now, or later from Today.</string>
     <string name="onboarding_book_first">Book the first lesson</string>
     <string name="onboarding_not_now">Not now</string>
+    <string name="reports_share_pdf">Send the report as PDF</string>
+    <string name="reports_export_pdf">Save the report as PDF</string>
+    <string name="reports_pdf_filename">klas-report.pdf</string>
+    <string name="statement_send_title">Send the statement</string>
+    <string name="statement_as_message">As a message</string>
+    <string name="statement_as_pdf">As a PDF</string>
+    <string name="statement_balance_after">Balance after: %1$s</string>
+    <string name="statement_filename">Statement — %1$s.pdf</string>
 </resources>

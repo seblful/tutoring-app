@@ -6,6 +6,8 @@ import com.seblful.klas.notifications.AlarmClock
 import com.seblful.klas.notifications.ArmedReminders
 import com.seblful.klas.notifications.ExactAlarmPermission
 import com.seblful.klas.notifications.NotificationPermission
+import com.seblful.klas.print.Sheet
+import com.seblful.klas.print.SheetPrinter
 import com.seblful.klas.storage.DocumentRef
 import com.seblful.klas.storage.DocumentSharing
 import com.seblful.klas.storage.DocumentStore
@@ -64,6 +66,9 @@ class FakeExactAlarmPermission(var granted: Boolean = true) : ExactAlarmPermissi
 class FakeDocumentStore(var failing: Boolean = false) : DocumentStore {
     val docs = mutableMapOf<String, String>()
 
+    /** What was written as bytes — a PDF — by document. */
+    val files = mutableMapOf<String, ByteArray>()
+
     override suspend fun read(ref: DocumentRef): String {
         if (failing) error("Cannot open input stream")
         return docs[ref.value] ?: error("No such document: ${ref.value}")
@@ -72,6 +77,11 @@ class FakeDocumentStore(var failing: Boolean = false) : DocumentStore {
     override suspend fun write(ref: DocumentRef, text: String) {
         if (failing) error("Cannot open output stream")
         docs[ref.value] = text
+    }
+
+    override suspend fun write(ref: DocumentRef, bytes: ByteArray) {
+        if (failing) error("Cannot open output stream")
+        files[ref.value] = bytes
     }
 }
 
@@ -92,19 +102,31 @@ class FakeFolderGrants(var refusing: Boolean = false) : FolderGrants {
     override suspend fun name(folder: String): String? = names[folder]
 }
 
+/** [SheetPrinter] that keeps each sheet and prints a stand-in: the platform's PDF writer is the renderer's test. */
+class RecordingSheetPrinter : SheetPrinter {
+    val printed = mutableListOf<Sheet>()
+
+    override fun print(sheet: Sheet): ByteArray {
+        printed += sheet
+        return "%PDF ${sheet.title}".encodeToByteArray()
+    }
+}
+
 class RecordingDocumentSharing(var failing: Boolean = false) : DocumentSharing {
-    data class Shared(
+    class Shared(
         val filename: String,
         val mimeType: String,
         val subject: String,
-        val text: String,
-    )
+        val bytes: ByteArray,
+    ) {
+        val text get() = bytes.decodeToString()
+    }
 
     val shared = mutableListOf<Shared>()
 
-    override suspend fun share(filename: String, mimeType: String, subject: String, text: String) {
+    override suspend fun share(filename: String, mimeType: String, subject: String, bytes: ByteArray) {
         if (failing) error("Nothing can receive this")
-        shared += Shared(filename, mimeType, subject, text)
+        shared += Shared(filename, mimeType, subject, bytes)
     }
 }
 

@@ -53,6 +53,9 @@ object ReportCsv {
         return "klas-report-$suffix.csv"
     }
 
+    /** What a printed report is called: [fileName]'s period, `klas-report-2026-06.pdf`. */
+    fun pdfFileName(period: ReportPeriod): String = fileName(period).removeSuffix(".csv") + ".pdf"
+
     /** What a shared ledger is called: [fileName]'s period, `klas-ledger-2026-06.csv`. */
     fun ledgerFileName(period: ReportPeriod): String = fileName(period).replace("klas-report", "klas-ledger")
 

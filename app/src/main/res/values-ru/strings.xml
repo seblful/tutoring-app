@@ -1337,4 +1337,12 @@
     <string name="onboarding_ready_body">Ученик %1$s добавлен. Запишите первое занятие сейчас или позже — с экрана «Сегодня».</string>
     <string name="onboarding_book_first">Записать первое занятие</string>
     <string name="onboarding_not_now">Не сейчас</string>
+    <string name="reports_share_pdf">Отправить отчёт в PDF</string>
+    <string name="reports_export_pdf">Сохранить отчёт в PDF</string>
+    <string name="reports_pdf_filename">klas-report.pdf</string>
+    <string name="statement_send_title">Отправить выписку</string>
+    <string name="statement_as_message">Сообщением</string>
+    <string name="statement_as_pdf">Файлом PDF</string>
+    <string name="statement_balance_after">Баланс после: %1$s</string>
+    <string name="statement_filename">Выписка — %1$s.pdf</string>
 </resources>

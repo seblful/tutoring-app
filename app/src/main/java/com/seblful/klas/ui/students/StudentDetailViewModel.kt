@@ -3,6 +3,7 @@ package com.seblful.klas.ui.students
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.createSavedStateHandle
+import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.CreationExtras
 import com.seblful.klas.data.billing.PaymentRepository
 import com.seblful.klas.data.homework.HomeworkRepository
@@ -23,9 +24,13 @@ import com.seblful.klas.domain.model.Student
 import com.seblful.klas.domain.time.WallClock
 import com.seblful.klas.domain.time.today
 import com.seblful.klas.format.minutes
+import com.seblful.klas.print.Sheet
+import com.seblful.klas.print.SheetPrinter
 import com.seblful.klas.queries.homework.AssigneeChoice
 import com.seblful.klas.queries.students.StudentDetails
 import com.seblful.klas.queries.students.StudentDetailsQuery
+import com.seblful.klas.runCatchingCancellable
+import com.seblful.klas.storage.DocumentSharing
 import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.common.state.UiEvents
 import com.seblful.klas.ui.common.state.derive
@@ -45,6 +50,8 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.datetime.LocalDate
 
 /** The student's card. */
@@ -59,6 +66,8 @@ class StudentDetailViewModel @AssistedInject constructor(
     @param:ApplicationScope private val appScope: CoroutineScope,
     @param:Computation private val computation: CoroutineDispatcher,
     private val clock: WallClock,
+    private val sharing: DocumentSharing,
+    private val printer: SheetPrinter,
 ) : ViewModel() {
 
     /** Hands over the screen's navigation arguments as the [SavedStateHandle]; the rest is injected. */
@@ -96,6 +105,9 @@ class StudentDetailViewModel @AssistedInject constructor(
 
         /** A write failed — a database error rather than a rule. */
         data object WriteFailed : Event
+
+        /** The statement could not be printed or handed to another app. */
+        data object ShareFailed : Event
     }
 
     val events = UiEvents<Event>()
@@ -114,6 +126,16 @@ class StudentDetailViewModel @AssistedInject constructor(
     val overview: StateFlow<StudentOverview?> = combine(state, clock.minutes()) { loaded, now ->
         loaded.valueOrNull()?.let { StudentOverview.of(it, now, clock.zone) }
     }.derive(this, computation, null)
+
+    /** Prints [sheet] — the statement — and hands it to another app as [filename], through the share sheet. */
+    fun shareStatement(filename: String, subject: String, sheet: Sheet) {
+        viewModelScope.launch {
+            runCatchingCancellable {
+                val pdf = withContext(computation) { printer.print(sheet) }
+                sharing.share(filename, SheetPrinter.PDF_MIME_TYPE, subject, pdf)
+            }.onFailure { events.send(Event.ShareFailed) }
+        }
+    }
 
     private fun <T> write(onWritten: suspend (T) -> Unit = {}, block: suspend () -> T) =
         appScope.write(events, Event.WriteFailed, onWritten, block)

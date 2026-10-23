@@ -1,5 +1,6 @@
 package com.seblful.klas.ui.reports
 
+import com.seblful.klas.domain.model.Currency
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.PaymentMethod
@@ -9,13 +10,17 @@ import com.seblful.klas.domain.reports.Reports
 import com.seblful.klas.domain.time.WallClock
 import com.seblful.klas.domain.time.today
 import com.seblful.klas.format.AppLocale
+import com.seblful.klas.format.money
+import com.seblful.klas.print.Sheet
 import com.seblful.klas.queries.reports.ReportScope
 import com.seblful.klas.queries.reports.ReportsQuery
+import com.seblful.klas.storage.DocumentRef
 import com.seblful.klas.testutil.CountingDispatcher
 import com.seblful.klas.testutil.FakeDocumentStore
 import com.seblful.klas.testutil.MainDispatcherRule
 import com.seblful.klas.testutil.MutableClock
 import com.seblful.klas.testutil.RecordingDocumentSharing
+import com.seblful.klas.testutil.RecordingSheetPrinter
 import com.seblful.klas.testutil.TestEnv
 import com.seblful.klas.testutil.current
 import com.seblful.klas.testutil.observing
@@ -59,6 +64,8 @@ class ReportsViewModelTest {
 
     private val sharing = RecordingDocumentSharing()
 
+    private val printer = RecordingSheetPrinter()
+
     private fun vm() =
         mainRule.own(
             ReportsViewModel(
@@ -66,7 +73,7 @@ class ReportsViewModelTest {
                     env.classRepo, env.studentRepo, env.subjectRepo,
                     env.groupRepo, env.balanceRepo, env.paymentRepo, clock,
                 ),
-                documents, sharing, mainRule.dispatcher, clock,
+                documents, sharing, printer, mainRule.dispatcher, clock,
             ),
         )
 
@@ -99,7 +106,7 @@ class ReportsViewModelTest {
                     env.classRepo, env.studentRepo, env.subjectRepo,
                     env.groupRepo, env.balanceRepo, env.paymentRepo, lateEvening,
                 ),
-                documents, sharing, mainRule.dispatcher, lateEvening,
+                documents, sharing, printer, mainRule.dispatcher, lateEvening,
             ),
         )
         vm.setKind(ReportPeriod.Kind.MONTH)
@@ -164,7 +171,7 @@ class ReportsViewModelTest {
                     env.classRepo, env.studentRepo, env.subjectRepo,
                     env.groupRepo, env.balanceRepo, env.paymentRepo, newYear,
                 ),
-                documents, sharing, mainRule.dispatcher, newYear,
+                documents, sharing, printer, mainRule.dispatcher, newYear,
             ),
         )
         observing(vm.state)
@@ -222,7 +229,7 @@ class ReportsViewModelTest {
                         env.classRepo, env.studentRepo, env.subjectRepo,
                         env.groupRepo, env.balanceRepo, env.paymentRepo, clock,
                     ),
-                    documents, sharing, counting, clock,
+                    documents, sharing, printer, counting, clock,
                 ),
             )
             observing(vm.state)
@@ -273,6 +280,23 @@ class ReportsViewModelTest {
             ReportCsv.build(header, lines, ReportCsv.Dialect.forDecimal(AppLocale.decimalSeparator)),
             shared.text,
         )
+    }
+
+    @Test
+    fun `the printed report is shared and saved as a PDF of the sheet it was given`() = runTest(mainRule.dispatcher) {
+        val vm = vm()
+        val sheet = Sheet("Klas report: 2026", listOf(Sheet.Section("Total", listOf(Sheet.Row("2026", "30 BYN")))))
+        val file = ReportsViewModel.ReportFile.Pdf(sheet)
+
+        vm.share(filename = "klas-report-2026.pdf", subject = "Klas report", file = file)
+        vm.export(DocumentRef("content://report.pdf"), file)
+        runCurrent()
+
+        val shared = sharing.shared.single()
+        assertEquals("application/pdf", shared.mimeType)
+        assertEquals("%PDF Klas report: 2026", shared.text)
+        assertEquals("%PDF Klas report: 2026", documents.files.getValue("content://report.pdf").decodeToString())
+        assertEquals(listOf(sheet, sheet), printer.printed)
     }
 
     @Test
@@ -353,5 +377,21 @@ class ReportsViewModelTest {
         runCurrent()
         assertEquals(Money.ofMajor(70), vm.state.current.totalIncome)
         assertTrue("no payment belongs to a subject", vm.state.current.received.total.isZero)
+    }
+
+    @Test
+    fun `the printed report keeps the summary's sections, in order, its amounts in the currency`() {
+        val lines = listOf(
+            ReportCsv.Line("Total", "2026", Money.ofMajor(30)),
+            ReportCsv.Line("By student", "Anna", Money.ofMajor(20)),
+            ReportCsv.Line("By student", "Liam", Money.ofMajor(10)),
+        )
+
+        val sheet = reportSheet("Klas report: 2026", "Maths", lines, Currency.BYN)
+
+        assertEquals("Maths", sheet.subtitle)
+        assertEquals(listOf("Total", "By student"), sheet.sections.map { it.title })
+        assertEquals(listOf("Anna", "Liam"), sheet.sections[1].rows.map { it.label })
+        assertEquals(Money.ofMajor(20).money(Currency.BYN), sheet.sections[1].rows[0].value)
     }
 }

@@ -10,6 +10,7 @@ import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Payment
 import com.seblful.klas.domain.people.Phone
+import com.seblful.klas.print.Sheet
 import com.seblful.klas.queries.homework.AssigneeChoice
 import com.seblful.klas.testutil.current
 import com.seblful.klas.testutil.observing
@@ -387,5 +388,33 @@ class StudentDetailViewModelTest : StudentDetailTestFixture() {
         advanceTimeBy(untilMidnight.inWholeMilliseconds)
 
         assertEquals(HomeworkRules.Due.TODAY, vm.state.current.homework.current.single().due)
+    }
+
+    @Test
+    fun `the statement is printed and shared as a PDF`() = runTest(mainRule.dispatcher) {
+        val vm = vm(seedStudent())
+        val sheet = Sheet("Anna: lessons and payments", emptyList())
+
+        vm.shareStatement("Statement — Anna.pdf", "Anna: lessons and payments", sheet)
+        runCurrent()
+
+        val shared = sharing.shared.single()
+        assertEquals("Statement — Anna.pdf", shared.filename)
+        assertEquals("application/pdf", shared.mimeType)
+        assertEquals("%PDF Anna: lessons and payments", shared.text)
+        assertEquals(listOf(sheet), printer.printed)
+    }
+
+    @Test
+    fun `a statement nothing can receive is said`() = runTest(mainRule.dispatcher) {
+        val vm = vm(seedStudent())
+        sharing.failing = true
+        val events = mutableListOf<StudentDetailViewModel.Event>()
+        backgroundScope.launch { vm.events.stream.collect { events += it } }
+
+        vm.shareStatement("Statement — Anna.pdf", "Anna", Sheet("Anna", emptyList()))
+        runCurrent()
+
+        assertEquals(listOf(StudentDetailViewModel.Event.ShareFailed), events)
     }
 }

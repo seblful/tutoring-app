@@ -12,20 +12,20 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
 
-/** DocumentSharing] over `ACTION_SEND` and a [FileProvider] — the device adapter. */
+/** [DocumentSharing] over `ACTION_SEND` and a [FileProvider] — the device adapter. */
 @ContributesBinding(AppScope::class)
 @SingleIn(AppScope::class)
 class AndroidDocumentSharing @Inject constructor(
     @param:ApplicationContext private val context: Context,
 ) : DocumentSharing {
 
-    override suspend fun share(filename: String, mimeType: String, subject: String, text: String) {
+    override suspend fun share(filename: String, mimeType: String, subject: String, bytes: ByteArray) {
         // A name, not a path. `getUriForFile` would refuse a file outside the configured root — but only
-        // *after* `writeText` had already put it there, so the check is here, before anything is written.
+        // *after* the bytes had already put it there, so the check is here, before anything is written.
         require(filename == File(filename).name) { "A share filename may not contain a path" }
 
         val uri = withContext(Dispatchers.IO) {
-            val file = SharedDocuments(File(context.cacheDir, SHARE_DIRECTORY)).write(filename, text)
+            val file = SharedDocuments(File(context.cacheDir, SHARE_DIRECTORY)).write(filename, bytes)
             FileProvider.getUriForFile(context, "${context.packageName}.$AUTHORITY_SUFFIX", file)
         }
 
