@@ -9,10 +9,11 @@ import { join } from "node:path";
  * Starts Chrome with its profile in [profile] and returns `send(method, params)` for its page, and
  * `close()`. CHROME=<path> overrides where Chrome is looked for.
  *
- * Chrome draws in software unless [gpu]: the same on every machine, and faster than a GPU for a page that
- * is read back — a laptop's discrete GPU took 1.3 s a frame to hand a screenshot over, against 0.1 s in
- * software. With [gpu] it draws on the fastest GPU there is, with html-in-canvas on and no frame-rate cap,
- * for the video drawn and encoded without leaving it (store/film/gpu.js).
+ * Chrome draws in software unless [gpu]: the same on every machine, and faster than a GPU for a small page
+ * that is read back — a laptop's discrete GPU took 1.3 s to hand a video frame's screenshot over, against
+ * 0.1 s in software. With [gpu] it draws on the fastest GPU there is, with html-in-canvas on and no
+ * frame-rate cap: for the video, drawn and encoded without leaving it (store/film/gpu.js), and the
+ * listing's stills, whose drawing outweighs the read-back.
  */
 export async function openChrome(profile, { gpu = false } = {}) {
   const portFile = join(profile, "DevToolsActivePort");

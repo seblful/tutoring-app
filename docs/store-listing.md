@@ -101,8 +101,9 @@ Sound is deterministic synthesis in `sound.js`, with no sampled recordings.
   WebGL exposures and passes the canvas to WebCodecs. Unsupported Chrome or `--software` uses screenshots.
   `encoder.js` encodes; `lib/mp4.mjs` writes the MP4 index first. `lib/chrome.mjs` asks for the
   high-performance GPU, and `video.mjs` prints the one it got («Drawing on …»): on a two-GPU laptop it
-  should name the discrete card. The stills (`render.mjs`) draw in software on purpose: reading pages
-  back from a discrete GPU was over ten times slower.
+  should name the discrete card. The stills (`render.mjs`) draw on the GPU too: their 4320 × 7680 pages
+  with blurred glows took 3 min 39 s for both languages against about 7 in software, matching it to
+  under a level on average. `render.mjs --software` draws them without it.
 - **GPU constraints:** html-in-canvas uses page order, ignoring depth sorting: do not rely on
   `translateZ` for occlusion. Put the face after the edge; implement the final fade with `#fade`, since
   the stage's own styles are ignored.
