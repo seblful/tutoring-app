@@ -34,7 +34,7 @@ import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.common.text
-import com.seblful.klas.ui.common.timeText
+import com.seblful.klas.ui.common.timeRangeText
 import com.seblful.klas.ui.designsystem.component.AccentCard
 import com.seblful.klas.ui.designsystem.component.AmountMeaning
 import com.seblful.klas.ui.designsystem.component.AmountText
@@ -48,7 +48,6 @@ import com.seblful.klas.ui.designsystem.component.SectionAction
 import com.seblful.klas.ui.theme.KlasIcons
 import com.seblful.klas.ui.theme.klasSemantics
 import dev.zacsweers.metrox.viewmodel.metroViewModel
-import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Instant
 
 /**
@@ -267,9 +266,6 @@ private fun phaseWord(phase: LessonPhase): String? = when (phase) {
 }
 
 @Composable
-private fun timeRange(row: TodayLessonRow): String {
-    val start = row.session.start
-    return "${start.timeText()}–${(start + row.session.durationMinutes.minutes).timeText()}"
-}
+private fun timeRange(row: TodayLessonRow): String = row.session.start.timeRangeText(row.session.durationMinutes)
 
 private const val HOMEWORK_SHOWN = 3

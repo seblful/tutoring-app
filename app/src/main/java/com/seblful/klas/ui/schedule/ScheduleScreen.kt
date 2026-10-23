@@ -298,6 +298,8 @@ fun ScheduleScreen(
                             onPrevious = viewModel::goToPreviousDay,
                             onNext = viewModel::goToNextDay,
                             onToday = viewModel::goToToday,
+                            selected = date,
+                            onPick = viewModel::selectDate,
                         )
                         // What the day comes to, under the day it names — the stepper's title is the date,
                         // so this is the one place in this view the summary can sit. No rule under it: the
@@ -314,12 +316,16 @@ fun ScheduleScreen(
                         onPrevious = viewModel::goToPreviousWeek,
                         onNext = viewModel::goToNextWeek,
                         onToday = viewModel::goToToday,
+                        selected = date,
+                        onPick = viewModel::selectDate,
                     )
                     ScheduleViewMode.MONTH -> MonthNavigator(
                         month = month,
                         onPrevious = viewModel::goToPreviousMonth,
                         onNext = viewModel::goToNextMonth,
                         onToday = viewModel::goToToday,
+                        selected = date,
+                        onPick = viewModel::selectDate,
                     )
                 }
             },

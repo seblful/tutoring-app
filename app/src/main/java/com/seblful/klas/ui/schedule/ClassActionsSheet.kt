@@ -41,6 +41,7 @@ import com.seblful.klas.domain.model.Homework
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.TutoringClass
 import com.seblful.klas.format.bulletJoin
+import com.seblful.klas.format.formatDay
 import com.seblful.klas.format.toLocalDate
 import com.seblful.klas.format.toLocalTime
 import com.seblful.klas.ui.common.Avatar
@@ -57,6 +58,7 @@ import com.seblful.klas.ui.common.classStatusLabel
 import com.seblful.klas.ui.common.insetRowPress
 import com.seblful.klas.ui.common.outsetRowPress
 import com.seblful.klas.ui.common.rememberToggleFeedback
+import com.seblful.klas.ui.common.timeRangeText
 import com.seblful.klas.ui.common.timeText
 import com.seblful.klas.ui.designsystem.component.ChoiceDialog
 import com.seblful.klas.ui.designsystem.component.KlasDivider
@@ -103,11 +105,15 @@ internal fun ClassActionsSheet(
             Column(Modifier.fillMaxWidth().padding(horizontal = SheetGutter, vertical = Spacing.tight)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     LessonKindIcon(LessonKind.of(klass), Modifier.padding(end = Spacing.inline))
-                    Text(
-                        bulletJoin(klass.start.timeText(), row.title),
-                        style = MaterialTheme.typography.titleMedium,
-                    )
+                    Text(row.title, style = MaterialTheme.typography.titleMedium)
                 }
+                // The day and the hours in full: opened from the week, a reminder or Today, «16:00» alone
+                // did not say which day's lesson this is.
+                Text(
+                    bulletJoin(klass.start.toLocalDate().formatDay(), klass.start.timeRangeText(klass.durationMinutes)),
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(top = Spacing.tight),
+                )
                 // The lesson card's own second line — status first — so the sheet opens on the
                 // row that was tapped, in the same order, rather than a rearrangement of it.
                 StatusLine(row, phase, maxLines = Int.MAX_VALUE)

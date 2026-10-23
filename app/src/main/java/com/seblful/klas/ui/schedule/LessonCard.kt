@@ -98,16 +98,26 @@ private fun ScheduleCard(
     ContentCard(onClick = onClick, modifier = modifier, dimmed = cancelled) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             // Ink, not the accent: the time is read, not tapped. A fixed-width column, so every card's
-            // name starts on the same edge whatever the hour.
-            ColumnTime(
-                row.klass.start.timeText(),
-                style = MaterialTheme.typography.titleMedium,
-                width = timeWidth,
-                color = if (cancelled) MaterialTheme.colorScheme.onSurfaceVariant
-                else MaterialTheme.colorScheme.onSurface,
-                // Struck through, so the hour reads as one that was given back.
-                textDecoration = if (cancelled) TextDecoration.LineThrough else null,
-            )
+            // name starts on the same edge whatever the hour. The end under the start, quieter: back-to-back
+            // lessons and the gaps between them read off the column without a time grid.
+            Column {
+                ColumnTime(
+                    row.klass.start.timeText(),
+                    style = MaterialTheme.typography.titleMedium,
+                    width = timeWidth,
+                    color = if (cancelled) MaterialTheme.colorScheme.onSurfaceVariant
+                    else MaterialTheme.colorScheme.onSurface,
+                    // Struck through, so the hour reads as one that was given back.
+                    textDecoration = if (cancelled) TextDecoration.LineThrough else null,
+                )
+                ColumnTime(
+                    row.klass.end.timeText(),
+                    style = MaterialTheme.typography.bodySmall,
+                    width = timeWidth,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textDecoration = if (cancelled) TextDecoration.LineThrough else null,
+                )
+            }
             // [Spacing.itemGap] rather than [Spacing.leading]: the time and the body are two peers
             // in the row, and every dp between them is width the lesson's own name does not get —
             // that name being the one thing on the card that can run long.

@@ -1198,4 +1198,5 @@
     <string name="settings_subjects_summary">Предметы, которые вы ведёте</string>
     <string name="settings_backup_summary">Экспорт, импорт и еженедельная копия</string>
     <string name="settings_about_summary">Версия, конфиденциальность и лицензии</string>
+    <string name="schedule_pick_date">Выбрать дату</string>
 </resources>

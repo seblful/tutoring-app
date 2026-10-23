@@ -1,6 +1,7 @@
 package com.seblful.klas.ui.schedule
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -16,12 +17,16 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -34,6 +39,7 @@ import com.seblful.klas.format.daySummaryText
 import com.seblful.klas.format.formatDay
 import com.seblful.klas.format.formatMonth
 import com.seblful.klas.format.formatWeekRange
+import com.seblful.klas.ui.common.DatePickerModal
 import com.seblful.klas.ui.common.LocalCurrency
 import com.seblful.klas.ui.common.PageStepper
 import com.seblful.klas.ui.common.SectionTitle
@@ -49,6 +55,8 @@ internal fun DayNavigator(
     onPrevious: () -> Unit,
     onNext: () -> Unit,
     onToday: () -> Unit,
+    selected: LocalDate,
+    onPick: (LocalDate) -> Unit,
 ) {
     PageNavigator(
         title = date.formatDay(),
@@ -57,6 +65,8 @@ internal fun DayNavigator(
         onPrevious = onPrevious,
         onNext = onNext,
         onToday = onToday,
+        selected = selected,
+        onPick = onPick,
     )
 }
 
@@ -66,6 +76,8 @@ internal fun WeekNavigator(
     onPrevious: () -> Unit,
     onNext: () -> Unit,
     onToday: () -> Unit,
+    selected: LocalDate,
+    onPick: (LocalDate) -> Unit,
 ) {
     PageNavigator(
         title = formatWeekRange(days.first(), days.last()),
@@ -74,6 +86,8 @@ internal fun WeekNavigator(
         onPrevious = onPrevious,
         onNext = onNext,
         onToday = onToday,
+        selected = selected,
+        onPick = onPick,
     )
 }
 
@@ -83,6 +97,8 @@ internal fun MonthNavigator(
     onPrevious: () -> Unit,
     onNext: () -> Unit,
     onToday: () -> Unit,
+    selected: LocalDate,
+    onPick: (LocalDate) -> Unit,
 ) {
     PageNavigator(
         title = formatMonth(month),
@@ -91,6 +107,8 @@ internal fun MonthNavigator(
         onPrevious = onPrevious,
         onNext = onNext,
         onToday = onToday,
+        selected = selected,
+        onPick = onPick,
     )
 }
 
@@ -102,7 +120,10 @@ internal fun PageNavigator(
     onPrevious: () -> Unit,
     onNext: () -> Unit,
     onToday: () -> Unit,
+    selected: LocalDate,
+    onPick: (LocalDate) -> Unit,
 ) {
+    var picking by rememberSaveable { mutableStateOf(false) }
     PageStepper(
         previousDescription = previousDescription,
         nextDescription = nextDescription,
@@ -111,8 +132,17 @@ internal fun PageNavigator(
     ) {
         Text(
             title,
-            // A heading, so a screen reader can jump between the page's title and its days.
-            modifier = Modifier.weight(1f, fill = false).semantics { heading() },
+            // A heading, so a screen reader can jump between the page's title and its days. A tap picks any
+            // date: paging a day or a month at a time was the only way to reach one weeks away.
+            modifier = Modifier
+                .weight(1f, fill = false)
+                .clip(MaterialTheme.shapes.small)
+                .clickable(
+                    onClickLabel = stringResource(R.string.schedule_pick_date),
+                    role = Role.Button,
+                ) { picking = true }
+                .padding(horizontal = Spacing.inline, vertical = Spacing.tight)
+                .semantics { heading() },
             style = MaterialTheme.typography.titleMedium,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
@@ -125,6 +155,16 @@ internal fun PageNavigator(
         IconButton(onClick = onToday) {
             Icon(KlasIcons.Outlined.Today, stringResource(R.string.schedule_today))
         }
+    }
+    if (picking) {
+        DatePickerModal(
+            initial = selected,
+            onConfirm = {
+                picking = false
+                onPick(it)
+            },
+            onDismiss = { picking = false },
+        )
     }
 }
 

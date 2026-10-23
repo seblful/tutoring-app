@@ -53,7 +53,8 @@ Build screens from shared state and controls. Feature rules belong in the domain
   (`plusInset`), a scrolling column pads by it inside its scroll, and anything else pads by it.
   It is zero on a tab (the tab bar takes it) and under the keyboard on an `imeAware` form.
 - Use `SegmentedPage` (tabs, no divider) for fixed views, `PageStepper` for successive pages; both
-  page titles are ink. A held tab tints a rounded shape around its label, not Material's full-cell ripple. Choices of a value use `SegmentedChoice`, settings-shaped `ChoiceRow` (segments
+  page titles are ink. The schedule's page title is also its date picker (`PageNavigator`); «today» stays
+  an icon beside it. A held tab tints a rounded shape around its label, not Material's full-cell ripple. Choices of a value use `SegmentedChoice`, settings-shaped `ChoiceRow` (segments
   up to four, then a field), or shortlist chips with an escape hatch. Screen filters share
   `FilterMenuAction`/`FilterChipRow`. Menus draw options through `MenuOptions`: past 12 it adds a
   search and draws the first 30 matches, since a dropdown composes every item when it opens. Every menu,
@@ -95,8 +96,11 @@ Build screens from shared state and controls. Feature rules belong in the domain
   baseline (`BadgeLine`): centred, they give `ListItem` two baselines and a three-line row. Nested trailing
   money uses `TrailingAmount`; ordinary amounts stay ink, red means debt; a settled student shows no
   balance. Lesson rows lead with their date; card times use `ColumnTime`
-  (tabular, widest-time width, measured once per list by `rememberColumnTimeWidth`). A kind icon prefixes a name; the lines below start on the icon's edge, not
-  hung under the name. The lesson sheet's header repeats the card's layout.
+  (tabular, widest-time width, measured once per list by `rememberColumnTimeWidth`), the end under the
+  start in a quieter style, so back-to-back lessons and gaps read without a time grid (D4). Ranges are
+  `timeRangeText`. A kind icon prefixes a name; the lines below start on the icon's edge, not
+  hung under the name. The lesson sheet's header repeats the card's layout, then names the day and the
+  hours in full, since it also opens from the week, a reminder and Today.
 - Forms have one field style: tapped fields (`PickerField`) draw the outlined text field's own decoration,
   so labels float alike and fields space alike. Ticks in a form sit on its edge, not centred in 48 dp.
 

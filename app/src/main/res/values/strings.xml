@@ -1059,4 +1059,5 @@
     <string name="settings_subjects_summary">The subjects you teach</string>
     <string name="settings_backup_summary">Export, import and the weekly copy</string>
     <string name="settings_about_summary">Version, privacy and licences</string>
+    <string name="schedule_pick_date">Choose a date</string>
 </resources>

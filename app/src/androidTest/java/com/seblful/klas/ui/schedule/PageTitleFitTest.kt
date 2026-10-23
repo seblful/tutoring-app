@@ -14,6 +14,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.seblful.klas.testutil.textLayoutOf
 import com.seblful.klas.ui.theme.KlasTheme
+import kotlinx.datetime.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -79,6 +80,8 @@ class PageTitleFitTest {
                             onPrevious = {},
                             onNext = {},
                             onToday = {},
+                            selected = LocalDate(2026, 6, 1),
+                            onPick = {},
                         )
                     }
                 }

@@ -25,6 +25,7 @@ import androidx.lifecycle.compose.LifecycleEventEffect
 import com.seblful.klas.format.formatDateTime
 import com.seblful.klas.format.formatTime
 import kotlinx.datetime.LocalTime
+import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Instant
 
 /**
@@ -53,6 +54,11 @@ private fun hour12(): Boolean = LocalHour12.current ?: phoneHour12(LocalContext.
 @Composable
 @ReadOnlyComposable
 fun Instant.timeText(): String = formatTime(hour12())
+
+/** e.g. "15:00–16:00": a lesson's hours, from [this] start for [minutes]. */
+@Composable
+@ReadOnlyComposable
+fun Instant.timeRangeText(minutes: Int): String = "${timeText()}–${(this + minutes.minutes).timeText()}"
 
 /** [timeText] for a caller already holding a wall-clock time — a booking form's from/to. */
 @Composable
