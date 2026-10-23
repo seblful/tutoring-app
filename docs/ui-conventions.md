@@ -37,7 +37,8 @@ Build screens from shared state and controls. Feature rules belong in the domain
   student and the group forms; the other screens are `KlasScreen` with a `Selection` where they pick.
 - Before building a part, look in the component catalog (`ComponentCatalog`, debug sources): every
   design-system part in its states, a screenshot target in light, dark, 1.5× text and the raised contrast
-  schemes; `ComponentCatalogTest` fails when a new public part is left out of it.
+  schemes; `ComponentCatalogTest` fails when a new public part is left out of it. A dialog with a field is
+  previewed by its body, apart from its window: a focused field in a dialog never settles for a screenshot.
 - Generic parts live in `ui/designsystem/component` and take no domain types: `KlasRow` (typed
   `RowStart`/`RowEnd`, so a row leads with an icon or the mark-done button and nothing of its own making,
   and has one trailing thing: an `Amount`, a value, a chevron, a switch or one named icon action), `Amount` (an `AmountText` worded with its meaning), `HeaderedCard` (title, count or
@@ -281,8 +282,10 @@ Build screens from shared state and controls. Feature rules belong in the domain
   feature keeps its chosen switch state and says so as a blocking `Banner` with «Allow» — on the index, the
   Notifications page and under auto-completion; exact-alarm access concerns only lesson reminders. Banners
   come in two kinds (`BannerKind`): blocking (something does not work) and advisory (worth doing: a backup
-  missing or over two weeks old, on Today and Backup), each a polite live region. A value row's value trails
-  as text (`ValueRow`: «1 hour before», the currency), never a ▾ that reads as a form field. Dependent controls stay visible and explain how to enable them. Shared reminder
+  missing or over two weeks old, on Today and Backup), each a polite live region. A banner's action sits
+  beside its words, or under them at the end when beside them it would leave the words under 60% of the
+  line. A value row's value trails as text (`ValueRow`: «1 hour before», the currency), never a ▾ that
+  reads as a form field. Dependent controls stay visible and explain how to enable them. Shared reminder
   timing is editable when lesson reminders **or** calendar sync is enabled, from either category.
 - Status is never colour alone. Month and week cells draw a `StatusMark` per lesson — taught a dot,
   planned a ring, cancelled a cross — up to `CalendarLayout.MAX_MARKS` and «+n», with a `StatusLegend`

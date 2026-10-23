@@ -1166,8 +1166,8 @@
     <string name="settings_backup_failed">The weekly copy failed</string>
     <string name="settings_diagnostics_crash">A crash report to send</string>
     <plurals name="settings_subjects_count">
-        <item quantity="one">%d subject</item>
-        <item quantity="other">%d subjects</item>
+        <item quantity="one">%1$d subject</item>
+        <item quantity="other">%1$d subjects</item>
     </plurals>
     <string name="subject_unused">Not used yet</string>
     <plurals name="subject_groups_count">

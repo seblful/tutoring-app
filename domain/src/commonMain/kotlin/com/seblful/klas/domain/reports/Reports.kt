@@ -30,16 +30,18 @@ object Reports {
     data class Debt(val student: StudentId, val amount: Money)
 
     /**
-     * The number of students in debt and the total they owe.
+     * The number of students in debt, the total they owe, and [debts] — who, most owed first.
      */
-    data class Outstanding(val students: Int, val total: Money) {
+    data class Outstanding(val students: Int, val total: Money, val debts: List<Debt> = emptyList()) {
 
         companion object {
             /**
              * Summarizes the balances supplied by the caller.
              */
-            fun of(balances: List<StudentBalance>): Outstanding =
-                Outstanding(students = debts(balances).size, total = totalOutstanding(balances))
+            fun of(balances: List<StudentBalance>): Outstanding {
+                val debts = debts(balances)
+                return Outstanding(students = debts.size, total = totalOutstanding(balances), debts = debts)
+            }
         }
     }
 

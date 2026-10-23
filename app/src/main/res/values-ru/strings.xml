@@ -1317,10 +1317,10 @@
     <string name="settings_backup_failed">Еженедельная копия не записалась</string>
     <string name="settings_diagnostics_crash">Есть отчёт о сбое</string>
     <plurals name="settings_subjects_count">
-        <item quantity="one">%d предмет</item>
-        <item quantity="few">%d предмета</item>
-        <item quantity="many">%d предметов</item>
-        <item quantity="other">%d предмета</item>
+        <item quantity="one">%1$d предмет</item>
+        <item quantity="few">%1$d предмета</item>
+        <item quantity="many">%1$d предметов</item>
+        <item quantity="other">%1$d предмета</item>
     </plurals>
     <string name="subject_unused">Пока не используется</string>
     <plurals name="subject_groups_count">
@@ -1345,4 +1345,5 @@
     <string name="statement_as_pdf">Файлом PDF</string>
     <string name="statement_balance_after">Баланс после: %1$s</string>
     <string name="statement_filename">Выписка — %1$s.pdf</string>
+    <string name="money_range" translatable="false">%1$s–%2$s</string>
 </resources>

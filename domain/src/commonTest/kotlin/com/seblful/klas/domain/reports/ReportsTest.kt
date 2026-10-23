@@ -325,6 +325,21 @@ class ReportsTest {
         assertEquals(Money(12000), Reports.totalOutstanding(balances)) // 3000 + 9000, credit excluded
     }
 
+    @Test
+    fun `what is outstanding carries who owes it, most first`() {
+        val balances = listOf(
+            StudentBalance(1, charged = Money(5000), paid = Money(2000)), // owes 3000
+            StudentBalance(2, charged = Money(4000), paid = Money(9000)), // credit
+            StudentBalance(3, charged = Money(10000), paid = Money(1000)), // owes 9000
+        )
+
+        val outstanding = Reports.Outstanding.of(balances)
+
+        assertEquals(2, outstanding.students)
+        assertEquals(Money(12000), outstanding.total)
+        assertEquals(listOf(StudentId(3), StudentId(1)), outstanding.debts.map { it.student })
+    }
+
     /**
      * The ranked bar's two rules — scaled to the section's largest line, dropped for a section of
      * one — used to be decided by the composable that drew the bar. They are the report's own, so

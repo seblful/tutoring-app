@@ -158,10 +158,11 @@ class TodayViewModel @Inject constructor(
             val owing = active.map { sums.balanceOf(it.id) }
             val lastPaid = paid.groupBy { it.studentId }.mapValues { (_, theirs) -> theirs.maxOf { it.date } }
             val names = active.associateBy { it.id }
-            val debtors = Reports.debts(owing).mapNotNull { debt ->
+            val outstanding = Reports.Outstanding.of(owing)
+            val debtors = outstanding.debts.mapNotNull { debt ->
                 names[debt.student.value]?.let { TodayDebtor(it.id, it.name, debt.amount, lastPaid[it.id]) }
             }
-            Reports.Outstanding.of(owing) to debtors
+            outstanding to debtors
         }
 
     /** Marks made outside the app within their window, newest first — see [RecentMarks]. */
