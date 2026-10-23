@@ -63,8 +63,9 @@ Build screens from shared state and controls. Feature rules belong in the domain
 - Use `SegmentedPage` (tabs, no divider) for fixed views, `PageStepper` for successive pages; both
   page titles are ink. The schedule's page title is also its date picker (`PageNavigator`); «today» stays
   an icon beside it. A held tab tints a rounded shape around its label, not Material's full-cell ripple. Choices of a value use `SegmentedChoice`, settings-shaped `ChoiceRow` (segments
-  up to four, then a field), or shortlist chips with an escape hatch. Screen filters share
-  `FilterMenuAction`/`FilterChipRow`. Menus draw options through `MenuOptions`: past 12 it adds a
+  up to four, then a field), or shortlist chips with an escape hatch. A tab's filters sit behind the bar's
+  funnel (`FilterMenuAction` for one choice, `FilterMenu` with `MenuHeading` parts for several), and what is
+  in force shows as `ActiveFilters` chips that take it off — no row at all while nothing is. Menus draw options through `MenuOptions`: past 12 it adds a
   search and draws the first 30 matches, since a dropdown composes every item when it opens. Every menu,
   a field's included, takes `MenuShape` and its colours (`KlasMenu`) and `MenuItem`: a rounded container, rows rounded inside
   it, the choice in force filled `secondaryContainer` and ticked (`TickedMenuItem`).
@@ -100,11 +101,12 @@ Build screens from shared state and controls. Feature rules belong in the domain
   divider drawn over each row's edge so rows keep one height; lessons stay a card each. Each side has its
   own orders behind the bar's sort button, tinted when not the first: students by name or debt, groups by
   name or next lesson. The archive is last in every order. Groups narrow by subject once they are taught two.
-- Filters are a `FilterBar`: at most three chips, wrapped and never scrolled sideways (they sit in pages
-  that swipe), the rest behind a «Filter» chip that names the one chosen (R5). Above the list, not in it,
-  so a filter that leaves nothing can still be taken off. A filter with a menu is a `MenuChip` named by
-  its choice. The schedule's row (`ScheduleFilterRow`) is two of them — Everyone/a student/a group, and
-  a status — with the Day view's summary beside them, so its header keeps one height.
+- A tab's filters never take a standing row (the owner's call: it cost the list too much room). The
+  schedule's funnel holds whose lessons (a student or a group) and a status; `ScheduleFilterRow` under the
+  pager shows a chip per narrowing and the Day view's summary. Chips in force sit above the list, not in it,
+  so a filter that leaves nothing can still be taken off. Inside a page, filters may stay a `FilterBar`
+  (a student's lesson history): at most three chips, wrapped and never scrolled sideways, the rest behind
+  a «Filter» chip that names the one chosen (R5).
 - Items sit on `itemSurface`, sections (`SectionCard`, `StatRow`, report slices) on `sectionSurface`:
   both above the `surfaceContainer` the bar tints to. Settings groups rows on cards too
   (`SettingsGroup`), their `ListItem`s transparent (`settingsRowColors`).
@@ -352,9 +354,10 @@ Build screens from shared state and controls. Feature rules belong in the domain
 - Settings sections group by subject, not by when a value applies: Lessons (duration, auto-complete)
   and Billing (currency, group rate). Rows are `ListItem`s; a form field never sits in a settings card.
   Backup is built from the same `SettingsGroup` cards: the last-backup row, then export and import.
-- People lists share `PeopleSearch`: case-insensitive substrings, terms in any order. Under the tabs, chips
-  rather than bar icons (`StudentChips`, `GroupChips`): «Owes · N» narrows students to debtors, «Archived»
-  lists the retired too, and the order is a «Sort: …» `MenuChip`; groups add a subject chip once two are taught. Reports use charts
+- People lists share `PeopleSearch`: case-insensitive substrings, terms in any order. The bar's funnel
+  (`StudentFilterAction`, `GroupFilterAction`) holds «Owes · N», which narrows students to debtors, «Archived»,
+  which lists the retired too, and the order; groups add a subject once two are taught. Only what is in force
+  shows under the tabs, as chips (`StudentFilters`, `GroupFilters`). Reports use charts
   only when shape helps; CSV delimiter follows decimal separator, and the summary and the ledger can each
   be saved or shared from one Export menu. The hero carries Earned/Received and the period's lessons · hours · ahead; a student's
   income row opens them, with a chevron, as a debt's does. The funnel narrows the report, its chip under

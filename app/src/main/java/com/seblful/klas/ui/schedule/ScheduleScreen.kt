@@ -234,7 +234,16 @@ fun ScheduleScreen(
             messages = messages,
             maxContentWidth = if (monthBeside) SupportingPaneMaxWidth else MaxContentWidth,
             selection = Selection(picked.size, viewModel.batch::clear) { BatchActions(viewModel.batch) },
-            actions = { SettingsGear(onSettings) },
+            actions = {
+                ScheduleFilterAction(
+                    filter = filter,
+                    students = filterableStudents,
+                    groups = filterableGroups,
+                    onWho = viewModel::setWho,
+                    onStatus = viewModel::setStatusFilter,
+                )
+                SettingsGear(onSettings)
+            },
             floatingActionButton = {
                 // **It stays put, and says why instead.** It was hidden while nothing could be booked, which
                 // solved the wrong half of the problem: the version before that popped a toast naming what
@@ -313,14 +322,10 @@ fun ScheduleScreen(
                             onPick = viewModel::selectDate,
                         )
                     }
-                    // **The chips are what make the filter honest**: a narrowed schedule and a quiet week look
-                    // alike, so the chips name what is shown and are the way back. The Day view's summary
-                    // sits beside them — what the day comes to, under the day it names — so the header is
-                    // one height whatever is chosen ([ScreenHeader]).
+                    // What the schedule is narrowed to, and the Day view's summary — what the day comes to,
+                    // under the day it names.
                     ScheduleFilterRow(
                         filter = filter,
-                        students = filterableStudents,
-                        groups = filterableGroups,
                         onWho = viewModel::setWho,
                         onStatus = viewModel::setStatusFilter,
                     ) {

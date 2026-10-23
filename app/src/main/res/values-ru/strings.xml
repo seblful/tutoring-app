@@ -137,7 +137,10 @@
     -->
     <string name="schedule_filter_everyone">Все</string>
     <string name="schedule_filter_any_status">Любой статус</string>
-    <string name="schedule_filter_clear">Показать всех</string>
+    <string name="schedule_filter">Фильтр расписания</string>
+    <string name="schedule_filter_who">Чьи занятия</string>
+    <string name="schedule_filter_status">Статус</string>
+    <string name="filter_remove">Убрать фильтр</string>
     <string name="schedule_filter_empty">Нет занятий под этот фильтр</string>
     <string name="schedule_filter_empty_detail">Уберите фильтр, чтобы увидеть остальные занятия</string>
     <!--
@@ -1309,8 +1312,11 @@
     </plurals>
     <string name="people_owes">Должны · %1$d</string>
     <string name="people_archived">Архив</string>
-    <string name="people_sort">Порядок: %1$s</string>
     <string name="people_all_subjects">Все предметы</string>
+    <string name="people_filter">Фильтр и порядок</string>
+    <string name="people_show">Показать</string>
+    <string name="people_subject">Предмет</string>
+    <string name="people_order">Порядок</string>
     <string name="settings_backup_weekly">Еженедельно · последняя %1$s</string>
     <string name="settings_backup_weekly_none">Еженедельно · пока ни одной</string>
     <string name="settings_backup_failed">Еженедельная копия не записалась</string>

@@ -93,6 +93,18 @@ fun PeopleScreen(
             onClose = { studentsViewModel.setQuery(""); groupsViewModel.setQuery("") },
         ),
         actions = {
+            when (tab) {
+                PeopleTab.STUDENTS -> StudentFilterAction(
+                    owing, owesOnly, studentsViewModel::toggleOwes,
+                    archived, side::toggleArchived,
+                    studentSort, studentsViewModel::setSort,
+                )
+                PeopleTab.GROUPS -> GroupFilterAction(
+                    groupSubjects, groupSubject, groupsViewModel::setSubjectFilter,
+                    archived, side::toggleArchived,
+                    groupSort, groupsViewModel::setSort,
+                )
+            }
             SettingsGear(onSettings)
         },
         floatingActionButton = {
@@ -129,10 +141,9 @@ fun PeopleScreen(
                         // Debtors only that leaves nothing is "nothing matched", not "no students yet".
                         searching = query.isNotBlank() || owesOnly,
                         chips = {
-                            StudentChips(
+                            StudentFilters(
                                 owing, owesOnly, studentsViewModel::toggleOwes,
                                 archived, side::toggleArchived,
-                                studentSort, studentsViewModel::setSort,
                             )
                         },
                         onStudentClick = onStudentClick,
@@ -146,10 +157,9 @@ fun PeopleScreen(
                         // A subject that leaves nothing is "nothing matched", not "no groups yet".
                         searching = query.isNotBlank() || groupSubject != null,
                         chips = {
-                            GroupChips(
+                            GroupFilters(
                                 groupSubjects, groupSubject, groupsViewModel::setSubjectFilter,
                                 archived, side::toggleArchived,
-                                groupSort, groupsViewModel::setSort,
                             )
                         },
                         onGroupClick = onGroupClick,

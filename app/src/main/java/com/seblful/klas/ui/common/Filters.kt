@@ -1,7 +1,10 @@
 package com.seblful.klas.ui.common
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -14,7 +17,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -42,46 +44,77 @@ fun <T> FilterMenuAction(
     leading: (@Composable (T) -> Unit)? = null,
     narrowed: Boolean = selected != null,
 ) {
-    var open by remember { mutableStateOf(false) }
-    Box {
-        NamedIconButton(KlasIcons.Filled.FilterList, name, onClick = { open = true })
-        KlasMenu(expanded = open, onDismissRequest = { open = false }) {
+    FilterMenu(name) { close ->
+        TickedMenuItem(
+            text = allLabel,
+            selected = !narrowed,
+            onClick = { onSelect(null); close() },
+        )
+        MenuOptions(options, optionLabel) { option ->
             TickedMenuItem(
-                text = allLabel,
-                selected = !narrowed,
-                onClick = { onSelect(null); open = false },
+                text = optionLabel(option),
+                selected = selected == option,
+                onClick = { onSelect(option); close() },
+                leadingIcon = leading?.let { draw -> { draw(option) } },
             )
-            MenuOptions(options, optionLabel) { option ->
-                TickedMenuItem(
-                    text = optionLabel(option),
-                    selected = selected == option,
-                    onClick = { onSelect(option); open = false },
-                    leadingIcon = leading?.let { draw -> { draw(option) } },
-                )
-            }
         }
     }
 }
 
+/**
+ * The app bar's filter icon and the menu it opens, for a list narrowed more than one way — parts under
+ * [MenuHeading]s. What is in force shows under the bar as [ActiveFilters], never as a row of controls that
+ * takes the list's room whether anything is narrowed or not.
+ *
+ * @param items the menu's entries, given the `close` that shuts it.
+ */
+@Composable
+fun FilterMenu(name: String, items: @Composable ColumnScope.(close: () -> Unit) -> Unit) {
+    var open by remember { mutableStateOf(false) }
+    Box {
+        NamedIconButton(KlasIcons.Filled.FilterList, name, onClick = { open = true })
+        KlasMenu(expanded = open, onDismissRequest = { open = false }) { items { open = false } }
+    }
+}
+
+/** A narrowing in force: what its chip says, and the tap that takes it off. */
+data class ActiveFilter(val name: String, val onClear: () -> Unit)
+
+/**
+ * The narrowings in force, a chip each, which say what is hidden and are the way back: a narrowed list and
+ * a short one look alike. None in force, none drawn — the list keeps the room.
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+fun ActiveFilters(filters: List<ActiveFilter>, modifier: Modifier = Modifier) {
+    if (filters.isEmpty()) return
+    FlowRow(modifier, horizontalArrangement = Arrangement.spacedBy(Spacing.inline)) {
+        filters.forEach { filter -> ActiveFilterChip(filter) }
+    }
+}
+
 /** Who a list is currently narrowed to, and the one tap that stops. */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FilterChipRow(name: String, onClear: () -> Unit) {
-    Row(
+    ActiveFilters(
+        listOf(ActiveFilter(name, onClear)),
         Modifier.padding(horizontal = Spacing.gutter, vertical = Spacing.tight),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        InputChip(
-            selected = true,
-            onClick = onClear,
-            label = { Text(name, maxLines = 1, overflow = TextOverflow.Ellipsis) },
-            trailingIcon = {
-                Icon(
-                    KlasIcons.Filled.Close,
-                    stringResource(R.string.schedule_filter_clear),
-                    Modifier.size(InputChipDefaults.IconSize),
-                )
-            },
-        )
-    }
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ActiveFilterChip(filter: ActiveFilter) {
+    InputChip(
+        selected = true,
+        onClick = filter.onClear,
+        label = { Text(filter.name, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+        trailingIcon = {
+            Icon(
+                KlasIcons.Filled.Close,
+                stringResource(R.string.filter_remove),
+                Modifier.size(InputChipDefaults.IconSize),
+            )
+        },
+    )
 }

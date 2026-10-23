@@ -102,7 +102,10 @@
          empty has to say why, so the name stays on screen and carries its own way out. -->
     <string name="schedule_filter_everyone">Everyone</string>
     <string name="schedule_filter_any_status">Any status</string>
-    <string name="schedule_filter_clear">Show all</string>
+    <string name="schedule_filter">Filter the schedule</string>
+    <string name="schedule_filter_who">Whose lessons</string>
+    <string name="schedule_filter_status">Status</string>
+    <string name="filter_remove">Remove filter</string>
     <string name="schedule_filter_empty">No lessons match the filter</string>
     <string name="schedule_filter_empty_detail">Clear the filter to see the other lessons</string>
     <!-- The mark in the day list saying where the current time falls. Lower case: it is a label on a
@@ -1158,8 +1161,11 @@
     </plurals>
     <string name="people_owes">Owes · %1$d</string>
     <string name="people_archived">Archived</string>
-    <string name="people_sort">Sort: %1$s</string>
     <string name="people_all_subjects">All subjects</string>
+    <string name="people_filter">Filter and order</string>
+    <string name="people_show">Show</string>
+    <string name="people_subject">Subject</string>
+    <string name="people_order">Order</string>
     <string name="settings_backup_weekly">Weekly · last %1$s</string>
     <string name="settings_backup_weekly_none">Weekly · none yet</string>
     <string name="settings_backup_failed">The weekly copy failed</string>
