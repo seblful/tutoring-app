@@ -29,6 +29,7 @@ import com.seblful.klas.format.formatDate
 import com.seblful.klas.queries.homework.HomeworkRow
 import com.seblful.klas.ui.common.KlasScreen
 import com.seblful.klas.ui.common.ListSkeleton
+import com.seblful.klas.ui.common.NamedIconButton
 import com.seblful.klas.ui.common.SettingsGear
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.rememberMessages
@@ -44,6 +45,7 @@ import com.seblful.klas.ui.designsystem.component.KlasButton
 import com.seblful.klas.ui.designsystem.component.KlasFab
 import com.seblful.klas.ui.designsystem.component.KlasRow
 import com.seblful.klas.ui.designsystem.component.RowEnd
+import com.seblful.klas.ui.designsystem.component.RowStart
 import com.seblful.klas.ui.designsystem.component.SectionAction
 import com.seblful.klas.ui.theme.KlasIcons
 import com.seblful.klas.ui.theme.klasSemantics
@@ -211,14 +213,22 @@ private fun ToMark(rows: List<TodayLessonRow>, actions: TodayActions) {
         action = SectionAction(stringResource(R.string.today_mark_all), actions.markAllTaught).takeIf { rows.size > 1 },
     ) {
         rows.forEach { row ->
+            // The widget's tick, leading as on homework (R1): the empty circle marks the lesson taught, and
+            // the row itself opens it.
+            val markOne = stringResource(R.string.today_mark_one, row.who)
             KlasRow(
                 title = row.who,
                 supporting = bulletJoin(timeRange(row), row.subject),
                 onClick = { actions.openLesson(row.session.first.id) },
-                end = RowEnd.Action(
-                    KlasIcons.Filled.Check,
-                    stringResource(R.string.today_mark_one, row.who),
-                ) { actions.markTaught(row) },
+                start = RowStart.Custom {
+                    NamedIconButton(
+                        KlasIcons.Outlined.Circle,
+                        markOne,
+                        onClick = { actions.markTaught(row) },
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                },
+                end = RowEnd.Opens,
             )
         }
     }
