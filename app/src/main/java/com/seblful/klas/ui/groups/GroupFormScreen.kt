@@ -35,7 +35,6 @@ import com.seblful.klas.domain.model.Student
 import com.seblful.klas.ui.common.AddRow
 import com.seblful.klas.ui.common.ConfirmDialog
 import com.seblful.klas.ui.common.DropdownField
-import com.seblful.klas.ui.common.FormSummary
 import com.seblful.klas.ui.common.KlasScreen
 import com.seblful.klas.ui.common.LoadingFormScreen
 import com.seblful.klas.ui.common.MemberPickRow
@@ -45,7 +44,7 @@ import com.seblful.klas.ui.common.MoneyTextField
 import com.seblful.klas.ui.common.SectionTitle
 import com.seblful.klas.ui.common.ShowMessagesFor
 import com.seblful.klas.ui.common.Spacing
-import com.seblful.klas.ui.common.StillNeeded
+import com.seblful.klas.ui.common.formBar
 import com.seblful.klas.ui.common.leaveGuard
 import com.seblful.klas.ui.common.plusInset
 import com.seblful.klas.ui.common.rateChangeLine
@@ -54,6 +53,7 @@ import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.common.supportingTextOf
 import com.seblful.klas.ui.common.text
 import com.seblful.klas.ui.designsystem.component.ButtonKind
+import com.seblful.klas.ui.designsystem.component.FormBar
 import com.seblful.klas.ui.designsystem.component.FormSaveBar
 import com.seblful.klas.ui.designsystem.component.KlasButton
 import com.seblful.klas.ui.designsystem.component.KlasDivider
@@ -137,11 +137,8 @@ private fun GroupForm(
         Column(modifier) {
             GroupFormBody(state, viewModel, { pricingMemberId = it }, onAddStudent, Modifier.weight(1f))
             val label = stringResource(if (viewModel.isNew) R.string.group_form_create else R.string.action_save)
-            FormSaveBar(label, state.canSave, ::requestSave, bottomInset) {
-                if (state.missing.isEmpty()) FormSummary(state.form.name.trim(), groupSummary(state)) else {
-                    StillNeeded(state.missing)
-                }
-            }
+            val bar = formBar(state.missing) { FormBar.Ready(state.form.name.trim(), groupSummary(state)) }
+            FormSaveBar(label, bar, ::requestSave, bottomInset)
         }
     }
 }

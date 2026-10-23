@@ -44,6 +44,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
@@ -73,13 +74,13 @@ import com.seblful.klas.ui.common.ListSkeleton
 import com.seblful.klas.ui.common.MinTouchTarget
 import com.seblful.klas.ui.common.ShowMessagesFor
 import com.seblful.klas.ui.common.Spacing
-import com.seblful.klas.ui.common.StillNeeded
 import com.seblful.klas.ui.common.languageLabel
 import com.seblful.klas.ui.common.predictiveBack
 import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.rememberOpenDocument
 import com.seblful.klas.ui.common.state.valueOrNull
 import com.seblful.klas.ui.designsystem.component.ButtonKind
+import com.seblful.klas.ui.designsystem.component.FormBar
 import com.seblful.klas.ui.designsystem.component.FormSaveBar
 import com.seblful.klas.ui.designsystem.component.KlasButton
 import com.seblful.klas.ui.navigation.fadeThrough
@@ -87,6 +88,7 @@ import com.seblful.klas.ui.navigation.predictiveBackRelease
 import com.seblful.klas.ui.settings.LessonLengthSetting
 import com.seblful.klas.ui.students.StudentFormContent
 import com.seblful.klas.ui.students.StudentFormViewModel
+import com.seblful.klas.ui.students.studentBar
 import com.seblful.klas.ui.theme.KlasIcons
 import dev.zacsweers.metrox.viewmodel.metroViewModel
 
@@ -367,7 +369,7 @@ fun OnboardingScreen(
                         // from the phone means — so there is nothing here for the tutor to supply.
                         FormSaveBar(
                             stringResource(R.string.onboarding_continue),
-                            enabled = true,
+                            FormBar.Ready(),
                             onSave = { goTo(Step.SUBJECTS) },
                             bottomInset = NoInset,
                         )
@@ -428,11 +430,9 @@ fun OnboardingScreen(
                                 }
                             }
                         }
-                        // Disabled while the list has not arrived, as it is when the list is empty: the
-                        // step's gate is "at least one subject", and nothing yet says there is one.
                         FormSaveBar(
                             stringResource(R.string.onboarding_continue),
-                            !added.isNullOrEmpty(),
+                            subjectsBar(added),
                             { goTo(Step.STUDENT) },
                             NoInset,
                         )
@@ -457,10 +457,10 @@ fun OnboardingScreen(
                         )
                         FormSaveBar(
                             stringResource(R.string.onboarding_finish),
-                            studentState.canSave,
+                            studentBar(studentState),
                             { studentVm.save { viewModel.complete(); onFinished() } },
                             NoInset,
-                        ) { StillNeeded(studentState.missing) }
+                        )
                     }
                 }
             }
@@ -559,3 +559,18 @@ private fun ValueLine(icon: ImageVector, text: String) {
         Text(text, style = MaterialTheme.typography.bodyMedium)
     }
 }
+
+/**
+ * The subjects step's bar: «a subject» still needed — also while the list has not arrived, since nothing yet
+ * says there is one — else how many, by name.
+ */
+@Composable
+private fun subjectsBar(added: List<Subject>?): FormBar =
+    if (added.isNullOrEmpty()) {
+        FormBar.Missing(listOf(stringResource(R.string.form_gap_subject)))
+    } else {
+        FormBar.Ready(
+            pluralStringResource(R.plurals.settings_subjects_count, added.size, added.size),
+            added.joinToString { it.name },
+        )
+    }

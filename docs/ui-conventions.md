@@ -301,10 +301,11 @@ Build screens from shared state and controls. Feature rules belong in the domain
   `Steps`): Length ±15 min, its value tapped to type hours and minutes (`DurationPickerModal`); Repeat as lessons ±1, one being once
   (`ClassForm.withLessons`), the count tapped to type it (`CountPickerModal`), and weekly/fortnightly segments; Price the typed rate
   ± a step that suits its size (5 at 40, 100 at 1 500, so any currency); Format as segments. Like every full-screen form it saves from the bottom `FormSaveBar` (D5;
-  dialogs keep their buttons); booking's (`BookingSaveBar`) shows the booking it will make, or names what is
-  missing or in the way (`ClassFormState.saveBar`, `Ready` exactly when `canSave`). The student and group
-  forms name their gaps the same way (`FormGap`, `StillNeeded`) and, once ready, sum up what they will save
-  (`FormSummary`); a new one's button names the act («Add student», «Create group»), an edit's says Save. A
+  dialogs keep their buttons), which takes a typed `FormBar` — `Missing` fields by name, `Blocked` with a
+  reason, or `Ready` with what the save will make — and is on exactly when it is `Ready`. Booking maps its
+  `ClassFormState.saveBar` onto it (`BookingSaveBar`); the student and group forms their `FormGap`s
+  (`formBar`), summing up whom they will save; setup's steps say how many subjects, or that one is still
+  needed. A new form's button names the act («Add student», «Create group»), an edit's says Save. A
   form of more than three fields is a screen, not a dialog. Adding and correcting a student is one form
   (`StudentFormScreen`, `StudentFormViewModel.edit`) with their subjects: the rate sits on its subject's row
   (under it past 1.3× font), a subject they have lessons in stays ticked (`EnrollmentRepository.setSubjects`),

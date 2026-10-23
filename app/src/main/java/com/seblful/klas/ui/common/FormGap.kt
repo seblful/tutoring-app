@@ -1,44 +1,17 @@
 package com.seblful.klas.ui.common
 
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextOverflow
 import com.seblful.klas.R
+import com.seblful.klas.ui.designsystem.component.FormBar
 
 /** What a student or group form still lacks before it can save — said on its save bar, each by name. */
 enum class FormGap { NAME, SUBJECT, PRICE, MEMBERS }
 
-/** «Still needed / a name, a price» on a [com.seblful.klas.ui.designsystem.component.FormSaveBar]; nothing once ready. */
+/** The bar a student or group form shows: its [missing] gaps by name, else [ready] — what it will save. */
 @Composable
-fun StillNeeded(gaps: List<FormGap>) {
-    if (gaps.isEmpty()) return
-    Text(stringResource(R.string.class_still_needed), style = MaterialTheme.typography.titleSmall)
-    Text(
-        gaps.map { stringResource(it.label) }.joinToString(),
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-    )
-}
-
-/**
- * Once nothing is missing, what the save will make, said back on the save bar: who — [title] — and what sets
- * them up — [detail], «Math · 25 $/h · In person».
- */
-@Composable
-fun FormSummary(title: String, detail: String) {
-    Text(title, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
-    if (detail.isNotEmpty()) {
-        Text(
-            detail,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-        )
-    }
-}
+fun formBar(missing: List<FormGap>, ready: @Composable () -> FormBar.Ready): FormBar =
+    if (missing.isEmpty()) ready() else FormBar.Missing(missing.map { stringResource(it.label) })
 
 private val FormGap.label: Int
     get() = when (this) {

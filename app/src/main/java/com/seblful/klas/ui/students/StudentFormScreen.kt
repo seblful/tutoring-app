@@ -43,7 +43,6 @@ import com.seblful.klas.format.MoneyField
 import com.seblful.klas.format.bulletJoin
 import com.seblful.klas.format.labelRes
 import com.seblful.klas.ui.common.AddRow
-import com.seblful.klas.ui.common.FormSummary
 import com.seblful.klas.ui.common.KlasScreen
 import com.seblful.klas.ui.common.ListSkeleton
 import com.seblful.klas.ui.common.LoadingFormScreen
@@ -54,14 +53,15 @@ import com.seblful.klas.ui.common.Reveal
 import com.seblful.klas.ui.common.SectionTitle
 import com.seblful.klas.ui.common.ShowMessagesFor
 import com.seblful.klas.ui.common.Spacing
-import com.seblful.klas.ui.common.StillNeeded
 import com.seblful.klas.ui.common.durationLabel
+import com.seblful.klas.ui.common.formBar
 import com.seblful.klas.ui.common.leaveGuard
 import com.seblful.klas.ui.common.outsetRowPress
 import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.common.state.valueOrNull
 import com.seblful.klas.ui.common.text
+import com.seblful.klas.ui.designsystem.component.FormBar
 import com.seblful.klas.ui.designsystem.component.FormSaveBar
 import com.seblful.klas.ui.designsystem.component.KlasDivider
 import com.seblful.klas.ui.subjects.SubjectNameDialog
@@ -111,11 +111,7 @@ fun StudentFormScreen(
         Column(modifier) {
             StudentFormContent(state = state, viewModel = viewModel, modifier = Modifier.weight(1f))
             val label = stringResource(if (state.isNew) R.string.student_form_add else R.string.action_save)
-            FormSaveBar(label, state.canSave, save, bottomInset) {
-                if (state.missing.isEmpty()) FormSummary(state.form.name.trim(), studentSummary(state)) else {
-                    StillNeeded(state.missing)
-                }
-            }
+            FormSaveBar(label, studentBar(state), save, bottomInset)
         }
     }
 }
@@ -293,6 +289,11 @@ private fun SubjectTick(
         }
     }
 }
+
+/** The student form's bar: what is missing, or whom it will save — shared with setup's student step. */
+@Composable
+internal fun studentBar(state: StudentFormViewModel.UiState): FormBar =
+    formBar(state.missing) { FormBar.Ready(state.form.name.trim(), studentSummary(state)) }
 
 /** «Math 25 $/h · In person»: the ticked subjects at their rates, then the place — what the save bar sums up. */
 @Composable

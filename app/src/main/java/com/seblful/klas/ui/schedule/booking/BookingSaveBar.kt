@@ -22,6 +22,7 @@ import com.seblful.klas.format.formatDate
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.text
 import com.seblful.klas.ui.common.timeText
+import com.seblful.klas.ui.designsystem.component.FormBar
 import com.seblful.klas.ui.designsystem.component.FormSaveBar
 import com.seblful.klas.ui.designsystem.component.KlasButton
 import com.seblful.klas.ui.schedule.timeConflictText
@@ -41,40 +42,22 @@ internal fun BookingSaveBar(
 ) {
     FormSaveBar(
         label = stringResource(if (isNew) R.string.class_book_action else R.string.action_save),
-        enabled = state.canSave,
+        bar = bookingBar(state),
         onSave = onSave,
         bottomInset = bottomInset,
-    ) { SaveBarText(state) }
+    )
 }
 
+/** Booking's [SaveBar] as the form bar every form shows: Ready exactly when `canSave` (ClassFormState). */
 @Composable
-private fun SaveBarText(state: ClassFormState) {
-    val error = klasSemantics.validation
-    when (val bar = state.saveBar) {
-        is SaveBar.Missing -> TwoLines(
-            stringResource(R.string.class_still_needed),
-            bar.gaps.map { gapLabel(it) }.joinToString(),
-        )
-        SaveBar.Taken -> TwoLines(
-            state.conflict?.let { timeConflictText(it) } ?: stringResource(R.string.class_series_refused_all_taken),
-            color = error,
-        )
-        SaveBar.NoBookableMembers -> TwoLines(stringResource(R.string.class_group_no_active_members), color = error)
-        SaveBar.NoneTicked -> TwoLines(stringResource(R.string.class_group_no_members_left), color = error)
-        SaveBar.Ready -> TwoLines(whenLine(state), whoLine(state))
-    }
-}
-
-@Composable
-private fun TwoLines(headline: String, supporting: String? = null, color: Color = Color.Unspecified) {
-    Text(headline, style = MaterialTheme.typography.titleSmall, color = color)
-    if (supporting != null) {
-        Text(
-            supporting,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    }
+private fun bookingBar(state: ClassFormState): FormBar = when (val bar = state.saveBar) {
+    is SaveBar.Missing -> FormBar.Missing(bar.gaps.map { gapLabel(it) })
+    SaveBar.Taken -> FormBar.Blocked(
+        state.conflict?.let { timeConflictText(it) } ?: stringResource(R.string.class_series_refused_all_taken),
+    )
+    SaveBar.NoBookableMembers -> FormBar.Blocked(stringResource(R.string.class_group_no_active_members))
+    SaveBar.NoneTicked -> FormBar.Blocked(stringResource(R.string.class_group_no_members_left))
+    SaveBar.Ready -> FormBar.Ready(whenLine(state), whoLine(state))
 }
 
 /** «Thu, 22 Oct · 16:30 · until 17:30», with the count when it repeats. */
