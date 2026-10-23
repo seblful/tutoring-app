@@ -40,16 +40,17 @@ import com.seblful.klas.ui.common.LocalCurrency
 import com.seblful.klas.ui.common.MinTouchTarget
 import com.seblful.klas.ui.common.MoneyTextField
 import com.seblful.klas.ui.common.Reveal
-import com.seblful.klas.ui.common.SaveAction
 import com.seblful.klas.ui.common.SectionTitle
 import com.seblful.klas.ui.common.ShowMessagesFor
 import com.seblful.klas.ui.common.Spacing
+import com.seblful.klas.ui.common.StillNeeded
 import com.seblful.klas.ui.common.durationLabel
 import com.seblful.klas.ui.common.leaveGuard
 import com.seblful.klas.ui.common.outsetRowPress
 import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.common.text
+import com.seblful.klas.ui.designsystem.component.FormSaveBar
 import com.seblful.klas.ui.designsystem.component.KlasDivider
 import com.seblful.klas.ui.subjects.SubjectNameDialog
 import com.seblful.klas.ui.theme.klasSemantics
@@ -84,9 +85,13 @@ fun StudentFormScreen(
         // for the group and booking forms; `StudentFormContent` keeps its own `imePadding()` only
         // because onboarding embeds it — and that one is a no-op here, the inset already consumed.
         imeAware = true,
-        actions = { SaveAction(enabled = state.canSave, onSave = save) },
     ) { modifier, bottomInset ->
-        StudentFormContent(state = state, viewModel = viewModel, modifier = modifier, bottomInset = bottomInset)
+        Column(modifier) {
+            StudentFormContent(state = state, viewModel = viewModel, modifier = Modifier.weight(1f))
+            FormSaveBar(stringResource(R.string.action_save), state.canSave, save, bottomInset) {
+                StillNeeded(state.missing)
+            }
+        }
     }
 }
 

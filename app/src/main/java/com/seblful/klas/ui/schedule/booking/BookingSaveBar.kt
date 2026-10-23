@@ -22,17 +22,15 @@ import com.seblful.klas.format.formatDate
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.text
 import com.seblful.klas.ui.common.timeText
+import com.seblful.klas.ui.designsystem.component.FormSaveBar
 import com.seblful.klas.ui.designsystem.component.KlasButton
 import com.seblful.klas.ui.schedule.timeConflictText
 import com.seblful.klas.ui.theme.KlasMotion
 import com.seblful.klas.ui.theme.klasSemantics
 
 /**
- * The booking form's save, at the bottom where the thumb is, with what it will book beside it — or, while
- * it cannot, the one thing in the way. The other forms keep `SaveAction` in the bar: this is the form used
- * most, and the only one whose save could be refused for a reason the button alone did not say.
- *
- * Its surface runs under the system navigation bar; its row is padded by [bottomInset] to clear it.
+ * The booking form's [FormSaveBar]: what it will book beside the save — or, while it cannot, the one thing in
+ * the way, which here can be a reason the button alone would not say (a taken hour).
  */
 @Composable
 internal fun BookingSaveBar(
@@ -41,22 +39,12 @@ internal fun BookingSaveBar(
     bottomInset: PaddingValues,
     onSave: () -> Unit,
 ) {
-    Surface(color = MaterialTheme.colorScheme.surfaceContainer) {
-        Row(
-            Modifier
-                .fillMaxWidth()
-                .padding(bottomInset)
-                .padding(horizontal = Spacing.gutter, vertical = Spacing.itemGap),
-            horizontalArrangement = Arrangement.spacedBy(Spacing.gutter),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            // One line or two as what it says changes; the bar grows and shrinks to it rather than jumping.
-            Column(Modifier.weight(1f).animateContentSize(KlasMotion.defaultSpatial())) { SaveBarText(state) }
-            KlasButton(onClick = onSave, enabled = state.canSave) {
-                Text(stringResource(if (isNew) R.string.class_book_action else R.string.action_save))
-            }
-        }
-    }
+    FormSaveBar(
+        label = stringResource(if (isNew) R.string.class_book_action else R.string.action_save),
+        enabled = state.canSave,
+        onSave = onSave,
+        bottomInset = bottomInset,
+    ) { SaveBarText(state) }
 }
 
 @Composable

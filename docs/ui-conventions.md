@@ -237,9 +237,10 @@ Build screens from shared state and controls. Feature rules belong in the domain
   (`Fold`), one at a time; never a dialog or sheet. Opened, each is a value between tonal −/+ (`StepRow`,
   `Steps`): Length ±15 min, its value tapped to type hours and minutes (`DurationPickerModal`); Repeat as lessons ±1, one being once
   (`ClassForm.withLessons`), the count tapped to type it (`CountPickerModal`), and weekly/fortnightly segments; Price the typed rate
-  ± a step that suits its size (5 at 40, 100 at 1 500, so any currency); Format as segments. It alone saves from a bottom `BookingSaveBar`, not the bar's
-  `SaveAction`: the bar shows the booking it will make, or names what is missing or in the way
-  (`ClassFormState.saveBar`, `Ready` exactly when `canSave`). When opens on the schedule's day, where bookings
+  ± a step that suits its size (5 at 40, 100 at 1 500, so any currency); Format as segments. Like every full-screen form it saves from the bottom `FormSaveBar` (D5;
+  dialogs keep their buttons); booking's (`BookingSaveBar`) shows the booking it will make, or names what is
+  missing or in the way (`ClassFormState.saveBar`, `Ready` exactly when `canSave`). The student and group
+  forms name their gaps the same way (`FormGap`, `StillNeeded`). When opens on the schedule's day, where bookings
   start, so it has no calendar: a day row steps a day either way and its date opens the date dialog,
   over how many other lessons that day holds (or asks for a day). The start is a stepper: the time in
   large numbers between −15 and +15 tonal buttons, each moving the lesson a quarter hour, past a lesson

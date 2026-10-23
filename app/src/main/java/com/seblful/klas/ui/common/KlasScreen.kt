@@ -59,8 +59,6 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.offset
 import com.seblful.klas.R
-import com.seblful.klas.ui.designsystem.component.ButtonKind
-import com.seblful.klas.ui.designsystem.component.KlasButton
 import com.seblful.klas.ui.theme.KlasIcons
 import com.seblful.klas.ui.theme.KlasMotion
 
@@ -418,14 +416,6 @@ private fun Modifier.besideColumn(cap: Dp, medium: Boolean): Modifier = layout {
 }
 
 private val MediumMargin = 24.dp
-
-/** «Сохранить», in the app bar — the one way a form commits. */
-@Composable
-fun SaveAction(enabled: Boolean, onSave: () -> Unit) {
-    KlasButton(onClick = onSave, enabled = enabled, kind = ButtonKind.Text) {
-        Text(stringResource(R.string.action_save))
-    }
-}
 
 /**
  * How a screen's title carries.

@@ -13,6 +13,7 @@ import com.seblful.klas.domain.model.Subject
 import com.seblful.klas.domain.people.Phone
 import com.seblful.klas.domain.people.SubjectNames
 import com.seblful.klas.format.MoneyField
+import com.seblful.klas.ui.common.FormGap
 import com.seblful.klas.ui.common.LeavableForm
 import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.common.state.UiEvents
@@ -74,11 +75,16 @@ class StudentFormViewModel @Inject constructor(
     ) : LeavableForm {
         val selectedSubjectIds: Set<Long> get() = form.subjectPrices.keys
 
+        /** What stands between the form and a save, in the order the form asks for it. */
+        val missing: List<FormGap>
+            get() = listOfNotNull(
+                FormGap.NAME.takeIf { form.name.isBlank() },
+                FormGap.SUBJECT.takeIf { form.subjectPrices.isEmpty() },
+                FormGap.PRICE.takeIf { !form.subjectPrices.values.all { it.isValid } },
+            )
+
         /** Name set, at least one subject chosen, and every chosen subject has a valid price. */
-        override val canSave: Boolean
-            get() = form.name.isNotBlank() &&
-                form.subjectPrices.isNotEmpty() &&
-                form.subjectPrices.values.all { it.isValid }
+        override val canSave: Boolean get() = missing.isEmpty()
 
         /** Whether anything has been entered — what leaving without saving would cost. */
         override val isDirty: Boolean get() = form != baseline

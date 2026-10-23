@@ -21,6 +21,7 @@ import com.seblful.klas.domain.model.RateOwner
 import com.seblful.klas.domain.model.Student
 import com.seblful.klas.domain.model.Subject
 import com.seblful.klas.format.MoneyField
+import com.seblful.klas.ui.common.FormGap
 import com.seblful.klas.ui.common.LeavableForm
 import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.common.state.UiEvents
@@ -144,9 +145,16 @@ class GroupFormViewModel @AssistedInject constructor(
          */
         val leavingOnSave: Int get() = pricedIds?.let { (form.memberIds - it).size } ?: 0
 
+        /** What stands between the form and a save, in the order the form asks for it. */
+        val missing: List<FormGap>
+            get() = listOfNotNull(
+                FormGap.NAME.takeIf { form.name.isBlank() },
+                FormGap.PRICE.takeIf { price == null },
+                FormGap.MEMBERS.takeIf { selectedMemberIds.isEmpty() },
+            )
+
         /** A group needs a name, a rate and at least one member; without those there is nothing to book. */
-        override val canSave: Boolean
-            get() = form.name.isNotBlank() && price != null && selectedMemberIds.isNotEmpty()
+        override val canSave: Boolean get() = missing.isEmpty()
     }
 
     /** One-shot UI signals. */

@@ -4,6 +4,7 @@ import com.seblful.klas.domain.model.Money
 import com.seblful.klas.testutil.MainDispatcherRule
 import com.seblful.klas.testutil.TestEnv
 import com.seblful.klas.testutil.observing
+import com.seblful.klas.ui.common.FormGap
 import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.common.state.valueOrNull
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -117,15 +118,18 @@ class StudentFormViewModelTest {
         observing(vm.state)
 
         assertFalse(vm.state.value.canSave)
+        assertEquals("the save bar names each gap", listOf(FormGap.NAME, FormGap.PRICE), vm.state.value.missing)
 
         vm.update { it.copy(name = "Аня") }
         assertFalse("a name alone isn't enough — needs a priced subject", vm.state.value.canSave)
 
         vm.toggleSubject(mathId, on = true)
         assertFalse("a checked subject with no price is invalid", vm.state.value.canSave)
+        assertEquals(listOf(FormGap.PRICE), vm.state.value.missing)
 
         vm.setPriceText(mathId, "30")
         assertTrue(vm.state.value.canSave)
+        assertEquals(emptyList<FormGap>(), vm.state.value.missing)
     }
 
     @Test

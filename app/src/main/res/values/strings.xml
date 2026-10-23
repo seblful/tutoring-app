@@ -1081,4 +1081,8 @@
     <string name="statement_credit">Paid in advance: %1$s</string>
     <string name="statement_settled">Nothing to pay</string>
     <string name="groups_sort_next">By next lesson</string>
+    <string name="form_gap_name">a name</string>
+    <string name="form_gap_subject">a subject</string>
+    <string name="form_gap_price">a price</string>
+    <string name="form_gap_members">members</string>
 </resources>

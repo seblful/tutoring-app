@@ -1220,4 +1220,8 @@
     <string name="statement_credit">Оплачено вперёд: %1$s</string>
     <string name="statement_settled">Оплачено полностью</string>
     <string name="groups_sort_next">По ближайшему занятию</string>
+    <string name="form_gap_name">имя</string>
+    <string name="form_gap_subject">предмет</string>
+    <string name="form_gap_price">цена</string>
+    <string name="form_gap_members">участники</string>
 </resources>
