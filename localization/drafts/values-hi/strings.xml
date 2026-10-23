@@ -264,7 +264,7 @@
     <string name="price_edit_title">फीस बदलें</string>
     <string name="price_label">दर प्रति घंटा</string>
     <string name="price_per_lesson_hint">%2$s पाठ के लिए %1$s</string>
-    <string name="price_per_hour">%1$s/h</string>
+    <string name="price_per_hour">%1$s/\u2060h</string>
     <string name="add_payment">भुगतान जोड़ें</string>
     <string name="payments_empty">अभी तक कोई भुगतान नहीं</string>
     <string name="payment_add_title">नया भुगतान</string>
@@ -534,8 +534,8 @@
     <string name="people_pick_card">एक छात्र या एक समूह चुनें</string>
     <string name="settings_pick_page">एक अनुभाग चुनें</string>
     <plurals name="students_count">
-        <item quantity="one">%1$d विद्यार्थी</item>
-        <item quantity="other">%1$d विद्यार्थी</item>
+        <item quantity="one">%1$d\u00A0विद्यार्थी</item>
+        <item quantity="other">%1$d\u00A0विद्यार्थी</item>
     </plurals>
     <string name="reports_title">रिपोर्ट</string>
     <string name="reports_empty">अभी रिपोर्ट करने के लिए कुछ नहीं है</string>
@@ -762,7 +762,7 @@
     <string name="today_lessons">आज के पाठ</string>
     <string name="today_no_lessons">आज कोई पाठ नहीं</string>
     <string name="today_owed">आपका ऋणी</string>
-    <string name="today_homework">आज के पाठों के लिए गृहकार्य</string>
+    <string name="today_homework">जमा करने वाला होमवर्क</string>
     <string name="today_backup_old">अंतिम बैकअप %1$s</string>
     <string name="today_backup_never">अभी तक कोई बैकअप नहीं है</string>
     <string name="today_backup_detail">आपका डेटा केवल इस फ़ोन पर है।</string>
@@ -844,7 +844,7 @@
     </plurals>
     <string name="group_member_present">%2$d कक्षाओं में से %1$d में उपस्थिति</string>
     <string name="group_member_no_lessons">अभी तक कोई पाठ नहीं</string>
-    <string name="price_per_hour_per_student">प्रति छात्र %1$s/h</string>
+    <string name="price_per_hour_per_student">प्रति छात्र %1$s/\u2060h</string>
     <string name="reports_earned">कमाई</string>
     <string name="reports_export_menu">निर्यात</string>
     <string name="reports_filter">रिपोर्ट फ़िल्टर करें</string>

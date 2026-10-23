@@ -284,7 +284,7 @@
     <string name="price_edit_title">Змяніць стаўку</string>
     <string name="price_label">Стаўка за гадзіну</string>
     <string name="price_per_lesson_hint">%1$s для ўрока %2$s</string>
-    <string name="price_per_hour">%1$s/гадз</string>
+    <string name="price_per_hour">%1$s/\u2060гадз</string>
     <string name="add_payment">Дадаць аплату</string>
     <string name="payments_empty">Плацяжоў пакуль няма</string>
     <string name="payment_add_title">Новы плацеж</string>
@@ -576,10 +576,10 @@
     <string name="people_pick_card">Выберыце студэнта або групу</string>
     <string name="settings_pick_page">Выберыце раздзел</string>
     <plurals name="students_count">
-        <item quantity="one">%1$d вучань</item>
-        <item quantity="few">%1$d вучні</item>
-        <item quantity="many">%1$d вучняў</item>
-        <item quantity="other">%1$d вучня</item>
+        <item quantity="one">%1$d\u00A0вучань</item>
+        <item quantity="few">%1$d\u00A0вучні</item>
+        <item quantity="many">%1$d\u00A0вучняў</item>
+        <item quantity="other">%1$d\u00A0вучня</item>
     </plurals>
     <string name="reports_title">Справаздачы</string>
     <string name="reports_empty">Пакуль няма чаго паведамляць</string>
@@ -814,7 +814,7 @@
     <string name="today_lessons">Сённяшнія ўрокі</string>
     <string name="today_no_lessons">Сёння ўрокаў няма</string>
     <string name="today_owed">У абавязку перад вамі</string>
-    <string name="today_homework">Хатняе заданне на сённяшні ўрок</string>
+    <string name="today_homework">Хатнія заданні да здачы</string>
     <string name="today_backup_old">Апошняя рэзервовая копія %1$s</string>
     <string name="today_backup_never">Рэзервовай копіі пакуль няма</string>
     <string name="today_backup_detail">Вашы дадзеныя знаходзяцца толькі на гэтым тэлефоне.</string>
@@ -912,7 +912,7 @@
     </plurals>
     <string name="group_member_present">Наведана %1$d з %2$d урокаў</string>
     <string name="group_member_no_lessons">Урокаў пакуль няма</string>
-    <string name="price_per_hour_per_student">%1$s/гадз на студэнта</string>
+    <string name="price_per_hour_per_student">%1$s/\u2060гадз на студэнта</string>
     <string name="reports_earned">Зароблена</string>
     <string name="reports_export_menu">Экспарт</string>
     <string name="reports_filter">Адфільтраваць справаздачу</string>

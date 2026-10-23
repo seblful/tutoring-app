@@ -264,7 +264,7 @@
     <string name="price_edit_title">Stundensatz ändern</string>
     <string name="price_label">Tarif pro Stunde</string>
     <string name="price_per_lesson_hint">%1$s für eine %2$s-Lektion</string>
-    <string name="price_per_hour">%1$s/h</string>
+    <string name="price_per_hour">%1$s/\u2060h</string>
     <string name="add_payment">Fügen Sie eine Zahlung hinzu</string>
     <string name="payments_empty">Noch keine Zahlungen</string>
     <string name="payment_add_title">Neue Zahlung</string>
@@ -534,8 +534,8 @@
     <string name="people_pick_card">Wählen Sie einen Schüler oder eine Gruppe</string>
     <string name="settings_pick_page">Wählen Sie einen Abschnitt</string>
     <plurals name="students_count">
-        <item quantity="one">%1$d Schüler</item>
-        <item quantity="other">%1$d Schüler</item>
+        <item quantity="one">%1$d\u00A0Schüler</item>
+        <item quantity="other">%1$d\u00A0Schüler</item>
     </plurals>
     <string name="reports_title">Berichte</string>
     <string name="reports_empty">Noch gibt es nichts zu berichten</string>
@@ -762,7 +762,7 @@
     <string name="today_lessons">Die heutigen Lektionen</string>
     <string name="today_no_lessons">Heute kein Unterricht</string>
     <string name="today_owed">Ihnen geschuldet</string>
-    <string name="today_homework">Hausaufgaben für den heutigen Unterricht</string>
+    <string name="today_homework">Fällige Hausaufgaben</string>
     <string name="today_backup_old">Letzte Sicherung %1$s</string>
     <string name="today_backup_never">Noch kein Backup</string>
     <string name="today_backup_detail">Ihre Daten befinden sich nur auf diesem Telefon.</string>
@@ -844,7 +844,7 @@
     </plurals>
     <string name="group_member_present">Teilgenommen: %1$d von %2$d Stunden</string>
     <string name="group_member_no_lessons">Noch kein Unterricht</string>
-    <string name="price_per_hour_per_student">%1$s/h pro Schüler</string>
+    <string name="price_per_hour_per_student">%1$s/\u2060h pro Schüler</string>
     <string name="reports_earned">Verdient</string>
     <string name="reports_export_menu">Exportieren</string>
     <string name="reports_filter">Filtern Sie den Bericht</string>

@@ -264,7 +264,7 @@
     <string name="price_edit_title">Muuta tuntihintaa</string>
     <string name="price_label">Tuntinopeus</string>
     <string name="price_per_lesson_hint">%1$s %2$s-tunnille</string>
-    <string name="price_per_hour">%1$s/h</string>
+    <string name="price_per_hour">%1$s/\u2060h</string>
     <string name="add_payment">Lisää maksu</string>
     <string name="payments_empty">Ei vielä maksuja</string>
     <string name="payment_add_title">Uusi maksu</string>
@@ -534,8 +534,8 @@
     <string name="people_pick_card">Valitse opiskelija tai ryhmä</string>
     <string name="settings_pick_page">Valitse osio</string>
     <plurals name="students_count">
-        <item quantity="one">%1$d oppilas</item>
-        <item quantity="other">%1$d oppilasta</item>
+        <item quantity="one">%1$d\u00A0oppilas</item>
+        <item quantity="other">%1$d\u00A0oppilasta</item>
     </plurals>
     <string name="reports_title">Raportit</string>
     <string name="reports_empty">Ei vielä mitään raportoitavaa</string>
@@ -762,7 +762,7 @@
     <string name="today_lessons">Tämän päivän oppitunnit</string>
     <string name="today_no_lessons">Ei oppitunteja tänään</string>
     <string name="today_owed">Velkaa sinulle</string>
-    <string name="today_homework">Kotitehtävät tämän päivän oppitunneille</string>
+    <string name="today_homework">Palautettavat kotitehtävät</string>
     <string name="today_backup_old">Viimeinen varmuuskopio %1$s</string>
     <string name="today_backup_never">Ei vielä varmuuskopiota</string>
     <string name="today_backup_detail">Tietosi ovat vain tässä puhelimessa.</string>
@@ -844,7 +844,7 @@
     </plurals>
     <string name="group_member_present">Osallistumiset: %1$d / %2$d oppituntia</string>
     <string name="group_member_no_lessons">Ei vielä oppitunteja</string>
-    <string name="price_per_hour_per_student">%1$s/h opiskelijaa kohti</string>
+    <string name="price_per_hour_per_student">%1$s/\u2060h opiskelijaa kohti</string>
     <string name="reports_earned">Ansaittu</string>
     <string name="reports_export_menu">Vie</string>
     <string name="reports_filter">Suodata raportti</string>

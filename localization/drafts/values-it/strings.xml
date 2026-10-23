@@ -274,7 +274,7 @@
     <string name="price_edit_title">Modifica la tariffa</string>
     <string name="price_label">Tariffa oraria</string>
     <string name="price_per_lesson_hint">%1$s per una lezione %2$s</string>
-    <string name="price_per_hour">%1$s/ora</string>
+    <string name="price_per_hour">%1$s/\u2060ora</string>
     <string name="add_payment">Aggiungi un pagamento</string>
     <string name="payments_empty">Ancora nessun pagamento</string>
     <string name="payment_add_title">Nuovo pagamento</string>
@@ -555,9 +555,9 @@
     <string name="people_pick_card">Scegli uno studente o un gruppo</string>
     <string name="settings_pick_page">Scegli una sezione</string>
     <plurals name="students_count">
-        <item quantity="one">%1$d studente</item>
-        <item quantity="many">%1$d studenti</item>
-        <item quantity="other">%1$d studenti</item>
+        <item quantity="one">%1$d\u00A0studente</item>
+        <item quantity="many">%1$d\u00A0studenti</item>
+        <item quantity="other">%1$d\u00A0studenti</item>
     </plurals>
     <string name="reports_title">Rapporti</string>
     <string name="reports_empty">Ancora nulla da segnalare</string>
@@ -788,7 +788,7 @@
     <string name="today_lessons">Le lezioni di oggi</string>
     <string name="today_no_lessons">Nessuna lezione oggi</string>
     <string name="today_owed">Dovuto a te</string>
-    <string name="today_homework">Compiti per le lezioni di oggi</string>
+    <string name="today_homework">Compiti da consegnare</string>
     <string name="today_backup_old">Ultimo backup %1$s</string>
     <string name="today_backup_never">Ancora nessun backup</string>
     <string name="today_backup_detail">I tuoi dati sono solo su questo telefono.</string>
@@ -878,7 +878,7 @@
     </plurals>
     <string name="group_member_present">Presenze: %1$d lezioni su %2$d</string>
     <string name="group_member_no_lessons">Ancora nessuna lezione</string>
-    <string name="price_per_hour_per_student">%1$s/h per studente</string>
+    <string name="price_per_hour_per_student">%1$s/\u2060h per studente</string>
     <string name="reports_earned">Importo maturato</string>
     <string name="reports_export_menu">Esporta</string>
     <string name="reports_filter">Filtra il report</string>

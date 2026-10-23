@@ -274,7 +274,7 @@
     <string name="price_edit_title">Alterar valor por hora</string>
     <string name="price_label">Taxa por hora</string>
     <string name="price_per_lesson_hint">%1$s para uma lição %2$s</string>
-    <string name="price_per_hour">%1$s/h</string>
+    <string name="price_per_hour">%1$s/\u2060h</string>
     <string name="add_payment">Adicionar um pagamento</string>
     <string name="payments_empty">Nenhum pagamento ainda</string>
     <string name="payment_add_title">Novo pagamento</string>
@@ -555,9 +555,9 @@
     <string name="people_pick_card">Escolha um aluno ou um grupo</string>
     <string name="settings_pick_page">Escolha uma seção</string>
     <plurals name="students_count">
-        <item quantity="one">%1$d aluno</item>
-        <item quantity="many">%1$d alunos</item>
-        <item quantity="other">%1$d alunos</item>
+        <item quantity="one">%1$d\u00A0aluno</item>
+        <item quantity="many">%1$d\u00A0alunos</item>
+        <item quantity="other">%1$d\u00A0alunos</item>
     </plurals>
     <string name="reports_title">Relatórios</string>
     <string name="reports_empty">Nada a relatar ainda</string>
@@ -788,7 +788,7 @@
     <string name="today_lessons">Lições de hoje</string>
     <string name="today_no_lessons">Não há aulas hoje</string>
     <string name="today_owed">Devido a você</string>
-    <string name="today_homework">Lição de casa para as aulas de hoje</string>
+    <string name="today_homework">Lições de casa pendentes</string>
     <string name="today_backup_old">Último backup %1$s</string>
     <string name="today_backup_never">Nenhum backup ainda</string>
     <string name="today_backup_detail">Seus dados estão apenas neste telefone.</string>
@@ -878,7 +878,7 @@
     </plurals>
     <string name="group_member_present">Presença em %1$d de %2$d aulas</string>
     <string name="group_member_no_lessons">Ainda não há aulas</string>
-    <string name="price_per_hour_per_student">%1$s/h por aluno</string>
+    <string name="price_per_hour_per_student">%1$s/\u2060h por aluno</string>
     <string name="reports_earned">Valor gerado</string>
     <string name="reports_export_menu">Exportar</string>
     <string name="reports_filter">Filtrar o relatório</string>

@@ -264,7 +264,7 @@
     <string name="price_edit_title">Skift timepris</string>
     <string name="price_label">Takst pr. time</string>
     <string name="price_per_lesson_hint">%1$s for en %2$s lektion</string>
-    <string name="price_per_hour">%1$s/h</string>
+    <string name="price_per_hour">%1$s/\u2060h</string>
     <string name="add_payment">Tilføj en betaling</string>
     <string name="payments_empty">Ingen betalinger endnu</string>
     <string name="payment_add_title">Ny betaling</string>
@@ -534,8 +534,8 @@
     <string name="people_pick_card">Vælg en elev eller en gruppe</string>
     <string name="settings_pick_page">Vælg en sektion</string>
     <plurals name="students_count">
-        <item quantity="one">%1$d elev</item>
-        <item quantity="other">%1$d elever</item>
+        <item quantity="one">%1$d\u00A0elev</item>
+        <item quantity="other">%1$d\u00A0elever</item>
     </plurals>
     <string name="reports_title">Rapporter</string>
     <string name="reports_empty">Intet at rapportere endnu</string>
@@ -762,7 +762,7 @@
     <string name="today_lessons">Dagens lektioner</string>
     <string name="today_no_lessons">Ingen undervisning i dag</string>
     <string name="today_owed">Skyldes dig</string>
-    <string name="today_homework">Lektier til dagens lektioner</string>
+    <string name="today_homework">Lektier til aflevering</string>
     <string name="today_backup_old">Sidste backup %1$s</string>
     <string name="today_backup_never">Ingen backup endnu</string>
     <string name="today_backup_detail">Dine data er kun på denne telefon.</string>
@@ -844,7 +844,7 @@
     </plurals>
     <string name="group_member_present">Deltaget i %1$d af %2$d lektioner</string>
     <string name="group_member_no_lessons">Ingen lektioner endnu</string>
-    <string name="price_per_hour_per_student">%1$s/h pr. elev</string>
+    <string name="price_per_hour_per_student">%1$s/\u2060h pr. elev</string>
     <string name="reports_earned">Optjent</string>
     <string name="reports_export_menu">Eksport</string>
     <string name="reports_filter">Filtrer rapporten</string>

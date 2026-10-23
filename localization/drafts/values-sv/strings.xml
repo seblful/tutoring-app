@@ -264,7 +264,7 @@
     <string name="price_edit_title">Ändra timpris</string>
     <string name="price_label">Pris per timme</string>
     <string name="price_per_lesson_hint">%1$s för en %2$s-lektion</string>
-    <string name="price_per_hour">%1$s/h</string>
+    <string name="price_per_hour">%1$s/\u2060h</string>
     <string name="add_payment">Lägg till en betalning</string>
     <string name="payments_empty">Inga betalningar ännu</string>
     <string name="payment_add_title">Ny betalning</string>
@@ -534,8 +534,8 @@
     <string name="people_pick_card">Välj en elev eller en grupp</string>
     <string name="settings_pick_page">Välj ett avsnitt</string>
     <plurals name="students_count">
-        <item quantity="one">%1$d elev</item>
-        <item quantity="other">%1$d elever</item>
+        <item quantity="one">%1$d\u00A0elev</item>
+        <item quantity="other">%1$d\u00A0elever</item>
     </plurals>
     <string name="reports_title">Rapporter</string>
     <string name="reports_empty">Inget att rapportera ännu</string>
@@ -762,7 +762,7 @@
     <string name="today_lessons">Dagens lektioner</string>
     <string name="today_no_lessons">Inga lektioner idag</string>
     <string name="today_owed">Tack vare dig</string>
-    <string name="today_homework">Läxor för dagens lektioner</string>
+    <string name="today_homework">Läxor att lämna in</string>
     <string name="today_backup_old">Senaste säkerhetskopian %1$s</string>
     <string name="today_backup_never">Ingen säkerhetskopia ännu</string>
     <string name="today_backup_detail">Din data finns endast på den här telefonen.</string>
@@ -844,7 +844,7 @@
     </plurals>
     <string name="group_member_present">Närvaro vid %1$d av %2$d lektioner</string>
     <string name="group_member_no_lessons">Inga lektioner än</string>
-    <string name="price_per_hour_per_student">%1$s/h per elev</string>
+    <string name="price_per_hour_per_student">%1$s/\u2060h per elev</string>
     <string name="reports_earned">Intjänat</string>
     <string name="reports_export_menu">Export</string>
     <string name="reports_filter">Filtrera rapporten</string>

@@ -284,7 +284,7 @@
     <string name="price_edit_title">Zmień stawkę</string>
     <string name="price_label">Stawka za godzinę</string>
     <string name="price_per_lesson_hint">%1$s dla lekcji %2$s</string>
-    <string name="price_per_hour">%1$s/h</string>
+    <string name="price_per_hour">%1$s/\u2060h</string>
     <string name="add_payment">Dodaj płatność</string>
     <string name="payments_empty">Nie ma jeszcze płatności</string>
     <string name="payment_add_title">Nowa płatność</string>
@@ -576,10 +576,10 @@
     <string name="people_pick_card">Wybierz ucznia lub grupę</string>
     <string name="settings_pick_page">Wybierz sekcję</string>
     <plurals name="students_count">
-        <item quantity="one">%1$d uczeń</item>
-        <item quantity="few">%1$d uczniowie</item>
-        <item quantity="many">%1$d uczniów</item>
-        <item quantity="other">%1$d ucznia</item>
+        <item quantity="one">%1$d\u00A0uczeń</item>
+        <item quantity="few">%1$d\u00A0uczniowie</item>
+        <item quantity="many">%1$d\u00A0uczniów</item>
+        <item quantity="other">%1$d\u00A0ucznia</item>
     </plurals>
     <string name="reports_title">Raporty</string>
     <string name="reports_empty">Nie ma jeszcze nic do zgłoszenia</string>
@@ -814,7 +814,7 @@
     <string name="today_lessons">Dzisiejsze lekcje</string>
     <string name="today_no_lessons">Dzisiaj nie ma lekcji</string>
     <string name="today_owed">Jestem ci dłużny</string>
-    <string name="today_homework">Praca domowa na dzisiejsze lekcje</string>
+    <string name="today_homework">Prace domowe do oddania</string>
     <string name="today_backup_old">Ostatnia kopia zapasowa %1$s</string>
     <string name="today_backup_never">Nie ma jeszcze kopii zapasowej</string>
     <string name="today_backup_detail">Twoje dane znajdują się tylko w tym telefonie.</string>
@@ -912,7 +912,7 @@
     </plurals>
     <string name="group_member_present">Obecność na %1$d z %2$d lekcji</string>
     <string name="group_member_no_lessons">Nie ma jeszcze żadnych lekcji</string>
-    <string name="price_per_hour_per_student">%1$s/h na ucznia</string>
+    <string name="price_per_hour_per_student">%1$s/\u2060h na ucznia</string>
     <string name="reports_earned">Zarobki</string>
     <string name="reports_export_menu">Eksport</string>
     <string name="reports_filter">Filtruj raport</string>

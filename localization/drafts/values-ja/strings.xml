@@ -254,7 +254,7 @@
     <string name="price_edit_title">時間単価を変更</string>
     <string name="price_label">時間あたりの料金</string>
     <string name="price_per_lesson_hint">%1$s %2$s レッスン用</string>
-    <string name="price_per_hour">%1$s/h</string>
+    <string name="price_per_hour">%1$s/\u2060h</string>
     <string name="add_payment">支払いを追加する</string>
     <string name="payments_empty">まだ支払いがありません</string>
     <string name="payment_add_title">新規支払い</string>
@@ -513,7 +513,7 @@
     <string name="people_pick_card">学生またはグループを選択してください</string>
     <string name="settings_pick_page">セクションを選択してください</string>
     <plurals name="students_count">
-        <item quantity="other">%1$d人の生徒</item>
+        <item quantity="other">%1$d\u2060人の生徒</item>
     </plurals>
     <string name="reports_title">レポート</string>
     <string name="reports_empty">まだ報告することはありません</string>
@@ -736,7 +736,7 @@
     <string name="today_lessons">今日のレッスン</string>
     <string name="today_no_lessons">今日はレッスンはありません</string>
     <string name="today_owed">あなたに借りがあります</string>
-    <string name="today_homework">今日のレッスンの宿題</string>
+    <string name="today_homework">提出予定の宿題</string>
     <string name="today_backup_old">最終バックアップ %1$s</string>
     <string name="today_backup_never">バックアップがまだありません</string>
     <string name="today_backup_detail">あなたのデータはこの電話にのみ保存されます。</string>
@@ -810,7 +810,7 @@
     </plurals>
     <string name="group_member_present">出席：全%2$d回中%1$d回</string>
     <string name="group_member_no_lessons">レッスンはまだありません</string>
-    <string name="price_per_hour_per_student">%1$s/時間 生徒 1 人あたり</string>
+    <string name="price_per_hour_per_student">%1$s/\u2060時間 生徒 1 人あたり</string>
     <string name="reports_earned">売上</string>
     <string name="reports_export_menu">エクスポート</string>
     <string name="reports_filter">レポートをフィルタリングする</string>

@@ -58,7 +58,7 @@
     "coverageScope": "Every resource in all 25 variants, not only the drafts.",
     "semanticCertification": "not established by technical checks; see review report",
     "followUpReview": "844 further values corrected across all 23 drafts; see review.json.",
-    "uxSync": "Updated for the committed UX filter and batch messages and the current pending replan messages; three removed keys dropped."
+    "uxSync": "Aligned with committed UX strings through 6eb1a2bb; updated homework due wording and nonbreaking units/counts."
   },
   "totalLanguageVariants": 25,
   "drafts": [
@@ -184,14 +184,10 @@
   "reviewReport": "../review.json",
   "verificationReport": "../verification.json",
   "sourceSnapshot": {
-    "uxBranchHead": "76255152800172cd49b73149abf2d337d5506d4f",
-    "includesPendingUxSourceEdits": true,
-    "pendingKeys": [
-      "batch_none_replanned",
-      "batch_replanned",
-      "batch_replan_clashed"
-    ],
-    "englishSha256": "08742c1efe26ce6bd452a726d911f11c4727ec93021158040ad012ea0f7e7f1b",
-    "russianSha256": "07cd261c632a1d5b0ffd1b349176b8bd1968a4205ec03b5c5df90c3f268a4a9c"
+    "uxBranchHead": "6eb1a2bb3282839be6d6778fa619a9ac101a791c",
+    "includesPendingUxSourceEdits": false,
+    "pendingKeys": [],
+    "englishSha256": "fe8e90d9bc85bf33e92c9d1b44ec23ef5832d7ec46347e514266c40bddd5934d",
+    "russianSha256": "0a46df9d5453f3d7a714911e192c5fe29668c754f2110b5af93a64351b87c779"
   }
 }

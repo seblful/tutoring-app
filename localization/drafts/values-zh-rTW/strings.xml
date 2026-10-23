@@ -254,7 +254,7 @@
     <string name="price_edit_title">修改課時費</string>
     <string name="price_label">每小時費率</string>
     <string name="price_per_lesson_hint">%1$s 用於 %2$s 課程</string>
-    <string name="price_per_hour">%1$s/h</string>
+    <string name="price_per_hour">%1$s/\u2060h</string>
     <string name="add_payment">新增付款</string>
     <string name="payments_empty">尚未付款</string>
     <string name="payment_add_title">新付款</string>
@@ -513,7 +513,7 @@
     <string name="people_pick_card">選擇一個學生或一個團體</string>
     <string name="settings_pick_page">選擇一個部分</string>
     <plurals name="students_count">
-        <item quantity="other">%1$d名學生</item>
+        <item quantity="other">%1$d\u2060名學生</item>
     </plurals>
     <string name="reports_title">報告</string>
     <string name="reports_empty">尚無可報告的內容</string>
@@ -736,7 +736,7 @@
     <string name="today_lessons">今天的課程</string>
     <string name="today_no_lessons">今天沒有課</string>
     <string name="today_owed">欠你的</string>
-    <string name="today_homework">今天課程的作業</string>
+    <string name="today_homework">待交作業</string>
     <string name="today_backup_old">最後備份 %1$s</string>
     <string name="today_backup_never">尚未備份</string>
     <string name="today_backup_detail">您的資料僅儲存在這部手機上。</string>
@@ -810,7 +810,7 @@
     </plurals>
     <string name="group_member_present">出席：共%2$d堂，已參加%1$d堂</string>
     <string name="group_member_no_lessons">還沒有課程</string>
-    <string name="price_per_hour_per_student">每位學生 %1$s/小時</string>
+    <string name="price_per_hour_per_student">每位學生 %1$s/\u2060小時</string>
     <string name="reports_earned">應得收入</string>
     <string name="reports_export_menu">出口</string>
     <string name="reports_filter">過濾報告</string>

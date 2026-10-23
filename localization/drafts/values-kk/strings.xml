@@ -264,7 +264,7 @@
     <string name="price_edit_title">Сағаттық ақыны өзгерту</string>
     <string name="price_label">Сағатына тариф</string>
     <string name="price_per_lesson_hint">%1$s %2$s сабағына</string>
-    <string name="price_per_hour">%1$s/сағ</string>
+    <string name="price_per_hour">%1$s/\u2060сағ</string>
     <string name="add_payment">Төлем қосыңыз</string>
     <string name="payments_empty">Әлі төлемдер жоқ</string>
     <string name="payment_add_title">Жаңа төлем</string>
@@ -534,8 +534,8 @@
     <string name="people_pick_card">Оқушыны немесе топты таңдаңыз</string>
     <string name="settings_pick_page">Бөлімді таңдаңыз</string>
     <plurals name="students_count">
-        <item quantity="one">%1$d оқушы</item>
-        <item quantity="other">%1$d оқушы</item>
+        <item quantity="one">%1$d\u00A0оқушы</item>
+        <item quantity="other">%1$d\u00A0оқушы</item>
     </plurals>
     <string name="reports_title">Есептер</string>
     <string name="reports_empty">Әзірге есеп беретін ештеңе жоқ</string>
@@ -762,7 +762,7 @@
     <string name="today_lessons">Бүгінгі сабақтар</string>
     <string name="today_no_lessons">Бүгін сабақ жоқ</string>
     <string name="today_owed">Сізге қарыздармын</string>
-    <string name="today_homework">Бүгінгі сабаққа арналған үй тапсырмасы</string>
+    <string name="today_homework">Тапсыратын үй тапсырмасы</string>
     <string name="today_backup_old">Соңғы сақтық көшірме %1$s</string>
     <string name="today_backup_never">Сақтық көшірме әлі жоқ</string>
     <string name="today_backup_detail">Деректеріңіз тек осы телефонда.</string>
@@ -844,7 +844,7 @@
     </plurals>
     <string name="group_member_present">Қатысу: %1$d / %2$d сабақ</string>
     <string name="group_member_no_lessons">Әлі сабақ жоқ</string>
-    <string name="price_per_hour_per_student">Бір студентке %1$s/сағ</string>
+    <string name="price_per_hour_per_student">Бір студентке %1$s/\u2060сағ</string>
     <string name="reports_earned">Табыс</string>
     <string name="reports_export_menu">Экспорттау</string>
     <string name="reports_filter">Есепті сүзгілеу</string>

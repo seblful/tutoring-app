@@ -264,7 +264,7 @@
     <string name="price_edit_title">Αλλαγή ωριαίας τιμής</string>
     <string name="price_label">Ρυθμός ανά ώρα</string>
     <string name="price_per_lesson_hint">%1$s για ένα μάθημα %2$s</string>
-    <string name="price_per_hour">%1$s/ώρα</string>
+    <string name="price_per_hour">%1$s/\u2060ώρα</string>
     <string name="add_payment">Προσθέστε μια πληρωμή</string>
     <string name="payments_empty">Δεν υπάρχουν ακόμη πληρωμές</string>
     <string name="payment_add_title">Νέα πληρωμή</string>
@@ -534,8 +534,8 @@
     <string name="people_pick_card">Επιλέξτε έναν μαθητή ή μια ομάδα</string>
     <string name="settings_pick_page">Επιλέξτε μια ενότητα</string>
     <plurals name="students_count">
-        <item quantity="one">%1$d μαθητής</item>
-        <item quantity="other">%1$d μαθητές</item>
+        <item quantity="one">%1$d\u00A0μαθητής</item>
+        <item quantity="other">%1$d\u00A0μαθητές</item>
     </plurals>
     <string name="reports_title">Αναφορές</string>
     <string name="reports_empty">Δεν υπάρχει τίποτα για αναφορά ακόμα</string>
@@ -762,7 +762,7 @@
     <string name="today_lessons">Τα σημερινά μαθήματα</string>
     <string name="today_no_lessons">Κανένα μάθημα σήμερα</string>
     <string name="today_owed">Σας οφείλω</string>
-    <string name="today_homework">Εργασία για τα σημερινά μαθήματα</string>
+    <string name="today_homework">Εργασίες προς παράδοση</string>
     <string name="today_backup_old">Τελευταίο αντίγραφο ασφαλείας %1$s</string>
     <string name="today_backup_never">Δεν υπάρχει ακόμα αντίγραφο ασφαλείας</string>
     <string name="today_backup_detail">Τα δεδομένα σας βρίσκονται μόνο σε αυτό το τηλέφωνο.</string>
@@ -844,7 +844,7 @@
     </plurals>
     <string name="group_member_present">Παρουσία σε %1$d από %2$d μαθήματα</string>
     <string name="group_member_no_lessons">Δεν υπάρχουν ακόμη μαθήματα</string>
-    <string name="price_per_hour_per_student">%1$s/ώρα ανά μαθητή</string>
+    <string name="price_per_hour_per_student">%1$s/\u2060ώρα ανά μαθητή</string>
     <string name="reports_earned">Δεδουλευμένα</string>
     <string name="reports_export_menu">Εξαγωγή</string>
     <string name="reports_filter">Φιλτράρετε την αναφορά</string>

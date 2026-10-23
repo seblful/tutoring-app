@@ -73,6 +73,40 @@ class ResourceValidationTest(unittest.TestCase):
         _, issues = validate_resources(source, translated, "ru")
         self.assertEqual(issues, [])
 
+    def test_hourly_units_and_student_counts_stay_together(self):
+        source = ET.fromstring(
+            '<resources><string name="price_per_hour">%1$s/\\u2060h</string>'
+            '<plurals name="students_count">'
+            '<item quantity="one">%1$d\\u00A0student</item>'
+            '<item quantity="other">%1$d\\u00A0students</item>'
+            "</plurals></resources>"
+        )
+        split = ET.fromstring(
+            '<resources><string name="price_per_hour">%1$s/Std.</string>'
+            '<plurals name="students_count">'
+            '<item quantity="one">%1$d Schüler</item>'
+            '<item quantity="other">%1$d Schüler</item>'
+            "</plurals></resources>"
+        )
+        _, issues = validate_resources(source, split, "de")
+        self.assertEqual(
+            [issue.reason for issue in issues],
+            [
+                "hourly unit may wrap after slash",
+                "student count may split from label",
+                "student count may split from label",
+            ],
+        )
+        joined = ET.fromstring(
+            '<resources><string name="price_per_hour">%1$s/\\u2060Std.</string>'
+            '<plurals name="students_count">'
+            '<item quantity="one">%1$d\\u00A0Schüler</item>'
+            '<item quantity="other">%1$d\\u00A0Schüler</item>'
+            "</plurals></resources>"
+        )
+        _, issues = validate_resources(source, joined, "de")
+        self.assertEqual(issues, [])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -32,6 +32,7 @@ QUANTITIES = {
     },
     **{tag: {"other"} for tag in ("zh-CN", "zh-TW", "ja", "ko")},
 }
+NO_BREAK_JOINERS = (r"\u00A0", r"\u2060", "\u00a0", "\u2060")
 
 
 @dataclass(frozen=True)
@@ -158,6 +159,19 @@ def validate_resources(
                 )
             if unescaped_quote(text):
                 issues.append(Issue(locale, label, "unescaped Android quote"))
+            if (
+                name in {"price_per_hour", "price_per_hour_per_student"}
+                and "/" in text
+                and not any(f"/{joiner}" in text for joiner in NO_BREAK_JOINERS[1::2])
+            ):
+                issues.append(Issue(locale, label, "hourly unit may wrap after slash"))
+            if name == "students_count" and not any(
+                f"%1$d{joiner}" in text or f"{joiner}%1$d" in text
+                for joiner in NO_BREAK_JOINERS
+            ):
+                issues.append(
+                    Issue(locale, label, "student count may split from label")
+                )
             if len(item) or len(source_item):
                 issues.append(
                     Issue(locale, label, "inline markup requires explicit validation")
@@ -243,6 +257,7 @@ def main() -> int:
             "format argument multiplicity",
             "Android quotes",
             "escaped whitespace",
+            "nonbreaking student counts and hourly units",
             "batch text leakage",
             "nontranslatable values",
             "filename extensions",

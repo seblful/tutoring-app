@@ -274,7 +274,7 @@
     <string name="price_edit_title">Modifier le tarif</string>
     <string name="price_label">Tarif horaire</string>
     <string name="price_per_lesson_hint">%1$s pour une leçon %2$s</string>
-    <string name="price_per_hour">%1$s/heure</string>
+    <string name="price_per_hour">%1$s/\u2060heure</string>
     <string name="add_payment">Ajouter un paiement</string>
     <string name="payments_empty">Aucun paiement pour l\'instant</string>
     <string name="payment_add_title">Nouveau paiement</string>
@@ -555,9 +555,9 @@
     <string name="people_pick_card">Choisissez un étudiant ou un groupe</string>
     <string name="settings_pick_page">Choisissez une rubrique</string>
     <plurals name="students_count">
-        <item quantity="one">%1$d élève</item>
-        <item quantity="many">%1$d élèves</item>
-        <item quantity="other">%1$d élèves</item>
+        <item quantity="one">%1$d\u00A0élève</item>
+        <item quantity="many">%1$d\u00A0élèves</item>
+        <item quantity="other">%1$d\u00A0élèves</item>
     </plurals>
     <string name="reports_title">Rapports</string>
     <string name="reports_empty">Rien à signaler pour l\'instant</string>
@@ -788,7 +788,7 @@
     <string name="today_lessons">Les leçons du jour</string>
     <string name="today_no_lessons">Pas de cours aujourd\'hui</string>
     <string name="today_owed">Je vous dois</string>
-    <string name="today_homework">Devoirs pour les cours d\'aujourd\'hui</string>
+    <string name="today_homework">Devoirs à rendre</string>
     <string name="today_backup_old">Dernière sauvegarde %1$s</string>
     <string name="today_backup_never">Pas encore de sauvegarde</string>
     <string name="today_backup_detail">Vos données se trouvent uniquement sur ce téléphone.</string>
@@ -878,7 +878,7 @@
     </plurals>
     <string name="group_member_present">Présence à %1$d cours sur %2$d</string>
     <string name="group_member_no_lessons">Pas encore de cours</string>
-    <string name="price_per_hour_per_student">%1$s/h par étudiant</string>
+    <string name="price_per_hour_per_student">%1$s/\u2060h par étudiant</string>
     <string name="reports_earned">Revenus gagnés</string>
     <string name="reports_export_menu">Exporter</string>
     <string name="reports_filter">Filtrer le rapport</string>

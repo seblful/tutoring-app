@@ -12,6 +12,7 @@
     "format argument multiplicity",
     "Android quotes",
     "escaped whitespace",
+    "nonbreaking student counts and hourly units",
     "batch text leakage",
     "nontranslatable values",
     "filename extensions"

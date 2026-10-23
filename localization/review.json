@@ -236,8 +236,8 @@
   },
   "uxStringSync": {
     "sourceBranch": "feat/ux-plan",
-    "sourceHead": "76255152800172cd49b73149abf2d337d5506d4f",
-    "includesPendingUxSourceEdits": true,
+    "sourceHead": "6eb1a2bb3282839be6d6778fa619a9ac101a791c",
+    "includesPendingUxSourceEdits": false,
     "resourceCountPerLanguage": 770,
     "draftLanguagesUpdated": 23,
     "added": [
@@ -263,8 +263,20 @@
     "validation": {
       "all25Variants": "passed, 0 errors",
       "androidCompilation": "25 compiled resource files with aapt2 36.0.0",
-      "validatorRegressionTests": "7 passed"
+      "validatorRegressionTests": "8 passed"
     },
-    "linguisticCertification": false
+    "linguisticCertification": false,
+    "latestCorrections": {
+      "sourceResourcesChanged": [
+        "price_per_hour",
+        "students_count",
+        "today_homework",
+        "price_per_hour_per_student"
+      ],
+      "draftsUpdated": 23,
+      "meaning": "Today homework now includes work due from earlier lessons as well as today.",
+      "layout": "Kept the hourly unit after the slash and each student count with its label.",
+      "validation": "25 resource sets passed, aapt2 compilation and 8 regression tests."
+    }
   }
 }

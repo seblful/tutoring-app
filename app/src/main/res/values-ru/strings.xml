@@ -453,7 +453,7 @@
     <string name="price_edit_title">Изменить ставку</string>
     <string name="price_label">Ставка за час</string>
     <string name="price_per_lesson_hint">%1$s за занятие %2$s</string>
-    <string name="price_per_hour">%1$s/час</string>
+    <string name="price_per_hour">%1$s/\u2060час</string>
 
     <!-- Payments -->
     <string name="add_payment">Добавить платёж</string>
@@ -889,10 +889,10 @@
     <string name="settings_pick_page">Выберите раздел</string>
 
     <plurals name="students_count">
-        <item quantity="one">%1$d ученик</item>
-        <item quantity="few">%1$d ученика</item>
-        <item quantity="many">%1$d учеников</item>
-        <item quantity="other">%1$d ученика</item>
+        <item quantity="one">%1$d\u00A0ученик</item>
+        <item quantity="few">%1$d\u00A0ученика</item>
+        <item quantity="many">%1$d\u00A0учеников</item>
+        <item quantity="other">%1$d\u00A0ученика</item>
     </plurals>
 
     <!-- Reports -->
@@ -1186,7 +1186,7 @@
     <string name="today_lessons">Занятия сегодня</string>
     <string name="today_no_lessons">Сегодня занятий нет</string>
     <string name="today_owed">Вам должны</string>
-    <string name="today_homework">Задания к сегодняшним занятиям</string>
+    <string name="today_homework">Задания к сдаче</string>
     <string name="today_backup_old">Последняя копия: %1$s</string>
     <string name="today_backup_never">Копий ещё не было</string>
     <string name="today_backup_detail">Данные есть только на этом телефоне.</string>
@@ -1284,7 +1284,7 @@
     </plurals>
     <string name="group_member_present">Был на %1$d из %2$d</string>
     <string name="group_member_no_lessons">Занятий ещё не было</string>
-    <string name="price_per_hour_per_student">%1$s/час с ученика</string>
+    <string name="price_per_hour_per_student">%1$s/\u2060час с ученика</string>
     <string name="reports_earned">Заработано</string>
     <string name="reports_export_menu">Экспорт</string>
     <string name="reports_filter">Фильтр отчёта</string>

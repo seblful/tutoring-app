@@ -304,7 +304,7 @@
     <string name="price_edit_title">تغيير سعر الساعة</string>
     <string name="price_label">سعر الساعة</string>
     <string name="price_per_lesson_hint">%1$s لدرس %2$s</string>
-    <string name="price_per_hour">%1$s/ساعة</string>
+    <string name="price_per_hour">%1$s/\u2060ساعة</string>
     <string name="add_payment">إضافة دفعة</string>
     <string name="payments_empty">لم يتم الدفع بعد</string>
     <string name="payment_add_title">دفعة جديدة</string>
@@ -618,12 +618,12 @@
     <string name="people_pick_card">اختر طالبًا أو مجموعة</string>
     <string name="settings_pick_page">اختر قسمًا</string>
     <plurals name="students_count">
-        <item quantity="zero">عدد الطلاب: %1$d</item>
-        <item quantity="one">عدد الطلاب: %1$d</item>
-        <item quantity="two">عدد الطلاب: %1$d</item>
-        <item quantity="few">عدد الطلاب: %1$d</item>
-        <item quantity="many">عدد الطلاب: %1$d</item>
-        <item quantity="other">عدد الطلاب: %1$d</item>
+        <item quantity="zero">عدد الطلاب:\u00A0%1$d</item>
+        <item quantity="one">عدد الطلاب:\u00A0%1$d</item>
+        <item quantity="two">عدد الطلاب:\u00A0%1$d</item>
+        <item quantity="few">عدد الطلاب:\u00A0%1$d</item>
+        <item quantity="many">عدد الطلاب:\u00A0%1$d</item>
+        <item quantity="other">عدد الطلاب:\u00A0%1$d</item>
     </plurals>
     <string name="reports_title">التقارير</string>
     <string name="reports_empty">لا يوجد شيء للإبلاغ عنه بعد</string>
@@ -866,7 +866,7 @@
     <string name="today_lessons">دروس اليوم</string>
     <string name="today_no_lessons">لا توجد دروس اليوم</string>
     <string name="today_owed">مستحق لك</string>
-    <string name="today_homework">الواجبات المنزلية لدروس اليوم</string>
+    <string name="today_homework">الواجبات المستحقة</string>
     <string name="today_backup_old">آخر نسخة احتياطية %1$s</string>
     <string name="today_backup_never">لا توجد نسخة احتياطية حتى الآن</string>
     <string name="today_backup_detail">بياناتك موجودة على هذا الهاتف فقط.</string>
@@ -980,7 +980,7 @@
     </plurals>
     <string name="group_member_present">حضور %1$d من أصل %2$d من الدروس</string>
     <string name="group_member_no_lessons">لا توجد دروس بعد</string>
-    <string name="price_per_hour_per_student">%1$s/ساعة لكل طالب</string>
+    <string name="price_per_hour_per_student">%1$s/\u2060ساعة لكل طالب</string>
     <string name="reports_earned">الإيرادات المستحقة</string>
     <string name="reports_export_menu">تصدير</string>
     <string name="reports_filter">قم بتصفية التقرير</string>

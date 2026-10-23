@@ -264,7 +264,7 @@
     <string name="price_edit_title">Uurtarief wijzigen</string>
     <string name="price_label">Tarief per uur</string>
     <string name="price_per_lesson_hint">%1$s voor een %2$s-les</string>
-    <string name="price_per_hour">%1$s/u</string>
+    <string name="price_per_hour">%1$s/\u2060u</string>
     <string name="add_payment">Voeg een betaling toe</string>
     <string name="payments_empty">Nog geen betalingen</string>
     <string name="payment_add_title">Nieuwe betaling</string>
@@ -534,8 +534,8 @@
     <string name="people_pick_card">Kies een leerling of een groep</string>
     <string name="settings_pick_page">Kies een sectie</string>
     <plurals name="students_count">
-        <item quantity="one">%1$d leerling</item>
-        <item quantity="other">%1$d leerlingen</item>
+        <item quantity="one">%1$d\u00A0leerling</item>
+        <item quantity="other">%1$d\u00A0leerlingen</item>
     </plurals>
     <string name="reports_title">Rapporten</string>
     <string name="reports_empty">Nog niets te melden</string>
@@ -762,7 +762,7 @@
     <string name="today_lessons">De lessen van vandaag</string>
     <string name="today_no_lessons">Geen lessen vandaag</string>
     <string name="today_owed">Aan jou verschuldigd</string>
-    <string name="today_homework">Huiswerk voor de lessen van vandaag</string>
+    <string name="today_homework">In te leveren huiswerk</string>
     <string name="today_backup_old">Laatste back-up %1$s</string>
     <string name="today_backup_never">Nog geen back-up</string>
     <string name="today_backup_detail">Je gegevens staan alleen op deze telefoon.</string>
@@ -844,7 +844,7 @@
     </plurals>
     <string name="group_member_present">Aanwezig bij %1$d van %2$d lessen</string>
     <string name="group_member_no_lessons">Nog geen lessen</string>
-    <string name="price_per_hour_per_student">%1$s/u per leerling</string>
+    <string name="price_per_hour_per_student">%1$s/\u2060u per leerling</string>
     <string name="reports_earned">Verdiend</string>
     <string name="reports_export_menu">Exporteren</string>
     <string name="reports_filter">Filter het rapport</string>

@@ -264,7 +264,7 @@
     <string name="price_edit_title">Saat ücretini değiştir</string>
     <string name="price_label">Saat başına ücret</string>
     <string name="price_per_lesson_hint">%1$s, %2$s dersi için</string>
-    <string name="price_per_hour">%1$s/h</string>
+    <string name="price_per_hour">%1$s/\u2060h</string>
     <string name="add_payment">Ödeme ekle</string>
     <string name="payments_empty">Henüz ödeme yok</string>
     <string name="payment_add_title">Yeni ödeme</string>
@@ -534,8 +534,8 @@
     <string name="people_pick_card">Bir öğrenci veya grup seçin</string>
     <string name="settings_pick_page">Bir bölüm seçin</string>
     <plurals name="students_count">
-        <item quantity="one">%1$d öğrenci</item>
-        <item quantity="other">%1$d öğrenci</item>
+        <item quantity="one">%1$d\u00A0öğrenci</item>
+        <item quantity="other">%1$d\u00A0öğrenci</item>
     </plurals>
     <string name="reports_title">Raporlar</string>
     <string name="reports_empty">Henüz rapor edilecek bir şey yok</string>
@@ -762,7 +762,7 @@
     <string name="today_lessons">Bugünün dersleri</string>
     <string name="today_no_lessons">Bugün ders yok</string>
     <string name="today_owed">Sana borçluyum</string>
-    <string name="today_homework">Bugünün dersleri için ödev</string>
+    <string name="today_homework">Teslim edilecek ödevler</string>
     <string name="today_backup_old">Son yedekleme %1$s</string>
     <string name="today_backup_never">Henüz yedekleme yok</string>
     <string name="today_backup_detail">Verileriniz yalnızca bu telefonda.</string>
@@ -844,7 +844,7 @@
     </plurals>
     <string name="group_member_present">Katılım: %1$d / %2$d ders</string>
     <string name="group_member_no_lessons">Henüz ders yok</string>
-    <string name="price_per_hour_per_student">Öğrenci başına %1$s/saat</string>
+    <string name="price_per_hour_per_student">Öğrenci başına %1$s/\u2060saat</string>
     <string name="reports_earned">Kazanılan tutar</string>
     <string name="reports_export_menu">Dışa Aktar</string>
     <string name="reports_filter">Raporu filtrele</string>
