@@ -1,0 +1,173 @@
+{
+  "status": "technical_checks_passed",
+  "scope": "Every resource in English, Russian and all 23 translation drafts.",
+  "linguisticCertification": false,
+  "limitation": "These checks do not establish fluent wording, semantic equivalence, or visual fit. Native-speaker and screen review remain necessary.",
+  "checks": [
+    "inventory",
+    "unique resource names",
+    "resource types",
+    "array lengths",
+    "plural categories",
+    "format argument multiplicity",
+    "Android quotes",
+    "escaped whitespace",
+    "nonbreaking student counts and hourly units",
+    "batch text leakage",
+    "nontranslatable values",
+    "filename extensions"
+  ],
+  "languages": [
+    {
+      "locale": "en",
+      "resources": 770,
+      "values": 836,
+      "errors": 0
+    },
+    {
+      "locale": "ru",
+      "resources": 770,
+      "values": 910,
+      "errors": 0
+    },
+    {
+      "locale": "uk",
+      "resources": 770,
+      "values": 910,
+      "errors": 0
+    },
+    {
+      "locale": "pl",
+      "resources": 770,
+      "values": 910,
+      "errors": 0
+    },
+    {
+      "locale": "de",
+      "resources": 770,
+      "values": 836,
+      "errors": 0
+    },
+    {
+      "locale": "fr",
+      "resources": 770,
+      "values": 873,
+      "errors": 0
+    },
+    {
+      "locale": "es",
+      "resources": 770,
+      "values": 873,
+      "errors": 0
+    },
+    {
+      "locale": "pt-BR",
+      "resources": 770,
+      "values": 873,
+      "errors": 0
+    },
+    {
+      "locale": "tr",
+      "resources": 770,
+      "values": 836,
+      "errors": 0
+    },
+    {
+      "locale": "it",
+      "resources": 770,
+      "values": 873,
+      "errors": 0
+    },
+    {
+      "locale": "be",
+      "resources": 770,
+      "values": 910,
+      "errors": 0
+    },
+    {
+      "locale": "pt-PT",
+      "resources": 770,
+      "values": 873,
+      "errors": 0
+    },
+    {
+      "locale": "nl",
+      "resources": 770,
+      "values": 836,
+      "errors": 0
+    },
+    {
+      "locale": "el",
+      "resources": 770,
+      "values": 836,
+      "errors": 0
+    },
+    {
+      "locale": "fi",
+      "resources": 770,
+      "values": 836,
+      "errors": 0
+    },
+    {
+      "locale": "da",
+      "resources": 770,
+      "values": 836,
+      "errors": 0
+    },
+    {
+      "locale": "nb",
+      "resources": 770,
+      "values": 836,
+      "errors": 0
+    },
+    {
+      "locale": "sv",
+      "resources": 770,
+      "values": 836,
+      "errors": 0
+    },
+    {
+      "locale": "ar",
+      "resources": 770,
+      "values": 984,
+      "errors": 0
+    },
+    {
+      "locale": "kk",
+      "resources": 770,
+      "values": 836,
+      "errors": 0
+    },
+    {
+      "locale": "hi",
+      "resources": 770,
+      "values": 836,
+      "errors": 0
+    },
+    {
+      "locale": "zh-CN",
+      "resources": 770,
+      "values": 799,
+      "errors": 0
+    },
+    {
+      "locale": "zh-TW",
+      "resources": 770,
+      "values": 799,
+      "errors": 0
+    },
+    {
+      "locale": "ja",
+      "resources": 770,
+      "values": 799,
+      "errors": 0
+    },
+    {
+      "locale": "ko",
+      "resources": 770,
+      "values": 799,
+      "errors": 0
+    }
+  ],
+  "issues": []
+}

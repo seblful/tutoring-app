@@ -1,0 +1,282 @@
+{
+  "status": "technical-validation-and-targeted-linguistic-review",
+  "baseCommit": "73a5f3f6a5269e05a0fccbef4761e8af8affed53",
+  "date": "2026-10-23",
+  "scope": {
+    "technicalValidation": "Every leaf in all 25 language variants, including English and Russian.",
+    "linguisticReview": "Targeted review across all 23 drafts: ambiguous domain words, counts, booking conflicts, lesson/attendance status, fee eligibility, earnings, statements, backup/password/currency warnings, and calendar arrays.",
+    "notCompleted": "An independent native-speaker review of every sentence and on-screen layout review."
+  },
+  "adjacentEntryLeaksCorrected": 278,
+  "baselineRegressionProof": "The strengthened validator detects all 278 literal-line-break leaks in the pre-audit files.",
+  "changedDraftValues": 1974,
+  "changesPerLocale": {
+    "ar": 45,
+    "be": 58,
+    "da": 118,
+    "de": 65,
+    "el": 71,
+    "es": 75,
+    "fi": 141,
+    "fr": 85,
+    "hi": 67,
+    "it": 75,
+    "ja": 77,
+    "kk": 75,
+    "ko": 46,
+    "nb": 83,
+    "nl": 68,
+    "pl": 57,
+    "pt-BR": 85,
+    "pt-PT": 86,
+    "sv": 84,
+    "tr": 71,
+    "uk": 57,
+    "zh-CN": 158,
+    "zh-TW": 227
+  },
+  "representativeCorrections": [
+    {
+      "locale": "de",
+      "resource": "class_book",
+      "formOrIndex": "0",
+      "before": "Buch",
+      "after": "Buchen"
+    },
+    {
+      "locale": "ko",
+      "resource": "student_balance_title",
+      "formOrIndex": "0",
+      "before": "균형",
+      "after": "잔액"
+    },
+    {
+      "locale": "be",
+      "resource": "reports_total_outstanding",
+      "formOrIndex": "0",
+      "before": "Выдатна",
+      "after": "Агульная запазычанасць"
+    },
+    {
+      "locale": "ar",
+      "resource": "duration_minutes_label",
+      "formOrIndex": "0",
+      "before": "محضر الاجتماع",
+      "after": "دقائق"
+    },
+    {
+      "locale": "da",
+      "resource": "class_attendance_present",
+      "formOrIndex": "0",
+      "before": "Nuværende",
+      "after": "Til stede"
+    },
+    {
+      "locale": "ar",
+      "resource": "class_series_availability",
+      "formOrIndex": "0",
+      "before": "التمور الحرة: %1$d. سيتم تخطي التواريخ المأخوذة.",
+      "after": "عدد المواعيد المتاحة: %1$d. ستُتخطى المواعيد المحجوزة."
+    },
+    {
+      "locale": "nl",
+      "resource": "backup_export_password_desc",
+      "formOrIndex": "0",
+      "before": "Optioneel. Zonder dit bestand kan iedereen met het bestand de namen en contactpersonen van studenten lezen.",
+      "after": "Optioneel. Zonder wachtwoord kan iedereen met het bestand de namen en contactgegevens van leerlingen lezen."
+    },
+    {
+      "locale": "fi",
+      "resource": "class_terms_price_needed",
+      "formOrIndex": "0",
+      "before": "Aseta nopeus\n[0028]] Opiskelija tai ryhmä",
+      "after": "Aseta tuntihinta"
+    }
+  ],
+  "calendarData": "Weekday and month arrays were normalized from Babel locale data.",
+  "chineseScriptNormalization": "Simplified/Traditional conversion and Taiwan variants were checked with OpenCC; this does not establish semantic correctness.",
+  "nativeSpeakerReviewRequired": true,
+  "linguisticallyCertified": false,
+  "technicalReport": "verification.json",
+  "validation": {
+    "all25LanguageVariants": "passed",
+    "androidResourceCompilation": "passed; aapt2 36.0.0 compiled all 25 strings.xml files",
+    "compiledResourceFiles": 25,
+    "regressionTests": "7 passed",
+    "ruffCheck": "passed",
+    "ruffFormat": "passed",
+    "tyCheck": "passed"
+  },
+  "followUpReview": {
+    "date": "2026-10-23",
+    "changedDraftValues": 844,
+    "changesPerLocale": {
+      "ar": 37,
+      "be": 37,
+      "da": 37,
+      "de": 86,
+      "el": 37,
+      "es": 35,
+      "fi": 39,
+      "fr": 35,
+      "hi": 32,
+      "it": 38,
+      "ja": 33,
+      "kk": 33,
+      "ko": 14,
+      "nb": 38,
+      "nl": 40,
+      "pl": 37,
+      "pt-BR": 34,
+      "pt-PT": 34,
+      "sv": 33,
+      "tr": 35,
+      "uk": 36,
+      "zh-CN": 35,
+      "zh-TW": 29
+    },
+    "scope": "All 25 resource sets checked mechanically again; further contextual corrections across all 23 drafts. English and Russian wording unchanged.",
+    "areas": [
+      "Available time versus free-of-charge",
+      "Ended lessons awaiting a status",
+      "Payment reminders versus lesson reminders",
+      "Prepaid credit versus borrowing",
+      "Attendance counts: people per lesson versus lessons per member",
+      "Ledger entries and financial statements",
+      "School subjects versus email subjects",
+      "Remote lessons versus remote controls",
+      "Current homework versus electrical current",
+      "Assignment versus completion of homework",
+      "Sorting versus deadlines",
+      "Date of a rate change versus causal conjunctions",
+      "Onboarding navigation to Today",
+      "Light theme versus light weight or illumination",
+      "Opening a calendar day versus an open-house event",
+      "Saving data versus saving money"
+    ],
+    "contextSources": [
+      "docs/domain-rules.md",
+      "app/src/main/java/com/seblful/klas/ui/groups/GroupRows.kt",
+      "app/src/main/java/com/seblful/klas/ui/people/PeopleChips.kt",
+      "app/src/main/java/com/seblful/klas/ui/schedule/booking/WhenSection.kt"
+    ],
+    "representativeCorrections": [
+      {
+        "locale": "ar",
+        "resource": "people_owes",
+        "formOrIndex": "0",
+        "before": "أويس · %1$d",
+        "after": "عليهم مستحقات · %1$d"
+      },
+      {
+        "locale": "de",
+        "resource": "homework_side_current",
+        "formOrIndex": "0",
+        "before": "Strom",
+        "after": "Aktuell"
+      },
+      {
+        "locale": "de",
+        "resource": "reminder_text",
+        "formOrIndex": "0",
+        "before": "Hallo, %1$s! Eine Erinnerung, dass für %2$s Unterricht ansteht. Danke schön!",
+        "after": "Hallo, %1$s! Eine Erinnerung: Für die Unterrichtsstunden sind noch %2$s zu zahlen. Vielen Dank!"
+      },
+      {
+        "locale": "fi",
+        "resource": "people_owes",
+        "formOrIndex": "0",
+        "before": "Owes · %1$d",
+        "after": "Velkaa · %1$d"
+      },
+      {
+        "locale": "fr",
+        "resource": "unsaved_discard_title",
+        "formOrIndex": "0",
+        "before": "Partir sans économiser ?",
+        "after": "Quitter sans enregistrer ?"
+      },
+      {
+        "locale": "ja",
+        "resource": "class_subject_label",
+        "formOrIndex": "0",
+        "before": "件名",
+        "after": "科目"
+      },
+      {
+        "locale": "ko",
+        "resource": "group_member_present",
+        "formOrIndex": "0",
+        "before": "출석: %2$d명 중 %1$d명",
+        "after": "출석: 총 %2$d회 중 %1$d회"
+      },
+      {
+        "locale": "uk",
+        "resource": "class_day_free_list",
+        "formOrIndex": "0",
+        "before": "безкоштовно %1$s",
+        "after": "вільно: %1$s"
+      },
+      {
+        "locale": "zh-CN",
+        "resource": "balance_credit",
+        "formOrIndex": "0",
+        "before": "%1$s 信用证",
+        "after": "预付余额: %1$s"
+      }
+    ],
+    "validation": {
+      "all25ResourceSets": "passed, 0 errors",
+      "androidCompilation": "aapt2 36.0.0: 25 compiled resource files",
+      "regressionTests": "7 passed",
+      "ruff": "check and format passed",
+      "ty": "passed"
+    },
+    "limitation": "Automated checks cover every resource; semantic review remains targeted. No independent native-speaker review of every sentence or screen/layout verification has been performed."
+  },
+  "uxStringSync": {
+    "sourceBranch": "feat/ux-plan",
+    "sourceHead": "6eb1a2bb3282839be6d6778fa619a9ac101a791c",
+    "includesPendingUxSourceEdits": false,
+    "resourceCountPerLanguage": 770,
+    "draftLanguagesUpdated": 23,
+    "added": [
+      "schedule_filter",
+      "schedule_filter_who",
+      "schedule_filter_status",
+      "filter_remove",
+      "people_filter",
+      "people_show",
+      "people_subject",
+      "people_order",
+      "batch_none_marked",
+      "batch_none_cancelled",
+      "batch_none_replanned",
+      "batch_replanned",
+      "batch_replan_clashed"
+    ],
+    "removed": [
+      "calendar_more_marks",
+      "schedule_filter_clear",
+      "people_sort"
+    ],
+    "validation": {
+      "all25Variants": "passed, 0 errors",
+      "androidCompilation": "25 compiled resource files with aapt2 36.0.0",
+      "validatorRegressionTests": "8 passed"
+    },
+    "linguisticCertification": false,
+    "latestCorrections": {
+      "sourceResourcesChanged": [
+        "price_per_hour",
+        "students_count",
+        "today_homework",
+        "price_per_hour_per_student"
+      ],
+      "draftsUpdated": 23,
+      "meaning": "Today homework now includes work due from earlier lessons as well as today.",
+      "layout": "Kept the hourly unit after the slash and each student count with its label.",
+      "validation": "25 resource sets passed, aapt2 compilation and 8 regression tests."
+    }
+  }
+}
