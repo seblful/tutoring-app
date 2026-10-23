@@ -2,8 +2,12 @@ package com.seblful.klas.ui.schedule
 
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasText
@@ -20,13 +24,16 @@ import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.TutoringClass
 import com.seblful.klas.testutil.AppLocaleRule
 import com.seblful.klas.ui.theme.KlasTheme
+import com.seblful.klas.ui.theme.klasSemantics
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
+import kotlin.math.abs
 import kotlin.time.Instant
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -41,7 +48,7 @@ class ClassActionsSheetTest {
 
     private val asked = mutableListOf<Any>()
 
-    private fun show(status: LessonStatus) {
+    private fun show(status: LessonStatus, inTheme: @Composable () -> Unit = {}) {
         val klass = TutoringClass(
             id = 1, lessonId = 1, studentId = 1, subjectId = 1,
             start = Instant.parse("2026-06-01T10:00:00Z"), durationMinutes = 60, price = Money.ofMajor(25),
@@ -50,6 +57,7 @@ class ClassActionsSheetTest {
         val row = ScheduleRow(ClassSession(null, listOf(klass)), title = "Olivia Brooks", subjectName = "Spanish")
         compose.setContent {
             KlasTheme {
+                inTheme()
                 ClassActionsSheet(
                     row = row,
                     phase = LessonPhase.UPCOMING,
@@ -117,6 +125,17 @@ class ClassActionsSheetTest {
         listOf("Taught", "Edit").forEach { label ->
             assertEquals(label, height, button(label).getUnclippedBoundsInRoot().height)
         }
+    }
+
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    fun `cancelling is drawn red on the sheet, as deleting is`() {
+        var red = Color.Unspecified
+        show(LessonStatus.SCHEDULED) { red = klasSemantics.destructive }
+
+        val row = compose.onNodeWithText("Cancel lesson").performScrollTo().captureToImage().toPixelMap()
+        val near = { c: Color -> abs(c.red - red.red) < 0.08f && abs(c.green - red.green) < 0.08f }
+        assertTrue((0 until row.width).any { x -> (0 until row.height).any { y -> near(row[x, y]) } })
     }
 
     @Test

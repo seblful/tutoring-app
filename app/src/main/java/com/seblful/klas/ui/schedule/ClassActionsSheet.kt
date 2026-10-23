@@ -239,6 +239,7 @@ private fun StatusRows(row: ScheduleRow, onStatus: (LessonStatus) -> Unit, onCor
             stringResource(R.string.class_cancel_lesson),
             KlasIcons.Outlined.EventBusy,
             onClick = { onStatus(LessonStatus.CANCELLED) },
+            destructive = true,
         )
     }
 }
