@@ -18,6 +18,7 @@
     <ID>TooManyFunctions:AppDatabase.kt:AppDatabase : RoomDatabase</ID>
     <ID>TooManyFunctions:CalendarMirror.kt:CalendarMirror</ID>
     <ID>TooManyFunctions:ClassRepository.kt:ClassRepository</ID>
+    <ID>TooManyFunctions:EnrollmentRepository.kt:EnrollmentRepository</ID>
     <ID>TooManyFunctions:EnumConverters.kt:EnumConverters</ID>
     <ID>TooManyFunctions:GroupRepository.kt:GroupRepository</ID>
     <ID>TooManyFunctions:HomeworkRepository.kt:HomeworkRepository</ID>
