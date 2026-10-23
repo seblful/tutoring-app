@@ -4,6 +4,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import com.seblful.klas.R
 
 /** What a student or group form still lacks before it can save — said on its save bar, each by name. */
@@ -19,6 +20,24 @@ fun StillNeeded(gaps: List<FormGap>) {
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
     )
+}
+
+/**
+ * Once nothing is missing, what the save will make, said back on the save bar: who — [title] — and what sets
+ * them up — [detail], «Math · 25 $/h · In person».
+ */
+@Composable
+fun FormSummary(title: String, detail: String) {
+    Text(title, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    if (detail.isNotEmpty()) {
+        Text(
+            detail,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
 }
 
 private val FormGap.label: Int

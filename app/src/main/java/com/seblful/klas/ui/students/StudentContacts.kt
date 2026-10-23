@@ -82,7 +82,8 @@ internal fun StudentOverflowMenu(
     onTelegram: (String) -> Unit,
     onEmail: (String) -> Unit,
     onArchive: () -> Unit,
-    shares: AccountShares? = null,
+    /** A reminder of what is owed, offered while something is. */
+    remind: (() -> Unit)? = null,
 ) {
     val phone = Phone.contactOf(student.phone)
     OverflowMenu { close ->
@@ -110,18 +111,12 @@ internal fun StudentOverflowMenu(
         if (phone != null || student.email.isNotBlank()) {
             KlasDivider()
         }
-        if (shares != null) {
-            shares.remind?.let { remind ->
-                ContactMenuItem(
-                    label = stringResource(R.string.student_send_reminder),
-                    icon = KlasIcons.Outlined.Payments,
-                    onClick = { close(); remind() },
-                )
-            }
+        // The statement is the balance card's; a reminder, while something is owed, is sent from here.
+        if (remind != null) {
             ContactMenuItem(
-                label = stringResource(R.string.student_share_statement),
-                icon = KlasIcons.Outlined.Share,
-                onClick = { close(); shares.statement() },
+                label = stringResource(R.string.student_send_reminder),
+                icon = KlasIcons.Outlined.Payments,
+                onClick = { close(); remind() },
             )
             KlasDivider()
         }

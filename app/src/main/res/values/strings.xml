@@ -299,6 +299,8 @@
     <string name="student_email_hint">Optional · for lesson invitations, if they are on in Settings</string>
     <string name="student_note_label">Note</string>
     <string name="student_form_subjects_title">Subjects and rates</string>
+    <string name="student_form_add">Add student</string>
+    <string name="student_form_subject_has_lessons">Has lessons, so it stays</string>
     <string name="student_form_subjects_required">Pick at least one subject and set its rate</string>
     <string name="student_form_no_subjects">Add subjects first</string>
     <string name="student_mode_label">Place</string>
@@ -327,6 +329,8 @@
         <item quantity="one">%1$d lesson stayed cancelled: it changed or its time is taken</item>
         <item quantity="other">%1$d lessons stayed cancelled: they changed or their time is taken</item>
     </plurals>
+    <string name="student_balance_title">Balance</string>
+    <string name="student_statement">Statement</string>
     <string name="student_payments_title">Payments</string>
     <string name="student_last_payment">Last payment %1$s</string>
     <string name="student_lessons_empty">No lessons yet</string>
@@ -419,6 +423,7 @@
     <string name="groups_empty">No groups yet</string>
     <string name="groups_empty_detail">A group is several students sharing one rate. One lesson is booked for all of them at once.</string>
     <string name="groups_add">Create a group</string>
+    <string name="group_form_create">Create group</string>
     <string name="group_add_title">New group</string>
     <string name="group_edit_title">Edit group</string>
     <string name="group_name_label">Name</string>
@@ -1069,7 +1074,6 @@
     <string name="payment_fill_lesson">One lesson · %1$s</string>
     <string name="share_with">Send with</string>
     <string name="student_send_reminder">Remind about payment</string>
-    <string name="student_share_statement">Share statement</string>
     <string name="reminder_text">Hello, %1$s! A reminder that %2$s is due for lessons. Thank you!</string>
     <string name="statement_title">%1$s: lessons and payments</string>
     <string name="statement_lesson">Lesson, %1$s</string>

@@ -35,6 +35,7 @@ import com.seblful.klas.domain.model.Student
 import com.seblful.klas.ui.common.AddRow
 import com.seblful.klas.ui.common.ConfirmDialog
 import com.seblful.klas.ui.common.DropdownField
+import com.seblful.klas.ui.common.FormSummary
 import com.seblful.klas.ui.common.KlasScreen
 import com.seblful.klas.ui.common.LoadingFormScreen
 import com.seblful.klas.ui.common.MemberPickRow
@@ -51,6 +52,7 @@ import com.seblful.klas.ui.common.rateChangeLine
 import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.common.supportingTextOf
+import com.seblful.klas.ui.common.text
 import com.seblful.klas.ui.designsystem.component.ButtonKind
 import com.seblful.klas.ui.designsystem.component.FormSaveBar
 import com.seblful.klas.ui.designsystem.component.KlasButton
@@ -134,8 +136,11 @@ private fun GroupForm(
     ) { modifier, bottomInset ->
         Column(modifier) {
             GroupFormBody(state, viewModel, { pricingMemberId = it }, onAddStudent, Modifier.weight(1f))
-            FormSaveBar(stringResource(R.string.action_save), state.canSave, ::requestSave, bottomInset) {
-                StillNeeded(state.missing)
+            val label = stringResource(if (viewModel.isNew) R.string.group_form_create else R.string.action_save)
+            FormSaveBar(label, state.canSave, ::requestSave, bottomInset) {
+                if (state.missing.isEmpty()) FormSummary(state.form.name.trim(), groupSummary(state)) else {
+                    StillNeeded(state.missing)
+                }
             }
         }
     }

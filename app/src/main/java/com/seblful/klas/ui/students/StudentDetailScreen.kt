@@ -160,6 +160,7 @@ private fun StudentCard(
     // A student's name is what this screen is *about*, so it gets the large title Material designed for
     // exactly that — collapsing into an ordinary bar as the list scrolls. [TitleSize.Large] is that, and the
     // scroll behaviour it needs, said once.
+    val shares = rememberAccountShares(state, externalApps, noAppMsg)
     KlasScreen(
         title = student?.name,
         onBack = navigation.back.takeIf { navigation.backArrow },
@@ -173,7 +174,7 @@ private fun StudentCard(
             if (student != null) {
                 StudentOverflowMenu(
                     student = student,
-                    shares = rememberAccountShares(state, externalApps, noAppMsg),
+                    remind = shares.remind,
                     // The same launches the contact block makes, through the same guard: a tablet with no
                     // dialler must not crash the card.
                     onCall = { phone -> externalApps.open(ExternalTarget.Dial(phone), noAppMsg) },
@@ -225,7 +226,12 @@ private fun StudentCard(
                 }
             }
             item(key = StudentDetailKeys.BALANCE, contentType = StudentDetailKeys.BALANCE) {
-                BalanceCard(state, onAddPayment = { addingPayment = true }, modifier = animateInPlace(cardModifier))
+                BalanceCard(
+                    state,
+                    onAddPayment = { addingPayment = true },
+                    onStatement = shares.statement,
+                    modifier = animateInPlace(cardModifier),
+                )
             }
             item(key = StudentDetailKeys.LESSONS, contentType = StudentDetailKeys.LESSONS) {
                 LessonsSection(

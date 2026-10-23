@@ -37,6 +37,7 @@ class StudentFormPhoneTest {
         val vm = StudentFormViewModel(
             env.subjectRepo,
             env.enrollmentRepo,
+            env.studentRepo,
             env.settingsRepo,
             MainScope(),
             Dispatchers.Unconfined,

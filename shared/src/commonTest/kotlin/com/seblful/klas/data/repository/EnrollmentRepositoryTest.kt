@@ -82,6 +82,31 @@ class EnrollmentRepositoryTest {
     }
 
     @Test
+    fun `setSubjects enrolls the new, reprices the moved and drops the left out in one go`() = runTest {
+        repo.enroll(studentId = 1, subjectId = 1, price = Money.ofMajor(20))
+        repo.enroll(studentId = 1, subjectId = 2, price = Money.ofMajor(30))
+
+        repo.setSubjects(studentId = 1, pricedSubjects = mapOf(2L to Money.ofMajor(35), 3L to Money.ofMajor(40)))
+
+        assertEquals(listOf(2L, 3L), env.studentDao.getSubjectIds(1).sorted())
+        assertNull(env.priceDao.get(1, 1))
+        assertEquals(Money.ofMajor(35), env.priceDao.get(1, 2)?.amountMinor?.let { Money(it) })
+        assertEquals(Money.ofMajor(40), env.priceDao.get(1, 3)?.amountMinor?.let { Money(it) })
+    }
+
+    @Test
+    fun `setSubjects keeps a subject with lessons on the student even when it is left out`() = runTest {
+        repo.enroll(studentId = 1, subjectId = 2, price = Money.ofMajor(30))
+        seedClass(studentId = 1, subjectId = 2)
+
+        repo.setSubjects(studentId = 1, pricedSubjects = mapOf(3L to Money.ofMajor(40)))
+
+        assertEquals(setOf(2L), repo.subjectsWithLessons(1))
+        assertEquals(listOf(2L, 3L), env.studentDao.getSubjectIds(1).sorted())
+        assertEquals(Money.ofMajor(30), env.priceDao.get(1, 2)?.amountMinor?.let { Money(it) })
+    }
+
+    @Test
     fun `reprice updates the price without touching the link`() = runTest {
         repo.enroll(studentId = 1, subjectId = 2, price = Money.ofMajor(30))
 
@@ -118,5 +143,17 @@ class EnrollmentRepositoryTest {
         assertEquals(id, logged.studentId)
         assertNull(logged.fromMinor, "no previous rate: the history starts here")
         assertEquals(Money.ofMajor(30).minor, logged.toMinor)
+    }
+
+    @Test
+    fun `setSubjects logs only a rate that moved`() = runTest {
+        repo.enroll(studentId = 1, subjectId = 2, price = Money.ofMajor(30))
+        repo.enroll(studentId = 1, subjectId = 3, price = Money.ofMajor(40))
+
+        repo.setSubjects(studentId = 1, pricedSubjects = mapOf(2L to Money.ofMajor(30), 3L to Money.ofMajor(45)))
+
+        val moved = env.stored().rateHistory.drop(2).single()
+        assertEquals(Money.ofMajor(40).minor, moved.fromMinor)
+        assertEquals(Money.ofMajor(45).minor, moved.toMinor)
     }
 }

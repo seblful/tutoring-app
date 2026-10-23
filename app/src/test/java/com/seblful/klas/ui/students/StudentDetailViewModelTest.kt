@@ -184,46 +184,6 @@ class StudentDetailViewModelTest : StudentDetailTestFixture() {
         }
 
     @Test
-    fun `editStudent trims fields and ignores a blank name`() = runTest(mainRule.dispatcher) {
-        val sid = seedStudent("Аня")
-        val vm = vm(sid)
-        observing(vm.state)
-        runCurrent()
-
-        vm.editStudent(name = "   ", phone = "x", email = "y", note = "z", mode = ClassMode.REMOTE)
-        runCurrent()
-        assertEquals("Аня", env.studentDao.getById(sid)?.name) // blank name rejected
-
-        vm.editStudent(
-            name = "  Борис  ",
-            phone = " +375 29 1234567 ",
-            email = " e@x.co ",
-            note = " n ",
-            mode = ClassMode.REMOTE,
-        )
-        runCurrent()
-        val updated = env.studentDao.getById(sid)!!
-        assertEquals("Борис", updated.name)
-        assertEquals("+375 29 1234567", updated.phone)
-        assertEquals("e@x.co", updated.email)
-        assertEquals(ClassMode.REMOTE, updated.defaultMode)
-    }
-
-    @Test
-    fun `editStudent keeps no phone when only the dialling code was left`() = runTest(mainRule.dispatcher) {
-        val sid = seedStudent("Аня")
-        val vm = vm(sid)
-        observing(vm.state)
-        runCurrent()
-
-        val codeOnly = Phone.prefill(Currency.GBP)
-        vm.editStudent(name = "Аня", phone = codeOnly, email = "", note = "", mode = ClassMode.IN_PERSON)
-        runCurrent()
-
-        assertEquals("", env.studentDao.getById(sid)!!.phone)
-    }
-
-    @Test
     fun `writes are launched into the application scope, not the view model's`() = runTest(mainRule.dispatcher) {
         val sid = seedStudent(name = "Аня")
         val subject = env.fixtures.subject(name = "Математика")
@@ -235,12 +195,10 @@ class StudentDetailViewModelTest : StudentDetailTestFixture() {
         mainRule.appScope.cancel()
 
         vm.addPayment(Money.ofMajor(50), today)
-        vm.editStudent("Анна", "", "", "", ClassMode.IN_PERSON)
         vm.setPrice(subject, Money.ofMajor(40))
         runCurrent()
 
         assertTrue("no payment was recorded", env.stored().payments.isEmpty())
-        assertEquals("the student was not renamed", "Аня", env.studentDao.getById(sid)!!.name)
         assertEquals(
             "the rate was not changed",
             Money.ofMajor(30).minor,

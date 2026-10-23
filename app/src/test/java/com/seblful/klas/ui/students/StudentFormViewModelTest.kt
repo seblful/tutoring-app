@@ -1,6 +1,7 @@
 package com.seblful.klas.ui.students
 
 import com.seblful.klas.domain.model.Money
+import com.seblful.klas.domain.model.Student
 import com.seblful.klas.testutil.MainDispatcherRule
 import com.seblful.klas.testutil.TestEnv
 import com.seblful.klas.testutil.observing
@@ -34,11 +35,82 @@ class StudentFormViewModelTest {
         StudentFormViewModel(
             env.subjectRepo,
             env.enrollmentRepo,
+            env.studentRepo,
             env.settingsRepo,
             mainRule.appScope,
             mainRule.dispatcher,
         ),
     )
+
+    @Test
+    fun `opened on a student, the form shows them as stored and saves corrections and rates`() =
+        runTest(mainRule.dispatcher) {
+            val maths = env.fixtures.subject("Maths")
+            val physics = env.fixtures.subject("Physics")
+            val anya = Student(name = "Аня", phone = "+375 29 1234567")
+            val id = env.enrollmentRepo.createStudent(anya, mapOf(maths to Money.ofMajor(30)))
+            val vm = vm()
+            observing(vm.state)
+
+            vm.edit(id)
+            advanceUntilIdle()
+            val opened = vm.state.value
+            assertFalse(opened.isNew)
+            assertEquals("Аня", opened.form.name)
+            assertEquals("+375 29 1234567", opened.form.phone)
+            assertEquals(setOf(maths), opened.selectedSubjectIds)
+            assertFalse(opened.isDirty)
+
+            vm.update { it.copy(name = "  Анна  ") }
+            vm.setPriceText(maths, "35")
+            vm.toggleSubject(physics, on = true)
+            vm.setPriceText(physics, "20")
+            advanceUntilIdle()
+            var saved = 0L
+            vm.create { saved = it }
+            advanceUntilIdle()
+
+            assertEquals(id, saved)
+            assertEquals("Анна", env.studentRepo.getById(id)?.name)
+            assertEquals(Money.ofMajor(35), env.enrollmentRepo.priceFor(id, maths)?.amount)
+            assertEquals(Money.ofMajor(20), env.enrollmentRepo.priceFor(id, physics)?.amount)
+        }
+
+    @Test
+    fun `a subject the student has lessons in stays ticked`() = runTest(mainRule.dispatcher) {
+        val maths = env.fixtures.subject("Maths")
+        val id = env.enrollmentRepo.createStudent(Student(name = "Аня"), mapOf(maths to Money.ofMajor(30)))
+        env.fixtures.storedClass(studentId = id, subjectId = maths, startMillis = 0)
+        val vm = vm()
+        observing(vm.state)
+        vm.edit(id)
+        advanceUntilIdle()
+
+        vm.toggleSubject(maths, on = false)
+        advanceUntilIdle()
+
+        assertEquals(setOf(maths), vm.state.value.locked)
+        assertEquals(setOf(maths), vm.state.value.selectedSubjectIds)
+    }
+
+    @Test
+    fun `a student with no phone opens on the dialling code and keeps none when it is all that is left`() =
+        runTest(mainRule.dispatcher) {
+            val maths = env.fixtures.subject("Maths")
+            val id = env.enrollmentRepo.createStudent(Student(name = "Аня"), mapOf(maths to Money.ofMajor(30)))
+            val vm = vm()
+            observing(vm.state)
+
+            vm.offerDiallingCode("+44 ")
+            vm.edit(id)
+            advanceUntilIdle()
+            assertEquals("+44 ", vm.state.value.form.phone)
+            assertFalse(vm.state.value.isDirty)
+
+            vm.create {}
+            advanceUntilIdle()
+            assertEquals("", env.studentRepo.getById(id)?.phone)
+        }
 
     @Test
     fun `a setup detour carries its subject and returns the created student`() = runTest(mainRule.dispatcher) {

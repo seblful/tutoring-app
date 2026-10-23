@@ -359,6 +359,8 @@
     <string name="student_email_hint">Необязательно · для приглашений на занятия, если они включены в настройках</string>
     <string name="student_note_label">Заметка</string>
     <string name="student_form_subjects_title">Предметы и ставки</string>
+    <string name="student_form_add">Добавить ученика</string>
+    <string name="student_form_subject_has_lessons">Есть занятия — предмет остаётся</string>
     <string name="student_form_subjects_required">Выберите хотя бы один предмет и укажите ставку</string>
     <string name="student_form_no_subjects">Сначала добавьте предметы</string>
     <string name="student_mode_label">Где</string>
@@ -398,6 +400,8 @@
     <string name="student_lessons_empty">Занятий пока нет</string>
     <string name="student_subject_remove">Убрать предмет «%1$s»</string>
     <string name="student_subject_remove_confirm">Убрать предмет «%1$s» у ученика? Его ставка и история ставки будут удалены.</string>
+    <string name="student_balance_title">Баланс</string>
+    <string name="student_statement">Выписка</string>
     <string name="student_payments_title">Платежи</string>
     <string name="student_classes_title">Занятия</string>
     <string name="student_homework_title">Домашние задания</string>
@@ -493,6 +497,7 @@
     <string name="groups_empty">Пока нет групп</string>
     <string name="groups_empty_detail">Группа — это несколько учеников с общей ставкой. Одно занятие записывается сразу на всех.</string>
     <string name="groups_add">Создать группу</string>
+    <string name="group_form_create">Создать группу</string>
     <string name="group_add_title">Новая группа</string>
     <string name="group_edit_title">Изменить группу</string>
     <string name="group_name_label">Название</string>
@@ -1208,7 +1213,6 @@
     <string name="payment_fill_lesson">Одно занятие · %1$s</string>
     <string name="share_with">Отправить через</string>
     <string name="student_send_reminder">Напомнить об оплате</string>
-    <string name="student_share_statement">Отправить выписку</string>
     <string name="reminder_text">Здравствуйте, %1$s! Напоминаю, что за занятия к оплате %2$s. Спасибо!</string>
     <string name="statement_title">%1$s: занятия и оплаты</string>
     <string name="statement_lesson">Занятие, %1$s</string>

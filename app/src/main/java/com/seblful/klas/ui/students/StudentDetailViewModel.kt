@@ -118,12 +118,6 @@ class StudentDetailViewModel @AssistedInject constructor(
     private fun <T> write(onWritten: suspend (T) -> Unit = {}, block: suspend () -> T) =
         appScope.write(events, Event.WriteFailed, onWritten, block)
 
-    fun editStudent(name: String, phone: String, email: String, note: String, mode: ClassMode) {
-        val current = state.value.valueOrNull()?.student ?: return
-        val edited = typedStudent(name, phone, email, note, mode, onto = current) ?: return
-        write { students.upsert(edited) }
-    }
-
     /**
      * Archives or restores the student. Archiving also calls off their planned lessons — see
      * [StudentRepository.archive] — and says how many with an Undo, since that is a change to the schedule

@@ -26,7 +26,10 @@ class DeletedSubjectSelectionTest {
         val removed = env.fixtures.subject("Math")
         val kept = env.fixtures.subject("Physics")
         val vm = main.own(
-            StudentFormViewModel(env.subjectRepo, env.enrollmentRepo, env.settingsRepo, main.appScope, main.dispatcher),
+            StudentFormViewModel(
+                env.subjectRepo, env.enrollmentRepo, env.studentRepo, env.settingsRepo, main.appScope,
+                main.dispatcher,
+            ),
         )
         observing(vm.state)
         vm.update { it.copy(name = "Anna") }

@@ -95,6 +95,29 @@ class EnrollmentRepository @Inject constructor(
         return Unenroll.Ok
     }
 
+    /** The subjects [studentId] takes and has lessons in: billed history that keeps each on them ([unenroll]). */
+    suspend fun subjectsWithLessons(studentId: Long): Set<Long> =
+        studentDao.getSubjectIds(studentId).filterTo(mutableSetOf()) { classes.anyForStudentSubject(studentId, it) }
+
+    /**
+     * Makes [pricedSubjects] what [studentId] takes, as the student form saves it, in one transaction: a new
+     * subject is enrolled, a rate that moved is re-priced (and logged), and a subject left out is unenrolled —
+     * unless it has lessons, which keep it, as [unenroll] would.
+     */
+    suspend fun setSubjects(studentId: Long, pricedSubjects: Map<Long, Money>) {
+        val kept = subjectsWithLessons(studentId)
+        transactor.transaction {
+            (studentDao.getSubjectIds(studentId) - pricedSubjects.keys - kept).forEach { unlink(studentId, it) }
+            pricedSubjects.forEach { (subjectId, price) ->
+                when (priceDao.get(studentId, subjectId)?.toDomain()?.amount) {
+                    null -> link(studentId, subjectId, price)
+                    price -> Unit
+                    else -> record(studentId, subjectId, price)
+                }
+            }
+        }
+    }
+
     /**
      * Updates the price of a subject the student is already enrolled in, recording the change. One
      * transaction: the new price and the log entry saying what it was are the same fact written twice,

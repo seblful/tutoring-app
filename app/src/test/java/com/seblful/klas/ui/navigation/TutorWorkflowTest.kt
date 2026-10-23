@@ -9,6 +9,7 @@ import androidx.compose.ui.test.hasAnyDescendant
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasScrollToIndexAction
+import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isSelectable
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
@@ -171,9 +172,9 @@ class TutorWorkflowTest {
             waitFor(R.string.student_add_title)
             compose.onNodeWithText(text(R.string.student_name_label)).performTextInput("New joiner")
             compose.onNodeWithText(text(R.string.price_label)).performScrollTo().performTextInput("35")
-            click(R.string.action_save)
+            click(R.string.student_form_add)
             waitFor(R.string.group_add_title)
-            click(R.string.action_save)
+            click(R.string.group_form_create)
             waitFor(R.string.class_add_title)
             compose.onNodeWithText("After school").assertExists()
             compose.onNodeWithText("Science").assertExists()
@@ -234,7 +235,7 @@ class TutorWorkflowTest {
             }
             compose.onNodeWithContentDescription(text(R.string.action_edit)).performClick()
             waitFor(R.string.student_edit_title)
-            compose.onNodeWithText("Workflow student").performTextReplacement("Workflow pupil")
+            compose.onNode(hasText("Workflow student") and hasSetTextAction()).performTextReplacement("Workflow pupil")
             click(R.string.action_save)
             compose.waitUntil(5_000) {
                 runBlocking { graph.students.getById(studentId)?.name == "Workflow pupil" }

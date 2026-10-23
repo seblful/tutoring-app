@@ -3,12 +3,14 @@ package com.seblful.klas.ui.students
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.seblful.klas.data.people.EnrollmentRepository
+import com.seblful.klas.data.people.StudentRepository
 import com.seblful.klas.data.people.SubjectRepository
 import com.seblful.klas.data.settings.AppSettings
 import com.seblful.klas.data.settings.SettingsRepository
 import com.seblful.klas.di.ApplicationScope
 import com.seblful.klas.di.Computation
 import com.seblful.klas.domain.model.ClassMode
+import com.seblful.klas.domain.model.Student
 import com.seblful.klas.domain.model.Subject
 import com.seblful.klas.domain.people.Phone
 import com.seblful.klas.domain.people.SubjectNames
@@ -30,19 +32,22 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
 /**
- * Backs the "add student" screen. A new student must be created with at least one subject *and* a
- * valid price for each chosen subject — a class can only be booked for a priced subject, so a
- * student with none would be unusable. This is enforced here ([UiState.canSave]) and by the screen.
+ * Backs the student form, for a new student and — opened on one with [edit] — for correcting them: one form
+ * (D5), so a student's subjects and rates are set where their name is. A student must have at least one
+ * subject *and* a valid rate for each — a class can only be booked for a priced subject, so a student with
+ * none would be unusable. This is enforced here ([UiState.canSave]) and by the screen.
  */
 @ViewModelKey
 @ContributesIntoMap(AppScope::class, binding = binding<ViewModel>())
 class StudentFormViewModel @Inject constructor(
     private val subjectsRepo: SubjectRepository,
     private val enrollment: EnrollmentRepository,
+    private val students: StudentRepository,
     private val settings: SettingsRepository,
     @param:ApplicationScope private val appScope: CoroutineScope,
     @param:Computation private val computation: CoroutineDispatcher,
@@ -62,6 +67,19 @@ class StudentFormViewModel @Inject constructor(
     private val form = MutableStateFlow(Form())
     private val pristine = MutableStateFlow(Form())
 
+    /** Whom the form is for: somebody new, or a student being corrected ([edit]). */
+    sealed interface Opened {
+        data object New : Opened
+
+        /** Read from the database still; the form has nothing to show yet. */
+        data object Reading : Opened
+
+        /** [locked]: the subjects they have lessons in, which stay ticked ([EnrollmentRepository.setSubjects]). */
+        data class Existing(val student: Student, val locked: Set<Long>) : Opened
+    }
+
+    private val opened = MutableStateFlow<Opened>(Opened.New)
+
     data class UiState(
         val form: Form = Form(),
         /**
@@ -72,8 +90,14 @@ class StudentFormViewModel @Inject constructor(
         /** How long a lesson usually is, to say what a typed hourly price comes to for one. */
         val lessonMinutes: Int = AppSettings().defaultLessonMinutes,
         private val baseline: Form = Form(),
+        val opened: Opened = Opened.New,
     ) : LeavableForm {
         val selectedSubjectIds: Set<Long> get() = form.subjectPrices.keys
+
+        val isNew: Boolean get() = opened == Opened.New
+
+        /** Subjects that cannot be unticked: the student has lessons in them. */
+        val locked: Set<Long> get() = (opened as? Opened.Existing)?.locked.orEmpty()
 
         /** What stands between the form and a save, in the order the form asks for it. */
         val missing: List<FormGap>
@@ -95,7 +119,8 @@ class StudentFormViewModel @Inject constructor(
         subjectsRepo.observeAll(),
         pristine,
         settings.observe().map { it.defaultLessonMinutes },
-    ) { f, subjects, baseline, lessonMinutes ->
+        opened,
+    ) { f, subjects, baseline, lessonMinutes, who ->
         val existing = subjects.mapTo(mutableSetOf()) { it.id }
         UiState(
             f.copy(
@@ -103,7 +128,7 @@ class StudentFormViewModel @Inject constructor(
                     it in existing
                 },
             ),
-            Loadable.Ready(subjects), lessonMinutes, baseline,
+            Loadable.Ready(subjects), lessonMinutes, baseline, who,
         )
     }
         // The form itself is usable from the first frame, so the state is not wrapped — the one part of it
@@ -145,8 +170,35 @@ class StudentFormViewModel @Inject constructor(
      * ([Phone.prefill]). A typed number is kept; either way the code is not the tutor's work to lose.
      */
     fun offerDiallingCode(prefill: String) {
+        diallingCode = prefill
         if (Phone.stored(form.value.phone).isEmpty()) form.value = form.value.copy(phone = prefill)
-        pristine.value = pristine.value.copy(phone = prefill)
+        if (Phone.stored(pristine.value.phone).isEmpty()) pristine.value = pristine.value.copy(phone = prefill)
+    }
+
+    private var diallingCode = ""
+
+    /**
+     * Opens the form on [studentId] as stored: their fields, and their subjects at their current rates. Once:
+     * the screen asks again after a rotation, and a correction already typed is not read over.
+     */
+    fun edit(studentId: Long) {
+        if (opened.value != Opened.New) return
+        opened.value = Opened.Reading
+        guessing = false
+        viewModelScope.launch {
+            val student = students.getById(studentId) ?: return@launch
+            val rates = enrollment.observePricesFor(studentId).first()
+            form.value = Form(
+                name = student.name,
+                phone = Phone.stored(student.phone).ifEmpty { diallingCode },
+                email = student.email,
+                note = student.note,
+                mode = student.defaultMode,
+                subjectPrices = rates.associate { it.subjectId to MoneyField.of(it.amount) },
+            )
+            pristine.value = form.value
+            opened.value = Opened.Existing(student, enrollment.subjectsWithLessons(studentId))
+        }
     }
 
     /** A setup detour carries the subject, while its parent form stays on the back stack. */
@@ -158,6 +210,7 @@ class StudentFormViewModel @Inject constructor(
     }
 
     fun toggleSubject(subjectId: Long, on: Boolean) {
+        if (!on && subjectId in state.value.locked) return
         guessing = false
         form.value = form.value.copy(
             subjectPrices = if (on) form.value.subjectPrices + (subjectId to MoneyField())
@@ -207,12 +260,15 @@ class StudentFormViewModel @Inject constructor(
     /** Creates the student and their priced subjects. */
     fun save(onSaved: () -> Unit) = create { onSaved() }
 
+    /** Creates the student — or saves the one the form was opened on ([edit]) — and hands over their id. */
     fun create(onCreated: (Long) -> Unit) {
         val s = state.value
         // Once: a double tap on «Сохранить» created the student twice and popped two screens.
-        if (!s.canSave || saving) return
+        if (!s.canSave || saving || s.opened == Opened.Reading) return
         val f = s.form
-        val student = typedStudent(f.name, f.phone, f.email, f.note, f.mode) ?: return
+        val existing = (s.opened as? Opened.Existing)?.student
+        val student = typedStudent(f.name, f.phone, f.email, f.note, f.mode, onto = existing ?: Student(name = ""))
+            ?: return
         saving = true
         // isValid guarantees every chosen subject has a parseable price.
         val pricedSubjects = f.subjectPrices.mapNotNull { (subjectId, price) ->
@@ -220,7 +276,15 @@ class StudentFormViewModel @Inject constructor(
         }.toMap()
 
         viewModelScope.launch {
-            val written = appScope.writeAwaited { enrollment.createStudent(student, pricedSubjects) }
+            val written = appScope.writeAwaited {
+                if (existing == null) {
+                    enrollment.createStudent(student, pricedSubjects)
+                } else {
+                    students.upsert(student)
+                    enrollment.setSubjects(existing.id, pricedSubjects)
+                    existing.id
+                }
+            }
             if (written.isSuccess) {
                 onCreated(written.getOrThrow())
             } else {
