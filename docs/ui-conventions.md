@@ -157,7 +157,9 @@ Build screens from shared state and controls. Feature rules belong in the domain
   (`StudentFormContent(contacts = false)`); phone, email, note and place are the card's to ask. The student
   form ticks a lone subject for the tutor, and while the usual length is not an hour each price says what
   one lesson costs. Each step shows its number over a progress bar, offers Skip in the bar, and moves on
-  from the `FormSaveBar` every form saves from (R3). No step books a lesson: setup stays a minute long.
+  from the `FormSaveBar` every form saves from (R3). No step books a lesson: setup stays a minute long. After
+  it, one optional page offers «Book the first lesson» for the student just added, «Not now» in the bar; booking
+  hands the student to the app (`FirstLesson`), which opens the booking form for them over Today, once.
 - Apply `AppLanguage` with `ProvideLocalizedResources`, never `Locale.setDefault()`. `StringCoverageTest`
   checks resource parity; language changes re-sync baked calendar text. Setup and Settings share
   `LanguageChoices`: System first, followed by English and Русский in autonym order.

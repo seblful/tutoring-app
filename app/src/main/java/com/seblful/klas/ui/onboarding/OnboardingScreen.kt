@@ -5,6 +5,7 @@ import androidx.compose.animation.EnterExitState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
@@ -108,6 +109,9 @@ private enum class Step(val number: Int) {
     LOCALE(1),
     SUBJECTS(2),
     STUDENT(3),
+
+    /** Set up, the first student added: book their first lesson now, or not. Not counted — nothing to fill. */
+    READY(0),
     ;
 
     companion object {
@@ -130,6 +134,9 @@ fun OnboardingScreen(
 ) {
     // Saveable, so turning the phone on step 3 does not throw the tutor back to the welcome screen.
     var step by rememberSaveable { mutableStateOf(Step.WELCOME) }
+    // The student step's student, once saved — whom the last step offers to book for.
+    var addedId by rememberSaveable { mutableStateOf<Long?>(null) }
+    var addedName by rememberSaveable { mutableStateOf("") }
     // Whether the last step change was a back gesture let go, which has drawn half of its own way out.
     var byGesture by remember { mutableStateOf(false) }
     fun goTo(next: Step, released: Boolean = false) {
@@ -192,6 +199,8 @@ fun OnboardingScreen(
         Step.LOCALE -> Step.WELCOME
         Step.SUBJECTS -> Step.LOCALE
         Step.STUDENT -> Step.SUBJECTS
+        // Saved already: going back would add them a second time.
+        Step.READY -> null
     }
     // The system back, too: the screen sits outside the `NavDisplay`, so without this the gesture on step 2
     // left the app mid-setup while the arrow above went back a step. Outside it, the gesture's preview is
@@ -211,6 +220,7 @@ fun OnboardingScreen(
             Step.LOCALE -> stringResource(R.string.onboarding_locale_title)
             Step.SUBJECTS -> stringResource(R.string.onboarding_subjects_title)
             Step.STUDENT -> stringResource(R.string.onboarding_student_title)
+            Step.READY -> stringResource(R.string.onboarding_ready_title)
         },
         onBack = previousStep?.let { back -> { goTo(back) } },
         messages = messages,
@@ -219,7 +229,13 @@ fun OnboardingScreen(
         actions = {
             if (step != Step.WELCOME) {
                 KlasButton(onClick = { viewModel.complete(); onFinished() }, kind = ButtonKind.Text) {
-                    Text(stringResource(R.string.onboarding_skip))
+                    Text(
+                        stringResource(
+                            if (step ==
+                                Step.READY
+                            ) R.string.onboarding_not_now else R.string.onboarding_skip,
+                        ),
+                    )
                 }
             }
         },
@@ -457,9 +473,23 @@ fun OnboardingScreen(
                         FormSaveBar(
                             stringResource(R.string.onboarding_finish),
                             studentBar(studentState),
-                            { studentVm.save { viewModel.complete(); onFinished() } },
+                            {
+                                val name = studentState.form.name.trim()
+                                studentVm.create { id ->
+                                    addedId = id
+                                    addedName = name
+                                    goTo(Step.READY)
+                                }
+                            },
                             NoInset,
                         )
+                    }
+
+                    Step.READY -> addedId?.let { id ->
+                        FirstLessonStep(addedName, Modifier.weight(1f)) {
+                            viewModel.complete(bookFor = id)
+                            onFinished()
+                        }
                     }
                 }
             }
@@ -573,3 +603,22 @@ private fun subjectsBar(added: List<Subject>?): FormBar =
             added.joinToString { it.name },
         )
     }
+
+/**
+ * The step after the setup: the student is in, and their first lesson is one tap away — or «Not now» in the
+ * bar above, to Today. Optional, as everything after the subjects is: no prompt, nothing asked of the phone.
+ */
+@Composable
+private fun ColumnScope.FirstLessonStep(name: String, modifier: Modifier, onBook: () -> Unit) {
+    Text(
+        stringResource(R.string.onboarding_ready_body, name),
+        style = MaterialTheme.typography.bodyLarge,
+        modifier = modifier.padding(Spacing.gutter),
+    )
+    FormSaveBar(
+        stringResource(R.string.onboarding_book_first),
+        FormBar.Ready(name),
+        onBook,
+        NoInset,
+    )
+}

@@ -61,6 +61,7 @@ import com.seblful.klas.ui.navigation.KlasGraph
 import com.seblful.klas.ui.navigation.KlasNavigator
 import com.seblful.klas.ui.navigation.KlasTabs
 import com.seblful.klas.ui.navigation.OpensWhatTheTrayNames
+import com.seblful.klas.ui.navigation.Routes
 import com.seblful.klas.ui.navigation.Screen
 import com.seblful.klas.ui.navigation.TopDestination
 import com.seblful.klas.ui.navigation.fadeThrough
@@ -68,6 +69,7 @@ import com.seblful.klas.ui.navigation.listBesideDetail
 import com.seblful.klas.ui.navigation.owningTab
 import com.seblful.klas.ui.navigation.predictiveBackPop
 import com.seblful.klas.ui.navigation.rememberKlasNavigator
+import com.seblful.klas.ui.onboarding.FirstLesson
 import com.seblful.klas.ui.onboarding.OnboardingScreen
 import com.seblful.klas.ui.schedule.ScheduleTarget
 import com.seblful.klas.ui.theme.KlasTheme
@@ -128,7 +130,7 @@ fun AppRoot(rootViewModel: RootViewModel = metroViewModel(), onUnlock: (title: S
                                 val available by rootViewModel.appLock.available.collectAsStateWithLifecycle()
                                 // A phone with no screen lock left is never locked out of its own data.
                                 AppLockGate(settings?.privacy?.appLock == true && available && !open, onUnlock) {
-                                    MainApp()
+                                    MainApp(rootViewModel.firstLesson)
                                 }
                             }
                         }
@@ -162,8 +164,9 @@ internal fun RootSwitch(route: RootRoute, content: @Composable (RootRoute) -> Un
 
 @OptIn(ExperimentalMaterial3AdaptiveApi::class)
 @Composable
-private fun MainApp() {
+private fun MainApp(firstLesson: FirstLesson) {
     val navigator = rememberKlasNavigator()
+    OpensFirstLesson(navigator, firstLesson)
     val backStack = navigator.backStack
 
     // The same pane directive decides both whether a detail sits beside its list and, below, whether the
@@ -281,6 +284,14 @@ private fun rememberTabTap(navigator: KlasNavigator, reselect: TabReselect): (To
     val scope = rememberCoroutineScope()
     return { tab ->
         if (navigator.isOnTab(tab)) scope.launch { reselect.reselected() } else navigator.navigateToTab(tab)
+    }
+}
+
+/** Setup's «Book the first lesson»: the booking form for its student, over Today, once. */
+@Composable
+private fun OpensFirstLesson(navigator: KlasNavigator, firstLesson: FirstLesson) {
+    LaunchedEffect(navigator) {
+        firstLesson.take()?.let { student -> navigator.navigate(Routes.classEdit(0, studentId = student)) }
     }
 }
 

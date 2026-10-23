@@ -1180,4 +1180,8 @@
     <string name="widget_mark_lesson">Mark %1$s, %2$s taught</string>
     <string name="widget_lesson_taught">%1$s, %2$s: taught</string>
     <string name="batch_clear">Clear selection</string>
+    <string name="onboarding_ready_title">All set</string>
+    <string name="onboarding_ready_body">%1$s is in. Book their first lesson now, or later from Today.</string>
+    <string name="onboarding_book_first">Book the first lesson</string>
+    <string name="onboarding_not_now">Not now</string>
 </resources>

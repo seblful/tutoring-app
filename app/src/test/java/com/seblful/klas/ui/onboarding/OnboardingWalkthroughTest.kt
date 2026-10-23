@@ -94,10 +94,16 @@ class OnboardingWalkthroughTest {
             compose.onNodeWithText(text(R.string.onboarding_finish)).assertIsEnabled()
             tap(R.string.onboarding_finish)
 
-            // Setup gives way to the app. Waited for on screen, which lets the save's callback run.
+            // The student is in; their first lesson is offered, and booking it is where setup gives way to the
+            // app — on the booking form, for them.
             compose.waitUntil(TIMEOUT) {
-                compose.onAllNodesWithText(text(R.string.onboarding_finish)).fetchSemanticsNodes().isEmpty()
+                compose.onAllNodesWithText(text(R.string.onboarding_book_first)).fetchSemanticsNodes().isNotEmpty()
             }
+            tap(R.string.onboarding_book_first)
+            compose.waitUntil(TIMEOUT) {
+                compose.onAllNodesWithText(text(R.string.class_add_title)).fetchSemanticsNodes().isNotEmpty()
+            }
+            compose.onNodeWithText("Anna", substring = true).assertExists()
             assertTrue(runBlocking { graph.settings.get().onboardingComplete })
             val student = runBlocking { graph.students.observeActive().first() }.single()
             val math = runBlocking { graph.subjects.observeAll().first() }.single()

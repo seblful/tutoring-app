@@ -36,6 +36,7 @@ class OnboardingViewModel @Inject constructor(
     private val subjectsRepo: SubjectRepository,
     private val settings: SettingsRepository,
     @param:ApplicationScope private val appScope: CoroutineScope,
+    private val firstLesson: FirstLesson,
 ) : ViewModel() {
 
     /** Current language and currency choices. */
@@ -103,8 +104,14 @@ class OnboardingViewModel @Inject constructor(
 
     val events = UiEvents<Event>()
 
-    /** Ends first run — from finishing the last step or from skipping it. */
-    fun complete() = store { it.copy(onboardingComplete = true) }
+    /**
+     * Ends first run — from finishing the last step or from skipping it — and, given [bookFor], has the app open
+     * the booking form for that student when it comes up.
+     */
+    fun complete(bookFor: Long? = null) {
+        bookFor?.let(firstLesson::bookFor)
+        store { it.copy(onboardingComplete = true) }
+    }
 
     private fun store(transform: (AppSettings) -> AppSettings) =
         appScope.write(events, Event.WRITE_FAILED) { settings.update(transform) }

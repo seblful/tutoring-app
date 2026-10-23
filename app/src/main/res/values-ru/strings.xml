@@ -1333,4 +1333,8 @@
     <string name="widget_mark_lesson">Отметить проведённым: %1$s, %2$s</string>
     <string name="widget_lesson_taught">%1$s, %2$s: проведено</string>
     <string name="batch_clear">Снять выбор</string>
+    <string name="onboarding_ready_title">Всё готово</string>
+    <string name="onboarding_ready_body">Ученик %1$s добавлен. Запишите первое занятие сейчас или позже — с экрана «Сегодня».</string>
+    <string name="onboarding_book_first">Записать первое занятие</string>
+    <string name="onboarding_not_now">Не сейчас</string>
 </resources>
