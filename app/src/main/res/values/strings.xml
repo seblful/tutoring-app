@@ -639,8 +639,6 @@
     <string name="language_system">System</string>
     <!-- Each language is named **in itself**, in both files: a tutor who has just landed in the wrong
          one has to be able to find their way out, and «Русский» is unreadable to nobody who wants it. -->
-    <string name="language_russian">Русский</string>
-    <string name="language_english">English</string>
     <!-- Material You. Worded as what it does rather than as what Google calls it. -->
     <string name="settings_dynamic_color">Colours from wallpaper</string>
     <string name="settings_dynamic_color_desc">Take the shades from your phone\'s wallpaper instead of the app\'s own colours</string>

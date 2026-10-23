@@ -1,6 +1,6 @@
 {
   "status": "technical_checks_passed",
-  "scope": "Every resource in English, Russian and all 23 translation drafts.",
+  "scope": "Every resource in all 25 active language variants.",
   "linguisticCertification": false,
   "limitation": "These checks do not establish fluent wording, semantic equivalence, or visual fit. Native-speaker and screen review remain necessary.",
   "checks": [
@@ -9,6 +9,7 @@
     "resource types",
     "array lengths",
     "plural categories",
+    "explicit counts for plurals that cannot imply one",
     "format argument multiplicity",
     "Android quotes",
     "escaped whitespace",
@@ -20,152 +21,152 @@
   "languages": [
     {
       "locale": "en",
-      "resources": 770,
-      "values": 836,
+      "resources": 768,
+      "values": 834,
       "errors": 0
     },
     {
       "locale": "ru",
-      "resources": 770,
-      "values": 910,
+      "resources": 768,
+      "values": 908,
       "errors": 0
     },
     {
       "locale": "uk",
-      "resources": 770,
-      "values": 910,
+      "resources": 768,
+      "values": 908,
       "errors": 0
     },
     {
       "locale": "pl",
-      "resources": 770,
-      "values": 910,
+      "resources": 768,
+      "values": 908,
       "errors": 0
     },
     {
       "locale": "de",
-      "resources": 770,
-      "values": 836,
+      "resources": 768,
+      "values": 834,
       "errors": 0
     },
     {
       "locale": "fr",
-      "resources": 770,
-      "values": 873,
+      "resources": 768,
+      "values": 871,
       "errors": 0
     },
     {
       "locale": "es",
-      "resources": 770,
-      "values": 873,
+      "resources": 768,
+      "values": 871,
       "errors": 0
     },
     {
       "locale": "pt-BR",
-      "resources": 770,
-      "values": 873,
+      "resources": 768,
+      "values": 871,
       "errors": 0
     },
     {
       "locale": "tr",
-      "resources": 770,
-      "values": 836,
+      "resources": 768,
+      "values": 834,
       "errors": 0
     },
     {
       "locale": "it",
-      "resources": 770,
-      "values": 873,
+      "resources": 768,
+      "values": 871,
       "errors": 0
     },
     {
       "locale": "be",
-      "resources": 770,
-      "values": 910,
+      "resources": 768,
+      "values": 908,
       "errors": 0
     },
     {
       "locale": "pt-PT",
-      "resources": 770,
-      "values": 873,
+      "resources": 768,
+      "values": 871,
       "errors": 0
     },
     {
       "locale": "nl",
-      "resources": 770,
-      "values": 836,
+      "resources": 768,
+      "values": 834,
       "errors": 0
     },
     {
       "locale": "el",
-      "resources": 770,
-      "values": 836,
+      "resources": 768,
+      "values": 834,
       "errors": 0
     },
     {
       "locale": "fi",
-      "resources": 770,
-      "values": 836,
+      "resources": 768,
+      "values": 834,
       "errors": 0
     },
     {
       "locale": "da",
-      "resources": 770,
-      "values": 836,
+      "resources": 768,
+      "values": 834,
       "errors": 0
     },
     {
       "locale": "nb",
-      "resources": 770,
-      "values": 836,
+      "resources": 768,
+      "values": 834,
       "errors": 0
     },
     {
       "locale": "sv",
-      "resources": 770,
-      "values": 836,
+      "resources": 768,
+      "values": 834,
       "errors": 0
     },
     {
       "locale": "ar",
-      "resources": 770,
-      "values": 984,
+      "resources": 768,
+      "values": 982,
       "errors": 0
     },
     {
       "locale": "kk",
-      "resources": 770,
-      "values": 836,
+      "resources": 768,
+      "values": 834,
       "errors": 0
     },
     {
       "locale": "hi",
-      "resources": 770,
-      "values": 836,
+      "resources": 768,
+      "values": 834,
       "errors": 0
     },
     {
       "locale": "zh-CN",
-      "resources": 770,
-      "values": 799,
+      "resources": 768,
+      "values": 797,
       "errors": 0
     },
     {
       "locale": "zh-TW",
-      "resources": 770,
-      "values": 799,
+      "resources": 768,
+      "values": 797,
       "errors": 0
     },
     {
       "locale": "ja",
-      "resources": 770,
-      "values": 799,
+      "resources": 768,
+      "values": 797,
       "errors": 0
     },
     {
       "locale": "ko",
-      "resources": 770,
-      "values": 799,
+      "resources": 768,
+      "values": 797,
       "errors": 0
     }
   ],

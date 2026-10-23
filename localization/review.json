@@ -278,5 +278,23 @@
       "layout": "Kept the hourly unit after the slash and each student count with its label.",
       "validation": "25 resource sets passed, aapt2 compilation and 8 regression tests."
     }
+  },
+  "activation": {
+    "status": "All 25 variants are active in app/src/main/res; the draft review below records their provenance.",
+    "manifest": "manifest.json",
+    "validationCommand": "python -X utf8 localization/verify_translations.py --report localization/verification.json",
+    "resourceCountChange": "Removed the two duplicated language autonyms; all native language labels now live in Language.kt.",
+    "screenReviewCorrections": {
+      "ar": [
+        "Corrected display-theme terminology and wallpaper-colour description."
+      ],
+      "zh-CN": [
+        "Corrected display theme previously translated as a school subject."
+      ],
+      "zh-TW": [
+        "Corrected display theme previously translated as a school subject."
+      ]
+    },
+    "androidLintCorrections": "Explicit backup copy counts added to the one form in French, Hindi and both Portuguese variants; Android lint rejected the implied singular count."
   }
 }

@@ -14,8 +14,8 @@ import java.util.Locale
  * How a chosen language reaches the resources — the Android half of
  * [com.seblful.klas.domain.model.AppLanguage].
  *
- * The app has two string folders (`values/` English, `values-ru/` Russian) and **a plural is not resolved
- * from the folder its strings live in.** `Resources.getQuantityString` picks the quantity rule from the
+ * **A plural is not resolved from the folder its strings live in.**
+ * `Resources.getQuantityString` picks the quantity rule from the
  * *configuration's* locale, so a phone set to English applies English's two forms — `one` and `other` — to
  * whatever text it loaded. That is what made the Russian-only app say «0 занятия» and «5 занятия» on an
  * English phone: `many` was never selected at all, and the counts that read as correct (1, 2) did so by
@@ -64,7 +64,7 @@ fun List<Locale>.toDevicePreferences(): DevicePreferences =
  *
  * Read off the **device**, deliberately, and this is the reason it is not simply
  * `resources.configuration.locales`: the app replaces its own configuration locale ([inLanguage]) with a
- * bare `ru` or `en`, so its own context can no longer report either what the tutor's phone is set to or the
+ * translation's tag, so its own context can no longer report either what the tutor's phone is set to or the
  * extension keywords (`ru-BY-u-fw-sun`) the platform attaches to it. `Locale.getDefault` is set by the
  * platform at process start and `Resources.getSystem()` is untouched by this app, so both are asked and
  * every answer is kept in order — the region matters as much as the language here, since it is what says

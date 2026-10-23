@@ -2,9 +2,23 @@ package com.seblful.klas.format
 
 import com.seblful.klas.domain.model.Money
 
-/** Plain non-negative decimal input, rounded half up to minor units; accepts either separator. */
+/** Plain non-negative decimal input, rounded half up; accepts the supported languages' keyboards. */
 fun parseMoneyOrNull(text: String): Money? {
-    val normalized = text.trim().replace(',', '.').filterNot { it.isWhitespace() }
+    val normalized = buildString {
+        for (character in text) {
+            if (character.isWhitespace()) continue
+            append(
+                when (character) {
+                    ',', '\u066B' -> '.'
+                    in '٠'..'٩' -> '0' + (character - '٠')
+                    in '۰'..'۹' -> '0' + (character - '۰')
+                    in '०'..'९' -> '0' + (character - '०')
+                    in '０'..'９' -> '0' + (character - '０')
+                    else -> character
+                },
+            )
+        }
+    }
     if (!PLAIN_AMOUNT.matches(normalized)) return null
 
     // Reject overflow and the amount ceiling before multiplying whole units into minor units.

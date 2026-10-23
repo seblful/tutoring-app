@@ -23,16 +23,14 @@ class SegmentsTest {
     }
 
     @Test
-    fun `currencies need a dropdown while the language choice fits in segments`() {
+    fun `currencies and languages need dropdowns`() {
         assertFalse("currencies use a dropdown", fitsInSegments(Currency.entries.size))
-        assertTrue(
-            "«follow the system» plus two translations",
+        assertFalse(
+            "Follow the system plus 25 translations needs a scrollable list",
             fitsInSegments(AppLanguage.entries.size),
         )
         assertEquals(
-            "a language row is SYSTEM plus one segment per translation, so a third translation is the " +
-                "bound and a fourth turns the row into a field — which is the intended behaviour, not a " +
-                "reason to widen it",
+            "The language row includes SYSTEM and every translation",
             AppLanguage.translated.size + 1,
             AppLanguage.entries.size,
         )

@@ -76,7 +76,10 @@ android {
     androidResources {
         // The app speaks only these (AppLanguage resolves every phone to one), so libraries' other locales
         // are dead weight in resources.arsc.
-        localeFilters += listOf("en", "ru")
+        localeFilters += listOf(
+            "en", "ru", "uk", "pl", "de", "fr", "es", "pt-rBR", "tr", "it", "be", "pt-rPT",
+            "nl", "el", "fi", "da", "nb", "sv", "ar", "kk", "hi", "zh-rCN", "zh-rTW", "ja", "ko",
+        )
     }
     bundle {
         language {

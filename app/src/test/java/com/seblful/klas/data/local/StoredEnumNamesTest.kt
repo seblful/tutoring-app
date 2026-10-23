@@ -34,7 +34,12 @@ class StoredEnumNamesTest {
         "BYN", "RUB", "USD", "EUR", "AED", "AUD", "BRL", "CAD", "CHF", "CNY", "CZK", "DKK", "GBP", "HKD",
         "INR", "JPY", "KRW", "KZT", "MXN", "NOK", "NZD", "PLN", "SAR", "SEK", "SGD", "TRY", "UAH", "ZAR",
     )
-    private val storedLanguages = setOf("SYSTEM", "RUSSIAN", "ENGLISH")
+    private val storedLanguages = setOf(
+        "SYSTEM", "RUSSIAN", "ENGLISH", "UKRAINIAN", "POLISH", "GERMAN", "FRENCH", "SPANISH",
+        "PORTUGUESE_BRAZIL", "TURKISH", "ITALIAN", "BELARUSIAN", "PORTUGUESE_PORTUGAL", "DUTCH",
+        "GREEK", "FINNISH", "DANISH", "NORWEGIAN_BOKMAL", "SWEDISH", "ARABIC", "KAZAKH", "HINDI",
+        "CHINESE_SIMPLIFIED", "CHINESE_TRADITIONAL", "JAPANESE", "KOREAN",
+    )
     private val storedThemes = setOf("LIGHT", "DARK", "SYSTEM")
     private val storedMethods = setOf("CASH", "CARD", "TRANSFER")
 

@@ -8,7 +8,9 @@ mirrors and [database and backup](database-and-backup.md) for persistence contra
 - Money uses integer minor units, never floats. Typed rates/payments stop at `Money.MAX`; duration-based
   charges can exceed that input ceiling.
 - Currency is a display label (`BYN|RUB|USD|EUR`), never a conversion; display its symbol. A fresh install
-  uses the phone's region. Decimal separators follow app language, not currency.
+  uses the phone's region. Decimal separators follow app language, not currency. Money input accepts
+  dot, comma and Arabic decimal separators, plus Arabic-Indic, Eastern Arabic-Indic, Devanagari and
+  full-width digits; changing language does not invalidate a prefilled amount.
 - A student's empty phone field opens on the dialling code of the currency's country (`Phone.prefill`;
   none for EUR). A phone that is only a `+` code is saved as no phone.
 - Each class books an editable hourly rate, initially the student's/group's. Later rate changes leave

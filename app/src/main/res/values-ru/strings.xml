@@ -750,8 +750,6 @@
     <string name="language_system">Системный</string>
     <!-- Каждый язык назван на себе самом, в обоих файлах: тот, кто случайно попал не в тот язык, должен
          суметь найти дорогу назад. -->
-    <string name="language_russian">Русский</string>
-    <string name="language_english">English</string>
     <!-- Symbols label currency choices; their stored names remain ISO codes. -->
     <string name="settings_currency_change">Сменить</string>
     <string name="settings_currency_change_confirm">Суммы не пересчитываются по курсу. Ставки, платежи и отчёты получат обозначение «%1$s». Сами числа останутся прежними.</string>

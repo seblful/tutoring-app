@@ -1,5 +1,6 @@
 package com.seblful.klas.format
 
+import com.seblful.klas.domain.model.AppLanguage
 import com.seblful.klas.domain.model.Currency
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.testutil.AppLocaleRule
@@ -136,6 +137,17 @@ class FormattersLanguageTest {
         inLanguage(AppLocaleRule.ENGLISH) {
             assertEquals("25,50 is still an amount to an English reader", Money(2550), parseMoneyOrNull(seeded))
             assertEquals(Money(2550), parseMoneyOrNull("25.50"))
+        }
+    }
+
+    @Test
+    fun `seeded amounts round trip in every supported app language`() {
+        for (language in AppLanguage.translated) {
+            inLanguage(Locale.forLanguageTag(language.tag!!)) {
+                for (amount in listOf(Money.ZERO, Money(1), Money(2550), Money.MAX)) {
+                    assertEquals(language.tag, amount, parseMoneyOrNull(amount.toAmountInput()))
+                }
+            }
         }
     }
 

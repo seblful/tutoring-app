@@ -25,9 +25,9 @@ class AppLanguageTest {
     }
 
     @Test
-    fun `a phone speaking neither language falls back to English`() {
-        assertEquals(AppLanguage.ENGLISH, AppLanguage.of(locales("fr-FR")))
-        assertEquals(AppLanguage.ENGLISH, AppLanguage.of(locales("pl-PL", "de-DE")))
+    fun `a phone speaking an unsupported language falls back to English`() {
+        assertEquals(AppLanguage.ENGLISH, AppLanguage.of(locales("cs-CZ")))
+        assertEquals(AppLanguage.ENGLISH, AppLanguage.of(locales("hu-HU", "ro-RO")))
         assertEquals(AppLanguage.ENGLISH, AppLanguage.of(emptyList()), "nothing to ask at all")
         assertEquals(AppLanguage.ENGLISH, AppLanguage.FALLBACK)
     }
@@ -38,7 +38,7 @@ class AppLanguageTest {
         assertEquals(AppLanguage.RUSSIAN, AppLanguage.of(locales("ru-RU", "en-US")))
         assertEquals(
             AppLanguage.RUSSIAN,
-            AppLanguage.of(locales("be-BY", "ru-BY", "en-US")),
+            AppLanguage.of(locales("cs-CZ", "ru-BY", "en-US")),
             "a language the app lacks is skipped rather than answered",
         )
     }
@@ -52,7 +52,7 @@ class AppLanguageTest {
     @Test
     fun `system resolves through the phone and never to nothing`() {
         assertEquals("ru", AppLanguage.SYSTEM.tagFor(locales("ru-BY")))
-        assertEquals("en", AppLanguage.SYSTEM.tagFor(locales("fr-FR")))
+        assertEquals("fr", AppLanguage.SYSTEM.tagFor(locales("fr-FR")))
         assertEquals("en", AppLanguage.SYSTEM.tagFor(emptyList()))
     }
 
@@ -60,7 +60,13 @@ class AppLanguageTest {
     @Test
     fun `only the translations name a locale`() {
         assertNull(AppLanguage.SYSTEM.tag)
-        assertEquals(listOf(AppLanguage.RUSSIAN, AppLanguage.ENGLISH), AppLanguage.translated)
+        assertEquals(25, AppLanguage.translated.size)
+        assertEquals(25, AppLanguage.translated.map { it.tag }.toSet().size)
+        AppLanguage.translated.forEach { language ->
+            assertEquals(language, AppLanguage.of(locales(language.tag!!)))
+            assertEquals(language.tag, language.tagFor(locales("en-US")))
+            assertEquals(language, AppLanguage.parse(language.name))
+        }
     }
 
     /**
@@ -74,7 +80,35 @@ class AppLanguageTest {
         assertEquals(AppLanguage.RUSSIAN, AppLanguage.parse("RUSSIAN"))
         assertEquals(AppLanguage.ENGLISH, AppLanguage.parse("ENGLISH"))
         assertEquals(AppLanguage.SYSTEM, AppLanguage.parse(null), "nothing loaded yet")
-        assertEquals(AppLanguage.SYSTEM, AppLanguage.parse("BELARUSIAN"), "a value this build does not know")
+        assertEquals(AppLanguage.SYSTEM, AppLanguage.parse("KLINGON"), "a value this build does not know")
         assertEquals(AppLanguage.SYSTEM, AppLanguage.parse("ru"), "a tag is not a name")
+    }
+
+    @Test
+    fun `new languages respect the phone preference order`() {
+        assertEquals(AppLanguage.BELARUSIAN, AppLanguage.of(locales("be-BY", "ru-BY")))
+        assertEquals(AppLanguage.POLISH, AppLanguage.of(locales("cs-CZ", "pl-PL", "en-US")))
+        assertEquals(AppLanguage.NORWEGIAN_BOKMAL, AppLanguage.of(locales("no-NO")))
+        assertEquals(AppLanguage.ARABIC, AppLanguage.of(locales("ar-EG")))
+    }
+
+    @Test
+    fun `Chinese follows explicit script before region and ignores extensions`() {
+        for (tag in listOf("zh-TW", "zh-HK", "zh-MO", "zh-Hant", "zh-Hant-CN", "ZH-hAnT-hk")) {
+            assertEquals(AppLanguage.CHINESE_TRADITIONAL, AppLanguage.of(locales(tag)), tag)
+        }
+        for (tag in listOf("zh", "zh-CN", "zh-SG", "zh-Hans", "zh-Hans-TW", "zh-u-rg-twzzzz")) {
+            assertEquals(AppLanguage.CHINESE_SIMPLIFIED, AppLanguage.of(locales(tag)), tag)
+        }
+    }
+
+    @Test
+    fun `Portuguese keeps Brazilian and European variants distinct`() {
+        for (tag in listOf("pt", "pt-BR", "pt-Latn-BR", "PT-br", "pt-u-rg-ptzzzz")) {
+            assertEquals(AppLanguage.PORTUGUESE_BRAZIL, AppLanguage.of(locales(tag)), tag)
+        }
+        for (tag in listOf("pt-PT", "pt-AO", "pt-MZ", "pt-Latn-PT")) {
+            assertEquals(AppLanguage.PORTUGUESE_PORTUGAL, AppLanguage.of(locales(tag)), tag)
+        }
     }
 }

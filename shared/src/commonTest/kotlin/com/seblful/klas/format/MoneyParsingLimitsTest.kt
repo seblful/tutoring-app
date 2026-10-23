@@ -7,6 +7,18 @@ import kotlin.test.assertNull
 
 class MoneyParsingLimitsTest {
     @Test
+    fun `localized keyboard digits and Arabic decimal separator read as minor units`() {
+        for (text in listOf("25٫50", "٢٥٫٥٠", "۲۵٫۵۰", "२५.५०", "２５.５０")) {
+            assertEquals(Money(2550), parseMoneyOrNull(text), text)
+        }
+        assertEquals(Money(1), parseMoneyOrNull("٠٫٠٠٥"))
+        assertNull(parseMoneyOrNull("١٠٠٠٠٠٠٫٠٠٥"), "localized amounts still obey the input ceiling")
+        assertNull(parseMoneyOrNull("٢٥٫٥٫٠"))
+        assertNull(parseMoneyOrNull("١٬٥٠٠"), "a grouping mark is not a decimal separator")
+        assertNull(parseMoneyOrNull("-٢٥"))
+    }
+
+    @Test
     fun `scientific notation is not an amount - however large or small`() {
         assertNull(parseMoneyOrNull("1e3"))
         assertNull(parseMoneyOrNull("1E3"))

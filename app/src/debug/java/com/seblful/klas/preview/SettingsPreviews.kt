@@ -67,6 +67,8 @@ private fun CalendarSettingsPreview() = PreviewSurface {
 }
 
 @KlasPreview
+@Preview(name = "Arabic", group = "component", showBackground = true, widthDp = 360, locale = "ar")
+@Preview(name = "Chinese", group = "component", showBackground = true, widthDp = 360, locale = "zh-rTW")
 @Composable
 private fun AppearanceSettingsPreview() = PreviewSurface {
     AppearanceSettingsContent(AppSettings(), onUpdate = {}, showDynamicColor = true, Modifier.height(640.dp))

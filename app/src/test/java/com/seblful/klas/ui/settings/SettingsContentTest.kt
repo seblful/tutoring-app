@@ -153,14 +153,15 @@ class SettingsContentTest {
     }
 
     @Test
-    fun `language choices follow autonym order and apply immediately`() {
+    fun `the language dropdown scrolls to new languages and applies immediately`() {
         compose.setContent {
             KlasTheme { AppearanceSettingsContent(settings, actions.update, showDynamicColor = false) }
         }
-        val english = compose.onNodeWithText("English")
-        val russian = compose.onNodeWithText("Русский")
-        assertTrue(english.fetchSemanticsNode().boundsInRoot.left < russian.fetchSemanticsNode().boundsInRoot.left)
-        english.performClick()
+        compose.onNodeWithText("Language").performScrollTo().performClick()
+        compose.onNodeWithText("한국어").performScrollTo().performClick()
+        assertEquals(AppLanguage.KOREAN, settings.language)
+        compose.onNodeWithText("Language").performScrollTo().performClick()
+        compose.onNodeWithText("English").performScrollTo().performClick()
         assertEquals(AppLanguage.ENGLISH, settings.language)
     }
 

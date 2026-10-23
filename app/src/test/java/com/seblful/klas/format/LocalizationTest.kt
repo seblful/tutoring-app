@@ -33,7 +33,9 @@ class LocalizationTest {
     @Test
     fun `the resolved language is the locale the resources and formatters are given`() {
         assertEquals(Locale.forLanguageTag("ru"), AppLanguage.SYSTEM.localeFor(locales("ru-BY")))
-        assertEquals(Locale.forLanguageTag("en"), AppLanguage.SYSTEM.localeFor(locales("fr-FR")))
+        assertEquals(Locale.forLanguageTag("fr"), AppLanguage.SYSTEM.localeFor(locales("fr-FR")))
+        assertEquals(Locale.forLanguageTag("zh-TW"), AppLanguage.SYSTEM.localeFor(locales("zh-Hant-HK")))
+        assertEquals(Locale.forLanguageTag("pt-PT"), AppLanguage.SYSTEM.localeFor(locales("pt-PT")))
         assertEquals(Locale.forLanguageTag("ru"), AppLanguage.RUSSIAN.localeFor(locales("en-US")))
     }
 }
