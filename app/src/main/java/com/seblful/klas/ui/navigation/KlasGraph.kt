@@ -44,6 +44,7 @@ import com.seblful.klas.ui.settings.SettingsCategory
 import com.seblful.klas.ui.settings.SettingsNavigation
 import com.seblful.klas.ui.settings.SettingsScreen
 import com.seblful.klas.ui.students.StudentDetailScreen
+import com.seblful.klas.ui.students.StudentEditScreen
 import com.seblful.klas.ui.students.StudentFormScreen
 import com.seblful.klas.ui.students.StudentListScreen
 import com.seblful.klas.ui.students.StudentTask
@@ -106,6 +107,7 @@ class KlasGraph(
             Routes.StudentAdd -> StudentFormScreen(onBack = back)
             is Routes.StudentAddForSubject -> StudentAddForSubject(route, back)
             is Routes.StudentDetail -> StudentDetail(route, back)
+            is Routes.StudentEdit -> StudentEditScreen(onBack = back, viewModel = routeViewModel(route))
             is Routes.StudentList -> StudentListScreen(
                 section = route.section,
                 onBack = back,
@@ -198,6 +200,7 @@ class KlasGraph(
             initialTask = route.task,
             viewModel = routeViewModel(route),
             backArrow = !besideList(),
+            onEdit = { go(Routes.StudentEdit(route.id)) },
         )
     }
 

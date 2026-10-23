@@ -80,6 +80,10 @@ object Routes {
     @Serializable
     data class StudentDetail(val id: Long, val task: StudentTask? = null) : Route
 
+    /** A student's name, contacts, note and place, corrected on a screen of their own. */
+    @Serializable
+    data class StudentEdit(val id: Long) : Route
+
     /** One of a student's lists in full — what «See all» under a section of their card opens. */
     @Serializable
     data class StudentList(val id: Long, val section: StudentSection) : Route

@@ -59,6 +59,7 @@ private data class StudentNavigation(
     val lesson: (Long) -> Unit,
     val book: () -> Unit,
     val seeAll: (StudentSection) -> Unit,
+    val edit: () -> Unit,
 )
 
 /**
@@ -77,13 +78,14 @@ fun StudentDetailScreen(
     onSeeAll: (StudentSection) -> Unit = {},
     initialTask: StudentTask? = null,
     backArrow: Boolean = true,
+    onEdit: () -> Unit = {},
 ) {
     when (val overview = viewModel.overview.collectAsStateWithLifecycle().value) {
         null -> LoadingDetailScreen(onBack.takeIf { backArrow })
         else -> StudentCard(
             overview,
             viewModel,
-            StudentNavigation(onBack, backArrow, onLessonClick, onBookLesson, onSeeAll),
+            StudentNavigation(onBack, backArrow, onLessonClick, onBookLesson, onSeeAll, onEdit),
             initialTask,
         )
     }
@@ -100,7 +102,6 @@ private fun StudentCard(
     val state = overview.details
     val student = state.student
 
-    var editing by remember { mutableStateOf(false) }
     var addingSubject by remember { mutableStateOf(false) }
     var pricingSubjectId by remember { mutableStateOf<Long?>(null) }
     // Asked first: taking a subject off a student forgets its price and the log of its past prices.
@@ -166,7 +167,7 @@ private fun StudentCard(
         messages = messages,
         actions = {
             // Booking is the next lesson's «+», in the card it books into.
-            NamedIconButton(KlasIcons.Outlined.Edit, stringResource(R.string.action_edit), onClick = { editing = true })
+            NamedIconButton(KlasIcons.Outlined.Edit, stringResource(R.string.action_edit), onClick = navigation.edit)
             // Archiving is behind the overflow: as a bare text button in the bar it put the most consequential
             // thing on the screen beside the pencil, next to a name that had to ellipsize to make room for it.
             if (student != null) {
@@ -265,18 +266,6 @@ private fun StudentCard(
         }
     }
 
-    if (editing && student != null) {
-        StudentEditDialog(
-            title = stringResource(R.string.student_edit_title),
-            initialName = student.name,
-            initialPhone = Phone.editable(student.phone, LocalCurrency.current),
-            initialEmail = student.email,
-            initialNote = student.note,
-            initialMode = student.defaultMode,
-            onConfirm = { name, phone, email, note, mode -> viewModel.editStudent(name, phone, email, note, mode) },
-            onDismiss = { editing = false },
-        )
-    }
     if (addingSubject) {
         AddSubjectPriceDialog(
             addableSubjects = state.addableSubjects,

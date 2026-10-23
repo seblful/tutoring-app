@@ -268,7 +268,9 @@ Build screens from shared state and controls. Feature rules belong in the domain
   ± a step that suits its size (5 at 40, 100 at 1 500, so any currency); Format as segments. Like every full-screen form it saves from the bottom `FormSaveBar` (D5;
   dialogs keep their buttons); booking's (`BookingSaveBar`) shows the booking it will make, or names what is
   missing or in the way (`ClassFormState.saveBar`, `Ready` exactly when `canSave`). The student and group
-  forms name their gaps the same way (`FormGap`, `StillNeeded`). When opens on the schedule's day, where bookings
+  forms name their gaps the same way (`FormGap`, `StillNeeded`). A form of more than three fields is a
+  screen, not a dialog: editing a student opens `StudentEditScreen` (name, contacts, note, place), while
+  their subjects and rates stay on the profile, edited one row at a time. When opens on the schedule's day, where bookings
   start, so it has no calendar: a day row steps a day either way and its date opens the date dialog,
   over how many other lessons that day holds (or asks for a day). The start is a stepper: the time in
   large numbers between −15 and +15 tonal buttons, each moving the lesson a quarter hour, past a lesson

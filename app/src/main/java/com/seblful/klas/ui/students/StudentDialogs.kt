@@ -43,57 +43,6 @@ import com.seblful.klas.ui.designsystem.component.FormDialog
 import com.seblful.klas.ui.designsystem.component.KlasDivider
 import kotlinx.datetime.LocalDate
 
-/** A dialog to edit a student's name, phone, email, optional note and default class mode. */
-@Composable
-fun StudentEditDialog(
-    title: String,
-    initialName: String,
-    initialPhone: String,
-    initialEmail: String,
-    initialNote: String,
-    initialMode: ClassMode,
-    onConfirm: (name: String, phone: String, email: String, note: String, mode: ClassMode) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    // Saveable, so turning the phone keeps what was typed — a dialog that asks not to be tapped away
-    // (`KeepTypedInput`) should not lose it to a rotation either.
-    var name by rememberSaveable { mutableStateOf(initialName) }
-    var phone by rememberSaveable { mutableStateOf(initialPhone) }
-    var email by rememberSaveable { mutableStateOf(initialEmail) }
-    var note by rememberSaveable { mutableStateOf(initialNote) }
-    var mode by rememberSaveable { mutableStateOf(initialMode) }
-    FormDialog(
-        title = title,
-        confirm = DialogAction(
-            label = stringResource(R.string.action_save),
-            onClick = { onConfirm(name.trim(), phone.trim(), email.trim(), note.trim(), mode); onDismiss() },
-            enabled = name.isNotBlank(),
-        ),
-        onDismiss = onDismiss,
-    ) {
-        // Five controls is the tallest dialog in the app, so it scrolls: with the keyboard up — or at
-        // a large font scale — «Место» and the note fell off the bottom with no way to reach them,
-        // an `AlertDialog`'s text slot having no scroll of its own.
-        Column(
-            Modifier.verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(Spacing.inline),
-        ) {
-            StudentContactFields(
-                name = name,
-                onName = { name = it },
-                phone = phone,
-                onPhone = { phone = it },
-                email = email,
-                onEmail = { email = it },
-                note = note,
-                onNote = { note = it },
-                mode = mode,
-                onMode = { mode = it },
-            )
-        }
-    }
-}
-
 @Composable
 internal fun RepriceDialog(
     subjectPrice: SubjectPrice,

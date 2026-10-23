@@ -216,6 +216,26 @@ class TutorWorkflowTest {
     }
 
     @Test
+    fun `a student is corrected on a form of their own, saved from its bar`() {
+        ActivityScenario.launch(MainActivity::class.java).use {
+            waitForText("Workflow student")
+            compose.onNode(hasText(text(R.string.nav_people)) and isSelectable()).performClick()
+            waitForText("Workflow student")
+            compose.onNodeWithText("Workflow student").performClick()
+            compose.waitUntil(5_000) {
+                compose.onAllNodesWithContentDescription(text(R.string.action_edit)).fetchSemanticsNodes().isNotEmpty()
+            }
+            compose.onNodeWithContentDescription(text(R.string.action_edit)).performClick()
+            waitFor(R.string.student_edit_title)
+            compose.onNodeWithText("Workflow student").performTextReplacement("Workflow pupil")
+            click(R.string.action_save)
+            compose.waitUntil(5_000) {
+                runBlocking { graph.students.getById(studentId)?.name == "Workflow pupil" }
+            }
+        }
+    }
+
+    @Test
     fun `the widget's today opens the Today tab`() {
         val today = Intent(ApplicationProvider.getApplicationContext(), MainActivity::class.java)
             .setAction(TrayNavigation.ACTION_OPEN_TODAY)
