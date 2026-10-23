@@ -11,6 +11,7 @@ import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import com.github.takahirom.roborazzi.RoborazziOptions
@@ -125,12 +126,12 @@ class ScreenTourScreenshotTest {
 
             tab(R.string.nav_people)
             waitFor(tutor.debtor.name)
-            describedClick(R.string.students_add)
+            describedClick(R.string.fab_new_student)
             capture(variant, "student-new")
             back(scenario)
 
             click(R.string.groups_title)
-            describedClick(R.string.groups_add)
+            describedClick(R.string.fab_new_group)
             capture(variant, "group-new")
             back(scenario)
 
@@ -167,7 +168,10 @@ class ScreenTourScreenshotTest {
     }
 
     private fun click(@StringRes label: Int) {
-        compose.onAllNodesWithText(string(label)).filter(hasClickAction()).onFirst().performClick()
+        val node = compose.onAllNodesWithText(string(label)).filter(hasClickAction()).onFirst()
+        // Below the fold at large text a tap lands on nothing; a node outside any scroll has nothing to scroll.
+        runCatching { node.performScrollTo() }
+        node.performClick()
         settle()
     }
 

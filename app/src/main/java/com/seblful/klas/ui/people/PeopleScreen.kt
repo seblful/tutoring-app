@@ -97,13 +97,10 @@ fun PeopleScreen(
         },
         floatingActionButton = {
             // Named for what it adds, which the side decides: a bare «Добавить» said neither.
+            val students = tab == PeopleTab.STUDENTS
             KlasFab(
-                label = stringResource(
-                    if (tab ==
-                        PeopleTab.STUDENTS
-                    ) R.string.fab_new_student else R.string.fab_new_group,
-                ),
-                onClick = if (tab == PeopleTab.STUDENTS) onAddStudent else onAddGroup,
+                label = stringResource(if (students) R.string.fab_new_student else R.string.fab_new_group),
+                onClick = if (students) onAddStudent else onAddGroup,
             )
         },
     ) { modifier, bottomInset ->
