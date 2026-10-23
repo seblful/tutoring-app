@@ -12,6 +12,7 @@ import com.seblful.klas.domain.time.today
 import com.seblful.klas.testutil.current
 import com.seblful.klas.ui.theme.KlasTheme
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.atTime
@@ -53,6 +54,17 @@ class WhenSectionTest : ClassEditTestFixture() {
     }
 
     @Test
+    fun `the day is written out as its lessons and the free time a lesson still fits in`() {
+        runBlocking { seedLesson(day, LocalTime(15, 30)) }
+        val vm = vm(day = day)
+        compose.setContent { KlasTheme { ClassEditScreen(onBack = {}, viewModel = vm) } }
+        compose.waitForIdle()
+
+        compose.onNodeWithText("1 lesson · free 9:00 AM–3:30 PM, from 4:30 PM", substring = true).assertExists()
+        compose.onNodeWithText("takes 9:00 AM, the first free time", substring = true).assertExists()
+    }
+
+    @Test
     fun `the stepper's buttons move the lesson and show where it is`() {
         val vm = vm(day = day)
         compose.setContent { KlasTheme { ClassEditScreen(onBack = {}, viewModel = vm) } }
@@ -60,7 +72,7 @@ class WhenSectionTest : ClassEditTestFixture() {
         vm.startAt(day.atTime(16, 0).toInstant(zone))
         compose.waitForIdle()
 
-        compose.onNodeWithContentDescription("15 minutes later").performScrollTo().performClick()
+        compose.onNodeWithContentDescription("Later, to 4:15 PM").performScrollTo().performClick()
         compose.waitForIdle()
 
         assertEquals(LocalTime(16, 15), vm.state.current.form.timeFrom)

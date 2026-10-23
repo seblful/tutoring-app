@@ -24,6 +24,7 @@ import com.seblful.klas.ui.common.CountPickerModal
 import com.seblful.klas.ui.common.DurationPickerModal
 import com.seblful.klas.ui.common.MoneyTextField
 import com.seblful.klas.ui.common.SectionCard
+import com.seblful.klas.ui.common.SectionTitle
 import com.seblful.klas.ui.common.SegmentedChoice
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.classModeLabel
@@ -51,6 +52,11 @@ internal fun DetailsSection(state: ClassFormState, viewModel: ClassEditViewModel
     val toggle = { detail: Detail, opened: Boolean -> open = detail.takeIf { opened } }
     SectionCard {
         Column(Modifier.padding(horizontal = Spacing.gutter, vertical = Spacing.inline)) {
+            // Titled like Who and When, so all three cards share the header pattern (R1).
+            SectionTitle(
+                stringResource(R.string.class_section_details),
+                Modifier.padding(top = Spacing.inline, bottom = Spacing.tight),
+            )
             LengthRow(state, viewModel, open == Detail.LENGTH) { toggle(Detail.LENGTH, it) }
             if (isNew) {
                 KlasDivider()

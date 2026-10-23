@@ -140,7 +140,7 @@
     <string name="class_section_who">Who</string>
     <string name="class_section_when">When</string>
     <string name="class_section_price">Rate</string>
-    <string name="class_section_format">Format</string>
+    <string name="class_section_format">Place</string>
     <string name="class_terms_price_needed">Set a rate</string>
     <string name="class_who_label">Student or group</string>
     <string name="class_book_action">Book</string>
@@ -301,7 +301,7 @@
     <string name="student_form_subjects_title">Subjects and rates</string>
     <string name="student_form_subjects_required">Pick at least one subject and set its rate</string>
     <string name="student_form_no_subjects">Add subjects first</string>
-    <string name="student_mode_label">Where lessons happen</string>
+    <string name="student_mode_label">Place</string>
     <string name="student_subjects_title">Subjects</string>
     <string name="student_no_subjects">No subjects picked</string>
     <string name="student_add_subject">Add a subject</string>
@@ -1137,4 +1137,11 @@
     <string name="class_book_next">Book the next one like this</string>
     <string name="class_cancel_lesson">Cancel lesson</string>
     <string name="class_taught_after_replan">Cancelled lessons go back to planned first.</string>
+    <string name="class_section_details">Details</string>
+    <string name="class_day_free_list">free %1$s</string>
+    <string name="class_day_free_from">from %1$s</string>
+    <string name="class_day_full">no free time</string>
+    <string name="class_step_earlier_to">Earlier, to %1$s</string>
+    <string name="class_step_later_to">Later, to %1$s</string>
+    <string name="class_step_first_free">− or + takes %1$s, the first free time</string>
 </resources>

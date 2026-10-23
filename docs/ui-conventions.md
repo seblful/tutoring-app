@@ -272,8 +272,11 @@ Build screens from shared state and controls. Feature rules belong in the domain
   an undoable green swipe; cancelled lessons recede with a red badge. An ended lesson nobody has marked
   badges «Not marked» in grey (`LessonPhase.OVERDUE`), never «Planned»: unmarked lessons are unbilled. Book
   by duration, starting on the selected schedule day.
-- The booking form is cards in the order the tutor answers — Who, When, then one details card of
-  Length, Repeat (new bookings only), Price and Format. A new booking picks who from one dropdown like the subject's (`TargetChoices`: recently taught
+- The booking form is cards in the order the tutor answers — Who, When, then a titled «Details» card of
+  Length, Repeat (new bookings only), Rate and Place. The day line under the date writes out its lessons and
+  the free time a lesson still fits in («2 lessons · free 9:00–11:00, from 19:30», `DayTimeline.freeFor`);
+  the time's −/+ are named by where a press goes («Later, to 19:30»), and before a start is set a line says
+  the first press takes the first free time. A new booking picks who from one dropdown like the subject's (`TargetChoices`: recently taught
   first, students and groups together, then adding a student or a group), so there is no Student/Group
   switch; an edit keeps its kind. The details card's rows (`DetailsSection`) are folded to one line saying
   what each is set to — Price the rate, or in red that the rate is all that is missing
@@ -339,3 +342,4 @@ back. Russian follows the same table.
 | A saved file | Backup saved · Report saved · Crash log saved | Data saved |
 | Who homework is for | Assigned to | For |
 | A group with no subject | No subject; the count beside «Members» | Not picked, Picked: 4 |
+| Where lessons happen | Place: In person / Remote (RU «Где: Очно / Онлайн») | Format, Where lessons happen |
