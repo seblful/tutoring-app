@@ -77,6 +77,7 @@ import com.seblful.klas.ui.theme.KlasMotion
  * whose body is swapped for another *without scrolling*. The bar keeps count of how far content has
  * scrolled beneath it, and a page that opens at its top has scrolled nowhere: without this, «Группы»
  * opened under a bar (and a [ScreenHeader]) still tinted for the students list scrolled a moment ago.
+ * @param selection a pick under way: while it holds any, the bar is its selection bar — see [Selection].
  * @param maxContentWidth how wide the body may grow: [MaxContentWidth] for a column of rows, more for a body
  * that lays its items out in columns of its own.
  * @param content given the modifier for the screen's top-level scrollable — the top and side insets and the
@@ -98,10 +99,13 @@ fun KlasScreen(
     imeAware: Boolean = false,
     page: Any? = null,
     maxContentWidth: Dp = MaxContentWidth,
+    selection: Selection? = null,
     actions: @Composable RowScope.() -> Unit = {},
     floatingActionButton: (@Composable () -> Unit)? = null,
     content: @Composable (modifier: Modifier, bottomInset: PaddingValues) -> Unit,
 ) {
+    val picking = selection?.takeIf { it.count > 0 }
+    PickBackHandler(picking?.count ?: 0) { picking?.onClear?.invoke() }
     var searching by rememberSaveable { mutableStateOf(false) }
     // The search box, or null when there is none or it is shut — one value rather than a flag plus a
     // nullable, so the two cannot be tested separately and disagree.
@@ -144,7 +148,9 @@ fun KlasScreen(
     }
 
     val barTitle: @Composable () -> Unit = {
-        if (openSearch != null) {
+        if (picking != null) {
+            SelectionTitle(picking.count)
+        } else if (openSearch != null) {
             SearchField(
                 query = openSearch.query,
                 onQueryChange = openSearch.onQueryChange,
@@ -171,13 +177,17 @@ fun KlasScreen(
     }
 
     val barNavigation: @Composable () -> Unit = {
-        if (onBack != null) {
+        if (picking != null) {
+            NamedIconButton(KlasIcons.Filled.Close, stringResource(R.string.batch_clear), onClick = picking.onClear)
+        } else if (onBack != null) {
             NamedIconButton(KlasIcons.Filled.ArrowBack, stringResource(R.string.action_back), onClick = onBack)
         }
     }
 
     val barActions: @Composable RowScope.() -> Unit = {
-        if (openSearch != null) {
+        if (picking != null) {
+            picking.actions(this)
+        } else if (openSearch != null) {
             // Closing search clears it. The screen's own actions stay hidden while the box is open —
             // the bar is one row, and a search field plus three icons is not a row.
             NamedIconButton(
@@ -281,7 +291,7 @@ fun KlasScreen(
             }
         },
         floatingActionButton = {
-            if (rail == null && floatingActionButton != null) {
+            if (rail == null && floatingActionButton != null && picking == null) {
                 Box(Modifier.besideColumn(maxContentWidth, medium)) { floatingActionButton() }
             }
         },

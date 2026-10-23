@@ -56,9 +56,9 @@ import com.seblful.klas.ui.common.KlasScreen
 import com.seblful.klas.ui.common.ListSkeleton
 import com.seblful.klas.ui.common.MaxContentWidth
 import com.seblful.klas.ui.common.NoticeDialog
-import com.seblful.klas.ui.common.PickBackHandler
 import com.seblful.klas.ui.common.ScrollsToTopOnReselect
 import com.seblful.klas.ui.common.SegmentedPage
+import com.seblful.klas.ui.common.Selection
 import com.seblful.klas.ui.common.SettingsGear
 import com.seblful.klas.ui.common.ShowMessagesFor
 import com.seblful.klas.ui.common.Spacing
@@ -74,7 +74,6 @@ import com.seblful.klas.ui.common.sectionSurface
 import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.common.state.valueOrNull
 import com.seblful.klas.ui.common.timeText
-import com.seblful.klas.ui.common.titleOrPicked
 import com.seblful.klas.ui.designsystem.component.KlasDivider
 import com.seblful.klas.ui.designsystem.component.KlasFab
 import com.seblful.klas.ui.designsystem.component.SectionAction
@@ -145,7 +144,6 @@ fun ScheduleScreen(
     val emptyReason by viewModel.emptyReason.collectAsStateWithLifecycle()
     // Lessons picked by a long-press: while any are, the bar is theirs — see [LessonBatch].
     val picked by viewModel.batch.selected.collectAsStateWithLifecycle()
-    PickBackHandler(picked.size, viewModel.batch::clear)
 
     /** *A change of view is a new page, and a page starts at the top.** */
     val listState = rememberLazyListState()
@@ -232,21 +230,13 @@ fun ScheduleScreen(
     val picking = LessonPicking(picked) { viewModel.batch.toggle(it.session.first.id) }
     CompositionLocalProvider(LocalLessonPicking provides picking) {
         KlasScreen(
-            title = titleOrPicked(stringResource(R.string.schedule_title), picked.size),
-            onBack = viewModel.batch::clear.takeIf { picked.isNotEmpty() },
+            title = stringResource(R.string.schedule_title),
             page = viewMode,
             messages = messages,
             maxContentWidth = if (monthBeside) SupportingPaneMaxWidth else MaxContentWidth,
-            actions = {
-                if (picked.isNotEmpty()) {
-                    BatchActions(viewModel.batch)
-                    return@KlasScreen
-                }
-                SettingsGear(onSettings)
-            },
+            selection = Selection(picked.size, viewModel.batch::clear) { BatchActions(viewModel.batch) },
+            actions = { SettingsGear(onSettings) },
             floatingActionButton = {
-                // While lessons are picked the bar is theirs, and booking waits.
-                if (picked.isNotEmpty()) return@KlasScreen
                 // **It stays put, and says why instead.** It was hidden while nothing could be booked, which
                 // solved the wrong half of the problem: the version before that popped a toast naming what
                 // was missing and left the tutor to go and find it — a control whose only behaviour is to

@@ -41,10 +41,10 @@ import com.seblful.klas.ui.common.KlasScreen
 import com.seblful.klas.ui.common.LessonKindIcon
 import com.seblful.klas.ui.common.ListSkeleton
 import com.seblful.klas.ui.common.Messages
-import com.seblful.klas.ui.common.PickBackHandler
 import com.seblful.klas.ui.common.ScrollsToTopOnReselect
 import com.seblful.klas.ui.common.SectionTitle
 import com.seblful.klas.ui.common.SegmentedPage
+import com.seblful.klas.ui.common.Selection
 import com.seblful.klas.ui.common.SettingsGear
 import com.seblful.klas.ui.common.ShowMessagesFor
 import com.seblful.klas.ui.common.Spacing
@@ -53,7 +53,6 @@ import com.seblful.klas.ui.common.constrainedContent
 import com.seblful.klas.ui.common.plusInset
 import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.state.Loadable
-import com.seblful.klas.ui.common.titleOrPicked
 import com.seblful.klas.ui.designsystem.component.KlasFab
 import com.seblful.klas.ui.theme.KlasIcons
 import com.seblful.klas.ui.theme.klasSemantics
@@ -77,7 +76,6 @@ fun HomeworkScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     // Current homework picked by a long-press: while any is, the bar is theirs.
     val picked by viewModel.batch.selected.collectAsStateWithLifecycle()
-    PickBackHandler(picked.size, viewModel.batch::clear)
     // The dialog's choices are taken when it opens — see `HomeworkViewModel.choices`.
     var adding by remember { mutableStateOf<List<AssigneeChoice>?>(null) }
     var opened by remember { mutableStateOf<Opened?>(null) }
@@ -104,23 +102,18 @@ fun HomeworkScreen(
 
     val loaded = (state as? Loadable.Ready)?.value
     KlasScreen(
-        title = titleOrPicked(stringResource(R.string.nav_homework), picked.size),
-        onBack = viewModel.batch::clear.takeIf { picked.isNotEmpty() },
+        title = stringResource(R.string.nav_homework),
         page = side,
         messages = messages,
+        selection = Selection(picked.size, viewModel.batch::clear) { MarkPickedDone(viewModel.batch, messages) },
         actions = {
-            if (picked.isNotEmpty()) {
-                MarkPickedDone(viewModel.batch, messages)
-                return@KlasScreen
-            }
             loaded?.let { HomeworkFilterAction(it, viewModel::setFilter) }
             SettingsGear(onSettings)
         },
         // The cards lay themselves out in columns (see [HomeworkList]); the tabs above them keep a column's width.
         maxContentWidth = Dp.Infinity,
         floatingActionButton = {
-            // While homework is picked the bar is theirs, and giving more waits.
-            if (picked.isEmpty()) KlasFab(stringResource(R.string.homework_add), onClick = ::add)
+            KlasFab(stringResource(R.string.homework_add), onClick = ::add)
         },
     ) { modifier, bottomInset ->
         // The same two-sided shape as «Люди»: segments on the page, and a drag across the body turns it.

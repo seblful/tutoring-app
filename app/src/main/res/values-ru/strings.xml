@@ -1332,4 +1332,5 @@
     <!-- The widget's tick, read aloud. %1$s: who the lesson is with, %2$s: when it starts. -->
     <string name="widget_mark_lesson">Отметить проведённым: %1$s, %2$s</string>
     <string name="widget_lesson_taught">%1$s, %2$s: проведено</string>
+    <string name="batch_clear">Снять выбор</string>
 </resources>
