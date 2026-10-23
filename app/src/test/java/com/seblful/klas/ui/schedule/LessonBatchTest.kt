@@ -63,6 +63,27 @@ class LessonBatchTest {
         }
 
     @Test
+    fun `a day's lessons are cancelled from its header without a selection, and one undo re-plans them`() =
+        runTest(mainRule.dispatcher) {
+            val (a, b, c) = morning()
+            val batch = batch
+
+            batch.cancel(setOf(a, b))
+            runCurrent()
+            val cancelled = batch.done.stream.first() as LessonBatch.Done.Cancelled
+
+            assertEquals(2, cancelled.receipts.size)
+            assertEquals(
+                listOf(LessonStatus.CANCELLED, LessonStatus.CANCELLED, LessonStatus.SCHEDULED),
+                listOf(status(a), status(b), status(c)),
+            )
+
+            batch.undo(cancelled)
+            runCurrent()
+            assertEquals(listOf(LessonStatus.SCHEDULED, LessonStatus.SCHEDULED), listOf(status(a), status(b)))
+        }
+
+    @Test
     fun `an undone batch cancel leaves a lesson changed since, and says how many`() = runTest(mainRule.dispatcher) {
         val (a, b) = morning()
         val batch = batch

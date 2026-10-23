@@ -63,10 +63,10 @@ class DaySummaryTest {
     }
 
     @Test
-    fun `a day counts its lessons - their length and what they come to`() {
+    fun `a day counts its lessons - their length and what they billed`() {
         val summary = summaryOf(
-            klass(at = at(9), lessonId = 1, minutes = 60, rate = Money.ofMajor(30)),
-            klass(at = at(11), lessonId = 2, minutes = 90, rate = Money.ofMajor(40)),
+            klass(at = at(9), lessonId = 1, minutes = 60, rate = Money.ofMajor(30), status = LessonStatus.COMPLETED),
+            klass(at = at(11), lessonId = 2, minutes = 90, rate = Money.ofMajor(40), status = LessonStatus.COMPLETED),
         )
 
         assertEquals(2, summary.lessons)
@@ -76,11 +76,12 @@ class DaySummaryTest {
     }
 
     @Test
-    fun `a lesson not yet taught still counts towards the day`() {
+    fun `a lesson not yet taught counts its time towards the day, but no money`() {
         val scheduled = summaryOf(klass(at = at(9), lessonId = 1, status = LessonStatus.SCHEDULED))
 
         assertEquals(1, scheduled.lessons)
-        assertEquals(Money.ofMajor(30), scheduled.money)
+        assertEquals(60, scheduled.minutes)
+        assertEquals(Money.ZERO, scheduled.money)
         assertEquals(Taught.Totals.NONE.earned, Taught.byStudent(listOf(klass(at(9), 1))).earned)
     }
 
@@ -104,7 +105,7 @@ class DaySummaryTest {
     @Test
     fun `a cancelled lesson is counted apart and adds nothing`() {
         val summary = summaryOf(
-            klass(at = at(9), lessonId = 1),
+            klass(at = at(9), lessonId = 1, status = LessonStatus.COMPLETED),
             klass(at = at(11), lessonId = 2, status = LessonStatus.CANCELLED),
         )
 
@@ -125,11 +126,11 @@ class DaySummaryTest {
 
     @Test
     fun `a group lesson is one lesson of the tutor's - and every member's money`() {
-        val summary = summaryOf(
-            klass(at = at(18), lessonId = 7, studentId = 1, minutes = 90, rate = Money.ofMajor(20), groupId = 5),
-            klass(at = at(18), lessonId = 7, studentId = 2, minutes = 90, rate = Money.ofMajor(20), groupId = 5),
-            klass(at = at(18), lessonId = 7, studentId = 3, minutes = 90, rate = Money.ofMajor(20), groupId = 5),
+        fun member(id: Long) = klass(
+            at = at(18), lessonId = 7, studentId = id, minutes = 90, rate = Money.ofMajor(20), groupId = 5,
+            status = LessonStatus.COMPLETED, attended = Attended.PRESENT,
         )
+        val summary = summaryOf(member(1), member(2), member(3))
 
         assertEquals(1, summary.lessons, "Three in the room is one lesson")
         assertEquals(90, summary.minutes, "And ninety minutes of the tutor's evening, not four and a half hours")
@@ -200,17 +201,10 @@ class DaySummaryTest {
     }
 
     @Test
-    fun `a day that earned nothing still names its lessons and hours`() {
+    fun `a day that billed nothing - still to come - names its lessons and hours, and no money`() {
         val parts = summary(1, 60, Money.ZERO, cancelled = 0).parts
 
-        assertEquals(
-            listOf(
-                DaySummary.Part.Lessons(1),
-                DaySummary.Part.Hours(60),
-                DaySummary.Part.Earned(Money.ZERO),
-            ),
-            parts,
-        )
+        assertEquals(listOf(DaySummary.Part.Lessons(1), DaySummary.Part.Hours(60)), parts)
     }
 }
 

@@ -1,12 +1,11 @@
 package com.seblful.klas.ui.designsystem.component
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.material3.DividerDefaults
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
@@ -17,12 +16,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.itemSurface
+import com.seblful.klas.ui.common.rightClickAsLongPress
 
 /**
  * One row of a list drawn as **one surface with dividers** (D3) — People's students and groups — rather than a
@@ -30,6 +31,10 @@ import com.seblful.klas.ui.common.itemSurface
  * row but the last starts at [dividerInset], where the text does, as Material's list dividers do.
  *
  * @param selected for the row open beside its list, tinted as the rail marks its tab, and said so.
+ * @param container the list's surface: [itemSurface] for a top-level list, `sectionSurface` for rows under a
+ *   [SliceHeader].
+ * @param dimmed for a row whose content no longer counts — a cancelled lesson — as [ContentCard]'s.
+ * @param onLongClick picks the row (R7), named for TalkBack by [onLongClickLabel]; a right click does the same.
  */
 @Composable
 fun SurfaceRow(
@@ -38,27 +43,25 @@ fun SurfaceRow(
     modifier: Modifier = Modifier,
     selected: Boolean = false,
     dividerInset: Dp = Spacing.gutter,
+    container: Color = MaterialTheme.colorScheme.itemSurface,
+    dimmed: Boolean = false,
+    onLongClick: (() -> Unit)? = null,
+    onLongClickLabel: String? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    val card = MaterialTheme.shapes.medium
-    val square = CornerSize(0.dp)
-    val shape = card.copy(
-        topStart = if (position.roundsTop) card.topStart else square,
-        topEnd = if (position.roundsTop) card.topEnd else square,
-        bottomStart = if (position.roundsBottom) card.bottomStart else square,
-        bottomEnd = if (position.roundsBottom) card.bottomEnd else square,
-    )
+    val shape = position.shapeOf(MaterialTheme.shapes.medium)
     val scheme = MaterialTheme.colorScheme
-    val surface = if (selected) scheme.secondaryContainer else scheme.itemSurface
+    val surface = if (selected) scheme.secondaryContainer else container
     val dividerColor = DividerDefaults.color
     CompositionLocalProvider(LocalContentColor provides scheme.contentColorFor(surface)) {
         Column(
             modifier
                 .fillMaxWidth()
                 .clip(shape)
-                .background(surface)
+                .background(surface.copy(alpha = if (dimmed) DimmedAlpha else 1f))
                 .then(if (selected) Modifier.semantics { this.selected = true } else Modifier)
-                .clickable(onClick = onClick)
+                .rightClickAsLongPress(onLongClick)
+                .combinedClickable(onClick = onClick, onLongClick = onLongClick, onLongClickLabel = onLongClickLabel)
                 // Drawn over the row's bottom edge rather than laid out under it, so every row of a list is
                 // one height whether it has a divider or is the last.
                 .drawWithContent {
@@ -76,3 +79,5 @@ fun SurfaceRow(
 }
 
 private val RowInsetY = 12.dp
+
+private const val DimmedAlpha = 0.5f

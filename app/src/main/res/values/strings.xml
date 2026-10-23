@@ -1133,4 +1133,6 @@
     <string name="reports_ledger_detail">Subject or method</string>
     <string name="reports_ledger_lesson">Lesson</string>
     <string name="reports_ledger_payment">Payment</string>
+    <string name="schedule_cancel_day">Cancel day</string>
+    <string name="schedule_open_day">Open day</string>
 </resources>

@@ -12,14 +12,14 @@ import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Instant
 
 /**
- * A day's lesson count, teaching time, expected charges, and cancelled lesson count. Group lessons count
+ * A day's lesson count, teaching time, billed charges, and cancelled lesson count. Group lessons count
  * once for time and lesson totals; money is summed per student who owes. Cancelled lessons contribute only
- * to [cancelled].
+ * to [cancelled]. Only billed amounts are money (domain-rules): a planned lesson adds time, never money.
  *
  * @param lessons lessons the day holds — **not** classes, so a group lesson taught to three is one.
  * @param minutes how long they run: the tutor's time, so that same group lesson counts its 90 minutes
  *   once rather than three times.
- * @param money what the day's lessons come to, summed **per student**, because that is who owes it.
+ * @param money what the day's **taught** lessons billed, summed **per student**, because that is who owes it.
  * @param cancelled lessons called off, counted apart from the rest and included in nothing above.
  */
 data class DaySummary(
@@ -33,7 +33,8 @@ data class DaySummary(
 
     /**
      * Displayable parts in order. Empty days return no parts; days containing only cancelled lessons
-     * return only the cancellation count. Money includes expected charges for scheduled lessons.
+     * return only the cancellation count. Money is left out until something has been billed, so a day still
+     * to come reads as lessons and hours.
      */
     val parts: List<Part>
         get() = when {
@@ -41,7 +42,7 @@ data class DaySummary(
             lessons > 0 -> listOfNotNull(
                 Part.Lessons(lessons),
                 Part.Hours(minutes),
-                Part.Earned(money),
+                Part.Earned(money).takeIf { money != Money.ZERO },
                 Part.Cancelled(cancelled).takeIf { cancelled > 0 },
             )
             else -> listOf(Part.Cancelled(cancelled))
@@ -58,7 +59,7 @@ data class DaySummary(
         /** How long they run, in minutes — the tutor's time. */
         data class Hours(val minutes: Int) : Part
 
-        /** What they come to, billed or not yet. */
+        /** What the taught ones billed. */
         data class Earned(val money: Money) : Part
 
         /** How many were called off. Only ever present when [count] is above zero. */
@@ -76,7 +77,8 @@ data class DaySummary(
             return DaySummary(
                 lessons = on.size,
                 minutes = on.sumOf { it.first.durationMinutes },
-                money = on.flatMap { it.classes }
+                money = on.filter { it.status == LessonStatus.COMPLETED }
+                    .flatMap { it.classes }
                     .filter { it.attended.bills }
                     .fold(Money.ZERO) { acc, c -> acc + ClassRules.chargeFor(c.price, c.durationMinutes) },
                 cancelled = off.size,

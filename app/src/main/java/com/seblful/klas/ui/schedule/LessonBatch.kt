@@ -57,7 +57,10 @@ class LessonBatch(private val classes: ClassRepository, private val scope: Corou
         if (marked.isNotEmpty()) done.send(Done.Marked(marked))
     }
 
-    fun cancel() = act { sessions ->
+    fun cancel() = cancel(_selected.value)
+
+    /** Cancels the planned lessons among [classIds] — a whole day's, from its header — with one undo. */
+    fun cancel(classIds: Set<Long>) = act(classIds) { sessions ->
         val receipts = sessions.mapNotNull { session ->
             (classes.setStatusUndoable(session, LessonStatus.CANCELLED) as? LessonWrite.Written)?.value
         }
@@ -77,8 +80,7 @@ class LessonBatch(private val classes: ClassRepository, private val scope: Corou
         if (kept > 0) done.send(Done.ChangedSince(kept))
     }
 
-    private fun act(block: suspend (List<ClassSession>) -> Unit) {
-        val ids = _selected.value
+    private fun act(ids: Set<Long> = _selected.value, block: suspend (List<ClassSession>) -> Unit) {
         clear()
         scope.write(done, Done.Failed) {
             val planned = ids.mapNotNull { classes.getSessionFor(it) }.filter { it.status == LessonStatus.SCHEDULED }

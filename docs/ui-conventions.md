@@ -76,8 +76,8 @@ Build screens from shared state and controls. Feature rules belong in the domain
   latest few rows and «See all» to the full list (`StudentList`/`GroupList` routes, beside People like the
   card). Short lists — a student's subjects, a group's members — are shown in full.
 - Rows on an overview have one trailing slot and no bin (R1). A lesson row: date and subject, status,
-  the amount trailing — muted for a planned lesson's expected charge (`ClassRow.expectedCharge`); no
-  person glyph, every row is theirs. A payment row: the day as title, the method under it, the amount
+  the amount trailing for a billed lesson only — a planned or cancelled one shows none, only billed amounts
+  being money; no person glyph, every row is theirs. A payment row: the day as title, the method under it, the amount
   trailing; deleting is in its dialog, with Undo. A subject row: the rate trailing with a chevron, its last
   change under the name ("since 1 Sep · was 20 $/h"); a tap opens the rate, where Remove also lives.
 - A student's lesson history is a card per month (`LessonMonth`) titled by the month, summed as held
@@ -120,8 +120,8 @@ Build screens from shared state and controls. Feature rules belong in the domain
   balance. Lesson rows lead with their date; card times use `ColumnTime`
   (tabular, widest-time width, measured once per list by `rememberColumnTimeWidth`), the end under the
   start in a quieter style, so back-to-back lessons and gaps read without a time grid (D4). Ranges are
-  `timeRangeText`. A kind icon prefixes a name; the lines below start on the icon's edge, not
-  hung under the name. The lesson sheet's header repeats the card's layout, then names the day and the
+  `timeRangeText`. A kind icon prefixes a group lesson's name only — the row that differs, and lists its
+  members — and the lines below start on its edge, not hung under the name. The lesson sheet's header repeats the card's layout, then names the day and the
   hours in full, since it also opens from the week, a reminder and Today.
 - Forms have one field style: tapped fields (`PickerField`) draw the outlined text field's own decoration,
   so labels float alike and fields space alike. Ticks in a form sit on its edge, not centred in 48 dp.
@@ -258,7 +258,11 @@ Build screens from shared state and controls. Feature rules belong in the domain
   under the grid; each cell still speaks its counts. The report chart's accent bar is named under it
   («Best month»), since the chart itself is not read aloud.
 - Schedule Day/Week/Month share `ScheduleViewModel.content`'s week assembly, avoiding reads for switches
-  inside the week. Summaries are count·hours·money (`DaySummary`); show “now” only today. Completion is
+  inside the week. Summaries are count·hours·billed money (`DaySummary`) — a day still to come is lessons and
+  hours, no money; show “now” only today. Day lessons are cards; Week and Month draw each day as a section
+  card whose top slice is the date and summary (`SliceHeader`) and whose lessons are its slices
+  (`SurfaceRow`). A Week day with planned lessons offers «Cancel day» (one batch, one Undo); Month's chosen
+  day offers «Open day» to the Day view; tapping a strip day scrolls to its section. Completion is
   an undoable green swipe; cancelled lessons recede with a red badge. An ended lesson nobody has marked
   badges «Not marked» in grey (`LessonPhase.OVERDUE`), never «Planned»: unmarked lessons are unbilled. Book
   by duration, starting on the selected schedule day.

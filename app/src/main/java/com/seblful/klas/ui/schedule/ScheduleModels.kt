@@ -119,6 +119,23 @@ sealed interface ScheduleTarget {
     data class Lesson(val classId: Long) : ScheduleTarget
 }
 
+/** A class id of each planned lesson of the day — what «Cancel day» cancels, as the batch picks them. */
+internal fun WeekSection.plannedIds(): Set<Long> =
+    rows.filter { it.session.status == LessonStatus.SCHEDULED }.mapTo(mutableSetOf()) { it.session.first.id }
+
+/**
+ * The list index [day]'s section starts at in the Week view, or null when it holds no lessons — the strip is
+ * item 0, then each day is its header and its rows.
+ */
+internal fun ScheduleContent.Week.indexOfDay(day: LocalDate): Int? {
+    var index = 1
+    for (section in sections) {
+        if (section.date == day) return index
+        index += 1 + section.rows.size
+    }
+    return null
+}
+
 /** Whose lessons the schedule shows: one student's, or one group's — and the name its chip says. */
 sealed interface ScheduleWho {
     val id: Long

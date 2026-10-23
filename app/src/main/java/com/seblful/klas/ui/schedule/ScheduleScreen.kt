@@ -1,5 +1,6 @@
 package com.seblful.klas.ui.schedule
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -13,8 +14,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyItemScope
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -66,12 +69,15 @@ import com.seblful.klas.ui.common.rememberConfirmFeedback
 import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.rememberRejectFeedback
 import com.seblful.klas.ui.common.roomForSupportingPane
+import com.seblful.klas.ui.common.sectionSurface
 import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.common.state.valueOrNull
 import com.seblful.klas.ui.common.timeText
 import com.seblful.klas.ui.common.titleOrPicked
 import com.seblful.klas.ui.designsystem.component.KlasDivider
 import com.seblful.klas.ui.designsystem.component.KlasFab
+import com.seblful.klas.ui.designsystem.component.SectionAction
+import com.seblful.klas.ui.designsystem.component.SlicePosition
 import com.seblful.klas.ui.navigation.Arrival
 import com.seblful.klas.ui.theme.KlasIcons
 import dev.zacsweers.metrox.viewmodel.metroViewModel
@@ -140,6 +146,9 @@ fun ScheduleScreen(
 
     /** *A change of view is a new page, and a page starts at the top.** */
     val listState = rememberLazyListState()
+    val listScope = rememberCoroutineScope()
+    val cancelDayLabel = stringResource(R.string.schedule_cancel_day)
+    val openDay = { viewModel.setViewMode(ScheduleViewMode.DAY) }
     // Keyed on the view the list was last put at the top *for*, and saved with it: an effect keyed on the
     // mode alone also ran on every return to the screen, so scrolling the week to Friday, editing a lesson
     // and coming back landed on Monday again.
@@ -361,15 +370,14 @@ fun ScheduleScreen(
                                 end = Spacing.gutter,
                                 bottom = FabClearance,
                             ).plusInset(bottomInset),
-                            verticalArrangement = Arrangement.spacedBy(Spacing.itemGap),
+                            // A day's slices touch; the gap before the day is its header's own.
+                            verticalArrangement = Arrangement.Top,
                         ) {
                             item(key = "selected-day", contentType = "day-header") {
-                                SelectedDayHeader(
-                                    date = dayContent.valueOrNull()?.date ?: date,
-                                    summary = dayContent.valueOrNull()?.summary ?: DaySummary.NONE,
-                                )
+                                ChosenDayHeader(dayContent, date, onOpenDay = openDay)
                             }
                             dayList(
+                                sliced = true,
                                 view = ScheduleViewMode.MONTH,
                                 state = dayContent,
                                 emptyReason = emptyReason,
@@ -392,7 +400,13 @@ fun ScheduleScreen(
                     // are laid out inside it too, which is why `MonthCalendar` and `WeekStrip` no longer
                     // carry a narrower one of their own.
                     contentPadding = FabListPadding.plusInset(bottomInset),
-                    verticalArrangement = Arrangement.spacedBy(Spacing.itemGap),
+                    // The Day view's lessons are cards with a gap between; Week's and Month's are the slices of
+                    // a day's section and touch, the gap before each day being its header's own.
+                    verticalArrangement = if (viewMode == ScheduleViewMode.DAY) {
+                        Arrangement.spacedBy(Spacing.itemGap)
+                    } else {
+                        Arrangement.Top
+                    },
                 ) {
                     when (viewMode) {
                         // The day list stands alone under its stepper.
@@ -419,7 +433,14 @@ fun ScheduleScreen(
                                         loads = loads,
                                         selected = date,
                                         today = today,
-                                        onSelect = viewModel::selectDate,
+                                        onSelect = { day ->
+                                            viewModel.selectDate(day)
+                                            // To the day's section, which is what the tap was for: the
+                                            // selection alone only moved where the button books, unseen.
+                                            contentState.valueOrNull()?.indexOfDay(day)?.let { index ->
+                                                listScope.launch { listState.animateScrollToItem(index) }
+                                            }
+                                        },
                                     )
                                     Spacer(Modifier.height(Spacing.itemGap))
                                     KlasDivider()
@@ -447,13 +468,17 @@ fun ScheduleScreen(
                                             date = section.date,
                                             isSelected = section.date == date,
                                             summary = section.summary,
+                                            position = SlicePosition.FIRST,
+                                            action = section.plannedIds().takeIf { it.isNotEmpty() }?.let { ids ->
+                                                SectionAction(cancelDayLabel) { viewModel.batch.cancel(ids) }
+                                            },
                                         )
                                     }
-                                    items(
+                                    itemsIndexed(
                                         section.rows,
-                                        key = { lessonKey(ScheduleViewMode.WEEK, it) },
-                                        contentType = { "lesson" },
-                                    ) { row ->
+                                        key = { _, row -> lessonKey(ScheduleViewMode.WEEK, row) },
+                                        contentType = { _, _ -> "lesson" },
+                                    ) { index, row ->
                                         SwipeToCompleteCard(
                                             row = row,
                                             phase = phases.of(row),
@@ -462,6 +487,7 @@ fun ScheduleScreen(
                                             onComplete = {
                                                 viewModel.setStatus(row.session, LessonStatus.COMPLETED)
                                             },
+                                            slice = lastOrMiddle(index, section.rows.size),
                                         )
                                     }
                                 }
@@ -485,18 +511,14 @@ fun ScheduleScreen(
                                     // with the lessons it names, not above a line cutting it off from them.
                                     Spacer(Modifier.height(Spacing.itemGap))
                                     KlasDivider()
-                                    // The gap the week list's own spacing puts between its rule and heading.
-                                    Spacer(Modifier.height(Spacing.itemGap))
                                     // Named by the day the list below *is*, which for the frames a tap on
                                     // another day takes to read is still the previous one — see
                                     // [ScheduleContent.Day.date]. The grid's ring has already moved.
-                                    SelectedDayHeader(
-                                        date = dayContent.valueOrNull()?.date ?: date,
-                                        summary = dayContent.valueOrNull()?.summary ?: DaySummary.NONE,
-                                    )
+                                    ChosenDayHeader(dayContent, date, onOpenDay = openDay)
                                 }
                             }
                             dayList(
+                                sliced = true,
                                 view = ScheduleViewMode.MONTH,
                                 state = dayContent,
                                 emptyReason = emptyReason,
@@ -679,6 +701,7 @@ private fun ScheduleEmptyState(
 
 private fun LazyListScope.dayList(
     view: ScheduleViewMode,
+    sliced: Boolean = false,
     state: Loadable<ScheduleContent.Day>,
     emptyReason: Loadable<ScheduleEmpty>,
     nowMark: Int?,
@@ -713,7 +736,7 @@ private fun LazyListScope.dayList(
         // is no card left to draw it above — and an item with two roots would take [animateInPlace] off
         // the card, which is what keeps a re-sorted list from teleporting.
         rows.forEachIndexed { index, row ->
-            if (index == nowMark) item(key = nowKey(view, day.date), contentType = "now") { NowLine(animateInPlace()) }
+            if (index == nowMark) item(key = nowKey(view, day.date), contentType = "now") { DayNowLine(sliced) }
             item(key = lessonKey(view, row, day.date), contentType = "lesson") {
                 SwipeToCompleteCard(
                     row = row,
@@ -721,12 +744,36 @@ private fun LazyListScope.dayList(
                     timeWidth = timeWidth,
                     onClick = { onRowClick(row) },
                     onComplete = { onComplete(row) },
+                    slice = if (sliced) lastOrMiddle(index, rows.size) else null,
                 )
             }
         }
-        if (nowMark == rows.size) item(key = nowKey(view, day.date), contentType = "now") { NowLine(animateInPlace()) }
+        if (nowMark == rows.size) item(key = nowKey(view, day.date), contentType = "now") { DayNowLine(sliced) }
     }
 }
+
+/** The now-line between a day's lessons — on the day's section surface when they are its slices. */
+@Composable
+private fun LazyItemScope.DayNowLine(sliced: Boolean) {
+    val surface = if (sliced) Modifier.background(MaterialTheme.colorScheme.sectionSurface) else Modifier
+    NowLine(animateInPlace().then(surface))
+}
+
+/** The chosen day of the Month view: the top slice of its section, with «Open day» to the Day view (R1). */
+@Composable
+private fun ChosenDayHeader(dayContent: Loadable<ScheduleContent.Day>, selected: LocalDate, onOpenDay: () -> Unit) {
+    val day = dayContent.valueOrNull()
+    SelectedDayHeader(
+        date = day?.date ?: selected,
+        summary = day?.summary ?: DaySummary.NONE,
+        position = if (day?.rows.isNullOrEmpty()) SlicePosition.ONLY else SlicePosition.FIRST,
+        action = SectionAction(stringResource(R.string.schedule_open_day), onOpenDay),
+    )
+}
+
+/** A day's lesson [index] of [count] as a slice under its header: the last one rounds the card off. */
+private fun lastOrMiddle(index: Int, count: Int): SlicePosition =
+    if (index == count - 1) SlicePosition.LAST else SlicePosition.MIDDLE
 
 private fun lessonKey(view: ScheduleViewMode, row: ScheduleRow, day: LocalDate? = null): String =
     "$view/${day ?: ""}/${row.klass.id}"

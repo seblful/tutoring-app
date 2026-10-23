@@ -82,7 +82,6 @@ internal fun LessonRow(
         },
         trailingContent = {
             row.shownCharge?.let { TrailingAmount(it.text()) }
-                ?: row.expectedCharge?.let { TrailingAmount(it.text(), forecast = true) }
         },
         colors = colors,
         modifier = modifier.insetRowPress { Modifier.clickable(it, indication = null, onClick = onClick) },

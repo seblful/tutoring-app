@@ -36,8 +36,12 @@ import com.seblful.klas.ui.common.classStatusLabel
 import com.seblful.klas.ui.common.lessonBadgeColor
 import com.seblful.klas.ui.common.lessonBadgeLabel
 import com.seblful.klas.ui.common.popsOnChange
+import com.seblful.klas.ui.common.sectionSurface
 import com.seblful.klas.ui.common.swipeAction
 import com.seblful.klas.ui.common.timeText
+import com.seblful.klas.ui.designsystem.component.SlicePosition
+import com.seblful.klas.ui.designsystem.component.SurfaceRow
+import com.seblful.klas.ui.designsystem.component.shapeOf
 import com.seblful.klas.ui.theme.KlasIcons
 import com.seblful.klas.ui.theme.klasColors
 
@@ -49,11 +53,12 @@ internal fun LazyItemScope.SwipeToCompleteCard(
     onClick: () -> Unit,
     onComplete: () -> Unit,
     modifier: Modifier = Modifier,
+    slice: SlicePosition? = null,
 ) {
     val picking = LocalLessonPicking.current
     val tap = if (picking.active) ({ picking.toggle(row) }) else onClick
     if (!row.canSwipeComplete || picking.active) {
-        ScheduleCard(row, phase, timeWidth, tap, animateInPlace(modifier), picking)
+        ScheduleCard(row, phase, timeWidth, tap, animateInPlace(modifier), picking, slice)
         return
     }
     SwipeToConfirmBox(
@@ -71,7 +76,7 @@ internal fun LazyItemScope.SwipeToCompleteCard(
                 container = klasColors.successContainer,
                 content = klasColors.onSuccessContainer,
                 armed = armed,
-                shape = MaterialTheme.shapes.medium,
+                shape = slice?.shapeOf(MaterialTheme.shapes.medium) ?: MaterialTheme.shapes.medium,
                 horizontalPadding = SheetGutter,
             )
         },
@@ -83,6 +88,7 @@ internal fun LazyItemScope.SwipeToCompleteCard(
             tap,
             Modifier.swipeAction(stringResource(R.string.class_mark_completed), onComplete),
             picking,
+            slice,
         )
     }
 }
@@ -95,18 +101,12 @@ private fun ScheduleCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     picking: LessonPicking = LessonPicking.NONE,
+    slice: SlicePosition? = null,
 ) {
     // Whether the card recedes is the row's own answer — see [ScheduleRow.recedes]: a day with
     // four lessons and three cancellations must not look like a full day.
     val cancelled = row.recedes
-    ContentCard(
-        onClick = onClick,
-        modifier = modifier,
-        dimmed = cancelled,
-        selected = picking.isPicked(row),
-        onLongClick = { picking.toggle(row) },
-        onLongClickLabel = stringResource(R.string.batch_select),
-    ) {
+    LessonSurface(row, onClick, modifier, picking, slice) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             // Ink, not the accent: the time is read, not tapped. A fixed-width column, so every card's
             // name starts on the same edge whatever the hour. The end under the start, quieter: back-to-back
@@ -135,10 +135,11 @@ private fun ScheduleCard(
             Spacer(Modifier.width(Spacing.itemGap))
             Column(Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    // Both kinds are marked, not just the group ones: an icon that appears only
-                    // sometimes reads as "this lesson has something extra", which leaves an individual
-                    // lesson looking like a lesson with a missing icon rather than an individual one.
-                    LessonKindIcon(LessonKind.of(row.klass), Modifier.padding(end = Spacing.inline))
+                    // Only the group lesson is marked — the one that differs, and the one whose card goes on
+                    // to list its members. An icon on every row said "person" beside every name (R1).
+                    if (row.isGroup) {
+                        LessonKindIcon(LessonKind.GROUP, Modifier.padding(end = Spacing.inline))
+                    }
                     // **One line.** A name long enough to wrap — «Группа Биология» — used to break
                     // across two, and because the time on the left is centred against the whole card
                     // it then sat beside the *second* line with a hole above it. Rows also stopped
@@ -166,6 +167,40 @@ private fun ScheduleCard(
                 }
             }
         }
+    }
+}
+
+/** A card of its own in the Day view; a row of its day's section in Week and Month (R1). */
+@Composable
+private fun LessonSurface(
+    row: ScheduleRow,
+    onClick: () -> Unit,
+    modifier: Modifier,
+    picking: LessonPicking,
+    slice: SlicePosition?,
+    content: @Composable () -> Unit,
+) {
+    val pickLabel = stringResource(R.string.batch_select)
+    if (slice == null) {
+        ContentCard(
+            onClick = onClick,
+            modifier = modifier,
+            dimmed = row.recedes,
+            selected = picking.isPicked(row),
+            onLongClick = { picking.toggle(row) },
+            onLongClickLabel = pickLabel,
+        ) { content() }
+    } else {
+        SurfaceRow(
+            position = slice,
+            onClick = onClick,
+            modifier = modifier,
+            selected = picking.isPicked(row),
+            container = MaterialTheme.colorScheme.sectionSurface,
+            dimmed = row.recedes,
+            onLongClick = { picking.toggle(row) },
+            onLongClickLabel = pickLabel,
+        ) { content() }
     }
 }
 

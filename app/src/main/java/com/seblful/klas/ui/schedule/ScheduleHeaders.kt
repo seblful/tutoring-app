@@ -23,6 +23,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -48,6 +49,9 @@ import com.seblful.klas.ui.common.SectionTitle
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.pageByArrow
 import com.seblful.klas.ui.designsystem.component.KlasDivider
+import com.seblful.klas.ui.designsystem.component.SectionAction
+import com.seblful.klas.ui.designsystem.component.SliceHeader
+import com.seblful.klas.ui.designsystem.component.SlicePosition
 import com.seblful.klas.ui.theme.KlasIcons
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.YearMonth
@@ -176,28 +180,37 @@ internal fun PageNavigator(
 private val NavigatorTitleMinSize = 11.dp
 
 @Composable
-internal fun SelectedDayHeader(date: LocalDate, summary: DaySummary) {
-    DaySectionHeader(date = date, isSelected = true, summary = summary)
+internal fun SelectedDayHeader(
+    date: LocalDate,
+    summary: DaySummary,
+    position: SlicePosition,
+    action: SectionAction? = null,
+) {
+    DaySectionHeader(date = date, isSelected = true, summary = summary, position = position, action = action)
 }
 
+/**
+ * A day of the Week or Month list: the top slice of its section card (R1) — the date, what the day comes to as
+ * its count, and one action — with the day's lessons as the slices under it. The date is tinted when it is the
+ * selected day, and that is said in words by the strip or grid it was picked from.
+ */
 @Composable
-internal fun DaySectionHeader(date: LocalDate, isSelected: Boolean, summary: DaySummary) {
-    Column(
-        // One extra [Spacing.itemGap] above, so the gap that opens *before* a header is a section
-        // break while the header still sits close to the day it names. The list's uniform `spacedBy`
-        // cannot say that on its own.
-        Modifier.fillMaxWidth().padding(top = Spacing.itemGap),
-    ) {
-        SectionTitle(
-            date.formatDay(),
-            color = if (isSelected) {
-                MaterialTheme.colorScheme.primary
-            } else {
-                MaterialTheme.colorScheme.onSurfaceVariant
-            },
-        )
-        DaySummaryLine(summary)
-    }
+internal fun DaySectionHeader(
+    date: LocalDate,
+    isSelected: Boolean,
+    summary: DaySummary,
+    position: SlicePosition,
+    action: SectionAction? = null,
+) {
+    SliceHeader(
+        title = date.formatDay(),
+        position = position,
+        // The gap before a day is the section break; the day's own rows follow it without one.
+        modifier = Modifier.padding(top = Spacing.itemGap),
+        summary = daySummaryText(LocalContext.current.resources, summary, LocalCurrency.current),
+        action = action,
+        titleColor = if (isSelected) MaterialTheme.colorScheme.primary else Color.Unspecified,
+    )
 }
 
 @Composable

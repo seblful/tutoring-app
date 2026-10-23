@@ -47,10 +47,10 @@ class LessonHistoryTest {
     }
 
     @Test
-    fun `a planned lesson expects its booked rate for its length, and others expect nothing`() {
-        assertEquals(Money.ofMajor(45), planned.expectedCharge)
-        assertNull(taught.expectedCharge)
-        assertNull(cancelled.expectedCharge)
+    fun `only a taught lesson shows an amount - planned and cancelled ones show none`() {
+        assertEquals(null, planned.shownCharge)
+        assertEquals(null, cancelled.shownCharge)
+        assertEquals(true, taught.shownCharge != null)
     }
 
     @Test

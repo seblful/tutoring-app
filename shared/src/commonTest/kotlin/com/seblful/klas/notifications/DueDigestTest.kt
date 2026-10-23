@@ -88,7 +88,7 @@ class DueDigestTest {
      * the same [com.seblful.klas.domain.schedule.DaySummary]. Two arithmetics for one morning would both look right.
      */
     @Test
-    fun `the summary is what the day comes to`() = runTest {
+    fun `the summary is the day's lessons and hours - planned lessons are not money yet`() = runTest {
         enableAgenda()
         val subject = env.fixtures.subject("Алгебра")
         val anya = env.fixtures.pricedStudent("Аня", subject, rate = Money.ofMajor(30))
@@ -100,7 +100,7 @@ class DueDigestTest {
         val summary = env.notifier.agendas.single().summary
         assertEquals(2, summary.lessons)
         assertEquals(150, summary.minutes)
-        assertEquals(Money.ofMajor(75), summary.money, "30 an hour, for two and a half hours")
+        assertEquals(Money.ZERO, summary.money, "only billed amounts are money")
     }
 
     /**

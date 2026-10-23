@@ -107,7 +107,7 @@ class ScheduleContentTest : ScheduleTestFixture() {
         assertEquals("the cancelled one is not a lesson the day holds", 1, summary.lessons)
         assertEquals(1, summary.cancelled)
         assertEquals(90, summary.minutes)
-        assertEquals(Money.ofMajor(45), summary.money)
+        assertEquals("a planned lesson bills nothing yet", Money.ZERO, summary.money)
     }
 
     @Test
@@ -205,6 +205,41 @@ class ScheduleContentTest : ScheduleTestFixture() {
         assertEquals("Пётр", sections[0].rows[0].title)
         assertEquals("Математика", sections[0].rows[0].subjectName)
     }
+
+    @Test
+    fun `a strip day finds its section, and a day's header cancels only its planned lessons`() =
+        runTest(mainRule.dispatcher) {
+            val sid = env.fixtures.student(name = "Аня")
+            val subj = env.fixtures.subject(name = "Математика")
+            val monday = LocalDate(2026, 7, 13)
+            val wednesday = LocalDate(2026, 7, 15)
+            listOf(
+                Triple(monday, LocalTime(9, 0), LessonStatus.SCHEDULED),
+                Triple(wednesday, LocalTime(9, 0), LessonStatus.SCHEDULED),
+                Triple(wednesday, LocalTime(11, 0), LessonStatus.CANCELLED),
+            ).forEach { (day, time, status) ->
+                env.fixtures.storedClass(
+                    studentId = sid, subjectId = subj, startMillis = startMillisOn(day, time),
+                    durationMinutes = 60, status = status,
+                )
+            }
+
+            val vm = vm()
+            observing(vm.content)
+            vm.setViewMode(ScheduleViewMode.WEEK)
+            vm.selectDate(wednesday)
+            advanceUntilIdle()
+
+            val week = vm.content.weekContent
+            assertEquals("after the strip", 1, week.indexOfDay(monday))
+            assertEquals("after Monday's header and its one row", 3, week.indexOfDay(wednesday))
+            assertEquals("a day without lessons has no section", null, week.indexOfDay(LocalDate(2026, 7, 14)))
+            val wednesdayRows = week.sections[1].rows
+            assertEquals(
+                setOf(wednesdayRows.first { it.session.status == LessonStatus.SCHEDULED }.session.first.id),
+                week.sections[1].plannedIds(),
+            )
+        }
 
     @Test
     fun `week sections follow the visible week, not the selected day`() = runTest(mainRule.dispatcher) {

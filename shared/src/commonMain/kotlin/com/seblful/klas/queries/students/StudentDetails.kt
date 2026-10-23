@@ -49,15 +49,6 @@ data class ClassRow(
 
     /** The amount at the row's trailing edge, or null where the lesson billed them nothing. See [Billing.billedOrNull]. */
     val shownCharge: Money? get() = Billing.billedOrNull(listOf(klass))
-
-    /**
-     * What a planned lesson will bill at its booked rate, drawn muted where [shownCharge] has nothing — so the
-     * column of amounts has no holes. Null for a taught or cancelled one.
-     */
-    val expectedCharge: Money?
-        get() = if (klass.status ==
-            LessonStatus.SCHEDULED
-        ) ClassRules.chargeFor(klass.price, klass.durationMinutes) else null
 }
 
 data class StudentDetails(

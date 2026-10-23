@@ -1282,4 +1282,6 @@
     <string name="reports_ledger_detail">Предмет или способ</string>
     <string name="reports_ledger_lesson">Занятие</string>
     <string name="reports_ledger_payment">Оплата</string>
+    <string name="schedule_cancel_day">Отменить день</string>
+    <string name="schedule_open_day">Открыть день</string>
 </resources>
