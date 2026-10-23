@@ -183,8 +183,10 @@ private fun BackupBanner(at: Instant?, onBackup: () -> Unit) {
 private fun NextCard(row: TodayLessonRow, onOpen: (Long) -> Unit) {
     val open = { onOpen(row.session.first.id) }
     AccentCard(Modifier.padding(top = Spacing.itemGap), onClick = open) {
-        Row(Modifier.padding(Spacing.gutter), verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
+        // «Open» beside the label rather than the lines under it, which keep the card's whole width: beside
+        // them, at large text, the time broke mid-number and the name mid-name.
+        Column(Modifier.padding(start = Spacing.gutter, end = Spacing.inline, bottom = Spacing.gutter)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     if (row.phase.isRunning) {
                         stringResource(R.string.today_now)
@@ -192,8 +194,13 @@ private fun NextCard(row: TodayLessonRow, onOpen: (Long) -> Unit) {
                         stringResource(R.string.today_next_in, durationLabel(row.minutesAway.toInt().coerceAtLeast(1)))
                     },
                     style = MaterialTheme.typography.labelMedium,
+                    modifier = Modifier.weight(1f),
                 )
-                Text(bulletJoin(timeRange(row), row.who), style = MaterialTheme.typography.titleLarge)
+                KlasButton(onClick = open, kind = ButtonKind.Text) { Text(stringResource(R.string.today_open)) }
+            }
+            Column(Modifier.padding(end = Spacing.inline)) {
+                Text(timeRange(row), style = MaterialTheme.typography.titleLarge)
+                Text(row.who, style = MaterialTheme.typography.titleLarge)
                 Text(
                     bulletJoin(
                         listOfNotNull(
@@ -207,7 +214,6 @@ private fun NextCard(row: TodayLessonRow, onOpen: (Long) -> Unit) {
                     style = MaterialTheme.typography.bodyMedium,
                 )
             }
-            KlasButton(onClick = open, kind = ButtonKind.Text) { Text(stringResource(R.string.today_open)) }
         }
     }
 }

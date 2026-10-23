@@ -3,9 +3,13 @@ package com.seblful.klas.ui.today
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -19,6 +23,7 @@ import com.seblful.klas.notifications.RecentMarks
 import com.seblful.klas.testutil.AppLocaleRule
 import com.seblful.klas.ui.theme.KlasTheme
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -101,6 +106,25 @@ class TodayContentTest {
             .performClick()
 
         assertEquals(listOf("mark Olivia Brooks", "open 1"), asked)
+    }
+
+    @Test
+    fun `the next lesson's card gives the name a line of its own, not one after the time`() {
+        show(state(listOf(row(3, "Noah Bennett", 16, LessonPhase.UPCOMING))))
+
+        // The card's line and the day's row.
+        compose.onAllNodesWithText("Noah Bennett").assertCountEquals(2)
+        compose.onAllNodesWithText("· Noah Bennett", substring = true).assertCountEquals(0)
+    }
+
+    @Test
+    fun `the next lesson's Open sits by its label, leaving the time and name the card's whole width`() {
+        show(state(listOf(row(3, "Noah Bennett", 16, LessonPhase.UPCOMING))))
+
+        val open = compose.onNodeWithText("Open").getUnclippedBoundsInRoot()
+        val time = compose.onAllNodesWithText("–", substring = true, useUnmergedTree = true).onFirst()
+            .getUnclippedBoundsInRoot()
+        assertTrue("Open is beside the time", open.bottom <= time.top)
     }
 
     @Test
