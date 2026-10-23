@@ -119,7 +119,7 @@ class PaymentRepositoryTest {
         assertEquals(PaymentMethod.CASH, original.method)
 
         val sameMethod = payments.correct(original, Money.ofMajor(45), today)
-        assertEquals("a correction that does not say keeps the method", PaymentMethod.CASH, sameMethod.method)
+        assertEquals(PaymentMethod.CASH, sameMethod.method, "a correction that does not say keeps the method")
 
         val corrected = payments.correct(sameMethod, Money.ofMajor(45), today, PaymentMethod.TRANSFER)
         assertEquals(corrected, payments.observeForStudent(sid).first().single())

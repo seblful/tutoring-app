@@ -1202,4 +1202,8 @@
     <string name="payment_method_cash">Наличные</string>
     <string name="payment_method_card">Карта</string>
     <string name="payment_method_transfer">Перевод</string>
+    <string name="reports_received">Получено</string>
+    <string name="reports_received_hint">Оплаты, внесённые за период</string>
+    <string name="reports_received_total">Внесено</string>
+    <string name="payment_method_none">Не указано</string>
 </resources>

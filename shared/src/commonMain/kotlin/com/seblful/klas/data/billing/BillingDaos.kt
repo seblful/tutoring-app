@@ -70,6 +70,12 @@ interface PaymentDao {
     @Query("SELECT * FROM payments WHERE studentId = :studentId ORDER BY dateMillis DESC")
     fun observeForStudent(studentId: Long): Flow<List<PaymentEntity>>
 
+    @Query("SELECT * FROM payments WHERE dateMillis >= :fromMillis AND dateMillis < :untilMillis")
+    fun observeBetween(fromMillis: Long, untilMillis: Long): Flow<List<PaymentEntity>>
+
+    @Query("SELECT * FROM payments")
+    fun observeAll(): Flow<List<PaymentEntity>>
+
     @Insert
     suspend fun insert(payment: PaymentEntity): Long
 

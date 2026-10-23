@@ -13,6 +13,7 @@ import dev.zacsweers.metro.SingleIn
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.datetime.LocalDate
+import kotlin.time.Instant
 
 /** A payment, and **the instant one is recorded at**. */
 @SingleIn(AppScope::class)
@@ -25,6 +26,14 @@ class PaymentRepository @Inject constructor(
 
     fun observeForStudent(studentId: Long): Flow<List<Payment>> =
         dao.observeForStudent(studentId).map { list -> list.map { it.toDomain() } }
+
+    /** Payments made from [from] until before [until] — every one when both are null. */
+    fun observeBetween(from: Instant?, until: Instant?): Flow<List<Payment>> =
+        if (from == null || until == null) {
+            dao.observeAll()
+        } else {
+            dao.observeBetween(from.toEpochMilliseconds(), until.toEpochMilliseconds())
+        }.map { list -> list.map { it.toDomain() } }
 
     /** The day a fresh payment is offered on — today, by the same clock [record] will stamp it against. */
     fun today(): LocalDate = PaymentDate.today(clock)

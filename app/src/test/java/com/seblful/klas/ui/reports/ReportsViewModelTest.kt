@@ -2,6 +2,7 @@ package com.seblful.klas.ui.reports
 
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
+import com.seblful.klas.domain.model.PaymentMethod
 import com.seblful.klas.domain.reports.ReportCsv
 import com.seblful.klas.domain.reports.ReportPeriod
 import com.seblful.klas.domain.reports.Reports
@@ -62,7 +63,7 @@ class ReportsViewModelTest {
             ReportsViewModel(
                 ReportsQuery(
                     env.classRepo, env.studentRepo, env.subjectRepo,
-                    env.groupRepo, env.balanceRepo, clock,
+                    env.groupRepo, env.balanceRepo, env.paymentRepo, clock,
                 ),
                 documents, sharing, mainRule.dispatcher, clock,
             ),
@@ -95,7 +96,7 @@ class ReportsViewModelTest {
             ReportsViewModel(
                 ReportsQuery(
                     env.classRepo, env.studentRepo, env.subjectRepo,
-                    env.groupRepo, env.balanceRepo, lateEvening,
+                    env.groupRepo, env.balanceRepo, env.paymentRepo, lateEvening,
                 ),
                 documents, sharing, mainRule.dispatcher, lateEvening,
             ),
@@ -158,7 +159,10 @@ class ReportsViewModelTest {
 
         val vm = mainRule.own(
             ReportsViewModel(
-                ReportsQuery(env.classRepo, env.studentRepo, env.subjectRepo, env.groupRepo, env.balanceRepo, newYear),
+                ReportsQuery(
+                    env.classRepo, env.studentRepo, env.subjectRepo,
+                    env.groupRepo, env.balanceRepo, env.paymentRepo, newYear,
+                ),
                 documents, sharing, mainRule.dispatcher, newYear,
             ),
         )
@@ -215,7 +219,7 @@ class ReportsViewModelTest {
                 ReportsViewModel(
                     ReportsQuery(
                         env.classRepo, env.studentRepo, env.subjectRepo,
-                        env.groupRepo, env.balanceRepo, clock,
+                        env.groupRepo, env.balanceRepo, env.paymentRepo, clock,
                     ),
                     documents, sharing, counting, clock,
                 ),
@@ -296,5 +300,22 @@ class ReportsViewModelTest {
         assertFalse("the same tap, on the tab's return", vm.owesDebts(tap))
         assertTrue("a second tap on the notification", vm.owesDebts(Arrival(Unit)))
         assertFalse("nobody asked", vm.owesDebts(null))
+    }
+
+    @Test
+    fun `the report reads what was paid in its period, apart from what was earned`() = runTest(mainRule.dispatcher) {
+        val subj = env.fixtures.subject("Математика")
+        val sid = env.fixtures.pricedStudent("Аня", subj)
+        completed(sid, subj, at(thisYear, 3), 50)
+        env.paymentRepo.record(sid, Money.ofMajor(30), LocalDate(thisYear, 4, 2), PaymentMethod.CASH)
+        env.paymentRepo.record(sid, Money.ofMajor(40), LocalDate(thisYear - 1, 12, 30), PaymentMethod.CARD)
+        val vm = vm()
+        observing(vm.state)
+        runCurrent()
+
+        val report = vm.state.current
+        assertEquals(Money.ofMajor(50), report.totalIncome)
+        assertEquals(Money.ofMajor(30), report.received.total)
+        assertEquals(listOf(Reports.MethodLine(PaymentMethod.CASH, Money.ofMajor(30))), report.received.byMethod)
     }
 }

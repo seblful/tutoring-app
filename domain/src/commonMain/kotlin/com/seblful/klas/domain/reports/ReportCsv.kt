@@ -1,6 +1,7 @@
 package com.seblful.klas.domain.reports
 
 import com.seblful.klas.domain.model.Money
+import com.seblful.klas.domain.model.PaymentMethod
 import kotlinx.datetime.number
 
 /**
@@ -92,6 +93,9 @@ object ReportCsv {
         val byStudent: String,
         val debts: String,
         val outstanding: String,
+        /** «Получено» — the [Reports.Received] section; [methods] names its rows, null for "not said". */
+        val received: String,
+        val methods: Map<PaymentMethod?, String>,
     )
 
     /**
@@ -106,6 +110,16 @@ object ReportCsv {
      */
     fun linesFor(report: Reports.Report, headings: Headings): List<Line> = buildList {
         add(Line(headings.total, headings.period, report.totalIncome))
+        // Money in beside money earned — its own section, as on screen (D6), and only when there was any.
+        val received = report.received
+        if (!received.total.isZero) {
+            add(Line(headings.received, headings.period, received.total))
+            if (received.showsMethods) {
+                received.byMethod.forEach {
+                    add(Line(headings.received, headings.methods[it.method].orEmpty(), it.amount))
+                }
+            }
+        }
         fun section(title: String, lines: List<Reports.Line>) {
             lines.forEach { add(Line(title, it.label, it.amount)) }
         }

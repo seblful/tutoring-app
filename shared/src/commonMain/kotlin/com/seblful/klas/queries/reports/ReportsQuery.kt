@@ -1,12 +1,14 @@
 package com.seblful.klas.queries.reports
 
 import com.seblful.klas.data.billing.BalanceRepository
+import com.seblful.klas.data.billing.PaymentRepository
 import com.seblful.klas.data.lessons.ClassRepository
 import com.seblful.klas.data.people.GroupRepository
 import com.seblful.klas.data.people.StudentRepository
 import com.seblful.klas.data.people.SubjectRepository
 import com.seblful.klas.domain.model.Group
 import com.seblful.klas.domain.model.GroupId
+import com.seblful.klas.domain.model.Payment
 import com.seblful.klas.domain.model.Student
 import com.seblful.klas.domain.model.StudentBalance
 import com.seblful.klas.domain.model.Subject
@@ -41,6 +43,7 @@ class ReportsQuery @Inject constructor(
     private val subjects: SubjectRepository,
     private val groups: GroupRepository,
     private val balances: BalanceRepository,
+    private val payments: PaymentRepository,
     private val clock: WallClock,
 ) {
     private val zone: TimeZone get() = clock.zone
@@ -51,6 +54,7 @@ class ReportsQuery @Inject constructor(
         val subjects: List<Subject>,
         val groups: List<Group>,
         val balances: Map<Long, StudentBalance>,
+        val payments: List<Payment> = emptyList(),
     )
 
     fun observe(periods: Flow<ReportPeriod>): Flow<Reports.Report> = periods.distinctUntilChanged()
@@ -63,6 +67,7 @@ class ReportsQuery @Inject constructor(
                 balances.observe(),
                 ::Sources,
             )
+                .combine(paymentsIn(period.bounds)) { sources, paid -> sources.copy(payments = paid) }
                 // Today re-read at midnight ([days]), not once per emission: the current period's per-day
                 // figures count the days gone, and the tab stays alive behind the bar overnight.
                 .combine(clock.days()) { sources, today -> sources.report(period, today) }
@@ -81,6 +86,12 @@ class ReportsQuery @Inject constructor(
         )
     }
 
+    /** Only the period's payments: [Reports.Received] is about money in, and a balance is summed by SQLite. */
+    private fun paymentsIn(bounds: ReportPeriod.Bounds?): Flow<List<Payment>> = payments.observeBetween(
+        bounds?.from?.minus(1, DateTimeUnit.DAY)?.atStartOfDayIn(zone),
+        bounds?.untilExclusive?.plus(1, DateTimeUnit.DAY)?.atStartOfDayIn(zone),
+    )
+
     private fun Sources.report(period: ReportPeriod, today: LocalDate): Reports.Report = Reports.of(
         period = period,
         classes = classes,
@@ -97,5 +108,6 @@ class ReportsQuery @Inject constructor(
         groupNames = groups.associate { GroupId(it.id) to it.name },
         zone = zone,
         today = today,
+        payments = payments,
     )
 }

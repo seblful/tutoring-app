@@ -1,6 +1,7 @@
 package com.seblful.klas.domain.reports
 
 import com.seblful.klas.domain.model.Money
+import com.seblful.klas.domain.model.PaymentMethod
 import kotlinx.datetime.YearMonth
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -18,6 +19,11 @@ class ReportCsvTest {
     private val headings = ReportCsv.Headings(
         total = "Доход", period = "Июнь 2026", byGroup = "По группам", bySubject = "По предметам",
         byStudent = "По ученикам", debts = "Долги", outstanding = "Всего к получению",
+        received = "Получено",
+        methods = mapOf(
+            PaymentMethod.CASH to "Наличные", PaymentMethod.CARD to "Карта",
+            PaymentMethod.TRANSFER to "Перевод", null to "Не указано",
+        ),
     )
 
     private fun line(amount: Long, label: String) = Reports.Line(id = 0, label = label, amount = Money(amount))
@@ -54,6 +60,40 @@ class ReportCsvTest {
             ),
             ReportCsv.linesFor(report, headings).map { it.section to it.label },
         )
+    }
+
+    @Test
+    fun `money received follows the income, split by method when any payment said one`() {
+        val report = Reports.Report(
+            period = ReportPeriod(ReportPeriod.Kind.MONTH, YearMonth(2026, 6)),
+            totalIncome = Money(9000),
+            received = Reports.Received(
+                Money(7000),
+                listOf(Reports.MethodLine(PaymentMethod.CARD, Money(5000)), Reports.MethodLine(null, Money(2000))),
+            ),
+        )
+
+        assertEquals(
+            listOf(
+                "Доход" to "Июнь 2026",
+                "Получено" to "Июнь 2026",
+                "Получено" to "Карта",
+                "Получено" to "Не указано",
+            ),
+            ReportCsv.linesFor(report, headings).map { it.section to it.label },
+        )
+    }
+
+    @Test
+    fun `a period nothing was paid in has no received section, and unsaid methods no split`() {
+        val period = ReportPeriod(ReportPeriod.Kind.MONTH, YearMonth(2026, 6))
+        val unpaid = Reports.Report(period = period, totalIncome = Money(9000))
+        val unsaid = unpaid.copy(
+            received = Reports.Received(Money(3000), listOf(Reports.MethodLine(null, Money(3000)))),
+        )
+
+        assertEquals(listOf("Доход"), ReportCsv.linesFor(unpaid, headings).map { it.section })
+        assertEquals(listOf("Доход", "Получено"), ReportCsv.linesFor(unsaid, headings).map { it.section })
     }
 
     @Test

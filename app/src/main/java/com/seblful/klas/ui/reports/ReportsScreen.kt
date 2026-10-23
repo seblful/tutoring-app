@@ -61,6 +61,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.seblful.klas.R
+import com.seblful.klas.domain.model.PaymentMethod
 import com.seblful.klas.domain.reports.ReportCsv
 import com.seblful.klas.domain.reports.ReportPeriod
 import com.seblful.klas.domain.reports.Reports
@@ -89,6 +90,7 @@ import com.seblful.klas.ui.common.lessonKindFill
 import com.seblful.klas.ui.common.lessonKindLabel
 import com.seblful.klas.ui.common.lessonsStat
 import com.seblful.klas.ui.common.outsetRowPress
+import com.seblful.klas.ui.common.paymentMethodLabel
 import com.seblful.klas.ui.common.plusInset
 import com.seblful.klas.ui.common.rememberCreateDocument
 import com.seblful.klas.ui.common.rememberMessages
@@ -277,6 +279,10 @@ private fun csvHeadings(period: ReportPeriod): ReportCsv.Headings = ReportCsv.He
     byStudent = stringResource(R.string.reports_by_student),
     debts = stringResource(R.string.reports_debts),
     outstanding = stringResource(R.string.reports_total_outstanding),
+    received = stringResource(R.string.reports_received),
+    methods = (PaymentMethod.entries + null).associateWith { method ->
+        method?.let { paymentMethodLabel(it) } ?: stringResource(R.string.payment_method_none)
+    },
 )
 
 /**
@@ -331,6 +337,8 @@ private class BreakdownTitles(val byGroup: String, val bySubject: String, val by
 /** What the period came to: the income, then — if there was any — its stats, its shape and its kinds. */
 private fun LazyListScope.summaryItems(state: Reports.Report) {
     item(key = "income", contentType = "income") { IncomeCard(state) }
+    // Before the early return: a period can be paid for without earning, by payment in advance.
+    if (!state.received.total.isZero) standalone("received") { ReceivedCard(state.received) }
     if (state.noIncome) {
         standalone("no-income") {
             Text(
@@ -453,6 +461,22 @@ private fun IncomeCard(state: Reports.Report) {
             stringResource(R.string.reports_earned_hint),
             style = MaterialTheme.typography.bodySmall,
         )
+    }
+}
+
+/** Money in — what was paid in the period, beside the income card's money earned (D6). */
+@Composable
+private fun ReceivedCard(received: Reports.Received) {
+    ReportCard(stringResource(R.string.reports_received), subtitle = stringResource(R.string.reports_received_hint)) {
+        AmountRow(stringResource(R.string.reports_received_total), AmountText(received.total.text()), bold = true)
+        if (received.showsMethods) {
+            received.byMethod.forEach { line ->
+                AmountRow(
+                    line.method?.let { paymentMethodLabel(it) } ?: stringResource(R.string.payment_method_none),
+                    AmountText(line.amount.text()),
+                )
+            }
+        }
     }
 }
 
