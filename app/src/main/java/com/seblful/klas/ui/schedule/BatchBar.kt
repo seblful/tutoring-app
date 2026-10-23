@@ -10,12 +10,27 @@ import com.seblful.klas.R
 import com.seblful.klas.ui.common.Messages
 import com.seblful.klas.ui.common.NamedIconButton
 import com.seblful.klas.ui.theme.KlasIcons
+import com.seblful.klas.ui.theme.klasSemantics
 
-/** The bar's actions while lessons are picked: the two batch actions safe to offer (R4), each undone at once. */
+/**
+ * The bar's actions while lessons are picked: the batch actions safe to offer (R4), each undone at once. Cancel
+ * is red, as the sheet's: it takes the lessons off the schedule and what the taught ones earned. When every
+ * lesson picked is cancelled ([allCancelled]) its place is «Return to planned», in ink — green is the app's
+ * «taught» — and Mark taught, which none of them can take, steps aside.
+ */
 @Composable
-internal fun BatchActions(batch: LessonBatch) {
+internal fun BatchActions(batch: LessonBatch, allCancelled: Boolean) {
+    if (allCancelled) {
+        NamedIconButton(KlasIcons.Filled.Undo, stringResource(R.string.class_correct_planned), batch::replan)
+        return
+    }
     NamedIconButton(KlasIcons.Outlined.CheckCircle, stringResource(R.string.batch_mark_taught), batch::markTaught)
-    NamedIconButton(KlasIcons.Outlined.EventBusy, stringResource(R.string.batch_cancel), batch::cancel)
+    NamedIconButton(
+        KlasIcons.Outlined.EventBusy,
+        stringResource(R.string.batch_cancel),
+        batch::cancel,
+        tint = klasSemantics.destructive,
+    )
 }
 
 /** What a batch did, said once in [messages] — with one Undo for the lot. */
@@ -31,6 +46,19 @@ internal fun BatchMessages(batch: LessonBatch, messages: Messages) {
                 is LessonBatch.Done.Cancelled -> messages.undoable(
                     resources.getQuantityString(R.plurals.batch_cancelled, done.receipts.size, done.receipts.size),
                 ) { batch.undo(done) }
+                is LessonBatch.Done.Replanned -> {
+                    val clashed = resources.getQuantityString(R.plurals.batch_replan_clashed, done.clashed, done.clashed)
+                    if (done.receipts.isEmpty()) {
+                        messages.show(clashed)
+                    } else {
+                        val back = resources.getQuantityString(
+                            R.plurals.batch_replanned,
+                            done.receipts.size,
+                            done.receipts.size,
+                        )
+                        messages.undoable(if (done.clashed > 0) "$back · $clashed" else back) { batch.undo(done) }
+                    }
+                }
                 is LessonBatch.Done.ChangedSince -> messages.show(
                     resources.getQuantityString(R.plurals.batch_changed_since, done.count, done.count),
                 )
@@ -39,6 +67,7 @@ internal fun BatchMessages(batch: LessonBatch, messages: Messages) {
                         when (done.action) {
                             LessonBatch.Action.MARK_TAUGHT -> R.string.batch_none_marked
                             LessonBatch.Action.CANCEL -> R.string.batch_none_cancelled
+                            LessonBatch.Action.REPLAN -> R.string.batch_none_replanned
                         },
                     ),
                 )

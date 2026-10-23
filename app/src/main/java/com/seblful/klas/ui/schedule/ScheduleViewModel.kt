@@ -338,6 +338,19 @@ class ScheduleViewModel @Inject constructor(
             }
             .derive(this, computation, Loadable.Loading)
 
+    /**
+     * Whether every lesson picked is cancelled, so the bar offers to return them to the plan. Read from the shown
+     * rows: a pick that is not among them (the selection outlived its page) is not known to be cancelled.
+     */
+    val pickedAllCancelled: StateFlow<Boolean> =
+        combine(batch.selected, content) { ids, loaded ->
+            val rows = loaded.valueOrNull()?.rowsShown.orEmpty()
+            ids.isNotEmpty() && ids.all { id ->
+                rows.firstOrNull { row -> row.classes.any { it.id == id } }?.session?.status == LessonStatus.CANCELLED
+            }
+        }
+            .derive(this, computation, false)
+
     private val minutes: Flow<Instant> = clock.minutes()
 
     /**

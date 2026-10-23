@@ -144,6 +144,7 @@ fun ScheduleScreen(
     val emptyReason by viewModel.emptyReason.collectAsStateWithLifecycle()
     // Lessons picked by a long-press: while any are, the bar is theirs — see [LessonBatch].
     val picked by viewModel.batch.selected.collectAsStateWithLifecycle()
+    val pickedCancelled by viewModel.pickedAllCancelled.collectAsStateWithLifecycle()
 
     /** *A change of view is a new page, and a page starts at the top.** */
     val listState = rememberLazyListState()
@@ -233,7 +234,9 @@ fun ScheduleScreen(
             page = viewMode,
             messages = messages,
             maxContentWidth = if (monthBeside) SupportingPaneMaxWidth else MaxContentWidth,
-            selection = Selection(picked.size, viewModel.batch::clear) { BatchActions(viewModel.batch) },
+            selection = Selection(picked.size, viewModel.batch::clear) {
+                BatchActions(viewModel.batch, pickedCancelled)
+            },
             actions = {
                 ScheduleFilterAction(
                     filter = filter,

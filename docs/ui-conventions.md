@@ -263,6 +263,9 @@ Build screens from shared state and controls. Feature rules belong in the domain
   the swipe rests while any are picked; Back or the bar's ✕ lets go. Each action takes what a lesson's own
   sheet would: Mark taught the planned, Cancel the planned and the taught; when none of the picked can, it
   says so (an action that does nothing must not look like a broken one). «Cancel day» takes only the planned.
+  Cancel is red here as on the sheet. When every lesson picked is cancelled, its place is «Return to planned»
+  in ink — not green, which is «taught» — and Mark taught steps aside; one whose hour was taken since stays
+  cancelled, and the message says how many.
   Current homework picks the same way (`HomeworkBatch`, `HomeworkPicking`) for Mark done; the archive and the
   student and group cards do not pick. A screen hands `KlasScreen` a `Selection` and its bar becomes the
   selection bar: the count as a polite live region, ✕ and Back to let go, the pick's actions in place of the

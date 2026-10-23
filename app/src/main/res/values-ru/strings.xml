@@ -1250,6 +1250,19 @@
     <string name="batch_cancel">Отменить занятия</string>
     <string name="batch_none_marked">Отметить проведёнными можно только запланированные занятия</string>
     <string name="batch_none_cancelled">Эти занятия уже отменены</string>
+    <string name="batch_none_replanned">Вернуть в план можно только отменённые занятия</string>
+    <plurals name="batch_replanned">
+        <item quantity="one">%1$d занятие снова в плане</item>
+        <item quantity="few">%1$d занятия снова в плане</item>
+        <item quantity="many">%1$d занятий снова в плане</item>
+        <item quantity="other">%1$d занятия снова в плане</item>
+    </plurals>
+    <plurals name="batch_replan_clashed">
+        <item quantity="one">%1$d занятие осталось отменённым: время занято</item>
+        <item quantity="few">%1$d занятия остались отменёнными: время занято</item>
+        <item quantity="many">%1$d занятий остались отменёнными: время занято</item>
+        <item quantity="other">%1$d занятия остались отменёнными: время занято</item>
+    </plurals>
     <plurals name="homework_batch_done">
         <item quantity="one">Сделано: %1$d</item>
         <item quantity="few">Сделано: %1$d</item>

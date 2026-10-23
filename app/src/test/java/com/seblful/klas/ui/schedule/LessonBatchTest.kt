@@ -124,6 +124,31 @@ class LessonBatchTest {
         }
 
     @Test
+    fun `held cancelled lessons return to the plan with one undo, and one whose hour is taken stays cancelled`() =
+        runTest(mainRule.dispatcher) {
+            val (a, b) = morning()
+            listOf(a, b).forEach { env.classRepo.setStatus(env.classRepo.getSessionFor(it)!!, LessonStatus.CANCELLED) }
+            val subject = env.fixtures.subject("Physics")
+            val other = env.fixtures.pricedStudent("Глеб", subject)
+            env.fixtures.lesson(subject, listOf(other), env.classRepo.getSessionFor(b)!!.start)
+            val batch = batch
+            batch.toggle(a)
+            batch.toggle(b)
+
+            batch.replan()
+            runCurrent()
+            val replanned = batch.done.stream.first() as LessonBatch.Done.Replanned
+
+            assertEquals(1, replanned.receipts.size)
+            assertEquals(1, replanned.clashed)
+            assertEquals(listOf(LessonStatus.SCHEDULED, LessonStatus.CANCELLED), listOf(status(a), status(b)))
+
+            batch.undo(replanned)
+            runCurrent()
+            assertEquals(LessonStatus.CANCELLED, status(a))
+        }
+
+    @Test
     fun `an undone batch cancel leaves a lesson changed since, and says how many`() = runTest(mainRule.dispatcher) {
         val (a, b) = morning()
         val batch = batch

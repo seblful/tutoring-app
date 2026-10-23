@@ -17,11 +17,12 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 
 /**
- * Lessons picked by a long-press, and what can be done to them at once: marked taught, or cancelled — the two
- * batch actions safe enough to offer, each with **one** undo for the lot. Picked by a class of each lesson, so
- * a group lesson is one pick. Each action touches the lessons the lesson's own sheet would let it — a planned
- * one is marked taught; a planned or a taught one is cancelled — and leaves the rest as they are, saying so
- * when that is all of them ([Done.Untouched]): an action that does nothing must not look like one that failed.
+ * Lessons picked by a long-press, and what can be done to them at once: marked taught, cancelled, or — when
+ * every one picked is cancelled — returned to planned; each with **one** undo for the lot. Picked by a class of
+ * each lesson, so a group lesson is one pick. Each action touches the lessons the lesson's own sheet would let
+ * it — a planned one is marked taught; a planned or a taught one is cancelled; a cancelled one re-planned — and
+ * leaves the rest as they are, saying so when that is all of them ([Done.Untouched]): an action that does
+ * nothing must not look like one that failed.
  *
  * @param scope the app's, as every lesson write's: the selection bar closes as the action is tapped.
  */
@@ -32,6 +33,9 @@ class LessonBatch(private val classes: ClassRepository, private val scope: Corou
 
         data class Cancelled(val receipts: List<SessionReceipt>) : Done
 
+        /** Back in the plan; [clashed] stayed cancelled, their hour taken by another lesson since. */
+        data class Replanned(val receipts: List<SessionReceipt>, val clashed: Int) : Done
+
         /** None of the picked lessons could take [action]: marking taught what is not planned, cancelling the cancelled. */
         data class Untouched(val action: Action) : Done
 
@@ -41,7 +45,7 @@ class LessonBatch(private val classes: ClassRepository, private val scope: Corou
         data object Failed : Done
     }
 
-    enum class Action { MARK_TAUGHT, CANCEL }
+    enum class Action { MARK_TAUGHT, CANCEL, REPLAN }
 
     private val _selected = MutableStateFlow<Set<Long>>(emptySet())
 
@@ -85,11 +89,22 @@ class LessonBatch(private val classes: ClassRepository, private val scope: Corou
             scope.settleAfterUndoWindow(done, Done.Failed) { classes.settleAll(receipts) }
         }
 
+    /** Returns the picked cancelled lessons to the plan, each whose hour is still free. */
+    fun replan() = act(_selected.value, Action.REPLAN, sheetAllows(LessonStatus.SCHEDULED)) { sessions ->
+        val writes = sessions.map { classes.setStatusUndoable(it, LessonStatus.SCHEDULED) }
+        val receipts = writes.mapNotNull { (it as? LessonWrite.Written)?.value }
+        val clashed = writes.count { it is LessonWrite.HourTaken }
+        if (receipts.isEmpty() && clashed == 0) return@act
+        done.send(Done.Replanned(receipts, clashed))
+        if (receipts.isNotEmpty()) scope.settleAfterUndoWindow(done, Done.Failed) { classes.settleAll(receipts) }
+    }
+
     /** Takes [batch] back, each lesson only if nothing about it has changed since. */
     fun undo(batch: Done) = scope.write(done, Done.Failed) {
         val kept = when (batch) {
             is Done.Marked -> batch.sessions.count { !classes.correctCompletion(it, unchanged = it) }
             is Done.Cancelled -> classes.undoAll(batch.receipts).count { it != UndoResult.Restored }
+            is Done.Replanned -> classes.undoAll(batch.receipts).count { it != UndoResult.Restored }
             else -> 0
         }
         if (kept > 0) done.send(Done.ChangedSince(kept))
