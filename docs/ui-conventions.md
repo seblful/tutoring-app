@@ -208,6 +208,9 @@ Build screens from shared state and controls. Feature rules belong in the domain
   layout or draw (`graphicsLayer`, `drawBehind`, `offset {}`), not in composition. A list row does no work
   that every row shares (a measured width, the clock format, a pulse): it is done once above the list.
 - A row swipe claims only its own direction (`SwipeToward`); the other way turns a `SegmentedPage`.
+- A long-press only ever selects (R7). On the schedule it picks lessons (`LessonBatch`, `LessonPicking`): the
+  bar then counts them and offers Mark taught and Cancel, each undone for the lot as one; a tap picks too and
+  the swipe rests while any are picked; Back or the arrow lets go. Only planned lessons are acted on.
   Homework slides toward the tab it moves to — current right, done left — the way its tab cannot turn.
 - Every swipe has a `swipeAction` on the same semantic node; background actions are not read. Use
   `selected` semantics (`TickedMenuItem`), headings, and `NamedIconButton`/`HoldToName` on bar icons/tabs.

@@ -1226,4 +1226,25 @@
     <string name="form_gap_members">участники</string>
     <string name="filter_more">Фильтр</string>
     <string name="filter_all">Все</string>
+    <plurals name="batch_selected">
+        <item quantity="one">Выбрано: %1$d</item>
+        <item quantity="few">Выбрано: %1$d</item>
+        <item quantity="many">Выбрано: %1$d</item>
+        <item quantity="other">Выбрано: %1$d</item>
+    </plurals>
+    <plurals name="batch_cancelled">
+        <item quantity="one">%1$d занятие отменено</item>
+        <item quantity="few">%1$d занятия отменены</item>
+        <item quantity="many">%1$d занятий отменено</item>
+        <item quantity="other">%1$d занятия отменено</item>
+    </plurals>
+    <plurals name="batch_changed_since">
+        <item quantity="one">%1$d занятие изменилось с тех пор и осталось как есть.</item>
+        <item quantity="few">%1$d занятия изменились с тех пор и остались как есть.</item>
+        <item quantity="many">%1$d занятий изменились с тех пор и остались как есть.</item>
+        <item quantity="other">%1$d занятия изменились с тех пор и остались как есть.</item>
+    </plurals>
+    <string name="batch_select">Выбрать</string>
+    <string name="batch_mark_taught">Отметить проведёнными</string>
+    <string name="batch_cancel">Отменить занятия</string>
 </resources>

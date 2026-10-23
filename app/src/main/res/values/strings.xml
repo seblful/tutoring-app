@@ -1087,4 +1087,19 @@
     <string name="form_gap_members">members</string>
     <string name="filter_more">Filter</string>
     <string name="filter_all">All</string>
+    <plurals name="batch_selected">
+        <item quantity="one">%1$d selected</item>
+        <item quantity="other">%1$d selected</item>
+    </plurals>
+    <plurals name="batch_cancelled">
+        <item quantity="one">%1$d lesson cancelled</item>
+        <item quantity="other">%1$d lessons cancelled</item>
+    </plurals>
+    <plurals name="batch_changed_since">
+        <item quantity="one">%1$d lesson changed since, so it was left as it is.</item>
+        <item quantity="other">%1$d lessons changed since, so they were left as they are.</item>
+    </plurals>
+    <string name="batch_select">Select</string>
+    <string name="batch_mark_taught">Mark taught</string>
+    <string name="batch_cancel">Cancel lessons</string>
 </resources>

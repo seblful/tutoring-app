@@ -6,6 +6,7 @@ import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isSelectable
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
+import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -15,6 +16,7 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextReplacement
+import androidx.compose.ui.test.performTouchInput
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.espresso.Espresso
@@ -93,6 +95,9 @@ class TutorWorkflowTest {
     }
 
     private fun text(res: Int) = ApplicationProvider.getApplicationContext<StoreApp>().getString(res)
+
+    private fun selected(count: Int) = ApplicationProvider.getApplicationContext<StoreApp>().resources
+        .getQuantityString(R.plurals.batch_selected, count, count)
 
     private fun waitFor(res: Int) {
         waitForText(text(res))
@@ -175,6 +180,22 @@ class TutorWorkflowTest {
             .setAction(TrayNavigation.ACTION_OPEN_LESSON)
             .putExtra(TrayNavigation.EXTRA_CLASS_ID, lessonId)
             .addFlags(flags)
+
+    @Test
+    fun `a long-press picks a lesson, and the bar marks the pick taught`() {
+        ActivityScenario.launch(MainActivity::class.java).use {
+            waitForText("Workflow student")
+            compose.onNode(hasText(text(R.string.nav_schedule)) and isSelectable()).performClick()
+            waitForText("Workflow student")
+            compose.onNodeWithText("Workflow student").performTouchInput { longClick() }
+            waitForText(selected(1))
+            compose.onNodeWithContentDescription(text(R.string.batch_mark_taught)).performClick()
+            compose.waitUntil(5_000) {
+                runBlocking { graph.classes.getById(lessonId)?.status == LessonStatus.COMPLETED }
+            }
+            compose.onNodeWithText(selected(1)).assertDoesNotExist()
+        }
+    }
 
     @Test
     fun `the widget's today opens the Today tab`() {

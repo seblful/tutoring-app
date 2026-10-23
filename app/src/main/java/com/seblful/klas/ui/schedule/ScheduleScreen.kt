@@ -23,6 +23,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -37,6 +38,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigationevent.NavigationEventInfo
+import androidx.navigationevent.compose.NavigationBackHandler
+import androidx.navigationevent.compose.rememberNavigationEventState
 import com.seblful.klas.R
 import com.seblful.klas.domain.lesson.DeleteWarning
 import com.seblful.klas.domain.lesson.LessonPhase
@@ -132,6 +136,13 @@ fun ScheduleScreen(
     // Why an empty schedule is empty — one answer for all three views, so they cannot disagree about
     // whether the tutor is looking at a quiet week or a narrowed one. See [ScheduleEmpty].
     val emptyReason by viewModel.emptyReason.collectAsStateWithLifecycle()
+    // Lessons picked by a long-press: while any are, the bar is theirs — see [LessonBatch].
+    val picked by viewModel.batch.selected.collectAsStateWithLifecycle()
+    NavigationBackHandler(
+        state = rememberNavigationEventState(NavigationEventInfo.None),
+        isBackEnabled = picked.isNotEmpty(),
+        onBackCompleted = viewModel.batch::clear,
+    )
 
     /** *A change of view is a new page, and a page starts at the top.** */
     val listState = rememberLazyListState()
@@ -192,6 +203,8 @@ fun ScheduleScreen(
         }
     }
 
+    BatchMessages(viewModel.batch, messages)
+
     val confirmFeedback = rememberConfirmFeedback()
     val rejectFeedback = rememberRejectFeedback()
 
@@ -209,294 +222,207 @@ fun ScheduleScreen(
 
     // On an expanded window the month is Material's supporting pane: the grid beside the day it picks.
     val monthBeside = viewMode == ScheduleViewMode.MONTH && roomForSupportingPane()
-    KlasScreen(
-        title = stringResource(R.string.schedule_title),
-        page = viewMode,
-        messages = messages,
-        maxContentWidth = if (monthBeside) SupportingPaneMaxWidth else MaxContentWidth,
-        actions = {
-            // Offered only once there is somebody to narrow to — a menu whose every entry is «Все
-            // ученики» is a control that cannot do anything.
-            if (filterableStudents.isNotEmpty()) {
-                FilterMenuAction(
-                    name = stringResource(R.string.schedule_filter_student),
-                    allLabel = stringResource(R.string.schedule_filter_all),
-                    options = filterableStudents,
-                    selected = filterableStudents.firstOrNull { it.id == studentFilter?.studentId },
-                    optionLabel = { it.name },
-                    onSelect = { viewModel.setStudentFilter(it?.id) },
-                    narrowed = studentFilter != null,
-                )
-            }
-            SettingsGear(onSettings)
-        },
-        floatingActionButton = {
-            // **It stays put, and says why instead.** It was hidden while nothing could be booked, which
-            // solved the wrong half of the problem: the version before that popped a toast naming what
-            // was missing and left the tutor to go and find it — a control whose only behaviour is to
-            // decline — so it was removed. But a button that comes and goes on the app's busiest screen
-            // is its own defect: the tutor's thumb learns where it is, and on the one day it is absent
-            // the schedule reads as broken rather than as unready.
-            //
-            // What was actually wrong with the toast is that it was a dead end. This is not: the message
-            // carries «Добавить ученика», which is the step that unblocks booking, so the refusal and the
-            // way out arrive together. The empty state below still offers the same step for a tutor who
-            // reads the page instead of reaching for the button.
-            KlasFab(
-                label = stringResource(R.string.schedule_add_class),
-                onClick = {
-                    // Before the setup has been read there is no answer yet, and the tap waits for it.
-                    when (canAddClass.valueOrNull()) {
-                        true -> addClass()
-                        false -> messages.show(cannotBookMsg, addStudentLabel, onAddStudent)
-                        null -> Unit
-                    }
-                },
-            )
-        },
-    ) { modifier, bottomInset ->
-        // **The view also turns by dragging the page sideways** — see [swipeBetweenSegments]. It reaches the
-        // whole body, including the list, and the lesson cards keep their own swipe regardless: a child
-        // consumes the drag before an ancestor is offered it, so a gesture begun on a lesson still marks
-        // that lesson taught and one begun in the space around them turns the page. The two never arbitrate,
-        // because they never meet.
-        //
-        // Which view, said out loud. It used to hide behind an unlabelled calendar icon that opened a menu —
-        // two taps to switch, and the icon never told you which of the three you were in. A segmented control
-        // is one tap and is its own label; the app already picks this way in Settings. The view, the filter
-        // and the pager are painted with the bar, so they and it tint as one block when the agenda scrolls
-        // beneath — see [SegmentedPage].
-        SegmentedPage(
-            options = ScheduleViewMode.entries,
-            selected = viewMode,
-            onSelect = viewModel::setViewMode,
-            label = { mode -> stringResource(viewModeLabel(mode)) },
-            modifier = modifier,
-            // Beside the day, the month's pager sits over the grid it turns.
-            headerAlignment = if (monthBeside) Alignment.Start else Alignment.CenterHorizontally,
-            headerMaxWidth = if (monthBeside) CalendarPaneWidth else MaxContentWidth,
-            header = {
-                // **The chip is what makes the filter honest.** A narrowed schedule and a genuinely quiet
-                // week look identical, so for as long as one student's lessons are what is on screen their
-                // name stays above it — carrying its own way out, which is the difference between a filter
-                // and a mode the tutor can get stuck in.
-                studentFilter?.let { filter ->
-                    FilterChipRow(
-                        name = filter.name,
-                        onClear = { viewModel.setStudentFilter(null) },
+    val picking = LessonPicking(picked) { viewModel.batch.toggle(it.session.first.id) }
+    CompositionLocalProvider(LocalLessonPicking provides picking) {
+        KlasScreen(
+            title = if (picked.isEmpty()) {
+                stringResource(R.string.schedule_title)
+            } else {
+                pluralStringResource(R.plurals.batch_selected, picked.size, picked.size)
+            },
+            onBack = viewModel.batch::clear.takeIf { picked.isNotEmpty() },
+            page = viewMode,
+            messages = messages,
+            maxContentWidth = if (monthBeside) SupportingPaneMaxWidth else MaxContentWidth,
+            actions = {
+                if (picked.isNotEmpty()) {
+                    BatchActions(viewModel.batch)
+                    return@KlasScreen
+                }
+                // Offered only once there is somebody to narrow to — a menu whose every entry is «Все
+                // ученики» is a control that cannot do anything.
+                if (filterableStudents.isNotEmpty()) {
+                    FilterMenuAction(
+                        name = stringResource(R.string.schedule_filter_student),
+                        allLabel = stringResource(R.string.schedule_filter_all),
+                        options = filterableStudents,
+                        selected = filterableStudents.firstOrNull { it.id == studentFilter?.studentId },
+                        optionLabel = { it.name },
+                        onSelect = { viewModel.setStudentFilter(it?.id) },
+                        narrowed = studentFilter != null,
                     )
                 }
+                SettingsGear(onSettings)
+            },
+            floatingActionButton = {
+                // While lessons are picked the bar is theirs, and booking waits.
+                if (picked.isNotEmpty()) return@KlasScreen
+                // **It stays put, and says why instead.** It was hidden while nothing could be booked, which
+                // solved the wrong half of the problem: the version before that popped a toast naming what
+                // was missing and left the tutor to go and find it — a control whose only behaviour is to
+                // decline — so it was removed. But a button that comes and goes on the app's busiest screen
+                // is its own defect: the tutor's thumb learns where it is, and on the one day it is absent
+                // the schedule reads as broken rather than as unready.
+                //
+                // What was actually wrong with the toast is that it was a dead end. This is not: the message
+                // carries «Добавить ученика», which is the step that unblocks booking, so the refusal and the
+                // way out arrive together. The empty state below still offers the same step for a tutor who
+                // reads the page instead of reaching for the button.
+                KlasFab(
+                    label = stringResource(R.string.schedule_add_class),
+                    onClick = {
+                        // Before the setup has been read there is no answer yet, and the tap waits for it.
+                        when (canAddClass.valueOrNull()) {
+                            true -> addClass()
+                            false -> messages.show(cannotBookMsg, addStudentLabel, onAddStudent)
+                            null -> Unit
+                        }
+                    },
+                )
+            },
+        ) { modifier, bottomInset ->
+            // **The view also turns by dragging the page sideways** — see [swipeBetweenSegments]. It reaches the
+            // whole body, including the list, and the lesson cards keep their own swipe regardless: a child
+            // consumes the drag before an ancestor is offered it, so a gesture begun on a lesson still marks
+            // that lesson taught and one begun in the space around them turns the page. The two never arbitrate,
+            // because they never meet.
+            //
+            // Which view, said out loud. It used to hide behind an unlabelled calendar icon that opened a menu —
+            // two taps to switch, and the icon never told you which of the three you were in. A segmented control
+            // is one tap and is its own label; the app already picks this way in Settings. The view, the filter
+            // and the pager are painted with the bar, so they and it tint as one block when the agenda scrolls
+            // beneath — see [SegmentedPage].
+            SegmentedPage(
+                options = ScheduleViewMode.entries,
+                selected = viewMode,
+                onSelect = viewModel::setViewMode,
+                label = { mode -> stringResource(viewModeLabel(mode)) },
+                modifier = modifier,
+                // Beside the day, the month's pager sits over the grid it turns.
+                headerAlignment = if (monthBeside) Alignment.Start else Alignment.CenterHorizontally,
+                headerMaxWidth = if (monthBeside) CalendarPaneWidth else MaxContentWidth,
+                header = {
+                    // **The chip is what makes the filter honest.** A narrowed schedule and a genuinely quiet
+                    // week look identical, so for as long as one student's lessons are what is on screen their
+                    // name stays above it — carrying its own way out, which is the difference between a filter
+                    // and a mode the tutor can get stuck in.
+                    studentFilter?.let { filter ->
+                        FilterChipRow(
+                            name = filter.name,
+                            onClear = { viewModel.setStudentFilter(null) },
+                        )
+                    }
 
-                // The navigator stays pinned in every mode, so paging is always one tap away.
-                when (viewMode) {
-                    ScheduleViewMode.DAY -> {
-                        DayNavigator(
-                            // The day the list *is* — see [ScheduleContent.Day.date]. Paging still
-                            // steps from the selected day; this only keeps the title and the rows
-                            // turning over in the same frame.
-                            date = dayContent.valueOrNull()?.date ?: date,
-                            onPrevious = viewModel::goToPreviousDay,
-                            onNext = viewModel::goToNextDay,
+                    // The navigator stays pinned in every mode, so paging is always one tap away.
+                    when (viewMode) {
+                        ScheduleViewMode.DAY -> {
+                            DayNavigator(
+                                // The day the list *is* — see [ScheduleContent.Day.date]. Paging still
+                                // steps from the selected day; this only keeps the title and the rows
+                                // turning over in the same frame.
+                                date = dayContent.valueOrNull()?.date ?: date,
+                                onPrevious = viewModel::goToPreviousDay,
+                                onNext = viewModel::goToNextDay,
+                                onToday = viewModel::goToToday,
+                                selected = date,
+                                onPick = viewModel::selectDate,
+                            )
+                            // What the day comes to, under the day it names — the stepper's title is the date,
+                            // so this is the one place in this view the summary can sit. No rule under it: the
+                            // week's and month's divide a calendar grid from the agenda, and here there is no
+                            // grid — the cards begin on surfaces of their own, and once they pass beneath, the
+                            // tinted header is the edge ([ScreenHeader]).
+                            DaySummaryLine(
+                                summary = dayContent.valueOrNull()?.summary ?: DaySummary.NONE,
+                                modifier = Modifier.padding(horizontal = Spacing.gutter),
+                            )
+                        }
+                        ScheduleViewMode.WEEK -> WeekNavigator(
+                            days = week,
+                            onPrevious = viewModel::goToPreviousWeek,
+                            onNext = viewModel::goToNextWeek,
                             onToday = viewModel::goToToday,
                             selected = date,
                             onPick = viewModel::selectDate,
                         )
-                        // What the day comes to, under the day it names — the stepper's title is the date,
-                        // so this is the one place in this view the summary can sit. No rule under it: the
-                        // week's and month's divide a calendar grid from the agenda, and here there is no
-                        // grid — the cards begin on surfaces of their own, and once they pass beneath, the
-                        // tinted header is the edge ([ScreenHeader]).
-                        DaySummaryLine(
-                            summary = dayContent.valueOrNull()?.summary ?: DaySummary.NONE,
-                            modifier = Modifier.padding(horizontal = Spacing.gutter),
+                        ScheduleViewMode.MONTH -> MonthNavigator(
+                            month = month,
+                            onPrevious = viewModel::goToPreviousMonth,
+                            onNext = viewModel::goToNextMonth,
+                            onToday = viewModel::goToToday,
+                            selected = date,
+                            onPick = viewModel::selectDate,
                         )
                     }
-                    ScheduleViewMode.WEEK -> WeekNavigator(
-                        days = week,
-                        onPrevious = viewModel::goToPreviousWeek,
-                        onNext = viewModel::goToNextWeek,
-                        onToday = viewModel::goToToday,
-                        selected = date,
-                        onPick = viewModel::selectDate,
-                    )
-                    ScheduleViewMode.MONTH -> MonthNavigator(
-                        month = month,
-                        onPrevious = viewModel::goToPreviousMonth,
-                        onNext = viewModel::goToNextMonth,
-                        onToday = viewModel::goToToday,
-                        selected = date,
-                        onPick = viewModel::selectDate,
-                    )
-                }
-            },
-        ) {
-            // The grid scrolls with the classes rather than sitting above them: six week rows plus
-            // a full day of classes doesn't fit a landscape phone.
-            // Measured here, once for every card in the list — see [ColumnTime].
-            val timeWidth = rememberColumnTimeWidth(MaterialTheme.typography.titleMedium)
-            if (monthBeside) {
-                Row(Modifier.fillMaxSize()) {
-                    // The grid keeps its phone width, scrolling alone if a short window cuts it off.
-                    MonthCalendar(
-                        grid = grid,
-                        loads = loads,
-                        selected = date,
-                        today = today,
-                        onSelect = viewModel::selectDate,
-                        modifier = Modifier
-                            .width(CalendarPaneWidth)
-                            .fillMaxHeight()
-                            .verticalScroll(rememberScrollState())
-                            .padding(Spacing.gutter)
-                            .padding(bottomInset),
-                    )
-                    LazyColumn(
-                        Modifier.weight(1f).fillMaxHeight(),
-                        state = listState,
-                        // The grid's gutter and this make Material's 24 dp between panes.
-                        contentPadding = PaddingValues(
-                            start = Spacing.sectionGap - Spacing.gutter,
-                            top = Spacing.gutter,
-                            end = Spacing.gutter,
-                            bottom = FabClearance,
-                        ).plusInset(bottomInset),
-                        verticalArrangement = Arrangement.spacedBy(Spacing.itemGap),
-                    ) {
-                        item(key = "selected-day", contentType = "day-header") {
-                            SelectedDayHeader(
-                                date = dayContent.valueOrNull()?.date ?: date,
-                                summary = dayContent.valueOrNull()?.summary ?: DaySummary.NONE,
-                            )
-                        }
-                        dayList(
-                            view = ScheduleViewMode.MONTH,
-                            state = dayContent,
-                            emptyReason = emptyReason,
-                            nowMark = nowMark,
-                            phases = phases,
-                            timeWidth = timeWidth,
-                            onRowClick = { sheetFor = it },
-                            onComplete = { viewModel.setStatus(it.session, LessonStatus.COMPLETED) },
-                            onAddClass = addClass,
-                            onAddStudent = onAddStudent,
-                        )
-                    }
-                }
-                return@SegmentedPage
-            }
-            LazyColumn(
-                Modifier.fillMaxSize(),
-                state = listState,
-                // The gutter is the list's, not each row's — see [Spacing]. The calendar items in here
-                // are laid out inside it too, which is why `MonthCalendar` and `WeekStrip` no longer
-                // carry a narrower one of their own.
-                contentPadding = FabListPadding.plusInset(bottomInset),
-                verticalArrangement = Arrangement.spacedBy(Spacing.itemGap),
+                },
             ) {
-                when (viewMode) {
-                    // The day list stands alone under its stepper.
-                    ScheduleViewMode.DAY -> dayList(
-                        view = ScheduleViewMode.DAY,
-                        state = dayContent,
-                        emptyReason = emptyReason,
-                        nowMark = nowMark,
-                        phases = phases,
-                        timeWidth = timeWidth,
-                        onRowClick = { sheetFor = it },
-                        onComplete = { viewModel.setStatus(it.session, LessonStatus.COMPLETED) },
-                        onAddClass = addClass,
-                        onAddStudent = onAddStudent,
-                    )
-
-                    // A whole week at once: the strip is an overview and a day picker for the add
-                    // button, while the agenda below always shows every day that has classes.
-                    ScheduleViewMode.WEEK -> {
-                        item(key = "week-strip", contentType = "calendar") {
-                            Column {
-                                WeekStrip(
-                                    days = week,
-                                    loads = loads,
-                                    selected = date,
-                                    today = today,
-                                    onSelect = viewModel::selectDate,
-                                )
-                                Spacer(Modifier.height(Spacing.itemGap))
-                                KlasDivider()
-                            }
-                        }
-                        val week = contentState.valueOrNull()
-                        if (week == null) {
-                            item(key = "loading", contentType = "loading") { LessonsSkeleton() }
-                        } else if (week.sections.isEmpty()) {
-                            item(key = "empty", contentType = "empty") {
-                                // The same three answers the day list gets, from the same place — this
-                                // branch used to weigh two of them itself and offer nothing either way.
-                                ScheduleEmptyState(
-                                    reason = emptyReason,
-                                    whole = ScheduleEmptySpan.WEEK,
-                                    onAddClass = addClass,
-                                    onAddStudent = onAddStudent,
-                                    minHeight = 200.dp,
-                                )
-                            }
-                        } else {
-                            week.sections.forEach { section ->
-                                item(key = "day-${section.date}", contentType = "day-header") {
-                                    DaySectionHeader(
-                                        date = section.date,
-                                        isSelected = section.date == date,
-                                        summary = section.summary,
-                                    )
-                                }
-                                items(
-                                    section.rows,
-                                    key = { lessonKey(ScheduleViewMode.WEEK, it) },
-                                    contentType = { "lesson" },
-                                ) { row ->
-                                    SwipeToCompleteCard(
-                                        row = row,
-                                        phase = phases.of(row),
-                                        timeWidth = timeWidth,
-                                        onClick = { sheetFor = row },
-                                        onComplete = {
-                                            viewModel.setStatus(row.session, LessonStatus.COMPLETED)
-                                        },
-                                    )
-                                }
-                            }
-                        }
-                    }
-
-                    // The calendar takes over from the day stepper: the grid is how you move
-                    // between days, and the header below it names the day the list is showing.
-                    ScheduleViewMode.MONTH -> {
-                        item(key = "calendar", contentType = "calendar") {
-                            Column {
-                                MonthCalendar(
-                                    grid = grid,
-                                    loads = loads,
-                                    selected = date,
-                                    today = today,
-                                    onSelect = viewModel::selectDate,
-                                )
-                                // Grid, rule, then the day — the order the week strip has, so the rule
-                                // always divides the calendar from the agenda and the day's heading sits
-                                // with the lessons it names, not above a line cutting it off from them.
-                                Spacer(Modifier.height(Spacing.itemGap))
-                                KlasDivider()
-                                // The gap the week list's own spacing puts between its rule and heading.
-                                Spacer(Modifier.height(Spacing.itemGap))
-                                // Named by the day the list below *is*, which for the frames a tap on
-                                // another day takes to read is still the previous one — see
-                                // [ScheduleContent.Day.date]. The grid's ring has already moved.
+                // The grid scrolls with the classes rather than sitting above them: six week rows plus
+                // a full day of classes doesn't fit a landscape phone.
+                // Measured here, once for every card in the list — see [ColumnTime].
+                val timeWidth = rememberColumnTimeWidth(MaterialTheme.typography.titleMedium)
+                if (monthBeside) {
+                    Row(Modifier.fillMaxSize()) {
+                        // The grid keeps its phone width, scrolling alone if a short window cuts it off.
+                        MonthCalendar(
+                            grid = grid,
+                            loads = loads,
+                            selected = date,
+                            today = today,
+                            onSelect = viewModel::selectDate,
+                            modifier = Modifier
+                                .width(CalendarPaneWidth)
+                                .fillMaxHeight()
+                                .verticalScroll(rememberScrollState())
+                                .padding(Spacing.gutter)
+                                .padding(bottomInset),
+                        )
+                        LazyColumn(
+                            Modifier.weight(1f).fillMaxHeight(),
+                            state = listState,
+                            // The grid's gutter and this make Material's 24 dp between panes.
+                            contentPadding = PaddingValues(
+                                start = Spacing.sectionGap - Spacing.gutter,
+                                top = Spacing.gutter,
+                                end = Spacing.gutter,
+                                bottom = FabClearance,
+                            ).plusInset(bottomInset),
+                            verticalArrangement = Arrangement.spacedBy(Spacing.itemGap),
+                        ) {
+                            item(key = "selected-day", contentType = "day-header") {
                                 SelectedDayHeader(
                                     date = dayContent.valueOrNull()?.date ?: date,
                                     summary = dayContent.valueOrNull()?.summary ?: DaySummary.NONE,
                                 )
                             }
+                            dayList(
+                                view = ScheduleViewMode.MONTH,
+                                state = dayContent,
+                                emptyReason = emptyReason,
+                                nowMark = nowMark,
+                                phases = phases,
+                                timeWidth = timeWidth,
+                                onRowClick = { sheetFor = it },
+                                onComplete = { viewModel.setStatus(it.session, LessonStatus.COMPLETED) },
+                                onAddClass = addClass,
+                                onAddStudent = onAddStudent,
+                            )
                         }
-                        dayList(
-                            view = ScheduleViewMode.MONTH,
+                    }
+                    return@SegmentedPage
+                }
+                LazyColumn(
+                    Modifier.fillMaxSize(),
+                    state = listState,
+                    // The gutter is the list's, not each row's — see [Spacing]. The calendar items in here
+                    // are laid out inside it too, which is why `MonthCalendar` and `WeekStrip` no longer
+                    // carry a narrower one of their own.
+                    contentPadding = FabListPadding.plusInset(bottomInset),
+                    verticalArrangement = Arrangement.spacedBy(Spacing.itemGap),
+                ) {
+                    when (viewMode) {
+                        // The day list stands alone under its stepper.
+                        ScheduleViewMode.DAY -> dayList(
+                            view = ScheduleViewMode.DAY,
                             state = dayContent,
                             emptyReason = emptyReason,
                             nowMark = nowMark,
@@ -507,6 +433,107 @@ fun ScheduleScreen(
                             onAddClass = addClass,
                             onAddStudent = onAddStudent,
                         )
+
+                        // A whole week at once: the strip is an overview and a day picker for the add
+                        // button, while the agenda below always shows every day that has classes.
+                        ScheduleViewMode.WEEK -> {
+                            item(key = "week-strip", contentType = "calendar") {
+                                Column {
+                                    WeekStrip(
+                                        days = week,
+                                        loads = loads,
+                                        selected = date,
+                                        today = today,
+                                        onSelect = viewModel::selectDate,
+                                    )
+                                    Spacer(Modifier.height(Spacing.itemGap))
+                                    KlasDivider()
+                                }
+                            }
+                            val week = contentState.valueOrNull()
+                            if (week == null) {
+                                item(key = "loading", contentType = "loading") { LessonsSkeleton() }
+                            } else if (week.sections.isEmpty()) {
+                                item(key = "empty", contentType = "empty") {
+                                    // The same three answers the day list gets, from the same place — this
+                                    // branch used to weigh two of them itself and offer nothing either way.
+                                    ScheduleEmptyState(
+                                        reason = emptyReason,
+                                        whole = ScheduleEmptySpan.WEEK,
+                                        onAddClass = addClass,
+                                        onAddStudent = onAddStudent,
+                                        minHeight = 200.dp,
+                                    )
+                                }
+                            } else {
+                                week.sections.forEach { section ->
+                                    item(key = "day-${section.date}", contentType = "day-header") {
+                                        DaySectionHeader(
+                                            date = section.date,
+                                            isSelected = section.date == date,
+                                            summary = section.summary,
+                                        )
+                                    }
+                                    items(
+                                        section.rows,
+                                        key = { lessonKey(ScheduleViewMode.WEEK, it) },
+                                        contentType = { "lesson" },
+                                    ) { row ->
+                                        SwipeToCompleteCard(
+                                            row = row,
+                                            phase = phases.of(row),
+                                            timeWidth = timeWidth,
+                                            onClick = { sheetFor = row },
+                                            onComplete = {
+                                                viewModel.setStatus(row.session, LessonStatus.COMPLETED)
+                                            },
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        // The calendar takes over from the day stepper: the grid is how you move
+                        // between days, and the header below it names the day the list is showing.
+                        ScheduleViewMode.MONTH -> {
+                            item(key = "calendar", contentType = "calendar") {
+                                Column {
+                                    MonthCalendar(
+                                        grid = grid,
+                                        loads = loads,
+                                        selected = date,
+                                        today = today,
+                                        onSelect = viewModel::selectDate,
+                                    )
+                                    // Grid, rule, then the day — the order the week strip has, so the rule
+                                    // always divides the calendar from the agenda and the day's heading sits
+                                    // with the lessons it names, not above a line cutting it off from them.
+                                    Spacer(Modifier.height(Spacing.itemGap))
+                                    KlasDivider()
+                                    // The gap the week list's own spacing puts between its rule and heading.
+                                    Spacer(Modifier.height(Spacing.itemGap))
+                                    // Named by the day the list below *is*, which for the frames a tap on
+                                    // another day takes to read is still the previous one — see
+                                    // [ScheduleContent.Day.date]. The grid's ring has already moved.
+                                    SelectedDayHeader(
+                                        date = dayContent.valueOrNull()?.date ?: date,
+                                        summary = dayContent.valueOrNull()?.summary ?: DaySummary.NONE,
+                                    )
+                                }
+                            }
+                            dayList(
+                                view = ScheduleViewMode.MONTH,
+                                state = dayContent,
+                                emptyReason = emptyReason,
+                                nowMark = nowMark,
+                                phases = phases,
+                                timeWidth = timeWidth,
+                                onRowClick = { sheetFor = it },
+                                onComplete = { viewModel.setStatus(it.session, LessonStatus.COMPLETED) },
+                                onAddClass = addClass,
+                                onAddStudent = onAddStudent,
+                            )
+                        }
                     }
                 }
             }

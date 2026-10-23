@@ -182,6 +182,9 @@ class ScheduleViewModel @Inject constructor(
     val completions = UiEvents<ClassSession>()
     val undoables = UiEvents<Undoable>()
 
+    /** Lessons picked by a long-press, marked taught or cancelled together — see [LessonBatch]. */
+    val batch = LessonBatch(classes, appScope)
+
     private val homeworkActions = HomeworkActions(homework, appScope, events, Event.ACTION_FAILED)
 
     /**

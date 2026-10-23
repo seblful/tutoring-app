@@ -50,8 +50,10 @@ internal fun LazyItemScope.SwipeToCompleteCard(
     onComplete: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    if (!row.canSwipeComplete) {
-        ScheduleCard(row, phase, timeWidth, onClick, animateInPlace(modifier))
+    val picking = LocalLessonPicking.current
+    val tap = if (picking.active) ({ picking.toggle(row) }) else onClick
+    if (!row.canSwipeComplete || picking.active) {
+        ScheduleCard(row, phase, timeWidth, tap, animateInPlace(modifier), picking)
         return
     }
     SwipeToConfirmBox(
@@ -78,8 +80,9 @@ internal fun LazyItemScope.SwipeToCompleteCard(
             row,
             phase,
             timeWidth,
-            onClick,
+            tap,
             Modifier.swipeAction(stringResource(R.string.class_mark_completed), onComplete),
+            picking,
         )
     }
 }
@@ -91,11 +94,19 @@ private fun ScheduleCard(
     timeWidth: Dp,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    picking: LessonPicking = LessonPicking.NONE,
 ) {
     // Whether the card recedes is the row's own answer — see [ScheduleRow.recedes]: a day with
     // four lessons and three cancellations must not look like a full day.
     val cancelled = row.recedes
-    ContentCard(onClick = onClick, modifier = modifier, dimmed = cancelled) {
+    ContentCard(
+        onClick = onClick,
+        modifier = modifier,
+        dimmed = cancelled,
+        selected = picking.isPicked(row),
+        onLongClick = { picking.toggle(row) },
+        onLongClickLabel = stringResource(R.string.batch_select),
+    ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             // Ink, not the accent: the time is read, not tapped. A fixed-width column, so every card's
             // name starts on the same edge whatever the hour. The end under the start, quieter: back-to-back
