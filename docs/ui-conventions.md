@@ -239,9 +239,10 @@ Build screens from shared state and controls. Feature rules belong in the domain
   `leaveGuard`, an onboarding step) uses `NavigationBackHandler`, never the legacy `BackHandler`. Where
   that back changes what is on screen and `NavDisplay` cannot preview it, the same state drives
   `Modifier.predictiveBack` so the gesture still shows where it leads.
-- `navigateToTab` ignores reselection to avoid a re-targeted fade; instead a tap on the tab on show sends its
-  page back to the top (`TabReselect`: each tab's list claims it with `ScrollsToTopOnReselect`, and
-  `KlasScreen` opens a collapsed large title). Navigating to the owning tab closes its pushed screens; another tab's screens are set aside and keep their view models and saved state
+- `navigateToTab` ignores reselection to avoid a re-targeted fade; instead a tap on the tab on show takes its
+  page one step back: to the top (`TabReselect`: each tab's list claims it with `ScrollsToTopOnReselect`, and
+  `KlasScreen` opens a collapsed large title), then, once there, to the first view of a `SegmentedPage`
+  (Day, Students, current homework). Navigating to the owning tab closes its pushed screens; another tab's screens are set aside and keep their view models and saved state
   (`KlasNavigator.live`). All tray actions preserve a pushed screen beneath their destination; Back returns
   to its draft. See [tray destinations](calendar-and-reminders.md#lesson-reminders).
 - With room for two panes, People and Settings are list-detail layouts (Material `ListDetailSceneStrategy`,

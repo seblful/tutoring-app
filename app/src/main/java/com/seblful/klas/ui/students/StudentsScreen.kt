@@ -94,7 +94,7 @@ private fun StudentRows(
         return
     }
     val listState = rememberLazyListState()
-    ScrollsToTopOnReselect { listState.animateScrollToItem(0) }
+    ScrollsToTopOnReselect(listState)
     LazyColumn(
         modifier.fillMaxSize(),
         state = listState,

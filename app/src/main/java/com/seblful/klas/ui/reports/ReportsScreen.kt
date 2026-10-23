@@ -142,7 +142,7 @@ fun ReportsScreen(
     viewModel: ReportsViewModel = metroViewModel(),
 ) {
     val listState = rememberLazyListState()
-    ScrollsToTopOnReselect { listState.animateScrollToItem(0) }
+    ScrollsToTopOnReselect(listState)
     // The debts are the last card, below every breakdown — on a busy year, several screens down. There is
     // no list to scroll until the report has arrived, so this waits for one to have been laid out; and the
     // tap is recorded only once the scroll has run, so leaving the tab while the report is still being
@@ -387,7 +387,7 @@ private fun ReportBody(
         return
     }
     val summaryState = rememberLazyListState()
-    ScrollsToTopOnReselect { summaryState.animateScrollToItem(0) }
+    ScrollsToTopOnReselect(summaryState)
     Row(modifier.fillMaxWidth()) {
         LazyColumn(Modifier.weight(1f), state = summaryState, contentPadding = padding) { summaryItems(state, scope) }
         // Its first card's own gap above, taken off the top, so the two panes' first cards line up.

@@ -215,7 +215,7 @@ private fun HomeworkList(
     }
     // Cards side by side once the window holds two: a column of them on a tablet is a strip down the middle.
     val gridState = rememberLazyGridState()
-    ScrollsToTopOnReselect { gridState.animateScrollToItem(0) }
+    ScrollsToTopOnReselect(gridState)
     LazyVerticalGrid(
         columns = GridCells.Adaptive(MinCardWidth),
         modifier = Modifier.fillMaxSize(),

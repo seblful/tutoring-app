@@ -88,7 +88,7 @@ private fun GroupRows(
         return
     }
     val listState = rememberLazyListState()
-    ScrollsToTopOnReselect { listState.animateScrollToItem(0) }
+    ScrollsToTopOnReselect(listState)
     LazyColumn(
         modifier.fillMaxSize(),
         state = listState,

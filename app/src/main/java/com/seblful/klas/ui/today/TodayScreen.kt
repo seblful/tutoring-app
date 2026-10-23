@@ -144,7 +144,7 @@ internal fun TodayContent(
     bottomInset: PaddingValues = PaddingValues(),
 ) {
     val scroll = rememberScrollState()
-    ScrollsToTopOnReselect { scroll.animateScrollTo(0) }
+    ScrollsToTopOnReselect(scroll)
     Column(
         modifier
             .verticalScroll(scroll)

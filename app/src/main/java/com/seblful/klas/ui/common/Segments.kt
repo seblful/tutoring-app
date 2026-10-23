@@ -220,6 +220,7 @@ fun <T> SegmentedPage(
     header: @Composable ColumnScope.() -> Unit = {},
     content: @Composable ColumnScope.() -> Unit,
 ) {
+    OpensFirstViewOnReselect(onFirst = selected == options.first()) { onSelect(options.first()) }
     Column(modifier.swipeBetweenSegments(options, selected, onSelect)) {
         ScreenHeader {
             // Held to a column's width even over a body that grows wider, so the tabs do not spread apart —

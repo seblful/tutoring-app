@@ -49,7 +49,7 @@ class TabReselectTest {
                 CompositionLocalProvider(LocalTabReselect provides reselect) {
                     KlasScreen("People") { _, _ ->
                         val list = rememberLazyListState()
-                        ScrollsToTopOnReselect { list.animateScrollToItem(0) }
+                        ScrollsToTopOnReselect(list)
                         LazyColumn(state = list) { items(ROWS) { Text("Row $it") } }
                     }
                 }
@@ -70,7 +70,7 @@ class TabReselectTest {
         compose.setContent {
             scope = rememberCoroutineScope()
             CompositionLocalProvider(LocalTabReselect provides reselect) {
-                if (shown) ScrollsToTopOnReselect { scrolls++ }
+                if (shown) ScrollsToTopOnReselect(atTop = { false }) { scrolls++ }
             }
         }
 
@@ -81,7 +81,52 @@ class TabReselectTest {
         assertEquals(1, scrolls)
     }
 
+    @Test
+    fun `on a later view a second tap scrolls to the top first and the next opens the first view`() {
+        var view by mutableStateOf(Week)
+        showViews(view = { view }, onSelect = { view = it })
+        compose.onNode(hasScrollAction()).performScrollToIndex(ROWS - 1)
+
+        tapTabAgain()
+
+        compose.onNodeWithText("Row 0").assertIsDisplayed()
+        assertEquals(Week, view)
+
+        tapTabAgain()
+
+        assertEquals(Day, view)
+    }
+
+    @Test
+    fun `a tap on a later view already at the top opens the first view`() {
+        var view by mutableStateOf(Week)
+        showViews(view = { view }, onSelect = { view = it })
+
+        tapTabAgain()
+
+        assertEquals(Day, view)
+    }
+
+    private fun showViews(view: () -> String, onSelect: (String) -> Unit) {
+        compose.setContent {
+            scope = rememberCoroutineScope()
+            KlasTheme {
+                CompositionLocalProvider(LocalTabReselect provides reselect) {
+                    KlasScreen("Schedule") { _, _ ->
+                        SegmentedPage(listOf(Day, Week), view(), onSelect, label = { it }) {
+                            val list = rememberLazyListState()
+                            ScrollsToTopOnReselect(list)
+                            LazyColumn(state = list) { items(ROWS) { Text("Row $it") } }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     private companion object {
         const val ROWS = 60
+        const val Day = "Day"
+        const val Week = "Week"
     }
 }

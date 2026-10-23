@@ -133,7 +133,8 @@ fun KlasScreen(
     if (page != shownPage.value) scrollBehavior.state.contentOffset = 0f
     SideEffect { shownPage.value = page }
     // Back to the top on a second tab tap: the lists scroll themselves; a collapsed bar opens again here.
-    ScrollsToTopOnReselect {
+    // Open is the top for the bar: its tint follows the list, which claims the top for itself.
+    ScrollsToTopOnReselect(atTop = { scrollBehavior.state.heightOffset == 0f }) {
         scrollBehavior.state.heightOffset = 0f
         scrollBehavior.state.contentOffset = 0f
     }
