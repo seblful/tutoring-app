@@ -8,8 +8,8 @@ import androidx.compose.ui.unit.dp
 import com.seblful.klas.data.settings.AppSettings
 import com.seblful.klas.ui.backup.BackupContent
 import com.seblful.klas.ui.backup.ConfirmRestoreDialog
-import com.seblful.klas.ui.backup.ExportPasswordDialog
-import com.seblful.klas.ui.backup.UnlockBackupDialog
+import com.seblful.klas.ui.backup.ExportPasswordFields
+import com.seblful.klas.ui.backup.UnlockBackupFields
 import com.seblful.klas.ui.backup.WeeklyBackupViewModel
 import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.settings.AppearanceSettingsContent
@@ -105,17 +105,17 @@ private fun ConfirmRestorePreview() = PreviewSurface {
     )
 }
 
-/** Opens empty, offering to save without a password — the warning appears once one is typed. */
+/** A password typed and repeated wrong: the mismatch, and what losing the password costs. */
 @KlasPreview
 @Composable
 private fun ExportPasswordPreview() = PreviewSurface {
-    ExportPasswordDialog(onSave = {}, onDismiss = {})
+    ExportPasswordFields(password = "secret1", onPassword = {}, repeat = "secret2", onRepeat = {})
 }
 
 @KlasPreview
 @Composable
 private fun UnlockBackupPreview() = PreviewSurface {
-    UnlockBackupDialog(wrong = true, onUnlock = {}, onDismiss = {})
+    UnlockBackupFields(password = "guess", onPassword = {}, wrong = true)
 }
 
 @KlasPreview

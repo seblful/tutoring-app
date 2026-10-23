@@ -1,23 +1,19 @@
 package com.seblful.klas.preview
 
-import android.content.res.Configuration
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
-import com.seblful.klas.domain.model.Currency
-import com.seblful.klas.ui.common.LocalCurrency
+import androidx.compose.ui.layout.layout
+import androidx.compose.ui.unit.offset
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.TickedMenuItem
 import com.seblful.klas.ui.designsystem.component.AccentCard
@@ -45,14 +41,12 @@ import com.seblful.klas.ui.designsystem.component.SettingsGroup
 import com.seblful.klas.ui.designsystem.component.SliceHeader
 import com.seblful.klas.ui.designsystem.component.SlicePosition
 import com.seblful.klas.ui.designsystem.component.SurfaceRow
-import com.seblful.klas.ui.theme.ContrastLevel
 import com.seblful.klas.ui.theme.KlasIcons
-import com.seblful.klas.ui.theme.KlasTheme
 
 /*
  * The component catalog: every design-system part, in each of its states, on one page — the place to look
- * before building something new. Each preview below is a screenshot target (KlasPreviewTester), so a part
- * that changes shows up here in light, dark, 1.5× text and both raised contrast schemes.
+ * before building something new. Its previews (ComponentCatalogPreviews.kt) are screenshot targets, so a
+ * part that changes shows up in light, dark, 1.5× text and both raised contrast schemes.
  */
 
 /** The catalog, in sections: actions, rows, cards and banners, and the form bar. */
@@ -76,16 +70,38 @@ private fun CatalogSection(name: String, content: @Composable ColumnScope.() -> 
 
 @Composable
 private fun Actions() {
-    FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.inline)) {
-        ButtonKind.entries.forEach { kind -> KlasButton(onClick = {}, kind = kind) { Text(kind.name) } }
+    // Grouped by shape: a text button keeps Material's inner padding for its touch target, so beside pills
+    // its word sits inset and the row looks ragged.
+    FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(Spacing.inline),
+        verticalArrangement = Arrangement.spacedBy(Spacing.inline),
+    ) {
+        ButtonKind.entries.filter { it !in TextKinds }.forEach { kind ->
+            KlasButton(onClick = {}, kind = kind) { Text(kind.words) }
+        }
         KlasButton(onClick = {}, enabled = false) { Text("Disabled") }
     }
     FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.inline)) {
-        DoneButton(done = false, label = "Mark taught", doneWord = "Taught", onDone = {}, onOpen = {})
-        DoneButton(done = true, label = "Mark taught", doneWord = "Taught", onDone = {}, onOpen = {})
-        DoneButton(done = false, label = "Mark taught", doneWord = "Taught", onDone = {}, onOpen = {}, enabled = false)
+        TextKinds.forEach { kind -> KlasButton(onClick = {}, kind = kind) { Text(kind.words) } }
     }
-    KlasFab("Book", onClick = {})
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sectionGap)) {
+        Captioned("To mark") {
+            DoneButton(done = false, label = "Mark taught", doneWord = "Taught", onDone = {}, onOpen = {})
+        }
+        Captioned("Taught") {
+            DoneButton(done = true, label = "Mark taught", doneWord = "Taught", onDone = {}, onOpen = {})
+        }
+        Captioned("Disabled") {
+            DoneButton(
+                done = false, label = "Mark taught", doneWord = "Taught", onDone = {}, onOpen = {}, enabled = false,
+            )
+        }
+    }
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sectionGap)) {
+        // At 1.5× text the expanded one folds to its icon too: the label would not fit beside a long list.
+        Captioned("Expanded") { KlasFab("Book", onClick = {}) }
+        Captioned("Scrolled") { KlasFab("Book", onClick = {}, expanded = false) }
+    }
     FilterBar(
         listOf(FilterOption("Owes · 3", selected = true, onClick = {}), FilterOption("Archived", false, {})),
     ) {
@@ -97,6 +113,23 @@ private fun Actions() {
 
 @Composable
 private fun Rows() {
+    Box(Modifier.intoGutter()) { RowsGroup() }
+    Column {
+        AmountMeaning.entries.forEachIndexed { index, meaning ->
+            SurfaceRow(SlicePosition.of(index, AmountMeaning.entries.size), onClick = {}) {
+                KlasRow(meaning.name, end = RowEnd.Money(AmountText("200 BYN", meaning)))
+            }
+        }
+    }
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.inline)) {
+        Amount(AmountText("Owes 200 BYN", AmountMeaning.Debt))
+        Amount(AmountText("80 BYN in credit", AmountMeaning.Credit))
+    }
+}
+
+/** The rows on a settings card — which brings its own gutter, being laid on a page rather than in one. */
+@Composable
+private fun RowsGroup() {
     SettingsGroup {
         KlasRow("Plain row", supporting = "Its supporting line")
         KlasRow("Opens a page", start = RowStart.Icon(KlasIcons.Outlined.Info), end = RowEnd.Opens, onClick = {})
@@ -112,17 +145,13 @@ private fun Rows() {
         )
         KlasRow("Disabled", supporting = "Says how to enable it", end = RowEnd.Toggle(false) {}, enabled = false)
     }
-    Column {
-        AmountMeaning.entries.forEachIndexed { index, meaning ->
-            SurfaceRow(SlicePosition.of(index, AmountMeaning.entries.size), onClick = {}) {
-                KlasRow(meaning.name, end = RowEnd.Money(AmountText("200 BYN", meaning)))
-            }
-        }
-    }
-    FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.inline)) {
-        Amount(AmountText("Owes 200 BYN", AmountMeaning.Debt))
-        Amount(AmountText("80 BYN in credit", AmountMeaning.Credit))
-    }
+}
+
+/** Out into the page's gutter on both sides, for a part that adds its own. */
+private fun Modifier.intoGutter() = layout { measurable, constraints ->
+    val gutter = Spacing.gutter.roundToPx()
+    val placeable = measurable.measure(constraints.offset(horizontal = 2 * gutter))
+    layout(placeable.width - 2 * gutter, placeable.height) { placeable.place(-gutter, 0) }
 }
 
 @Composable
@@ -158,36 +187,18 @@ private fun FormBars() {
     FormSaveBar("Add student", FormBar.Ready("Sofia Martin", "Maths 25 BYN/h · In person"), onSave = {}, none)
 }
 
-@KlasPreview
+/** A part's state named under it, where the part alone does not say which state it is in. */
 @Composable
-private fun ComponentCatalogPreview() = CatalogSurface(ContrastLevel.Standard, dark = isSystemInDarkTheme())
-
-@Preview(name = "Medium contrast", group = "catalog", showBackground = true, widthDp = 360)
-@Composable
-private fun ComponentCatalogMediumPreview() = CatalogSurface(ContrastLevel.Medium, dark = false)
-
-@Preview(name = "High contrast", group = "catalog", showBackground = true, widthDp = 360)
-@Composable
-private fun ComponentCatalogHighPreview() = CatalogSurface(ContrastLevel.High, dark = false)
-
-@Preview(
-    name = "High contrast, dark",
-    group = "catalog",
-    showBackground = true,
-    widthDp = 360,
-    uiMode = Configuration.UI_MODE_NIGHT_YES,
-)
-@Composable
-private fun ComponentCatalogHighDarkPreview() = CatalogSurface(ContrastLevel.High, dark = true)
-
-/** The catalog on the app's theme at [contrast]; [dark] for the night scheme. */
-@Composable
-private fun CatalogSurface(contrast: ContrastLevel, dark: Boolean) {
-    KlasTheme(darkTheme = dark, contrast = contrast) {
-        CompositionLocalProvider(LocalCurrency provides Currency.BYN) {
-            Surface(color = MaterialTheme.colorScheme.surface) {
-                Column(Modifier.fillMaxWidth().padding(Spacing.gutter)) { ComponentCatalog() }
-            }
-        }
+private fun Captioned(caption: String, content: @Composable () -> Unit) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        content()
+        Text(caption, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
+
+/** The kinds drawn as a word alone, with no container. */
+private val TextKinds = listOf(ButtonKind.Text, ButtonKind.Quiet, ButtonKind.Destructive)
+
+/** «DestructiveOutlined» as «Destructive outlined». */
+private val ButtonKind.words
+    get() = name.replace(Regex("(?<=[a-z])(?=[A-Z])"), " ").lowercase().replaceFirstChar(Char::uppercase)

@@ -38,7 +38,6 @@ import com.seblful.klas.ui.theme.klasSemantics
 fun ExportPasswordDialog(onSave: (password: String?) -> Unit, onDismiss: () -> Unit) {
     var password by remember { mutableStateOf("") }
     var repeat by remember { mutableStateOf("") }
-    val mismatch = repeat.isNotEmpty() && repeat != password
     FormDialog(
         title = stringResource(R.string.backup_export_password_title),
         confirm = DialogAction(
@@ -50,27 +49,49 @@ fun ExportPasswordDialog(onSave: (password: String?) -> Unit, onDismiss: () -> U
         ),
         onDismiss = onDismiss,
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(Spacing.inline)) {
-            Text(stringResource(R.string.backup_export_password_desc))
+        ExportPasswordFields(
+            password = password,
+            onPassword = { password = it },
+            repeat = repeat,
+            onRepeat = { repeat = it },
+            firstField = Modifier.focusRequester(rememberRevealedFocus()),
+        )
+    }
+}
+
+/**
+ * The export dialog's body. Apart from the dialog so a preview can draw it: the dialog's window with a focused
+ * field never settles for a screenshot.
+ */
+@Composable
+internal fun ExportPasswordFields(
+    password: String,
+    onPassword: (String) -> Unit,
+    repeat: String,
+    onRepeat: (String) -> Unit,
+    firstField: Modifier = Modifier,
+) {
+    val mismatch = repeat.isNotEmpty() && repeat != password
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.inline)) {
+        Text(stringResource(R.string.backup_export_password_desc))
+        PasswordField(
+            value = password,
+            onValueChange = onPassword,
+            label = stringResource(R.string.backup_password),
+            modifier = firstField,
+        )
+        if (password.isNotEmpty()) {
             PasswordField(
-                value = password,
-                onValueChange = { password = it },
-                label = stringResource(R.string.backup_password),
-                modifier = Modifier.focusRequester(rememberRevealedFocus()),
+                value = repeat,
+                onValueChange = onRepeat,
+                label = stringResource(R.string.backup_password_repeat),
+                error = stringResource(R.string.backup_password_mismatch).takeIf { mismatch },
             )
-            if (password.isNotEmpty()) {
-                PasswordField(
-                    value = repeat,
-                    onValueChange = { repeat = it },
-                    label = stringResource(R.string.backup_password_repeat),
-                    error = stringResource(R.string.backup_password_mismatch).takeIf { mismatch },
-                )
-                Text(
-                    stringResource(R.string.backup_password_warning),
-                    color = klasSemantics.destructive,
-                    style = MaterialTheme.typography.bodySmall,
-                )
-            }
+            Text(
+                stringResource(R.string.backup_password_warning),
+                color = klasSemantics.destructive,
+                style = MaterialTheme.typography.bodySmall,
+            )
         }
     }
 }
@@ -88,16 +109,27 @@ fun UnlockBackupDialog(wrong: Boolean, onUnlock: (String) -> Unit, onDismiss: ()
         ),
         onDismiss = onDismiss,
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(Spacing.inline)) {
-            Text(stringResource(R.string.backup_unlock_desc))
-            PasswordField(
-                value = password,
-                onValueChange = { password = it },
-                label = stringResource(R.string.backup_password),
-                error = stringResource(R.string.backup_error_wrong_password).takeIf { wrong },
-                modifier = Modifier.focusRequester(rememberRevealedFocus()),
-            )
-        }
+        UnlockBackupFields(password, { password = it }, wrong, Modifier.focusRequester(rememberRevealedFocus()))
+    }
+}
+
+/** The unlock dialog's body, apart from the dialog for the same reason as [ExportPasswordFields]. */
+@Composable
+internal fun UnlockBackupFields(
+    password: String,
+    onPassword: (String) -> Unit,
+    wrong: Boolean,
+    field: Modifier = Modifier,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.inline)) {
+        Text(stringResource(R.string.backup_unlock_desc))
+        PasswordField(
+            value = password,
+            onValueChange = onPassword,
+            label = stringResource(R.string.backup_password),
+            error = stringResource(R.string.backup_error_wrong_password).takeIf { wrong },
+            modifier = field,
+        )
     }
 }
 
