@@ -43,7 +43,7 @@ class SubjectsScreenTest {
         }
         show()
 
-        compose.onNodeWithText("1 student", substring = true).assertExists()
+        compose.onNodeWithText("1\u00A0student", substring = true).assertExists()
         compose.onNodeWithText("Not used yet").assertExists()
         compose.onNodeWithText("Add a subject").assertExists()
 

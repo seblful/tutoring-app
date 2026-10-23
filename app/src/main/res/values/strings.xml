@@ -763,9 +763,10 @@
     <!-- Beside the Settings index on a wide screen, before a page is opened. -->
     <string name="settings_pick_page">Choose a section</string>
 
+    <!-- No-break space: on a group row's second line «4» was left at the end of one line, «students» on the next. -->
     <plurals name="students_count">
-        <item quantity="one">%1$d student</item>
-        <item quantity="other">%1$d students</item>
+        <item quantity="one">%1$d\u00A0student</item>
+        <item quantity="other">%1$d\u00A0students</item>
     </plurals>
 
     <!-- Reports -->
