@@ -1,16 +1,19 @@
 package com.seblful.klas.ui.subjects
 
 import com.seblful.klas.domain.model.LessonStatus
+import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Subject
 import com.seblful.klas.testutil.MainDispatcherRule
 import com.seblful.klas.testutil.TestEnv
 import com.seblful.klas.testutil.observing
+import com.seblful.klas.ui.common.state.valueOrNull
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -27,7 +30,9 @@ class SubjectsViewModelTest {
     @get:Rule(order = 0)
     val env = TestEnv()
 
-    private fun vm() = mainRule.own(SubjectsViewModel(env.subjectRepo, mainRule.appScope, mainRule.dispatcher))
+    private fun vm() = mainRule.own(
+        SubjectsViewModel(env.subjectRepo, env.enrollmentRepo, env.groupRepo, mainRule.appScope, mainRule.dispatcher),
+    )
 
     @Test
     fun `save trims the name and ignores a blank one`() = runTest(mainRule.dispatcher) {
@@ -129,4 +134,28 @@ class SubjectsViewModelTest {
         assertEquals(listOf(SubjectsViewModel.Event.NAME_TAKEN), events)
         assertEquals(1, env.stored().subjects.size)
     }
+
+    @Test
+    fun `each subject says how many take it and at what rates, and only an unused one may go`() =
+        runTest(mainRule.dispatcher) {
+            val maths = env.fixtures.subject("Математика")
+            env.fixtures.subject("Химия")
+            val anya = env.fixtures.student("Аня")
+            val boris = env.fixtures.student("Борис")
+            env.enrollmentRepo.enroll(anya, maths, Money.ofMajor(25))
+            env.enrollmentRepo.enroll(boris, maths, Money.ofMajor(30))
+            env.fixtures.group(subjectId = maths, rate = Money.ofMajor(12))
+            val vm = vm()
+            observing(vm.subjects)
+            advanceUntilIdle()
+
+            val rows = vm.subjects.value.valueOrNull().orEmpty().associateBy { it.subject.name }
+            val used = rows.getValue("Математика")
+            assertEquals(2, used.students)
+            assertEquals(1, used.groups)
+            assertEquals(Money.ofMajor(12), used.lowest)
+            assertEquals(Money.ofMajor(30), used.highest)
+            assertFalse(used.unused)
+            assertTrue(rows.getValue("Химия").unused)
+        }
 }

@@ -262,6 +262,10 @@ Build screens from shared state and controls. Feature rules belong in the domain
   what the «Ещё» tab held — each saying its own live («3 subjects», «Never · set up weekly», the version,
   «No crashes recorded»; `IndexFacts`). Each settings destination owns its view model, dialogs and permission launchers. Its loaded
   state joins preferences and permission status so the index never shows invented delivery defaults.
+- Subjects is a Settings page of rows, not cards: each says how it is used («6 students · 1 group ·
+  12–25 $/h», `SubjectRow`), which is also why a used one cannot be deleted. No bin and no add button over
+  the list — «Add a subject» is its last row; a row opens the name dialog, which offers Delete (with Undo)
+  only while nothing holds the subject. About links to Backup with a row, as Settings does.
 - Notification status covers lesson reminders, all summaries and auto-completion reports. A blocked
   feature keeps its chosen switch state and says so as a blocking `Banner` with «Allow» — on the index, the
   Notifications page and under auto-completion; exact-alarm access concerns only lesson reminders. Banners

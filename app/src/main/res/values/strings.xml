@@ -1169,4 +1169,11 @@
         <item quantity="one">%d subject</item>
         <item quantity="other">%d subjects</item>
     </plurals>
+    <string name="subject_unused">Not used yet</string>
+    <plurals name="subject_groups_count">
+        <item quantity="one">%1$d group</item>
+        <item quantity="other">%1$d groups</item>
+    </plurals>
+    <!-- The lowest and highest of a set of amounts. -->
+    <string name="money_range" translatable="false">%1$s–%2$s</string>
 </resources>

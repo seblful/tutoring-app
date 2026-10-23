@@ -30,6 +30,9 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.window.DialogProperties
 import com.seblful.klas.R
+import com.seblful.klas.ui.designsystem.component.ButtonKind
+import com.seblful.klas.ui.designsystem.component.DialogAction
+import com.seblful.klas.ui.designsystem.component.KlasButton
 import com.seblful.klas.ui.theme.klasSemantics
 
 /** The app's dialogs, and the one rule they share. */
@@ -86,6 +89,7 @@ fun TextFieldDialog(
     capitalization: KeyboardCapitalization = KeyboardCapitalization.None,
     onConfirm: (String) -> Unit,
     onDismiss: () -> Unit,
+    extra: DialogAction? = null,
 ) {
     var value by rememberSaveable { mutableStateOf(initial) }
     // Its one field is the whole of it, and it opens because something was tapped to name a thing.
@@ -114,7 +118,16 @@ fun TextFieldDialog(
                 enabled = value.isNotBlank(),
             ) { Text(stringResource(R.string.action_save)) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },
+        dismissButton = {
+            extra?.let {
+                KlasButton(
+                    onClick = it.onClick,
+                    kind = if (it.destructive) ButtonKind.Destructive else ButtonKind.Text,
+                    enabled = it.enabled,
+                ) { Text(it.label) }
+            }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
+        },
     )
 }
 /**

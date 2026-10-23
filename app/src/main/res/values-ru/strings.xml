@@ -1322,4 +1322,11 @@
         <item quantity="many">%d предметов</item>
         <item quantity="other">%d предмета</item>
     </plurals>
+    <string name="subject_unused">Пока не используется</string>
+    <plurals name="subject_groups_count">
+        <item quantity="one">%1$d группа</item>
+        <item quantity="few">%1$d группы</item>
+        <item quantity="many">%1$d групп</item>
+        <item quantity="other">%1$d группы</item>
+    </plurals>
 </resources>

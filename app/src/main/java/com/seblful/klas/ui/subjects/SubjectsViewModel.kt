@@ -1,6 +1,8 @@
 package com.seblful.klas.ui.subjects
 
 import androidx.lifecycle.ViewModel
+import com.seblful.klas.data.people.EnrollmentRepository
+import com.seblful.klas.data.people.GroupRepository
 import com.seblful.klas.data.people.SubjectRepository
 import com.seblful.klas.di.ApplicationScope
 import com.seblful.klas.di.Computation
@@ -27,6 +29,8 @@ import kotlinx.coroutines.flow.combine
 @ContributesIntoMap(AppScope::class, binding = binding<ViewModel>())
 class SubjectsViewModel @Inject constructor(
     private val repository: SubjectRepository,
+    enrollment: EnrollmentRepository,
+    groups: GroupRepository,
     @param:ApplicationScope private val appScope: CoroutineScope,
     @param:Computation private val computation: CoroutineDispatcher,
 ) : ViewModel() {
@@ -61,9 +65,18 @@ class SubjectsViewModel @Inject constructor(
     val query: StateFlow<String> = _query.asStateFlow()
 
     /** [Loadable], so the empty state is only ever shown about subjects that were actually read. */
-    val subjects: StateFlow<Loadable<List<Subject>>> =
-        combine(repository.observeAll(), _query) { all, query ->
-            PeopleSearch.filter(all, query) { it.name }
+    val subjects: StateFlow<Loadable<List<SubjectRow>>> =
+        combine(repository.observeAll(), enrollment.observeAllPrices(), groups.observeAll(), _query) {
+                all,
+                prices,
+                groupList,
+                query,
+            ->
+            val rates = prices.groupBy { it.subjectId }
+            val taught = groupList.groupBy { it.subjectId }
+            PeopleSearch.filter(all, query) { it.name }.map { subject ->
+                SubjectRow.of(subject, rates[subject.id].orEmpty(), taught[subject.id].orEmpty())
+            }
         }
             .ready()
             .derive(this, computation, Loadable.Loading)

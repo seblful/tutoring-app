@@ -21,6 +21,10 @@ interface PriceDao {
     @Query("SELECT * FROM prices WHERE studentId = :studentId")
     fun observeForStudent(studentId: Long): Flow<List<PriceEntity>>
 
+    /** Every student's rate for every subject they take — a few dozen rows, not a history. */
+    @Query("SELECT * FROM prices")
+    fun observeAll(): Flow<List<PriceEntity>>
+
     /** Who takes what: one row per student and subject — a few dozen, not a history. */
     @Query("SELECT studentId, subjectId FROM prices")
     fun observeEnrollments(): Flow<List<Enrollment>>
