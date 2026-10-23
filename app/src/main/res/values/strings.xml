@@ -1067,4 +1067,6 @@
     <string name="reports_received_hint">Payments made in this period</string>
     <string name="reports_received_total">Paid in</string>
     <string name="payment_method_none">Not said</string>
+    <string name="payment_fill_balance">Full balance · %1$s</string>
+    <string name="payment_fill_lesson">One lesson · %1$s</string>
 </resources>

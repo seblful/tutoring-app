@@ -1206,4 +1206,6 @@
     <string name="reports_received_hint">Оплаты, внесённые за период</string>
     <string name="reports_received_total">Внесено</string>
     <string name="payment_method_none">Не указано</string>
+    <string name="payment_fill_balance">Весь долг · %1$s</string>
+    <string name="payment_fill_lesson">Одно занятие · %1$s</string>
 </resources>

@@ -21,6 +21,8 @@ mirrors and [database and backup](database-and-backup.md) for persistence contra
   unbilled absence (show no amount).
 - A payment may say how it was made (`PaymentMethod`: cash, card, transfer). It is optional — payments
   before schema v13 have none — and moves no money; a new payment is offered as the student's last.
+  A new payment also offers its amount at a tap (`PaymentSuggestions`): the whole balance owed, and the
+  last billed lesson's charge — never the same amount twice.
 - Income is what was **earned** (taught, billable lessons); **received** is what was paid in the period
   (`Reports.received`, by the day a payment lands on). They differ by every advance and every debt, so the
   report shows them as two cards and exports them as two sections (D6), never one number.

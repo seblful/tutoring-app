@@ -2,9 +2,12 @@ package com.seblful.klas.ui.students
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -16,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.res.stringResource
 import com.seblful.klas.R
+import com.seblful.klas.domain.billing.PaymentSuggestions
 import com.seblful.klas.domain.model.ClassMode
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.PaymentMethod
@@ -132,6 +136,8 @@ internal fun PaymentDialog(
     initialMethod: PaymentMethod?,
     onConfirm: (Money, LocalDate, PaymentMethod?) -> Unit,
     onDismiss: () -> Unit,
+    /** Offered on a new payment only: a correction is of an amount already typed. */
+    suggestions: PaymentSuggestions = PaymentSuggestions.NONE,
 ) {
     // Saveable, as every typed dialog field is: the text, with the field derived from it.
     var text by rememberSaveable { mutableStateOf(initialAmount?.toAmountInput().orEmpty()) }
@@ -164,6 +170,9 @@ internal fun PaymentDialog(
                 label = stringResource(R.string.payment_amount_label),
                 modifier = if (focus != null) Modifier.focusRequester(focus) else Modifier,
             )
+            if (initialAmount == null) {
+                AmountChips(suggestions, typed = field.amount) { text = it.toAmountInput() }
+            }
             PickerField(
                 value = date.formatDate(),
                 label = stringResource(R.string.payment_date_label),
@@ -185,6 +194,22 @@ internal fun PaymentDialog(
             onConfirm = { date = it; picking = false },
             onDismiss = { picking = false },
         )
+    }
+}
+
+/** Amounts that fill the field at a tap; they fill it, they are not a fourth input. Wrapped, never scrolled. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun AmountChips(suggestions: PaymentSuggestions, typed: Money?, onPick: (Money) -> Unit) {
+    val chips = listOfNotNull(
+        suggestions.fullBalance?.let { it to stringResource(R.string.payment_fill_balance, it.text()) },
+        suggestions.oneLesson?.let { it to stringResource(R.string.payment_fill_lesson, it.text()) },
+    )
+    if (chips.isEmpty()) return
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.inline)) {
+        chips.forEach { (amount, label) ->
+            FilterChip(selected = typed == amount, onClick = { onPick(amount) }, label = { Text(label) })
+        }
     }
 }
 

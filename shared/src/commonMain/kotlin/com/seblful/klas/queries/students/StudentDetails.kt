@@ -1,6 +1,7 @@
 package com.seblful.klas.queries.students
 
 import com.seblful.klas.domain.billing.Billing
+import com.seblful.klas.domain.billing.PaymentSuggestions
 import com.seblful.klas.domain.lesson.CardLessons
 import com.seblful.klas.domain.lesson.LessonFilter
 import com.seblful.klas.domain.lesson.LessonKind
@@ -96,6 +97,13 @@ data class StudentDetails(
      * number does not say, and what a tutor deciding whether to chase it wants next.
      */
     val lastPaymentAt: Instant? get() = payments.maxOfOrNull { it.date }
+
+    /** What a new payment of theirs offers at one tap: the balance, and their last billed lesson. */
+    val paymentSuggestions: PaymentSuggestions
+        get() = PaymentSuggestions.of(
+            balance,
+            classes.filter { it.shownCharge != null }.maxByOrNull { it.klass.start }?.shownCharge,
+        )
 
     /** How they paid last — what a new payment of theirs is offered as. */
     val lastPaymentMethod: PaymentMethod? get() = payments.maxByOrNull { it.date }?.method

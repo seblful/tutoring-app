@@ -12,6 +12,7 @@ import com.seblful.klas.data.people.EnrollmentRepository
 import com.seblful.klas.data.people.StudentRepository
 import com.seblful.klas.di.ApplicationScope
 import com.seblful.klas.di.Computation
+import com.seblful.klas.domain.billing.PaymentSuggestions
 import com.seblful.klas.domain.model.Assignee
 import com.seblful.klas.domain.model.ClassMode
 import com.seblful.klas.domain.model.Homework
@@ -178,6 +179,10 @@ class StudentDetailViewModel @AssistedInject constructor(
         if (amount.isZero) return
         write { payments.record(studentId, amount, day, method) }
     }
+
+    /** The one-tap amounts a new payment offers — see [PaymentSuggestions]. */
+    fun paymentSuggestions(): PaymentSuggestions =
+        state.value.valueOrNull()?.paymentSuggestions ?: PaymentSuggestions.NONE
 
     /** How they paid last — what a new payment is offered as. */
     fun lastPaymentMethod(): PaymentMethod? = state.value.valueOrNull()?.lastPaymentMethod

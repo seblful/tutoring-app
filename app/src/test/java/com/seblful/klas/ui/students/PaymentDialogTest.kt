@@ -11,6 +11,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextReplacement
+import com.seblful.klas.domain.billing.PaymentSuggestions
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.PaymentMethod
 import com.seblful.klas.testutil.AppLocaleRule
@@ -94,5 +95,38 @@ class PaymentDialogTest {
         compose.onNodeWithText("Cash").assertIsNotSelected()
         compose.onNodeWithText("Save").performClick()
         assertEquals(listOf<PaymentMethod?>(null), saved)
+    }
+
+    @Test
+    fun `a full-balance payment takes no typing`() {
+        var saved: Money? = null
+        compose.setContent {
+            KlasTheme {
+                PaymentDialog(
+                    "Payment", null, today, null, { amount, _, _ -> saved = amount }, {},
+                    suggestions = PaymentSuggestions(fullBalance = Money.ofMajor(90), oneLesson = Money.ofMajor(30)),
+                )
+            }
+        }
+
+        compose.onNodeWithText("Save").assertIsNotEnabled()
+        compose.onNodeWithText("Full balance", substring = true).performClick()
+        compose.onNodeWithText("Save").assertIsEnabled().performClick()
+
+        assertEquals(Money.ofMajor(90), saved)
+    }
+
+    @Test
+    fun `a correction offers no amounts`() {
+        compose.setContent {
+            KlasTheme {
+                PaymentDialog(
+                    "Payment", Money.ofMajor(10), today, null, { _, _, _ -> }, {},
+                    suggestions = PaymentSuggestions(fullBalance = Money.ofMajor(90), oneLesson = null),
+                )
+            }
+        }
+
+        compose.onNodeWithText("Full balance", substring = true).assertDoesNotExist()
     }
 }

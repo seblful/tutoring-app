@@ -167,6 +167,7 @@ internal fun PaymentDialogs(
             initialAmount = null,
             initialDate = viewModel.paymentDay(),
             initialMethod = viewModel.lastPaymentMethod(),
+            suggestions = viewModel.paymentSuggestions(),
             onConfirm = viewModel::addPayment,
             onDismiss = onDismiss,
         )
