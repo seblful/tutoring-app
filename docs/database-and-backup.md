@@ -42,7 +42,10 @@ Preserve on-device data and existing backup files when changing storage. Before 
 
 - Settings are a device-local Room row, written under a `Mutex` and excluded from backup — the guide's
   seen tips and hidden card (v14, `tipsSeen`, `firstStepsHidden`) included: a restore marks the guide done
-  instead of carrying another phone's. Android
+  instead of carrying another phone's. The last backup (`lastExportAt`) is device-local too, but a restore
+  moves it to the restored file's own date (or the restore's, for a file too old to carry one), never
+  earlier: the data is then that file's, so «No backup yet» would be false. Undoing a restore leaves it, the
+  kept copy being the app's, not a file the tutor holds. Android
   automatic backup is disabled; manual JSON export through SAF moves tutoring data between devices.
   SAF supports cloud destinations such as Drive without app-held cloud credentials. The export screen
   states that app preferences remain on the current phone.

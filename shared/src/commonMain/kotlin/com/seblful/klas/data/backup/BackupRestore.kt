@@ -40,30 +40,43 @@ class BackupRestore @Inject constructor(
      * What was here is kept first, so the restore can be undone ([undoRestore]) — unless there was
      * nothing, as on first run. It is kept only once the restore has gone through: a refused file leaves
      * the previous copy, if any, as it was.
+     *
+     * The data is then the file's, so the file is the last backup: its own date, or now for a file too old
+     * to carry one — never earlier than a backup already made.
      */
     suspend fun restore(json: String) {
+        val data = backup.parse(json)
         val before = backup.export()
         val keep = before.subjects.isNotEmpty() || before.students.isNotEmpty()
         val takenAt = clock.now()
         val copy = if (keep) backup.encode(before, takenAt) else null
-        replaceWith(json)
+        replaceWith(data, backedUpAt = data.exportedAtMillis?.let { Instant.fromEpochMilliseconds(it) } ?: takenAt)
         // The restore has happened whether or not its undo could be kept, so a failure here is not its.
         copy?.let { runCatchingCancellable { snapshots.save(it, takenAt) } }
     }
 
-    /** Puts back what was here before the last restore, and forgets it. False when nothing is kept. */
+    /**
+     * Puts back what was here before the last restore, and forgets it. False when nothing is kept. The last
+     * backup stays as it is: the kept copy is the app's own, not a file the tutor has.
+     */
     suspend fun undoRestore(): Boolean {
         val kept = snapshots.read() ?: return false
-        replaceWith(kept)
+        replaceWith(backup.parse(kept), backedUpAt = null)
         snapshots.clear()
         return true
     }
 
-    private suspend fun replaceWith(json: String) {
+    private suspend fun replaceWith(data: BackupData, backedUpAt: Instant?) {
         calendar.remirrorAfter {
-            backup.importJson(json)
+            backup.import(data)
             // Whoever restores already knows the app, so the new tutor's guide is not shown to them.
-            settings.update { it.copy(onboardingComplete = true, guide = Guide.DONE) }
+            settings.update {
+                it.copy(
+                    onboardingComplete = true,
+                    guide = Guide.DONE,
+                    lastExportAt = listOfNotNull(it.lastExportAt, backedUpAt).maxOrNull(),
+                )
+            }
         }
         // Imported classes change what's upcoming/overdue — re-run auto-complete & reminders. After the
         // re-mirror rather than inside it: the rows are already replaced, and a failure here must not
