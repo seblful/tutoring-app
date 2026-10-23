@@ -39,6 +39,8 @@ import kotlinx.datetime.toInstant
 import kotlinx.datetime.todayIn
 import java.util.Locale
 import kotlin.time.Clock
+import kotlin.time.Duration.Companion.hours
+import kotlin.time.Instant
 
 /** Today's lessons on the home screen; the check marks one taught, as the schedule's swipe does. */
 class TodayWidget : GlanceAppWidget() {
@@ -73,8 +75,9 @@ class TodayWidget : GlanceAppWidget() {
         val widgets = context.appGraph.widgets
         val states = combine(widgets.lessons.observe(), widgets.displayLocale.observe(), widgets.privacy(), ::Triple)
         val initial = states.first()
-        // Re-armed on every render, so a widget that outlived its process still turns the page at midnight.
-        widgets.armMidnight()
+        // Re-armed on every render, so a widget that outlived its process still moves «On now» and turns the
+        // page at midnight.
+        widgets.armNextChange(initial.first)
 
         provideContent {
             val state by produceState(initial) { states.collect { value = it } }
@@ -87,7 +90,13 @@ class TodayWidget : GlanceAppWidget() {
                     texts = words.todayTexts().let {
                         if (shown) it else it.copy(empty = words.getString(R.string.widget_today_locked))
                     },
-                    rows = if (shown) today.map { it.toRow(hour12, locale) } else emptyList(),
+                    rows = if (shown) {
+                        val now = widgets.now()
+                        val texts = words.todayTexts()
+                        today.map { it.toRow(hour12, locale, now, texts) }
+                    } else {
+                        emptyList()
+                    },
                     openToday = openApp(context, TrayNavigation.ACTION_OPEN_TODAY),
                     bookLesson = openApp(context, TrayNavigation.ACTION_BOOK_LESSON),
                     openLesson = { classId -> openApp(context, TrayNavigation.ACTION_SHOW_LESSON, classId) },
@@ -117,6 +126,9 @@ internal fun Context.todayTexts() = TodayTexts(
     bookLesson = getString(R.string.schedule_add_class),
     markTaught = getString(R.string.class_mark_completed),
     taught = getString(R.string.class_status_completed),
+    onNow = getString(R.string.class_status_in_progress),
+    markLesson = getString(R.string.widget_mark_lesson),
+    lessonTaught = getString(R.string.widget_lesson_taught),
 )
 
 /** The picker's sample day, from [this], a context in the app's language: the first lesson taught. */
@@ -125,24 +137,33 @@ internal fun Context.sampleRows(hour12: Boolean, locale: Locale): List<TodayRow>
     return resources.getStringArray(R.array.widget_preview_lessons).toList().chunked(2)
         .zip(listOf("09:00", "14:30", "17:00").map(LocalTime::parse))
         .mapIndexed { index, (lesson, time) ->
+            val start = today.atTime(time).toInstant(TimeZone.currentSystemDefault())
             TodayLesson(
                 classId = index.toLong(),
-                start = today.atTime(time).toInstant(TimeZone.currentSystemDefault()),
+                start = start,
+                end = start + 1.hours,
                 who = lesson[0],
                 subject = lesson[1],
                 taught = index == 0,
                 canMarkTaught = index != 0,
-            ).toRow(hour12, locale)
+            ).toRow(hour12, locale, now = Instant.DISTANT_PAST, texts = todayTexts())
         }
 }
 
-internal fun TodayLesson.toRow(hour12: Boolean, locale: Locale): TodayRow = TodayRow(
-    classId = classId,
-    title = who,
-    supportingText = listOf(start.formatTime(hour12, locale), subject).filter { it.isNotBlank() }.joinToString(" · "),
-    taught = taught,
-    canMarkTaught = canMarkTaught,
-)
+/** The row for this lesson as it stands at [now]: «10:00–11:00 · Maths», «On now» while it is taught. */
+internal fun TodayLesson.toRow(hour12: Boolean, locale: Locale, now: Instant, texts: TodayTexts): TodayRow {
+    val starts = start.formatTime(hour12, locale)
+    val range = "$starts–${end.formatTime(hour12, locale)}"
+    return TodayRow(
+        classId = classId,
+        title = who,
+        supportingText = listOf(range, subject).filter { it.isNotBlank() }.joinToString(" · "),
+        taught = taught,
+        canMarkTaught = canMarkTaught,
+        onNow = isOnAt(now),
+        tickLabel = String.format(locale, if (taught) texts.lessonTaught else texts.markLesson, who, starts),
+    )
+}
 
 class TodayWidgetReceiver : GlanceAppWidgetReceiver() {
 

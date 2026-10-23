@@ -18,12 +18,14 @@ import dev.zacsweers.metro.SingleIn
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.atStartOfDayIn
 import kotlinx.datetime.plus
 import kotlinx.datetime.toLocalDateTime
+import kotlin.time.Instant
 
 /**
  * Keeps placed widgets current. A widget draws only when told to, and its own session ends soon after a
@@ -59,12 +61,14 @@ class WidgetUpdates(
     }
 
     /**
-     * Re-renders every widget, and re-arms Today's midnight in the zone the clock is now in. No widget placed
+     * Re-renders every widget, and re-arms Today's next redraw in the zone the clock is now in. No widget placed
      * makes this a no-op.
      */
     suspend fun refresh() {
         update {
-            if (GlanceAppWidgetManager(context).getGlanceIds(TodayWidget::class.java).isNotEmpty()) armMidnight()
+            if (GlanceAppWidgetManager(context).getGlanceIds(TodayWidget::class.java).isNotEmpty()) {
+                armNextChange(lessons.observe().first())
+            }
             TodayWidget().updateAll(context)
         }
         update { QuickActionsWidget().updateAll(context) }
@@ -75,14 +79,19 @@ class WidgetUpdates(
         runCatchingCancellable { render() }
     }
 
+    /** The moment a render draws «On now» against. */
+    fun now(): Instant = clock.now()
+
     /**
-     * Wakes [TodayWidgetReceiver] at the next local midnight, without waking the device: a widget is only
-     * seen on a screen that is on, which delivers the alarm. Replaces the one armed before.
+     * Wakes [TodayWidgetReceiver] when [today]'s next lesson starts or ends — «On now» moves — or else at the
+     * next local midnight, without waking the device: a widget is only seen on a screen that is on, which
+     * delivers the alarm. Replaces the one armed before.
      */
-    fun armMidnight() {
-        val today = clock.now().toLocalDateTime(clock.zone).date
-        val midnight = today.plus(1, DateTimeUnit.DAY).atStartOfDayIn(clock.zone)
-        alarms.set(AlarmManager.RTC, midnight.toEpochMilliseconds(), newDay())
+    fun armNextChange(today: List<TodayLesson>) {
+        val now = clock.now()
+        val midnight = now.toLocalDateTime(clock.zone).date.plus(1, DateTimeUnit.DAY).atStartOfDayIn(clock.zone)
+        val at = TodayLessons.nextChange(today, now)?.takeIf { it < midnight } ?: midnight
+        alarms.set(AlarmManager.RTC, at.toEpochMilliseconds(), newDay())
     }
 
     fun disarmMidnight() {

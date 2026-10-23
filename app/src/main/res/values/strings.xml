@@ -1176,4 +1176,7 @@
     </plurals>
     <!-- The lowest and highest of a set of amounts. -->
     <string name="money_range" translatable="false">%1$s–%2$s</string>
+    <!-- The widget's tick, read aloud. %1$s: who the lesson is with, %2$s: when it starts. -->
+    <string name="widget_mark_lesson">Mark %1$s, %2$s taught</string>
+    <string name="widget_lesson_taught">%1$s, %2$s: taught</string>
 </resources>

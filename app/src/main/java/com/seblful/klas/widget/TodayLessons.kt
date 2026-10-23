@@ -24,13 +24,17 @@ data class TodayLesson(
     /** The lesson's first class — what opening it and marking it taught address. */
     val classId: Long,
     val start: Instant,
+    val end: Instant,
     /** The group's name for a group lesson, the student's for an individual one ([Captions.titleOf]). */
     val who: String,
     val subject: String,
     val taught: Boolean,
     /** Whether the check can mark it taught: the transitions the schedule's own menu allows. */
     val canMarkTaught: Boolean,
-)
+) {
+    /** Being taught at [now]: started, not over, not yet marked — the Day view's «On now». */
+    fun isOnAt(now: Instant): Boolean = !taught && now >= start && now < end
+}
 
 /** Today's lessons for the widget, re-read when the lessons, the names on them, or the date change. */
 @Inject
@@ -59,6 +63,13 @@ class TodayLessons(
 
     companion object {
         /**
+         * When [lessons] next change what the widget says after [now] — a lesson starting or ending, which
+         * moves «On now» — or null when none is left today.
+         */
+        fun nextChange(lessons: List<TodayLesson>, now: Instant): Instant? =
+            lessons.flatMap { listOf(it.start, it.end) }.filter { it > now }.minOrNull()
+
+        /**
          * One row per lesson, in time order. Cancelled lessons are left out: the widget is for what is
          * still to teach today and what has been taught.
          */
@@ -69,6 +80,7 @@ class TodayLessons(
                     TodayLesson(
                         classId = session.first.id,
                         start = session.start,
+                        end = session.first.end,
                         who = captions.titleOf(session),
                         subject = captions.subjectOf(session),
                         taught = session.status == LessonStatus.COMPLETED,

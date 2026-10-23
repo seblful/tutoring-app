@@ -29,6 +29,8 @@ import androidx.glance.text.Text
 import androidx.glance.text.TextAlign
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
+import com.seblful.klas.ui.common.MinTouchTarget
+import com.seblful.klas.ui.common.Spacing
 
 /** One shortcut in the toolbar. */
 internal data class ToolBarButton(
@@ -72,7 +74,7 @@ internal fun RectangularIconButton(
                         fontWeight = FontWeight.Medium,
                         textAlign = TextAlign.Center,
                     ),
-                    modifier = GlanceModifier.padding(start = 4.dp, top = 4.dp, end = 4.dp),
+                    modifier = GlanceModifier.padding(start = Spacing.tight, top = Spacing.tight, end = Spacing.tight),
                 )
             }
         }
@@ -123,9 +125,11 @@ internal val TitleBarHeight = 56.dp
 internal val LabelledTileHeight = 72.dp
 
 /** The smallest accessible tap target. */
-internal val MinButtonSize = 48.dp
-internal val WidgetPadding = 12.dp
-internal val ItemsSpacing = 8.dp
+// The app's own spacing and touch size (`Spacing`, `MinTouchTarget`): the widget keeps sp text and the system
+// font, which Glance needs, but not numbers of its own.
+internal val MinButtonSize = MinTouchTarget
+internal val WidgetPadding = Spacing.itemGap
+internal val ItemsSpacing = Spacing.inline
 internal val IconSize = 24.dp
 internal val FullRadius = 100.dp
 internal val MediumRadius = 16.dp
