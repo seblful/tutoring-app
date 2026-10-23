@@ -1248,6 +1248,8 @@
     <string name="batch_select">Выбрать</string>
     <string name="batch_mark_taught">Отметить проведёнными</string>
     <string name="batch_cancel">Отменить занятия</string>
+    <string name="batch_none_marked">Отметить проведёнными можно только запланированные занятия</string>
+    <string name="batch_none_cancelled">Эти занятия уже отменены</string>
     <plurals name="homework_batch_done">
         <item quantity="one">Сделано: %1$d</item>
         <item quantity="few">Сделано: %1$d</item>

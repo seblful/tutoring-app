@@ -34,6 +34,14 @@ internal fun BatchMessages(batch: LessonBatch, messages: Messages) {
                 is LessonBatch.Done.ChangedSince -> messages.show(
                     resources.getQuantityString(R.plurals.batch_changed_since, done.count, done.count),
                 )
+                is LessonBatch.Done.Untouched -> messages.show(
+                    resources.getString(
+                        when (done.action) {
+                            LessonBatch.Action.MARK_TAUGHT -> R.string.batch_none_marked
+                            LessonBatch.Action.CANCEL -> R.string.batch_none_cancelled
+                        },
+                    ),
+                )
                 LessonBatch.Done.Failed -> messages.show(resources.getString(R.string.action_failed))
             }
         }

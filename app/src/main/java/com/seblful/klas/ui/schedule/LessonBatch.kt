@@ -4,6 +4,7 @@ import com.seblful.klas.data.lessons.ClassRepository
 import com.seblful.klas.data.lessons.LessonWrite
 import com.seblful.klas.data.lessons.SessionReceipt
 import com.seblful.klas.data.lessons.UndoResult
+import com.seblful.klas.domain.lesson.SessionRules
 import com.seblful.klas.domain.model.ClassSession
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.ui.common.state.UiEvents
@@ -18,7 +19,9 @@ import kotlinx.coroutines.flow.update
 /**
  * Lessons picked by a long-press, and what can be done to them at once: marked taught, or cancelled — the two
  * batch actions safe enough to offer, each with **one** undo for the lot. Picked by a class of each lesson, so
- * a group lesson is one pick. Only planned lessons are touched; the rest of a selection is left as it is.
+ * a group lesson is one pick. Each action touches the lessons the lesson's own sheet would let it — a planned
+ * one is marked taught; a planned or a taught one is cancelled — and leaves the rest as they are, saying so
+ * when that is all of them ([Done.Untouched]): an action that does nothing must not look like one that failed.
  *
  * @param scope the app's, as every lesson write's: the selection bar closes as the action is tapped.
  */
@@ -29,11 +32,16 @@ class LessonBatch(private val classes: ClassRepository, private val scope: Corou
 
         data class Cancelled(val receipts: List<SessionReceipt>) : Done
 
+        /** None of the picked lessons could take [action]: marking taught what is not planned, cancelling the cancelled. */
+        data class Untouched(val action: Action) : Done
+
         /** An undo left [count] lessons that had changed since, as every guarded undo does. */
         data class ChangedSince(val count: Int) : Done
 
         data object Failed : Done
     }
+
+    enum class Action { MARK_TAUGHT, CANCEL }
 
     private val _selected = MutableStateFlow<Set<Long>>(emptySet())
 
@@ -48,7 +56,7 @@ class LessonBatch(private val classes: ClassRepository, private val scope: Corou
         _selected.value = emptySet()
     }
 
-    fun markTaught() = act { sessions ->
+    fun markTaught() = act(_selected.value, Action.MARK_TAUGHT, sheetAllows(LessonStatus.COMPLETED)) { sessions ->
         val marked = sessions.mapNotNull { session ->
             (classes.setStatus(session, LessonStatus.COMPLETED) as? LessonWrite.Written)?.value
                 ?.takeIf { it.isNotEmpty() }
@@ -57,18 +65,25 @@ class LessonBatch(private val classes: ClassRepository, private val scope: Corou
         if (marked.isNotEmpty()) done.send(Done.Marked(marked))
     }
 
-    fun cancel() = cancel(_selected.value)
+    /** Cancels the picked lessons, taught ones too, as each one's sheet would. */
+    fun cancel() = cancel(_selected.value, sheetAllows(LessonStatus.CANCELLED))
 
-    /** Cancels the planned lessons among [classIds] — a whole day's, from its header — with one undo. */
-    fun cancel(classIds: Set<Long>) = act(classIds) { sessions ->
-        val receipts = sessions.mapNotNull { session ->
-            (classes.setStatusUndoable(session, LessonStatus.CANCELLED) as? LessonWrite.Written)?.value
+    /**
+     * Cancels the planned lessons among [classIds] — a whole day's, from its header — with one undo. A day's
+     * taught lessons stay taught: they are cancelled one at a time, knowingly, as what they earned goes too.
+     */
+    fun cancelDay(classIds: Set<Long>) = cancel(classIds) { it.status == LessonStatus.SCHEDULED }
+
+    private fun cancel(classIds: Set<Long>, eligible: (ClassSession) -> Boolean) =
+        act(classIds, Action.CANCEL, eligible) { sessions ->
+            val receipts = sessions.mapNotNull { session ->
+                (classes.setStatusUndoable(session, LessonStatus.CANCELLED) as? LessonWrite.Written)?.value
+            }
+            if (receipts.isEmpty()) return@act
+            done.send(Done.Cancelled(receipts))
+            // As a single cancel: the calendar hears of it only once the undo has had its chance.
+            scope.settleAfterUndoWindow(done, Done.Failed) { classes.settleAll(receipts) }
         }
-        if (receipts.isEmpty()) return@act
-        done.send(Done.Cancelled(receipts))
-        // As a single cancel: the calendar hears of it only once the undo has had its chance.
-        scope.settleAfterUndoWindow(done, Done.Failed) { classes.settleAll(receipts) }
-    }
 
     /** Takes [batch] back, each lesson only if nothing about it has changed since. */
     fun undo(batch: Done) = scope.write(done, Done.Failed) {
@@ -80,11 +95,20 @@ class LessonBatch(private val classes: ClassRepository, private val scope: Corou
         if (kept > 0) done.send(Done.ChangedSince(kept))
     }
 
-    private fun act(ids: Set<Long> = _selected.value, block: suspend (List<ClassSession>) -> Unit) {
+    private fun act(
+        ids: Set<Long>,
+        action: Action,
+        eligible: (ClassSession) -> Boolean,
+        block: suspend (List<ClassSession>) -> Unit,
+    ) {
         clear()
         scope.write(done, Done.Failed) {
-            val planned = ids.mapNotNull { classes.getSessionFor(it) }.filter { it.status == LessonStatus.SCHEDULED }
-            block(planned)
+            val touched = ids.mapNotNull { classes.getSessionFor(it) }.filter(eligible)
+            if (touched.isEmpty()) done.send(Done.Untouched(action)) else block(touched)
         }
     }
+
+    /** What a lesson's own sheet would let it become. */
+    private fun sheetAllows(status: LessonStatus): (ClassSession) -> Boolean =
+        { status in SessionRules.sessionTransitions(it) }
 }

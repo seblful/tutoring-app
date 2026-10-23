@@ -468,7 +468,7 @@ fun ScheduleScreen(
                                             summary = section.summary,
                                             position = SlicePosition.FIRST,
                                             action = section.plannedIds().takeIf { it.isNotEmpty() }?.let { ids ->
-                                                SectionAction(cancelDayLabel) { viewModel.batch.cancel(ids) }
+                                                SectionAction(cancelDayLabel) { viewModel.batch.cancelDay(ids) }
                                             },
                                         )
                                     }

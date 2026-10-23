@@ -1103,6 +1103,8 @@
     <string name="batch_select">Select</string>
     <string name="batch_mark_taught">Mark taught</string>
     <string name="batch_cancel">Cancel lessons</string>
+    <string name="batch_none_marked">Only planned lessons can be marked taught</string>
+    <string name="batch_none_cancelled">Those lessons are cancelled already</string>
     <plurals name="homework_batch_done">
         <item quantity="one">%1$d marked done</item>
         <item quantity="other">%1$d marked done</item>

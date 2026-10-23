@@ -63,24 +63,64 @@ class LessonBatchTest {
         }
 
     @Test
-    fun `a day's lessons are cancelled from its header without a selection, and one undo re-plans them`() =
+    fun `a day's planned lessons are cancelled from its header, its taught one kept, and one undo re-plans them`() =
         runTest(mainRule.dispatcher) {
             val (a, b, c) = morning()
+            env.classRepo.setStatus(env.classRepo.getSessionFor(c)!!, LessonStatus.COMPLETED)
             val batch = batch
 
-            batch.cancel(setOf(a, b))
+            batch.cancelDay(setOf(a, b, c))
             runCurrent()
             val cancelled = batch.done.stream.first() as LessonBatch.Done.Cancelled
 
             assertEquals(2, cancelled.receipts.size)
             assertEquals(
-                listOf(LessonStatus.CANCELLED, LessonStatus.CANCELLED, LessonStatus.SCHEDULED),
+                listOf(LessonStatus.CANCELLED, LessonStatus.CANCELLED, LessonStatus.COMPLETED),
                 listOf(status(a), status(b), status(c)),
             )
 
             batch.undo(cancelled)
             runCurrent()
             assertEquals(listOf(LessonStatus.SCHEDULED, LessonStatus.SCHEDULED), listOf(status(a), status(b)))
+        }
+
+    @Test
+    fun `a picked taught lesson is cancelled as its own sheet would, and one undo makes it taught again`() =
+        runTest(mainRule.dispatcher) {
+            val (a, b) = morning()
+            env.classRepo.setStatus(env.classRepo.getSessionFor(a)!!, LessonStatus.COMPLETED)
+            val batch = batch
+            batch.toggle(a)
+            batch.toggle(b)
+
+            batch.cancel()
+            runCurrent()
+            val cancelled = batch.done.stream.first() as LessonBatch.Done.Cancelled
+
+            assertEquals(listOf(LessonStatus.CANCELLED, LessonStatus.CANCELLED), listOf(status(a), status(b)))
+
+            batch.undo(cancelled)
+            runCurrent()
+            assertEquals(listOf(LessonStatus.COMPLETED, LessonStatus.SCHEDULED), listOf(status(a), status(b)))
+        }
+
+    @Test
+    fun `an action none of the picked lessons can take says so, rather than doing nothing in silence`() =
+        runTest(mainRule.dispatcher) {
+            val (a) = morning()
+            env.classRepo.setStatus(env.classRepo.getSessionFor(a)!!, LessonStatus.CANCELLED)
+            val batch = batch
+
+            batch.toggle(a)
+            batch.cancel()
+            runCurrent()
+            assertEquals(LessonBatch.Done.Untouched(LessonBatch.Action.CANCEL), batch.done.stream.first())
+
+            batch.toggle(a)
+            batch.markTaught()
+            runCurrent()
+            assertEquals(LessonBatch.Done.Untouched(LessonBatch.Action.MARK_TAUGHT), batch.done.stream.first())
+            assertEquals(LessonStatus.CANCELLED, status(a))
         }
 
     @Test
