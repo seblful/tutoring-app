@@ -165,18 +165,22 @@ Build screens from shared state and controls. Feature rules belong in the domain
   form ticks a lone subject for the tutor, and while the usual length is not an hour each price says what
   one lesson costs. Each step shows its number over a progress bar, offers Skip in the bar, and moves on
   from the `FormSaveBar` every form saves from (R3). No step books a lesson: setup stays a minute long. After
-  it, one optional page offers «Book the first lesson» for the student just added, «Not now» in the bar; booking
+  it, one optional page offers «Book the first lesson» for the student just added, «Not now» under it; booking
   hands the student to the app (`FirstLesson`), which opens the booking form for them over Today, once.
 - After setup a new tutor gets a guide, never a tour (`GuideRepository`). Today shows «First steps» under
   what needs doing now: book, mark taught, record a payment, set homework, turn on reminders (`FirstSteps`),
   each ticked from the data, not by its row's tap; a row opens where the step is done (payment and homework
-  on the first student's card). Hide puts it away with Undo; done, it says so and waits for Close. Gestures
+  on the first student's card). Hide puts it away with Undo; done, it says so and waits for Close. The
+  backup banner waits while the card is out: a tutor in their first week has little to lose and this list to
+  do. After a restore, «Set up this phone» does the same for what the file's phone had on and no file can
+  carry — reminders, calendar sync, the weekly copy (`PhoneSetup`) — each ticked by this phone's state. Gestures
   no screen shows get one `CoachMark` each, on the thing they work on, the first time it is in reach
   (`Tip`): the schedule's swipe and long-press on a lesson card and its date title, homework's swipe on the
   first current card. One per visit (`rememberScreenTip`), after the screen has been still for a moment,
   never over a sheet, dialog or selection, and only while the screen is resumed — a system dialog such as
   the notification permission covers it unseen, and a tap on that dialog would count as a tap elsewhere;
-  «Got it», a tap elsewhere or making the gesture marks it seen.
+  «Got it», a tap elsewhere or making the gesture marks it seen. A tip about an item of a list opens above it
+  (`CoachMarkSide.Above`, below only without room), so it never covers the items after it.
   A swipe tip peeks the row short of the mark (`SwipeToConfirmBox(peek)`) and, under TalkBack, names the
   row's action instead. An install already through setup when it upgrades to v14, and a restored backup,
   start with it done; Settings' «Show tips again» brings it all back.

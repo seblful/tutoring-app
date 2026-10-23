@@ -592,7 +592,7 @@
     <string name="backup_title">बैकअप</string>
     <string name="backup_filename">क्लास-बैकअप-%1$s.json</string>
     <string name="backup_export">अपना डेटा निर्यात करें</string>
-    <string name="backup_export_desc">ट्यूशन डेटा को एक फ़ाइल में सहेजें। ऐप सेटिंग इस फ़ोन पर रहती हैं. फ़ाइल में छात्रों के नाम, फ़ोन नंबर और ईमेल पते हैं। यह केवल तभी एन्क्रिप्ट किया जाता है जब आप पासवर्ड सेट करते हैं।</string>
+    <string name="backup_export_desc">ट्यूशन डेटा को एक फ़ाइल में सहेजें। मुद्रा और पाठ की डिफ़ॉल्ट सेटिंग साथ जाती हैं; रिमाइंडर, कैलेंडर सिंक और साप्ताहिक कॉपी इसी फ़ोन पर रहती हैं। फ़ाइल में छात्रों के नाम, फ़ोन नंबर और ईमेल पते हैं। यह केवल तभी एन्क्रिप्ट किया जाता है जब आप पासवर्ड सेट करते हैं।</string>
     <string name="backup_last_export">अंतिम बैकअप: %1$s</string>
     <string name="backup_last_export_detail">तब से कुछ भी केवल इस फोन पर है</string>
     <string name="backup_never">अभी तक कोई बैकअप नहीं है</string>
@@ -941,6 +941,13 @@
     <string name="first_step_homework_hint">अगले पाठ के लिए एक काम</string>
     <string name="first_step_reminders">पाठ रिमाइंडर चालू करें</string>
     <string name="first_step_reminders_hint">हर पाठ से पहले एक सूचना</string>
+    <string name="phone_setup_title">इस फ़ोन को सेट करें</string>
+    <string name="phone_setup_done">यह फ़ोन सेट हो गया है</string>
+    <string name="phone_setup_hidden">फ़ोन सेटअप छिपाया गया</string>
+    <string name="phone_step_reminders_hint">इस फ़ोन पर सूचनाओं की अनुमति दें</string>
+    <string name="phone_step_calendar">कैलेंडर सिंक चालू करें</string>
+    <string name="phone_step_calendar_hint">इस फ़ोन पर कैलेंडर चुनें</string>
+    <string name="phone_step_weekly_hint">इस फ़ोन पर फ़ोल्डर चुनें</string>
     <string name="settings_tips_again">सुझाव फिर से दिखाएं</string>
     <string name="settings_tips_again_summary">आज पर पहले कदम, स्वाइप करना और दबाकर रखना</string>
     <string name="settings_tips_shown_again">सुझाव फिर से दिखेंगे</string>

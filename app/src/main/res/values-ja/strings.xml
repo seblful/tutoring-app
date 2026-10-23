@@ -570,7 +570,7 @@
     <string name="backup_title">バックアップ</string>
     <string name="backup_filename">klas-backup-%1$s.json</string>
     <string name="backup_export">データをエクスポートする</string>
-    <string name="backup_export_desc">個別指導データをファイルに保存します。アプリの設定はこの携帯電話に残ります。ファイルには生徒の名前、電話番号、電子メール アドレスが保存されています。パスワードを設定した場合のみ暗号化されます。</string>
+    <string name="backup_export_desc">個別指導データをファイルに保存します。通貨とレッスンの既定値は一緒に移ります。リマインダー、カレンダーの同期、毎週のコピーはこの携帯電話に残ります。ファイルには生徒の名前、電話番号、電子メール アドレスが保存されています。パスワードを設定した場合のみ暗号化されます。</string>
     <string name="backup_last_export">最終バックアップ: %1$s</string>
     <string name="backup_last_export_detail">それ以降はすべてこの電話上のみにあります</string>
     <string name="backup_never">バックアップはまだありません</string>
@@ -904,6 +904,13 @@
     <string name="first_step_homework_hint">次のレッスンまでの課題</string>
     <string name="first_step_reminders">レッスンのリマインダーをオンにする</string>
     <string name="first_step_reminders_hint">各レッスンの前に通知</string>
+    <string name="phone_setup_title">この携帯電話を設定</string>
+    <string name="phone_setup_done">この携帯電話の設定が完了しました</string>
+    <string name="phone_setup_hidden">携帯電話の設定を非表示にしました</string>
+    <string name="phone_step_reminders_hint">この携帯電話で通知を許可</string>
+    <string name="phone_step_calendar">カレンダーの同期をオンにする</string>
+    <string name="phone_step_calendar_hint">この携帯電話でカレンダーを選択</string>
+    <string name="phone_step_weekly_hint">この携帯電話でフォルダを選択</string>
     <string name="settings_tips_again">ヒントをもう一度表示</string>
     <string name="settings_tips_again_summary">「今日」のはじめの一歩、スワイプと長押し</string>
     <string name="settings_tips_shown_again">ヒントがもう一度表示されます</string>

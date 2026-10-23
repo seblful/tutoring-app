@@ -2,6 +2,7 @@ package com.seblful.klas.ui.today
 
 import com.seblful.klas.data.lessons.LessonWrite
 import com.seblful.klas.domain.guide.FirstStep
+import com.seblful.klas.domain.guide.PhoneStep
 import com.seblful.klas.domain.lesson.LessonPhase
 import com.seblful.klas.domain.model.Assignee
 import com.seblful.klas.domain.model.LessonStatus
@@ -231,6 +232,7 @@ class TodayViewModelTest {
 
     @Test
     fun `an old backup is said only once there is someone to lose`() = runTest(mainRule.dispatcher) {
+        env.guideRepo.setFirstStepsHidden(true)
         val vm = vm()
         observing(vm.state)
         runCurrent()
@@ -300,6 +302,72 @@ class TodayViewModelTest {
         vm.showFirstSteps()
         runCurrent()
         assertNotNull(vm.state.current.firstSteps)
+    }
+
+    @Test
+    fun `a backup waits for the first steps - it is said once the card is put away`() = runTest(mainRule.dispatcher) {
+        day()
+        val vm = vm()
+        observing(vm.state)
+        runCurrent()
+        assertFalse("a tutor in their first week is doing the first steps", vm.state.current.backupStale)
+
+        vm.hideFirstSteps()
+        runCurrent()
+        assertTrue(vm.state.current.backupStale)
+    }
+
+    @Test
+    fun `after a restore - what the old phone had on is asked for, ticked by this phone`() =
+        runTest(mainRule.dispatcher) {
+            day()
+            env.settingsRepo.update { it.copy(calendarSyncEnabled = true, autoBackupFolder = "content://tree/klas") }
+            val file = env.backupManager.exportJson()
+            env.settingsRepo.update { it.copy(calendarSyncEnabled = false, autoBackupFolder = null) }
+            env.backupRestore.restore(file)
+            val vm = vm()
+            observing(vm.state)
+            runCurrent()
+
+            val setup = vm.state.current.phoneSetup!!
+            assertEquals(listOf(PhoneStep.REMINDERS, PhoneStep.CALENDAR, PhoneStep.WEEKLY_COPY), setup.steps)
+            assertEquals("reminders are on and allowed", setOf(PhoneStep.REMINDERS), setup.done)
+
+            env.settingsRepo.update { it.copy(autoBackupFolder = "content://tree/new-phone") }
+            runCurrent()
+            assertEquals(setOf(PhoneStep.REMINDERS, PhoneStep.WEEKLY_COPY), vm.state.current.phoneSetup!!.done)
+        }
+
+    @Test
+    fun `hiding the phone setup puts it away - and its undo brings back the same steps`() =
+        runTest(mainRule.dispatcher) {
+            env.guideRepo.setPhoneSetup(setOf(PhoneStep.CALENDAR))
+            val vm = vm()
+            observing(vm.state)
+            val events = mutableListOf<TodayViewModel.Event>()
+            backgroundScope.launch { vm.events.stream.collect { events += it } }
+            runCurrent()
+
+            vm.hidePhoneSetup()
+            runCurrent()
+            assertNull(vm.state.current.phoneSetup)
+            assertEquals(
+                listOf<TodayViewModel.Event>(TodayViewModel.Event.PhoneSetupHidden(setOf(PhoneStep.CALENDAR))),
+                events,
+            )
+
+            vm.showPhoneSetup(setOf(PhoneStep.CALENDAR))
+            runCurrent()
+            assertEquals(listOf(PhoneStep.CALENDAR), vm.state.current.phoneSetup!!.steps)
+        }
+
+    @Test
+    fun `a phone never restored onto has no setup card`() = runTest(mainRule.dispatcher) {
+        val vm = vm()
+        observing(vm.state)
+        runCurrent()
+
+        assertNull(vm.state.current.phoneSetup)
     }
 
     @Test

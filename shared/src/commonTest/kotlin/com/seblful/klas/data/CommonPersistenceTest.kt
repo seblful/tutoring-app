@@ -48,6 +48,8 @@ class CommonPersistenceTest {
             val exported = first.backup.exportJson()
             second.backup.importJson(exported)
 
+            // The rows, which an import replaces; the settings a file carries are the restore's to apply
+            // (`BackupPreferencesTest`), so each phone's export still speaks for its own.
             val original = first.backup.export()
             val restored = second.backup.export()
             assertEquals(
@@ -55,9 +57,11 @@ class CommonPersistenceTest {
                     attendance = original.attendance.map {
                         it.copy(calendarEventId = null)
                     },
+                    preferences = null,
                 ),
-                restored,
+                restored.copy(preferences = null),
             )
+            assertEquals("USD", original.preferences?.currency)
             assertTrue(restored.attendance.all { it.calendarEventId == null })
             assertEquals(Money.ofMajor(25), second.db.paymentDao().getAll().single().toDomain().amount)
             assertEquals(Currency.BYN, second.settings.get().currency)
@@ -104,8 +108,8 @@ class CommonPersistenceTest {
     private class Fixture {
         val db = openTestDatabase()
         private val transactor = RoomTransactor(db)
-        val backup = BackupManager(transactor, db.snapshotDao())
         val settings = SettingsRepository(db.settingsDao(), DevicePreferences(listOf("ru-BY"), listOf("BYN")))
+        val backup = BackupManager(transactor, db.snapshotDao(), settings)
         var refreshes = 0
         var mirrored = 0
         private val reminders = object : ReminderScheduler {

@@ -146,6 +146,7 @@ class KlasGraph(
             onGiveHomework = { go(Routes.StudentDetail(it, task = StudentTask.HOMEWORK)) },
             onPeople = { navigator.navigateToTab(TopDestination.PEOPLE) },
             onReminders = { go(Routes.NotificationSettings) },
+            onCalendar = { go(Routes.CalendarSettings) },
         )
     }
 

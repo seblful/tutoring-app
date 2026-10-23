@@ -592,7 +592,7 @@
     <string name="backup_title">Δημιουργία αντιγράφων ασφαλείας</string>
     <string name="backup_filename">klas-backup-%1$s.json</string>
     <string name="backup_export">Εξαγωγή των δεδομένων σας</string>
-    <string name="backup_export_desc">Αποθηκεύστε τα δεδομένα του φροντιστηρίου σε ένα αρχείο. Οι ρυθμίσεις εφαρμογής παραμένουν σε αυτό το τηλέφωνο. Το αρχείο περιέχει τα ονόματα, τους αριθμούς τηλεφώνου και τις διευθύνσεις email των μαθητών. Είναι κρυπτογραφημένο μόνο εάν ορίσετε κωδικό πρόσβασης.</string>
+    <string name="backup_export_desc">Αποθηκεύστε τα δεδομένα του φροντιστηρίου σε ένα αρχείο. Το νόμισμα και οι προεπιλογές μαθημάτων μεταφέρονται μαζί· οι υπενθυμίσεις, ο συγχρονισμός ημερολογίου και το εβδομαδιαίο αντίγραφο μένουν σε αυτό το τηλέφωνο. Το αρχείο περιέχει τα ονόματα, τους αριθμούς τηλεφώνου και τις διευθύνσεις email των μαθητών. Είναι κρυπτογραφημένο μόνο εάν ορίσετε κωδικό πρόσβασης.</string>
     <string name="backup_last_export">Τελευταίο αντίγραφο ασφαλείας: %1$s</string>
     <string name="backup_last_export_detail">Οτιδήποτε από τότε υπάρχει μόνο σε αυτό το τηλέφωνο</string>
     <string name="backup_never">Δεν υπάρχουν ακόμα αντίγραφα ασφαλείας</string>
@@ -941,6 +941,13 @@
     <string name="first_step_homework_hint">Μια εργασία για το επόμενο μάθημα</string>
     <string name="first_step_reminders">Ενεργοποιήστε τις υπενθυμίσεις μαθημάτων</string>
     <string name="first_step_reminders_hint">Μια ειδοποίηση πριν από κάθε μάθημα</string>
+    <string name="phone_setup_title">Ρυθμίστε αυτό το τηλέφωνο</string>
+    <string name="phone_setup_done">Το τηλέφωνο ρυθμίστηκε</string>
+    <string name="phone_setup_hidden">Η ρύθμιση τηλεφώνου αποκρύφτηκε</string>
+    <string name="phone_step_reminders_hint">Επιτρέψτε τις ειδοποιήσεις σε αυτό το τηλέφωνο</string>
+    <string name="phone_step_calendar">Ενεργοποιήστε τον συγχρονισμό ημερολογίου</string>
+    <string name="phone_step_calendar_hint">Επιλέξτε το ημερολόγιο σε αυτό το τηλέφωνο</string>
+    <string name="phone_step_weekly_hint">Επιλέξτε τον φάκελο σε αυτό το τηλέφωνο</string>
     <string name="settings_tips_again">Εμφάνιση συμβουλών ξανά</string>
     <string name="settings_tips_again_summary">Πρώτα βήματα στο Σήμερα, σύρσιμο και παρατεταμένο πάτημα</string>
     <string name="settings_tips_shown_again">Οι συμβουλές θα εμφανιστούν ξανά</string>

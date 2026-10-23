@@ -592,7 +592,7 @@
     <string name="backup_title">Back-up</string>
     <string name="backup_filename">klas-backup-%1$s.json</string>
     <string name="backup_export">Exporteer uw gegevens</string>
-    <string name="backup_export_desc">Sla lesgegevens op in een bestand. App-instellingen blijven op deze telefoon staan. Het bestand bevat de namen, telefoonnummers en e-mailadressen van studenten. Het wordt alleen gecodeerd als u een wachtwoord instelt.</string>
+    <string name="backup_export_desc">Sla lesgegevens op in een bestand. De valuta en lesstandaarden gaan mee; herinneringen, kalendersynchronisatie en de wekelijkse kopie blijven op deze telefoon. Het bestand bevat de namen, telefoonnummers en e-mailadressen van studenten. Het wordt alleen gecodeerd als u een wachtwoord instelt.</string>
     <string name="backup_last_export">Laatste back-up: %1$s</string>
     <string name="backup_last_export_detail">Alles sindsdien staat alleen op deze telefoon</string>
     <string name="backup_never">Nog geen back-ups</string>
@@ -941,6 +941,13 @@
     <string name="first_step_homework_hint">Een taak voor de volgende les</string>
     <string name="first_step_reminders">Zet lesherinneringen aan</string>
     <string name="first_step_reminders_hint">Een melding voor elke les</string>
+    <string name="phone_setup_title">Stel deze telefoon in</string>
+    <string name="phone_setup_done">Deze telefoon is ingesteld</string>
+    <string name="phone_setup_hidden">Telefooninstelling verborgen</string>
+    <string name="phone_step_reminders_hint">Sta meldingen toe op deze telefoon</string>
+    <string name="phone_step_calendar">Zet kalendersynchronisatie aan</string>
+    <string name="phone_step_calendar_hint">Kies de agenda op deze telefoon</string>
+    <string name="phone_step_weekly_hint">Kies de map op deze telefoon</string>
     <string name="settings_tips_again">Tips opnieuw tonen</string>
     <string name="settings_tips_again_summary">Eerste stappen op Vandaag, vegen en vasthouden</string>
     <string name="settings_tips_shown_again">Tips worden opnieuw getoond</string>

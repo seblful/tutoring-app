@@ -570,7 +570,7 @@
     <string name="backup_title">备份</string>
     <string name="backup_filename">klas-backup-%1$s.json</string>
     <string name="backup_export">导出您的数据</string>
-    <string name="backup_export_desc">将辅导数据保存到文件中。应用程序设置保留在此手机上。该文件包含学生的姓名、电话号码和电子邮件地址。仅当您设置密码时才会加密。</string>
+    <string name="backup_export_desc">将辅导数据保存到文件中。货币和课程默认设置会一并带走；提醒、日历同步和每周备份保留在此手机上。该文件包含学生的姓名、电话号码和电子邮件地址。仅当您设置密码时才会加密。</string>
     <string name="backup_last_export">最后备份：%1$s</string>
     <string name="backup_last_export_detail">从那时起的一切都只在这部手机上</string>
     <string name="backup_never">尚未备份</string>
@@ -904,6 +904,13 @@
     <string name="first_step_homework_hint">下节课前要完成的任务</string>
     <string name="first_step_reminders">开启课程提醒</string>
     <string name="first_step_reminders_hint">每节课前发出通知</string>
+    <string name="phone_setup_title">设置这台手机</string>
+    <string name="phone_setup_done">这台手机已设置好</string>
+    <string name="phone_setup_hidden">已隐藏手机设置</string>
+    <string name="phone_step_reminders_hint">允许此手机发送通知</string>
+    <string name="phone_step_calendar">开启日历同步</string>
+    <string name="phone_step_calendar_hint">在此手机上选择日历</string>
+    <string name="phone_step_weekly_hint">在此手机上选择文件夹</string>
     <string name="settings_tips_again">重新显示提示</string>
     <string name="settings_tips_again_summary">“今天”中的入门步骤，以及滑动和长按</string>
     <string name="settings_tips_shown_again">提示将重新显示</string>

@@ -614,7 +614,7 @@
     <string name="backup_title">Copia de seguridad</string>
     <string name="backup_filename">klas-backup-%1$s.json</string>
     <string name="backup_export">Exporta tus datos</string>
-    <string name="backup_export_desc">Guardar datos de tutoría en un archivo. La configuración de la aplicación permanece en este teléfono. El archivo contiene los nombres, números de teléfono y direcciones de correo electrónico de los estudiantes. Está cifrado sólo si establece una contraseña.</string>
+    <string name="backup_export_desc">Guardar datos de tutoría en un archivo. La moneda y los valores predeterminados de las clases van con ellos; los recordatorios, la sincronización de calendario y la copia semanal se quedan en este teléfono. El archivo contiene los nombres, números de teléfono y direcciones de correo electrónico de los estudiantes. Está cifrado sólo si establece una contraseña.</string>
     <string name="backup_last_export">Última copia de seguridad: %1$s</string>
     <string name="backup_last_export_detail">Todo lo que haya ocurrido desde entonces está solo en este teléfono</string>
     <string name="backup_never">Aún no hay copias de seguridad</string>
@@ -978,6 +978,13 @@
     <string name="first_step_homework_hint">Algo para la próxima clase</string>
     <string name="first_step_reminders">Activa los recordatorios de clase</string>
     <string name="first_step_reminders_hint">Un aviso antes de cada clase</string>
+    <string name="phone_setup_title">Configura este teléfono</string>
+    <string name="phone_setup_done">Este teléfono está configurado</string>
+    <string name="phone_setup_hidden">Configuración del teléfono oculta</string>
+    <string name="phone_step_reminders_hint">Permite las notificaciones en este teléfono</string>
+    <string name="phone_step_calendar">Activa la sincronización de calendario</string>
+    <string name="phone_step_calendar_hint">Elige el calendario en este teléfono</string>
+    <string name="phone_step_weekly_hint">Elige la carpeta en este teléfono</string>
     <string name="settings_tips_again">Volver a mostrar consejos</string>
     <string name="settings_tips_again_summary">Primeros pasos en Hoy, deslizar y mantener</string>
     <string name="settings_tips_shown_again">Los consejos se volverán a mostrar</string>

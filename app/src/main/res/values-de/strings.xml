@@ -592,7 +592,7 @@
     <string name="backup_title">Sicherung</string>
     <string name="backup_filename">klas-backup-%1$s.json</string>
     <string name="backup_export">Exportieren Sie Ihre Daten</string>
-    <string name="backup_export_desc">Nachhilfedaten in einer Datei speichern. App-Einstellungen bleiben auf diesem Telefon. Die Datei enthält die Namen, Telefonnummern und E-Mail-Adressen der Schüler. Es wird nur verschlüsselt, wenn Sie ein Passwort festlegen.</string>
+    <string name="backup_export_desc">Nachhilfedaten in einer Datei speichern. Währung und Stundenvorgaben kommen mit; Erinnerungen, Kalendersynchronisierung und die wöchentliche Kopie bleiben auf diesem Telefon. Die Datei enthält die Namen, Telefonnummern und E-Mail-Adressen der Schüler. Es wird nur verschlüsselt, wenn Sie ein Passwort festlegen.</string>
     <string name="backup_last_export">Letzte Sicherung: %1$s</string>
     <string name="backup_last_export_detail">Alles seitdem ist nur auf diesem Telefon verfügbar</string>
     <string name="backup_never">Noch keine Backups</string>
@@ -941,6 +941,13 @@
     <string name="first_step_homework_hint">Eine Aufgabe für die nächste Stunde</string>
     <string name="first_step_reminders">Schalten Sie Stundenerinnerungen ein</string>
     <string name="first_step_reminders_hint">Ein Hinweis vor jeder Stunde</string>
+    <string name="phone_setup_title">Dieses Telefon einrichten</string>
+    <string name="phone_setup_done">Dieses Telefon ist eingerichtet</string>
+    <string name="phone_setup_hidden">Telefon-Einrichtung ausgeblendet</string>
+    <string name="phone_step_reminders_hint">Erlauben Sie Benachrichtigungen auf diesem Telefon</string>
+    <string name="phone_step_calendar">Schalten Sie die Kalendersynchronisierung ein</string>
+    <string name="phone_step_calendar_hint">Wählen Sie den Kalender auf diesem Telefon</string>
+    <string name="phone_step_weekly_hint">Wählen Sie den Ordner auf diesem Telefon</string>
     <string name="settings_tips_again">Tipps erneut zeigen</string>
     <string name="settings_tips_again_summary">Erste Schritte unter „Heute“ und Wischen und Halten</string>
     <string name="settings_tips_shown_again">Tipps werden erneut gezeigt</string>

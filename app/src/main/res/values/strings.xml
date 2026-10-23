@@ -852,7 +852,7 @@
       the one moment students' contact details leave it, in clear text, to storage of the tutor's
       choosing — a cloud folder included.
     -->
-    <string name="backup_export_desc">Save tutoring data to a file. App settings stay on this phone. The file holds students\' names, phone numbers and email addresses. It is encrypted only if you set a password.</string>
+    <string name="backup_export_desc">Save tutoring data to a file. The currency and lesson defaults go with it; reminders, calendar sync and the weekly copy stay with this phone. The file holds students\' names, phone numbers and email addresses. It is encrypted only if you set a password.</string>
     <!--
       The backup screen leads with when the last copy was made. Two states, and the second is the one
       worth having: an app that has never been backed up should say so plainly.
@@ -1234,6 +1234,13 @@
     <string name="first_step_homework_hint">A task for the next lesson</string>
     <string name="first_step_reminders">Turn on lesson reminders</string>
     <string name="first_step_reminders_hint">A notice before each lesson</string>
+    <string name="phone_setup_title">Set up this phone</string>
+    <string name="phone_setup_done">This phone is set up</string>
+    <string name="phone_setup_hidden">Phone setup hidden</string>
+    <string name="phone_step_reminders_hint">Allow notifications on this phone</string>
+    <string name="phone_step_calendar">Turn on calendar sync</string>
+    <string name="phone_step_calendar_hint">Pick the calendar on this phone</string>
+    <string name="phone_step_weekly_hint">Pick the folder on this phone</string>
     <string name="settings_tips_again">Show tips again</string>
     <string name="settings_tips_again_summary">First steps and gesture tips</string>
     <string name="settings_tips_shown_again">Tips will show again</string>

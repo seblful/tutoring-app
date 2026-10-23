@@ -614,7 +614,7 @@
     <string name="backup_title">Backup</string>
     <string name="backup_filename">klas-backup-%1$s.json</string>
     <string name="backup_export">Exporte os seus dados</string>
-    <string name="backup_export_desc">Guardar dados de tutoria num ficheiro. As definições da aplicação permanecem neste telefone. O ficheiro contém os nomes, números de telefone e endereços de e-mail dos alunos. É encriptado somente se definir uma senha.</string>
+    <string name="backup_export_desc">Guardar dados de tutoria num ficheiro. A moeda e as predefinições das aulas vão consigo; os lembretes, a sincronização de calendário e a cópia semanal ficam neste telefone. O ficheiro contém os nomes, números de telefone e endereços de e-mail dos alunos. É encriptado somente se definir uma senha.</string>
     <string name="backup_last_export">Último backup: %1$s</string>
     <string name="backup_last_export_detail">Qualquer coisa desde então está apenas neste telefone</string>
     <string name="backup_never">Ainda não há backup</string>
@@ -978,6 +978,13 @@
     <string name="first_step_homework_hint">Algo para a próxima aula</string>
     <string name="first_step_reminders">Ative os lembretes de aulas</string>
     <string name="first_step_reminders_hint">Um aviso antes de cada aula</string>
+    <string name="phone_setup_title">Configure este telefone</string>
+    <string name="phone_setup_done">Este telefone está configurado</string>
+    <string name="phone_setup_hidden">Configuração do telefone ocultada</string>
+    <string name="phone_step_reminders_hint">Permita as notificações neste telefone</string>
+    <string name="phone_step_calendar">Ative a sincronização de calendário</string>
+    <string name="phone_step_calendar_hint">Escolha o calendário neste telefone</string>
+    <string name="phone_step_weekly_hint">Escolha a pasta neste telefone</string>
     <string name="settings_tips_again">Mostrar dicas novamente</string>
     <string name="settings_tips_again_summary">Primeiros passos em Hoje, deslizar e premir</string>
     <string name="settings_tips_shown_again">As dicas voltarão a ser mostradas</string>

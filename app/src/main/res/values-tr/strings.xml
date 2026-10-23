@@ -592,7 +592,7 @@
     <string name="backup_title">Yedekleme</string>
     <string name="backup_filename">klas-backup-%1$s.json</string>
     <string name="backup_export">Verilerinizi dışa aktarın</string>
-    <string name="backup_export_desc">Özel ders verilerini bir dosyaya kaydedin. Uygulama ayarları bu telefonda kalır. Dosyada öğrencilerin adları, telefon numaraları ve e-posta adresleri yer alıyor. Yalnızca bir parola ayarlarsanız şifrelenir.</string>
+    <string name="backup_export_desc">Özel ders verilerini bir dosyaya kaydedin. Para birimi ve ders varsayılanları verilerle birlikte gelir; hatırlatıcılar, takvim senkronizasyonu ve haftalık kopya bu telefonda kalır. Dosyada öğrencilerin adları, telefon numaraları ve e-posta adresleri yer alıyor. Yalnızca bir parola ayarlarsanız şifrelenir.</string>
     <string name="backup_last_export">Son yedekleme: %1$s</string>
     <string name="backup_last_export_detail">O zamandan beri her şey yalnızca bu telefonda</string>
     <string name="backup_never">Henüz yedekleme yok</string>
@@ -941,6 +941,13 @@
     <string name="first_step_homework_hint">Sonraki derse bir görev</string>
     <string name="first_step_reminders">Ders hatırlatıcılarını açın</string>
     <string name="first_step_reminders_hint">Her dersten önce bir bildirim</string>
+    <string name="phone_setup_title">Bu telefonu kurun</string>
+    <string name="phone_setup_done">Bu telefon kuruldu</string>
+    <string name="phone_setup_hidden">Telefon kurulumu gizlendi</string>
+    <string name="phone_step_reminders_hint">Bu telefonda bildirimlere izin verin</string>
+    <string name="phone_step_calendar">Takvim senkronizasyonunu açın</string>
+    <string name="phone_step_calendar_hint">Bu telefonda takvimi seçin</string>
+    <string name="phone_step_weekly_hint">Bu telefonda klasörü seçin</string>
     <string name="settings_tips_again">İpuçlarını yeniden göster</string>
     <string name="settings_tips_again_summary">Bugün\'de ilk adımlar, kaydırma ve basılı tutma</string>
     <string name="settings_tips_shown_again">İpuçları yeniden gösterilecek</string>

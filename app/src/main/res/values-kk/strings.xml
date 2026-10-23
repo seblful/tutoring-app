@@ -592,7 +592,7 @@
     <string name="backup_title">Сақтық көшірме</string>
     <string name="backup_filename">klas-backup-%1$s.json</string>
     <string name="backup_export">Деректерді экспорттау</string>
-    <string name="backup_export_desc">Репетиторлық деректерді файлға сақтаңыз. Қолданба параметрлері осы телефонда қалады. Файлда студенттердің аты-жөні, телефон нөмірлері және электрондық пошта мекенжайлары бар. Ол құпия сөзді орнатқан жағдайда ғана шифрланады.</string>
+    <string name="backup_export_desc">Репетиторлық деректерді файлға сақтаңыз. Валюта мен сабақ параметрлері деректермен бірге сақталады; еске салғыштар, күнтізбені синхрондау және апта сайынғы көшірме осы телефонда қалады. Файлда студенттердің аты-жөні, телефон нөмірлері және электрондық пошта мекенжайлары бар. Ол құпия сөзді орнатқан жағдайда ғана шифрланады.</string>
     <string name="backup_last_export">Соңғы сақтық көшірме: %1$s</string>
     <string name="backup_last_export_detail">Содан бері кез келген нәрсе тек осы телефонда</string>
     <string name="backup_never">Сақтық көшірмелер әлі жоқ</string>
@@ -941,6 +941,13 @@
     <string name="first_step_homework_hint">Келесі сабаққа не істеу керек</string>
     <string name="first_step_reminders">Сабақ туралы еске салғыштарды қосыңыз</string>
     <string name="first_step_reminders_hint">Әр сабақ алдында хабарландыру</string>
+    <string name="phone_setup_title">Осы телефонды баптаңыз</string>
+    <string name="phone_setup_done">Телефон бапталды</string>
+    <string name="phone_setup_hidden">Телефонды баптау жасырылды</string>
+    <string name="phone_step_reminders_hint">Осы телефонда хабарландыруларға рұқсат беріңіз</string>
+    <string name="phone_step_calendar">Күнтізбені синхрондауды қосыңыз</string>
+    <string name="phone_step_calendar_hint">Осы телефонда күнтізбені таңдаңыз</string>
+    <string name="phone_step_weekly_hint">Осы телефонда қалтаны таңдаңыз</string>
     <string name="settings_tips_again">Кеңестерді қайта көрсету</string>
     <string name="settings_tips_again_summary">«Бүгін» бетіндегі алғашқы қадамдар және қимылдар</string>
     <string name="settings_tips_shown_again">Кеңестер қайта көрсетіледі</string>

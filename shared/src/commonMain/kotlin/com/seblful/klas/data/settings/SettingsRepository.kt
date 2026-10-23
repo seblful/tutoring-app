@@ -1,6 +1,7 @@
 package com.seblful.klas.data.settings
 
 import com.seblful.klas.domain.guide.Guide
+import com.seblful.klas.domain.guide.PhoneStep
 import com.seblful.klas.domain.guide.Tip
 import com.seblful.klas.domain.model.AppLanguage
 import com.seblful.klas.domain.model.Currency
@@ -86,6 +87,8 @@ data class AppSettings(
     val autoBackupFailed: Boolean = false,
     /** The tips seen and whether the first-steps card is put away — see [GuideRepository]. */
     val guide: Guide = Guide.FRESH,
+    /** What this phone is to be given after a restore — see `PhoneSetup`. Empty when there is no card. */
+    val phoneSetup: Set<PhoneStep> = emptySet(),
 )
 
 /**
@@ -233,6 +236,8 @@ class SettingsRepository @Inject constructor(
                 seen = tipsSeen.split(',').mapNotNull { name -> Tip.entries.firstOrNull { it.name == name } }.toSet(),
                 firstStepsHidden = firstStepsHidden,
             ),
+            phoneSetup = phoneSetup.split(',').mapNotNull { name -> PhoneStep.entries.firstOrNull { it.name == name } }
+                .toSet(),
         ),
     )
 
@@ -271,5 +276,6 @@ class SettingsRepository @Inject constructor(
         autoBackupFailed = autoBackupFailed,
         tipsSeen = Tip.entries.filter { it in guide.seen }.joinToString(",") { it.name },
         firstStepsHidden = guide.firstStepsHidden,
+        phoneSetup = PhoneStep.entries.filter { it in phoneSetup }.joinToString(",") { it.name },
     )
 }

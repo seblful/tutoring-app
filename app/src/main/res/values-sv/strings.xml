@@ -592,7 +592,7 @@
     <string name="backup_title">Säkerhetskopiering</string>
     <string name="backup_filename">klas-backup-%1$s.json</string>
     <string name="backup_export">Exportera dina data</string>
-    <string name="backup_export_desc">Spara handledningsdata till en fil. Appinställningarna finns kvar på den här telefonen. Filen innehåller elevernas namn, telefonnummer och e-postadresser. Den krypteras endast om du ställer in ett lösenord.</string>
+    <string name="backup_export_desc">Spara handledningsdata till en fil. Valutan och standardvärdena för lektioner följer med; påminnelser, kalendersynkronisering och den veckovisa kopian stannar på den här telefonen. Filen innehåller elevernas namn, telefonnummer och e-postadresser. Den krypteras endast om du ställer in ett lösenord.</string>
     <string name="backup_last_export">Senaste backup: %1$s</string>
     <string name="backup_last_export_detail">Allt sedan dess finns bara på den här telefonen</string>
     <string name="backup_never">Inga säkerhetskopior ännu</string>
@@ -941,6 +941,13 @@
     <string name="first_step_homework_hint">En uppgift till nästa lektion</string>
     <string name="first_step_reminders">Slå på lektionspåminnelser</string>
     <string name="first_step_reminders_hint">En avisering före varje lektion</string>
+    <string name="phone_setup_title">Konfigurera den här telefonen</string>
+    <string name="phone_setup_done">Telefonen är konfigurerad</string>
+    <string name="phone_setup_hidden">Telefonkonfigurationen dold</string>
+    <string name="phone_step_reminders_hint">Tillåt aviseringar på den här telefonen</string>
+    <string name="phone_step_calendar">Slå på kalendersynkronisering</string>
+    <string name="phone_step_calendar_hint">Välj kalendern på den här telefonen</string>
+    <string name="phone_step_weekly_hint">Välj mappen på den här telefonen</string>
     <string name="settings_tips_again">Visa tips igen</string>
     <string name="settings_tips_again_summary">Första stegen under Idag, svep och håll</string>
     <string name="settings_tips_shown_again">Tips visas igen</string>

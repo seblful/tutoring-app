@@ -2,6 +2,7 @@ package com.seblful.klas.data.backup
 
 import com.seblful.klas.data.local.SnapshotDao
 import com.seblful.klas.data.local.Transactor
+import com.seblful.klas.data.settings.SettingsRepository
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
@@ -27,6 +28,7 @@ import kotlin.time.Instant
 class BackupManager @Inject constructor(
     private val transactor: Transactor,
     private val snapshot: SnapshotDao,
+    private val settings: SettingsRepository,
 ) {
     // Compact, not pretty-printed: indentation roughly doubled a large backup's size and memory.
     private val json = Json {
@@ -34,7 +36,11 @@ class BackupManager @Inject constructor(
         encodeDefaults = true
     }
 
-    suspend fun export(): BackupData = transactor.transaction { snapshot.read() }.toBackupData()
+    /** The data, with the settings that give it its meaning ([BackupPreferences]). */
+    suspend fun export(): BackupData {
+        val rows = transactor.transaction { snapshot.read() }
+        return rows.toBackupData().copy(preferences = settings.get().toBackupPreferences())
+    }
 
     /** The backup as its file says it, stamped with [at] — the moment it was made — when given. */
     suspend fun exportJson(at: Instant? = null): String = encode(export(), at)

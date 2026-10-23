@@ -614,7 +614,7 @@
     <string name="backup_title">Backup</string>
     <string name="backup_filename">klas-backup-%1$s.json</string>
     <string name="backup_export">Esporta i tuoi dati</string>
-    <string name="backup_export_desc">Salva i dati del tutoraggio in un file. Le impostazioni dell\'app rimangono su questo telefono. Il file contiene i nomi, i numeri di telefono e gli indirizzi e-mail degli studenti. Viene crittografato solo se imposti una password.</string>
+    <string name="backup_export_desc">Salva i dati del tutoraggio in un file. La valuta e le impostazioni predefinite delle lezioni vengono incluse; i promemoria, la sincronizzazione del calendario e la copia settimanale restano su questo telefono. Il file contiene i nomi, i numeri di telefono e gli indirizzi e-mail degli studenti. Viene crittografato solo se imposti una password.</string>
     <string name="backup_last_export">Ultimo backup: %1$s</string>
     <string name="backup_last_export_detail">Tutto quello che è successo da allora si trova solo su questo telefono</string>
     <string name="backup_never">Ancora nessun backup</string>
@@ -978,6 +978,13 @@
     <string name="first_step_homework_hint">Qualcosa per la prossima lezione</string>
     <string name="first_step_reminders">Attiva i promemoria delle lezioni</string>
     <string name="first_step_reminders_hint">Un avviso prima di ogni lezione</string>
+    <string name="phone_setup_title">Configura questo telefono</string>
+    <string name="phone_setup_done">Il telefono è configurato</string>
+    <string name="phone_setup_hidden">Configurazione del telefono nascosta</string>
+    <string name="phone_step_reminders_hint">Consenti le notifiche su questo telefono</string>
+    <string name="phone_step_calendar">Attiva la sincronizzazione del calendario</string>
+    <string name="phone_step_calendar_hint">Scegli il calendario su questo telefono</string>
+    <string name="phone_step_weekly_hint">Scegli la cartella su questo telefono</string>
     <string name="settings_tips_again">Mostra di nuovo i suggerimenti</string>
     <string name="settings_tips_again_summary">Primi passi in Oggi, scorrere e tenere premuto</string>
     <string name="settings_tips_shown_again">I suggerimenti verranno mostrati di nuovo</string>

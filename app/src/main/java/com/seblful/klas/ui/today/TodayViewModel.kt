@@ -16,6 +16,8 @@ import com.seblful.klas.data.settings.SettingsRepository
 import com.seblful.klas.di.ApplicationScope
 import com.seblful.klas.di.Computation
 import com.seblful.klas.domain.guide.FirstSteps
+import com.seblful.klas.domain.guide.PhoneSetup
+import com.seblful.klas.domain.guide.PhoneStep
 import com.seblful.klas.domain.homework.HomeworkRules
 import com.seblful.klas.domain.lesson.LessonPhase
 import com.seblful.klas.domain.lesson.SessionRules
@@ -90,6 +92,8 @@ data class TodayState(
     val lastBackupAt: Instant?,
     val backupStale: Boolean,
     val firstSteps: FirstStepsCard? = null,
+    /** After a restore, what this phone is still to be given; null when there is nothing to ask for. */
+    val phoneSetup: PhoneSetup? = null,
 ) {
     /** Over and unaccounted for — the ones "Mark all taught" settles. */
     val toMark: List<TodayLessonRow> get() = lessons.filter { it.phase.isUnfinished }
@@ -137,6 +141,9 @@ class TodayViewModel @Inject constructor(
 
         /** The first-steps card was put away, for the snackbar's Undo. */
         data object FirstStepsHidden : Event
+
+        /** The phone-setup card was put away with [steps] still on it, for the snackbar's Undo. */
+        data class PhoneSetupHidden(val steps: Set<PhoneStep>) : Event
     }
 
     val events = UiEvents<Event>()
@@ -240,6 +247,19 @@ class TodayViewModel @Inject constructor(
             }
         }
 
+    /** What a restore left this phone to be given, each step read from the phone itself; null without a card. */
+    private val phoneSetup: Flow<PhoneSetup?> =
+        combine(guide.phoneSetup, settings.observe(), permitted) { wanted, current, allowed ->
+            wanted.takeIf { it.isNotEmpty() }?.let {
+                PhoneSetup.of(
+                    wanted = it,
+                    reminded = current.notificationsEnabled && allowed,
+                    mirrored = current.calendarSyncEnabled,
+                    copying = current.autoBackupFolder != null,
+                )
+            }
+        }
+
     private val day: Flow<TodayState> =
         combine(lessons, owed, homeworkDue, backup, recent) {
                 rows,
@@ -260,7 +280,10 @@ class TodayViewModel @Inject constructor(
         }
 
     val state: StateFlow<Loadable<TodayState>> =
-        combine(day, firstSteps) { today, steps -> today.copy(firstSteps = steps) }
+        combine(day, firstSteps, phoneSetup) { today, steps, phone ->
+            // The first steps are what a tutor with nothing yet to lose does first; a backup can wait for them.
+            today.copy(firstSteps = steps, phoneSetup = phone, backupStale = today.backupStale && steps == null)
+        }
             .ready()
             .derive(this, computation, Loadable.Loading)
 
@@ -280,6 +303,18 @@ class TodayViewModel @Inject constructor(
 
     fun showFirstSteps() {
         appScope.launch { guide.setFirstStepsHidden(false) }
+    }
+
+    fun hidePhoneSetup() {
+        val steps = state.value.valueOrNull()?.phoneSetup?.wanted ?: return
+        appScope.launch {
+            guide.setPhoneSetup(emptySet())
+            events.send(Event.PhoneSetupHidden(steps))
+        }
+    }
+
+    fun showPhoneSetup(steps: Set<PhoneStep>) {
+        appScope.launch { guide.setPhoneSetup(steps) }
     }
 
     /** Every lesson over and still unmarked, taught in one go — and taken back in one go. */

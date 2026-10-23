@@ -680,7 +680,7 @@
     <string name="backup_title">النسخ الاحتياطي</string>
     <string name="backup_filename">klas-backup-%1$s.json</string>
     <string name="backup_export">قم بتصدير بياناتك</string>
-    <string name="backup_export_desc">حفظ بيانات التدريس في ملف. تبقى إعدادات التطبيق على هذا الهاتف. يحتوي الملف على أسماء الطلاب وأرقام هواتفهم وعناوين بريدهم الإلكتروني. يتم تشفيره فقط إذا قمت بتعيين كلمة مرور.</string>
+    <string name="backup_export_desc">حفظ بيانات التدريس في ملف. تنتقل العملة وإعدادات الدروس الافتراضية مع البيانات؛ وتبقى التذكيرات ومزامنة التقويم والنسخة الأسبوعية على هذا الهاتف. يحتوي الملف على أسماء الطلاب وأرقام هواتفهم وعناوين بريدهم الإلكتروني. يتم تشفيره فقط إذا قمت بتعيين كلمة مرور.</string>
     <string name="backup_last_export">آخر نسخة احتياطية: %1$s</string>
     <string name="backup_last_export_detail">أي شيء منذ ذلك الحين موجود على هذا الهاتف فقط</string>
     <string name="backup_never">لا توجد نسخ احتياطية حتى الآن</string>
@@ -1089,6 +1089,13 @@
     <string name="first_step_homework_hint">مهمة للدرس التالي</string>
     <string name="first_step_reminders">شغّل تذكيرات الدروس</string>
     <string name="first_step_reminders_hint">إشعار قبل كل درس</string>
+    <string name="phone_setup_title">إعداد هذا الهاتف</string>
+    <string name="phone_setup_done">تم إعداد هذا الهاتف</string>
+    <string name="phone_setup_hidden">تم إخفاء إعداد الهاتف</string>
+    <string name="phone_step_reminders_hint">اسمح بالإشعارات على هذا الهاتف</string>
+    <string name="phone_step_calendar">شغّل مزامنة التقويم</string>
+    <string name="phone_step_calendar_hint">اختر التقويم على هذا الهاتف</string>
+    <string name="phone_step_weekly_hint">اختر المجلد على هذا الهاتف</string>
     <string name="settings_tips_again">عرض النصائح مجددًا</string>
     <string name="settings_tips_again_summary">الخطوات الأولى في «اليوم»، والسحب والضغط المطول</string>
     <string name="settings_tips_shown_again">ستظهر النصائح مجددًا</string>

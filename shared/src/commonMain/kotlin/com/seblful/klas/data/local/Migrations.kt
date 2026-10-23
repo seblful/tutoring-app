@@ -272,6 +272,13 @@ object Migrations {
         }
     }
 
+    /** What a phone is to be given after a restore — nothing yet on any phone that upgrades. */
+    val MIGRATION_14_15 = object : Migration(14, 15) {
+        override fun migrate(connection: SQLiteConnection) {
+            connection.execSQL("ALTER TABLE settings ADD COLUMN phoneSetup TEXT NOT NULL DEFAULT ''")
+        }
+    }
+
     /** Everything above, in the order Room should be handed it. See `di/DatabaseModule`. */
     val ALL: Array<Migration> = arrayOf(
         MIGRATION_5_6,
@@ -283,5 +290,6 @@ object Migrations {
         MIGRATION_11_12,
         MIGRATION_12_13,
         MIGRATION_13_14,
+        MIGRATION_14_15,
     )
 }

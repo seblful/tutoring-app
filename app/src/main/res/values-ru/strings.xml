@@ -979,7 +979,7 @@
       the one moment students' contact details leave it, in clear text, to storage of the tutor's
       choosing — a cloud folder included.
     -->
-    <string name="backup_export_desc">Сохранить данные о занятиях в файл. Настройки приложения останутся на телефоне. В файле — имена, телефоны и почта учеников. Файл шифруется, только если задать пароль.</string>
+    <string name="backup_export_desc">Сохранить данные о занятиях в файл. Валюта и настройки занятий сохранятся вместе с данными; напоминания, синхронизация с календарём и еженедельная копия останутся на этом телефоне. В файле — имена, телефоны и почта учеников. Файл шифруется, только если задать пароль.</string>
     <!--
       The backup screen leads with when the last copy was made. Two states, and the second is the one
       worth having: an app that has never been backed up should say so plainly.
@@ -1389,6 +1389,13 @@
     <string name="first_step_homework_hint">Что сделать к следующему занятию</string>
     <string name="first_step_reminders">Включите напоминания о занятиях</string>
     <string name="first_step_reminders_hint">Уведомление перед каждым занятием</string>
+    <string name="phone_setup_title">Настройте этот телефон</string>
+    <string name="phone_setup_done">Телефон настроен</string>
+    <string name="phone_setup_hidden">Настройка телефона скрыта</string>
+    <string name="phone_step_reminders_hint">Разрешите уведомления на этом телефоне</string>
+    <string name="phone_step_calendar">Включите синхронизацию с календарём</string>
+    <string name="phone_step_calendar_hint">Выберите календарь на этом телефоне</string>
+    <string name="phone_step_weekly_hint">Выберите папку на этом телефоне</string>
     <string name="settings_tips_again">Показать подсказки снова</string>
     <string name="settings_tips_again_summary">Первые шаги на «Сегодня» и жесты</string>
     <string name="settings_tips_shown_again">Подсказки появятся снова</string>

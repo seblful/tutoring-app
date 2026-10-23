@@ -23,6 +23,8 @@ import androidx.compose.ui.test.swipeUp
 import androidx.compose.ui.unit.dp
 import com.seblful.klas.domain.guide.FirstStep
 import com.seblful.klas.domain.guide.FirstSteps
+import com.seblful.klas.domain.guide.PhoneSetup
+import com.seblful.klas.domain.guide.PhoneStep
 import com.seblful.klas.domain.lesson.LessonPhase
 import com.seblful.klas.domain.model.ClassSession
 import com.seblful.klas.domain.model.LessonStatus
@@ -86,6 +88,8 @@ class TodayContentTest {
                     undoMark = { asked += "undo ${it.who}" },
                     hideFirstSteps = { asked += "hide" },
                     firstStep = { step, student -> asked += "$step $student" },
+                    hidePhoneSetup = { asked += "hide phone" },
+                    phoneStep = { asked += "$it" },
                 ),
             )
         }
@@ -136,6 +140,24 @@ class TodayContentTest {
         compose.onNodeWithText("Hide").performClick()
 
         assertEquals(listOf("PAYMENT 7", "hide"), asked)
+    }
+
+    @Test
+    fun `a restored phone is asked only for what its old phone had - ticked and opened like the first steps`() {
+        val setup =
+            PhoneSetup(wanted = setOf(PhoneStep.REMINDERS, PhoneStep.WEEKLY_COPY), done = setOf(PhoneStep.REMINDERS))
+        show(state(emptyList()).copy(phoneSetup = setup))
+
+        compose.onNodeWithText("Set up this phone").assertExists()
+        compose.onNodeWithText("1 of 2").assertExists()
+        compose.onNodeWithText("Turn on calendar sync").assertDoesNotExist()
+        compose.onNodeWithText("Turn on lesson reminders")
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Done"))
+        compose.onNodeWithText("Save a copy every week").performClick()
+        compose.onNodeWithText("Pick the folder on this phone").assertExists()
+        compose.onNodeWithText("Hide").performClick()
+
+        assertEquals(listOf("WEEKLY_COPY", "hide phone"), asked)
     }
 
     @Test

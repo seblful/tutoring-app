@@ -25,6 +25,7 @@ import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.seblful.klas.R
 import com.seblful.klas.domain.guide.FirstStep
+import com.seblful.klas.domain.guide.PhoneStep
 import com.seblful.klas.domain.lesson.LessonPhase
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.format.bulletJoin
@@ -81,24 +82,13 @@ fun TodayScreen(
     onGiveHomework: (studentId: Long) -> Unit = {},
     onPeople: () -> Unit = {},
     onReminders: () -> Unit = {},
+    onCalendar: () -> Unit = {},
     viewModel: TodayViewModel = metroViewModel(),
 ) {
     val messages = rememberMessages()
     val state by viewModel.state.collectAsStateWithLifecycle()
-    val resources by rememberUpdatedState(LocalResources.current)
-    LaunchedEffect(viewModel, messages) {
-        viewModel.events.stream.collect { event ->
-            when (event) {
-                is TodayViewModel.Event.Marked -> messages.undoable(
-                    resources.getQuantityString(R.plurals.today_marked, event.sessions.size, event.sessions.size),
-                ) { viewModel.undo(event) }
-                TodayViewModel.Event.UndoChanged -> messages.show(resources.getString(R.string.class_undo_changed))
-                TodayViewModel.Event.FirstStepsHidden ->
-                    messages.undoable(resources.getString(R.string.first_steps_hidden)) { viewModel.showFirstSteps() }
-            }
-        }
-    }
-    // Reminders may have been allowed in system settings while the app was away, which ticks a first step.
+    TodayEvents(viewModel, messages)
+    // Reminders may have been allowed in system settings while the app was away, which ticks a step.
     LifecycleResumeEffect(viewModel) {
         viewModel.refreshPermission()
         onPauseOrDispose { }
@@ -133,6 +123,14 @@ fun TodayScreen(
                             FirstStep.REMINDERS -> onReminders()
                         }
                     },
+                    hidePhoneSetup = viewModel::hidePhoneSetup,
+                    phoneStep = { step ->
+                        when (step) {
+                            PhoneStep.REMINDERS -> onReminders()
+                            PhoneStep.CALENDAR -> onCalendar()
+                            PhoneStep.WEEKLY_COPY -> onBackup()
+                        }
+                    },
                 ),
                 modifier = modifier,
                 bottomInset = bottomInset,
@@ -155,6 +153,9 @@ class TodayActions(
     val hideFirstSteps: () -> Unit = {},
     /** Opens where [FirstStep] is done — for a payment or homework, on [student]'s card when there is one. */
     val firstStep: (step: FirstStep, student: Long?) -> Unit = { _, _ -> },
+    val hidePhoneSetup: () -> Unit = {},
+    /** Opens where [PhoneStep] is done on this phone. */
+    val phoneStep: (PhoneStep) -> Unit = {},
 )
 
 /**
@@ -185,7 +186,9 @@ internal fun TodayContent(
         state.next?.let { NextCard(it, actions.openLesson) }
         if (state.toMark.isNotEmpty()) ToMark(state.toMark, actions)
         if (state.recentMarks.isNotEmpty()) RecentlyMarked(state.recentMarks, actions.undoMark)
-        // Under what the day needs doing now, above the rest of it: a new tutor's day is mostly this card.
+        // Under what the day needs doing now, above the rest of it: a new tutor's day is mostly this card, and a
+        // restored one's first day starts with what the backup could not bring.
+        state.phoneSetup?.let { PhoneSetupSection(it, actions) }
         state.firstSteps?.let { FirstStepsSection(it, actions) }
         DayLessons(state, actions)
         if (state.outstanding.students > 0) Owed(state, actions)

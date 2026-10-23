@@ -614,7 +614,7 @@
     <string name="backup_title">Sauvegarde</string>
     <string name="backup_filename">klas-backup-%1$s.json</string>
     <string name="backup_export">Exportez vos données</string>
-    <string name="backup_export_desc">Enregistrez les données de tutorat dans un fichier. Les paramètres de l\'application restent sur ce téléphone. Le fichier contient les noms, numéros de téléphone et adresses e-mail des étudiants. Il n\'est crypté que si vous définissez un mot de passe.</string>
+    <string name="backup_export_desc">Enregistrez les données de tutorat dans un fichier. La devise et les réglages des cours sont inclus ; les rappels, la synchronisation du calendrier et la copie hebdomadaire restent sur ce téléphone. Le fichier contient les noms, numéros de téléphone et adresses e-mail des étudiants. Il n\'est crypté que si vous définissez un mot de passe.</string>
     <string name="backup_last_export">Dernière sauvegarde : %1$s</string>
     <string name="backup_last_export_detail">Tout ce qui a eu lieu depuis lors est uniquement sur ce téléphone</string>
     <string name="backup_never">Aucune sauvegarde pour l\'instant</string>
@@ -978,6 +978,13 @@
     <string name="first_step_homework_hint">Une tâche pour le prochain cours</string>
     <string name="first_step_reminders">Activez les rappels de cours</string>
     <string name="first_step_reminders_hint">Un avis avant chaque cours</string>
+    <string name="phone_setup_title">Configurez ce téléphone</string>
+    <string name="phone_setup_done">Ce téléphone est configuré</string>
+    <string name="phone_setup_hidden">Configuration du téléphone masquée</string>
+    <string name="phone_step_reminders_hint">Autorisez les notifications sur ce téléphone</string>
+    <string name="phone_step_calendar">Activez la synchronisation du calendrier</string>
+    <string name="phone_step_calendar_hint">Choisissez le calendrier sur ce téléphone</string>
+    <string name="phone_step_weekly_hint">Choisissez le dossier sur ce téléphone</string>
     <string name="settings_tips_again">Revoir les astuces</string>
     <string name="settings_tips_again_summary">Premiers pas sur Aujourd\'hui, balayer et maintenir</string>
     <string name="settings_tips_shown_again">Les astuces s\'afficheront à nouveau</string>

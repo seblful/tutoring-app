@@ -592,7 +592,7 @@
     <string name="backup_title">Varmuuskopio</string>
     <string name="backup_filename">klas-backup-%1$s.json</string>
     <string name="backup_export">Vie tietosi</string>
-    <string name="backup_export_desc">Tallenna opetusdata tiedostoon. Sovellusasetukset pysyvät tässä puhelimessa. Tiedosto sisältää opiskelijoiden nimet, puhelinnumerot ja sähköpostiosoitteet. Se salataan vain, jos asetat salasanan.</string>
+    <string name="backup_export_desc">Tallenna opetusdata tiedostoon. Valuutta ja tuntien oletukset tulevat mukana; muistutukset, kalenterin synkronointi ja viikoittainen kopio jäävät tähän puhelimeen. Tiedosto sisältää opiskelijoiden nimet, puhelinnumerot ja sähköpostiosoitteet. Se salataan vain, jos asetat salasanan.</string>
     <string name="backup_last_export">Viimeisin varmuuskopio: %1$s</string>
     <string name="backup_last_export_detail">Kaikki sen jälkeen on vain tässä puhelimessa</string>
     <string name="backup_never">Ei vielä varmuuskopioita</string>
@@ -941,6 +941,13 @@
     <string name="first_step_homework_hint">Tehtävä seuraavaksi tunniksi</string>
     <string name="first_step_reminders">Ota tuntimuistutukset käyttöön</string>
     <string name="first_step_reminders_hint">Ilmoitus ennen jokaista tuntia</string>
+    <string name="phone_setup_title">Määritä tämä puhelin</string>
+    <string name="phone_setup_done">Puhelin on määritetty</string>
+    <string name="phone_setup_hidden">Puhelimen määritys piilotettu</string>
+    <string name="phone_step_reminders_hint">Salli ilmoitukset tässä puhelimessa</string>
+    <string name="phone_step_calendar">Ota kalenterin synkronointi käyttöön</string>
+    <string name="phone_step_calendar_hint">Valitse kalenteri tässä puhelimessa</string>
+    <string name="phone_step_weekly_hint">Valitse kansio tässä puhelimessa</string>
     <string name="settings_tips_again">Näytä vinkit uudelleen</string>
     <string name="settings_tips_again_summary">Ensimmäiset askeleet Tänään-näkymässä sekä pyyhkäisy ja pitkä painallus</string>
     <string name="settings_tips_shown_again">Vinkit näytetään uudelleen</string>

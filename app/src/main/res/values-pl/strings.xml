@@ -636,7 +636,7 @@
     <string name="backup_title">Kopia zapasowa</string>
     <string name="backup_filename">klas-backup-%1$s.json</string>
     <string name="backup_export">Eksportuj swoje dane</string>
-    <string name="backup_export_desc">Zapisz dane dotyczące korepetycji do pliku. Ustawienia aplikacji pozostaną na tym telefonie. W pliku znajdują się nazwiska uczniów, numery telefonów i adresy e-mail. Jest szyfrowany tylko wtedy, gdy ustawisz hasło.</string>
+    <string name="backup_export_desc">Zapisz dane dotyczące korepetycji do pliku. Waluta i domyślne ustawienia lekcji są przenoszone razem z danymi; przypomnienia, synchronizacja kalendarza i cotygodniowa kopia zostają na tym telefonie. W pliku znajdują się nazwiska uczniów, numery telefonów i adresy e-mail. Jest szyfrowany tylko wtedy, gdy ustawisz hasło.</string>
     <string name="backup_last_export">Ostatnia kopia zapasowa: %1$s</string>
     <string name="backup_last_export_detail">Wszystko od tego czasu jest dostępne tylko na tym telefonie</string>
     <string name="backup_never">Nie ma jeszcze kopii zapasowych</string>
@@ -1015,6 +1015,13 @@
     <string name="first_step_homework_hint">Zadanie na następną lekcję</string>
     <string name="first_step_reminders">Włącz przypomnienia o lekcjach</string>
     <string name="first_step_reminders_hint">Powiadomienie przed każdą lekcją</string>
+    <string name="phone_setup_title">Skonfiguruj ten telefon</string>
+    <string name="phone_setup_done">Telefon jest skonfigurowany</string>
+    <string name="phone_setup_hidden">Konfiguracja telefonu ukryta</string>
+    <string name="phone_step_reminders_hint">Zezwól na powiadomienia na tym telefonie</string>
+    <string name="phone_step_calendar">Włącz synchronizację kalendarza</string>
+    <string name="phone_step_calendar_hint">Wybierz kalendarz na tym telefonie</string>
+    <string name="phone_step_weekly_hint">Wybierz folder na tym telefonie</string>
     <string name="settings_tips_again">Pokaż wskazówki ponownie</string>
     <string name="settings_tips_again_summary">Pierwsze kroki na ekranie Dzisiaj, przesuwanie i przytrzymanie</string>
     <string name="settings_tips_shown_again">Wskazówki pojawią się ponownie</string>

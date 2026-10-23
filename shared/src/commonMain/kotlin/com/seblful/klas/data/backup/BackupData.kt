@@ -169,6 +169,8 @@ data class BackupData(
      * files lack it, and an older build ignores it, so adding it needed no version bump.
      */
     val exportedAtMillis: Long? = null,
+    /** The settings that travel with the data — **v11 and later**; null in an older file. See [BackupPreferences]. */
+    val preferences: BackupPreferences? = null,
 ) {
     companion object {
         /**
@@ -177,8 +179,9 @@ data class BackupData(
          * [legacyHomework]. Older lesson notes are not restored. Schema v10 removed only fields that were
          * already blank, so it did not require a backup version bump.
          * v10 adds a payment's method, which an older build would drop on import.
+         * v11 adds [preferences], which an older build would drop — leaving every amount in the wrong currency.
          */
-        const val CURRENT_VERSION = 10
+        const val CURRENT_VERSION = 11
 
         /**
          * Whether a backup of [version] can be safely imported by this build. A newer version may

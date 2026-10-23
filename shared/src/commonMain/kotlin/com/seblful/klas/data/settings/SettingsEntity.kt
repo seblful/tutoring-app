@@ -179,6 +179,13 @@ data class SettingsEntity(
     val tipsSeen: String = "",
     @ColumnInfo(defaultValue = "0")
     val firstStepsHidden: Boolean = false,
+    /**
+     * What this phone is still to be given after a restore (`PhoneSetup`): the
+     * [com.seblful.klas.domain.guide.PhoneStep]s the backup's phone had on, as names joined by commas; empty
+     * when there is no card. Added by v14 → v15.
+     */
+    @ColumnInfo(defaultValue = "")
+    val phoneSetup: String = "",
 ) {
     companion object {
         const val SINGLETON_ID = 0

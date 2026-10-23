@@ -570,7 +570,7 @@
     <string name="backup_title">백업</string>
     <string name="backup_filename">klas-backup-%1$s.json</string>
     <string name="backup_export">데이터 내보내기</string>
-    <string name="backup_export_desc">수업 데이터를 파일로 저장합니다. 앱 설정은 이 휴대전화에 유지됩니다. 파일에는 학생의 이름, 전화번호 및 이메일 주소가 포함됩니다. 비밀번호를 설정한 경우에만 암호화됩니다.</string>
+    <string name="backup_export_desc">수업 데이터를 파일로 저장합니다. 통화와 수업 기본값은 함께 옮겨지고, 알림, 캘린더 동기화, 매주 사본은 이 휴대전화에 남습니다. 파일에는 학생의 이름, 전화번호 및 이메일 주소가 포함됩니다. 비밀번호를 설정한 경우에만 암호화됩니다.</string>
     <string name="backup_last_export">최근 백업: %1$s</string>
     <string name="backup_last_export_detail">이후의 변경 사항은 이 휴대전화에만 저장되어 있습니다</string>
     <string name="backup_never">아직 백업이 없습니다</string>
@@ -904,6 +904,13 @@
     <string name="first_step_homework_hint">다음 수업까지 할 과제</string>
     <string name="first_step_reminders">수업 알림 켜기</string>
     <string name="first_step_reminders_hint">수업 전마다 알림</string>
+    <string name="phone_setup_title">이 휴대전화 설정하기</string>
+    <string name="phone_setup_done">이 휴대전화 설정 완료</string>
+    <string name="phone_setup_hidden">휴대전화 설정을 숨겼습니다</string>
+    <string name="phone_step_reminders_hint">이 휴대전화에서 알림 허용</string>
+    <string name="phone_step_calendar">캘린더 동기화 켜기</string>
+    <string name="phone_step_calendar_hint">이 휴대전화에서 캘린더 선택</string>
+    <string name="phone_step_weekly_hint">이 휴대전화에서 폴더 선택</string>
     <string name="settings_tips_again">도움말 다시 보기</string>
     <string name="settings_tips_again_summary">오늘의 첫걸음, 스와이프와 길게 누르기</string>
     <string name="settings_tips_shown_again">도움말이 다시 표시됩니다</string>

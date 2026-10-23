@@ -592,7 +592,7 @@
     <string name="backup_title">Sikkerhetskopiering</string>
     <string name="backup_filename">klas-backup-%1$s.json</string>
     <string name="backup_export">Eksporter dataene dine</string>
-    <string name="backup_export_desc">Lagre veiledningsdata til en fil. Appinnstillingene forblir på denne telefonen. Filen inneholder elevenes navn, telefonnumre og e-postadresser. Det er kun kryptert hvis du angir et passord.</string>
+    <string name="backup_export_desc">Lagre veiledningsdata til en fil. Valuta og standardverdier for timer følger med; påminnelser, kalendersynkronisering og den ukentlige kopien blir på denne telefonen. Filen inneholder elevenes navn, telefonnumre og e-postadresser. Det er kun kryptert hvis du angir et passord.</string>
     <string name="backup_last_export">Siste sikkerhetskopi: %1$s</string>
     <string name="backup_last_export_detail">Alt siden den gang er kun på denne telefonen</string>
     <string name="backup_never">Ingen sikkerhetskopier ennå</string>
@@ -941,6 +941,13 @@
     <string name="first_step_homework_hint">En oppgave til neste time</string>
     <string name="first_step_reminders">Slå på timepåminnelser</string>
     <string name="first_step_reminders_hint">Et varsel før hver time</string>
+    <string name="phone_setup_title">Konfigurer denne telefonen</string>
+    <string name="phone_setup_done">Denne telefonen er konfigurert</string>
+    <string name="phone_setup_hidden">Telefonoppsett skjult</string>
+    <string name="phone_step_reminders_hint">Tillat varsler på denne telefonen</string>
+    <string name="phone_step_calendar">Slå på kalendersynkronisering</string>
+    <string name="phone_step_calendar_hint">Velg kalenderen på denne telefonen</string>
+    <string name="phone_step_weekly_hint">Velg mappen på denne telefonen</string>
     <string name="settings_tips_again">Vis tips igjen</string>
     <string name="settings_tips_again_summary">Første steg på I dag, sveip og hold</string>
     <string name="settings_tips_shown_again">Tips vises igjen</string>

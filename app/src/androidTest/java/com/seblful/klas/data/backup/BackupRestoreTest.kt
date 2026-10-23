@@ -66,7 +66,11 @@ class BackupRestoreTest {
         .setDriver(BundledSQLiteDriver())
         .build()
 
-    private fun managerFor(db: AppDatabase) = BackupManager(RoomTransactor(db), db.snapshotDao())
+    private fun managerFor(db: AppDatabase) = BackupManager(
+        RoomTransactor(db),
+        db.snapshotDao(),
+        SettingsRepository(db.settingsDao(), RussianMinskPhone.toDevicePreferences()),
+    )
 
     @Before fun setUp() {
         source = newDb()

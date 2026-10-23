@@ -42,19 +42,25 @@ Preserve on-device data and existing backup files when changing storage. Before 
 
 - Settings are a device-local Room row, written under a `Mutex` and excluded from backup — the guide's
   seen tips and hidden card (v14, `tipsSeen`, `firstStepsHidden`) included: a restore marks the guide done
-  instead of carrying another phone's. The last backup (`lastExportAt`) is device-local too, but a restore
+  instead of carrying another phone's. Two kinds of setting do travel, in the file's `preferences`
+  (`BackupPreferences`, backup v11): what the rows mean — currency, default lesson length, default group rate,
+  auto-mark taught — which a restore applies, since «489» in the wrong currency is wrong data; and whether
+  the file's phone had reminders, calendar sync and a weekly copy on, which no file can carry, so the phone it
+  lands on asks for exactly those on Today (`phoneSetup`, schema v15; `PhoneSetup.UNKNOWN` for an older file).
+  Undoing a restore puts this phone's own preferences back and leaves what it is asked for. The last backup (`lastExportAt`) is device-local too, but a restore
   moves it to the restored file's own date (or the restore's, for a file too old to carry one), never
   earlier: the data is then that file's, so «No backup yet» would be false. Undoing a restore leaves it, the
   kept copy being the app's, not a file the tutor holds. Android
   automatic backup is disabled; manual JSON export through SAF moves tutoring data between devices.
   SAF supports cloud destinations such as Drive without app-held cloud credentials. The export screen
-  states that app preferences remain on the current phone.
+  says which settings go with the file and which stay with the phone.
 - Export reads one transactional snapshot. Import **replaces the database, never merges**, preserves
   IDs and commits in one transaction. `BackupIntegrity` checks readability before writes;
   `BackupFailure` classifies refusals; `BackupRestore` owns rows, first-run state and mirror refresh.
 - Older file versions import with defaults; newer ones are refused. v8 homework becomes rows through
   `legacyHomework`; old lesson notes are not restored. v10 added a payment's method, bumped because an
-  older build would drop it on import. Dropping always-blank columns need not bump the file version. `BackupData.version` is independent of schema version and also supports transfer from
+  older build would drop it on import; v11 added `preferences` for the same reason — an older build would
+  restore every amount in its own currency. Dropping always-blank columns need not bump the file version. `BackupData.version` is independent of schema version and also supports transfer from
   the old `com.seblful.repetit` app ID, which cannot upgrade in place.
 - JSON must explicitly contain `version`, `subjects` and `students`, including empty arrays in an empty
   backup. Missing envelope fields are malformed; defaults for later tables preserve older exports.

@@ -99,7 +99,7 @@ open class RepositoryTestEnv(
      * SQLite rather than by a likeness of it. The *failure* paths (an unsupported version, a file that
      * isn't a backup) run through the production code that classifies them.
      */
-    val backupManager = BackupManager(transactor = transactor, snapshot = snapshotDao)
+    val backupManager = BackupManager(transactor = transactor, snapshot = snapshotDao, settings = settingsRepo)
 
     /**
      * Seeds a starting state through the repositories rather than into the DAOs — see [Fixtures] for

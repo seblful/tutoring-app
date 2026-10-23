@@ -3,6 +3,7 @@ package com.seblful.klas.data.backup
 import com.seblful.klas.calendar.CalendarMirror
 import com.seblful.klas.data.settings.SettingsRepository
 import com.seblful.klas.domain.guide.Guide
+import com.seblful.klas.domain.guide.PhoneStep
 import com.seblful.klas.domain.reminders.ReminderScheduler
 import com.seblful.klas.domain.time.WallClock
 import com.seblful.klas.runCatchingCancellable
@@ -42,7 +43,9 @@ class BackupRestore @Inject constructor(
      * the previous copy, if any, as it was.
      *
      * The data is then the file's, so the file is the last backup: its own date, or now for a file too old
-     * to carry one — never earlier than a backup already made.
+     * to carry one — never earlier than a backup already made. The settings that give the data its meaning
+     * come with it ([BackupPreferences]), and what the file's phone had on that this one has to be given by
+     * hand is left for Today to ask for (`PhoneSetup`).
      */
     suspend fun restore(json: String) {
         val data = backup.parse(json)
@@ -50,31 +53,39 @@ class BackupRestore @Inject constructor(
         val keep = before.subjects.isNotEmpty() || before.students.isNotEmpty()
         val takenAt = clock.now()
         val copy = if (keep) backup.encode(before, takenAt) else null
-        replaceWith(data, backedUpAt = data.exportedAtMillis?.let { Instant.fromEpochMilliseconds(it) } ?: takenAt)
+        replaceWith(
+            data,
+            backedUpAt = data.exportedAtMillis?.let { Instant.fromEpochMilliseconds(it) } ?: takenAt,
+            phoneSetup = data.preferences.phoneSetup(),
+        )
         // The restore has happened whether or not its undo could be kept, so a failure here is not its.
         copy?.let { runCatchingCancellable { snapshots.save(it, takenAt) } }
     }
 
     /**
      * Puts back what was here before the last restore, and forgets it. False when nothing is kept. The last
-     * backup stays as it is: the kept copy is the app's own, not a file the tutor has.
+     * backup stays as it is: the kept copy is the app's own, not a file the tutor has. So does what this phone is
+     * to be given: it is the same phone either way.
      */
     suspend fun undoRestore(): Boolean {
         val kept = snapshots.read() ?: return false
-        replaceWith(backup.parse(kept), backedUpAt = null)
+        replaceWith(backup.parse(kept), backedUpAt = null, phoneSetup = null)
         snapshots.clear()
         return true
     }
 
-    private suspend fun replaceWith(data: BackupData, backedUpAt: Instant?) {
+    /** @param phoneSetup what this phone is to be asked for; null leaves what it is already asked for. */
+    private suspend fun replaceWith(data: BackupData, backedUpAt: Instant?, phoneSetup: Set<PhoneStep>?) {
         calendar.remirrorAfter {
             backup.import(data)
             // Whoever restores already knows the app, so the new tutor's guide is not shown to them.
-            settings.update {
-                it.copy(
+            settings.update { current ->
+                val restored = data.preferences?.let { current.applying(it) } ?: current
+                restored.copy(
                     onboardingComplete = true,
                     guide = Guide.DONE,
-                    lastExportAt = listOfNotNull(it.lastExportAt, backedUpAt).maxOrNull(),
+                    lastExportAt = listOfNotNull(current.lastExportAt, backedUpAt).maxOrNull(),
+                    phoneSetup = phoneSetup ?: current.phoneSetup,
                 )
             }
         }

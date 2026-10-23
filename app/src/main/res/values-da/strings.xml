@@ -592,7 +592,7 @@
     <string name="backup_title">Sikkerhedskopiering</string>
     <string name="backup_filename">klas-backup-%1$s.json</string>
     <string name="backup_export">Eksporter dine data</string>
-    <string name="backup_export_desc">Gem vejledningsdata til en fil. App-indstillinger forbliver på denne telefon. Filen indeholder elevernes navne, telefonnumre og e-mailadresser. Det er kun krypteret, hvis du angiver en adgangskode.</string>
+    <string name="backup_export_desc">Gem vejledningsdata til en fil. Valuta og lektionsstandarder følger med; påmindelser, kalendersynkronisering og den ugentlige kopi bliver på denne telefon. Filen indeholder elevernes navne, telefonnumre og e-mailadresser. Det er kun krypteret, hvis du angiver en adgangskode.</string>
     <string name="backup_last_export">Sidste backup: %1$s</string>
     <string name="backup_last_export_detail">Alt siden da er kun på denne telefon</string>
     <string name="backup_never">Ingen sikkerhedskopier endnu</string>
@@ -941,6 +941,13 @@
     <string name="first_step_homework_hint">En opgave til næste lektion</string>
     <string name="first_step_reminders">Slå lektionspåmindelser til</string>
     <string name="first_step_reminders_hint">En besked før hver lektion</string>
+    <string name="phone_setup_title">Konfigurer denne telefon</string>
+    <string name="phone_setup_done">Denne telefon er konfigureret</string>
+    <string name="phone_setup_hidden">Telefonopsætning skjult</string>
+    <string name="phone_step_reminders_hint">Tillad notifikationer på denne telefon</string>
+    <string name="phone_step_calendar">Slå kalendersynkronisering til</string>
+    <string name="phone_step_calendar_hint">Vælg kalenderen på denne telefon</string>
+    <string name="phone_step_weekly_hint">Vælg mappen på denne telefon</string>
     <string name="settings_tips_again">Vis tips igen</string>
     <string name="settings_tips_again_summary">Første skridt under I dag, stryg og hold</string>
     <string name="settings_tips_shown_again">Tips vises igen</string>

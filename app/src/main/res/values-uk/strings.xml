@@ -636,7 +636,7 @@
     <string name="backup_title">Резервне копіювання</string>
     <string name="backup_filename">klas-backup-%1$s.json</string>
     <string name="backup_export">Експортуйте свої дані</string>
-    <string name="backup_export_desc">Зберегти дані навчання у файл. Налаштування програми залишаються на цьому телефоні. Файл містить імена студентів, номери телефонів та електронні адреси. Він зашифрований, лише якщо ви встановите пароль.</string>
+    <string name="backup_export_desc">Зберегти дані навчання у файл. Валюта й налаштування занять зберігаються разом із даними; нагадування, синхронізація календаря та щотижнева копія залишаються на цьому телефоні. Файл містить імена студентів, номери телефонів та електронні адреси. Він зашифрований, лише якщо ви встановите пароль.</string>
     <string name="backup_last_export">Остання резервна копія: %1$s</string>
     <string name="backup_last_export_detail">Все, що відтоді було, лише на цьому телефоні</string>
     <string name="backup_never">Резервних копій ще немає</string>
@@ -1015,6 +1015,13 @@
     <string name="first_step_homework_hint">Що зробити до наступного заняття</string>
     <string name="first_step_reminders">Увімкніть нагадування про заняття</string>
     <string name="first_step_reminders_hint">Сповіщення перед кожним заняттям</string>
+    <string name="phone_setup_title">Налаштуйте цей телефон</string>
+    <string name="phone_setup_done">Телефон налаштовано</string>
+    <string name="phone_setup_hidden">Налаштування телефона сховано</string>
+    <string name="phone_step_reminders_hint">Дозвольте сповіщення на цьому телефоні</string>
+    <string name="phone_step_calendar">Увімкніть синхронізацію календаря</string>
+    <string name="phone_step_calendar_hint">Виберіть календар на цьому телефоні</string>
+    <string name="phone_step_weekly_hint">Виберіть папку на цьому телефоні</string>
     <string name="settings_tips_again">Показати підказки знову</string>
     <string name="settings_tips_again_summary">Перші кроки на «Сьогодні» і жести</string>
     <string name="settings_tips_shown_again">Підказки з’являться знову</string>
