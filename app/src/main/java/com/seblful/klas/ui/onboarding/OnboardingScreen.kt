@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -32,6 +33,7 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -48,6 +50,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextAlign
@@ -214,28 +218,24 @@ fun OnboardingScreen(
 
     KlasScreen(
         // The welcome screen names the app in its own body, under the mark — repeating it in the bar
-        // would be the same word twice on a screen with three lines of text.
+        // would be the same word twice on a screen with three lines of text. The last step says «All set»
+        // the same way, in its body.
         title = when (step) {
-            Step.WELCOME -> null
+            Step.WELCOME, Step.READY -> null
             Step.LOCALE -> stringResource(R.string.onboarding_locale_title)
             Step.SUBJECTS -> stringResource(R.string.onboarding_subjects_title)
             Step.STUDENT -> stringResource(R.string.onboarding_student_title)
-            Step.READY -> stringResource(R.string.onboarding_ready_title)
         },
         onBack = previousStep?.let { back -> { goTo(back) } },
         messages = messages,
+        // Each step is a page of its own: the bar's tint is the step's scroll, not the one before it.
+        page = step,
         // On every step, not only the welcome one: a tutor who stops wanting the setup halfway should not
-        // have to walk back to its first screen to leave it.
+        // have to walk back to its first screen to leave it. The first and last steps offer theirs below.
         actions = {
-            if (step != Step.WELCOME) {
+            if (step != Step.WELCOME && step != Step.READY) {
                 KlasButton(onClick = { viewModel.complete(); onFinished() }, kind = ButtonKind.Text) {
-                    Text(
-                        stringResource(
-                            if (step ==
-                                Step.READY
-                            ) R.string.onboarding_not_now else R.string.onboarding_skip,
-                        ),
-                    )
+                    Text(stringResource(R.string.onboarding_skip))
                 }
             }
         },
@@ -486,10 +486,11 @@ fun OnboardingScreen(
                     }
 
                     Step.READY -> addedId?.let { id ->
-                        FirstLessonStep(addedName, Modifier.weight(1f)) {
-                            viewModel.complete(bookFor = id)
-                            onFinished()
-                        }
+                        FirstLessonStep(
+                            addedName,
+                            onBook = { viewModel.complete(bookFor = id); onFinished() },
+                            onNotNow = { viewModel.complete(); onFinished() },
+                        )
                     }
                 }
             }
@@ -605,20 +606,54 @@ private fun subjectsBar(added: List<Subject>?): FormBar =
     }
 
 /**
- * The step after the setup: the student is in, and their first lesson is one tap away — or «Not now» in the
- * bar above, to Today. Optional, as everything after the subjects is: no prompt, nothing asked of the phone.
+ * The step after the setup: the student is in, and their first lesson is one tap away — or «Not now», to Today.
+ * Laid out as the welcome step is, a mark and a few centred lines over the way on, rather than as a form: there
+ * is nothing left to fill in. Optional, as everything after the subjects is: no prompt, nothing asked of the phone.
  */
 @Composable
-private fun ColumnScope.FirstLessonStep(name: String, modifier: Modifier, onBook: () -> Unit) {
-    Text(
-        stringResource(R.string.onboarding_ready_body, name),
-        style = MaterialTheme.typography.bodyLarge,
-        modifier = modifier.padding(Spacing.gutter),
-    )
-    FormSaveBar(
-        stringResource(R.string.onboarding_book_first),
-        FormBar.Ready(name),
-        onBook,
-        NoInset,
-    )
+private fun ColumnScope.FirstLessonStep(name: String, onBook: () -> Unit, onNotNow: () -> Unit) {
+    BoxWithConstraints(Modifier.fillMaxWidth().weight(1f)) {
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .heightIn(min = maxHeight)
+                .padding(horizontal = Spacing.sectionGap),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(Spacing.itemGap, Alignment.CenterVertically),
+        ) {
+            Surface(shape = CircleShape, color = MaterialTheme.colorScheme.primaryContainer) {
+                Icon(
+                    KlasIcons.Filled.Check,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                    modifier = Modifier.padding(Spacing.itemGap).size(48.dp),
+                )
+            }
+            Text(
+                stringResource(R.string.onboarding_ready_title),
+                style = MaterialTheme.typography.headlineSmall,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.semantics { heading() },
+            )
+            Text(
+                stringResource(R.string.onboarding_ready_body, name),
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+            )
+        }
+    }
+    Column(
+        Modifier.fillMaxWidth().padding(Spacing.gutter),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(Spacing.inline),
+    ) {
+        KlasButton(onClick = onBook, modifier = Modifier.fillMaxWidth()) {
+            Text(stringResource(R.string.onboarding_book_first))
+        }
+        KlasButton(onClick = onNotNow, modifier = Modifier.fillMaxWidth(), kind = ButtonKind.Text) {
+            Text(stringResource(R.string.onboarding_not_now))
+        }
+    }
 }

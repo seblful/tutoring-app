@@ -1,5 +1,6 @@
 package com.seblful.klas.ui.onboarding
 
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsOn
@@ -99,6 +100,9 @@ class OnboardingWalkthroughTest {
             compose.waitUntil(TIMEOUT) {
                 compose.onAllNodesWithText(text(R.string.onboarding_book_first)).fetchSemanticsNodes().isNotEmpty()
             }
+            // A last screen, not a form: «All set» once, in its body, and «Not now» beside the booking, not also above.
+            compose.onAllNodesWithText(text(R.string.onboarding_ready_title)).assertCountEquals(1)
+            compose.onAllNodesWithText(text(R.string.onboarding_not_now)).assertCountEquals(1)
             tap(R.string.onboarding_book_first)
             compose.waitUntil(TIMEOUT) {
                 compose.onAllNodesWithText(text(R.string.class_add_title)).fetchSemanticsNodes().isNotEmpty()
