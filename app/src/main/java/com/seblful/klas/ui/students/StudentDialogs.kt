@@ -18,6 +18,7 @@ import androidx.compose.ui.res.stringResource
 import com.seblful.klas.R
 import com.seblful.klas.domain.model.ClassMode
 import com.seblful.klas.domain.model.Money
+import com.seblful.klas.domain.model.PaymentMethod
 import com.seblful.klas.domain.model.Subject
 import com.seblful.klas.format.MoneyField
 import com.seblful.klas.format.formatDate
@@ -28,7 +29,9 @@ import com.seblful.klas.ui.common.DialogRadioRow
 import com.seblful.klas.ui.common.MoneyTextField
 import com.seblful.klas.ui.common.PickerField
 import com.seblful.klas.ui.common.RateHistory
+import com.seblful.klas.ui.common.SegmentedChoice
 import com.seblful.klas.ui.common.Spacing
+import com.seblful.klas.ui.common.paymentMethodLabel
 import com.seblful.klas.ui.common.rememberRevealedFocus
 import com.seblful.klas.ui.common.text
 import com.seblful.klas.ui.designsystem.component.DialogAction
@@ -126,13 +129,15 @@ internal fun PaymentDialog(
     title: String,
     initialAmount: Money?,
     initialDate: LocalDate,
-    onConfirm: (Money, LocalDate) -> Unit,
+    initialMethod: PaymentMethod?,
+    onConfirm: (Money, LocalDate, PaymentMethod?) -> Unit,
     onDismiss: () -> Unit,
 ) {
     // Saveable, as every typed dialog field is: the text, with the field derived from it.
     var text by rememberSaveable { mutableStateOf(initialAmount?.toAmountInput().orEmpty()) }
     val field = MoneyField(text, MoneyField.Kind.PAYMENT)
     var date by rememberSaveable { mutableStateOf(initialDate) }
+    var method by rememberSaveable { mutableStateOf(initialMethod) }
     var picking by remember { mutableStateOf(false) }
     // A new payment opens to be typed into, as every other «Новый …» dialog does — the date is already
     // today. A correction does not: what is wrong with it may be the date.
@@ -145,7 +150,7 @@ internal fun PaymentDialog(
             onClick = {
                 // The day, not an instant: which hour a payment lands at is `PaymentDate`'s,
                 // and it needs the injected clock this composable has no way to hold.
-                field.amount?.let { onConfirm(it, date) }
+                field.amount?.let { onConfirm(it, date, method) }
                 onDismiss()
             },
             enabled = field.isValid,
@@ -164,6 +169,13 @@ internal fun PaymentDialog(
                 label = stringResource(R.string.payment_date_label),
                 onClick = { picking = true },
             )
+            // Optional, so nothing need be selected: a tap on the chosen segment clears it.
+            SegmentedChoice<PaymentMethod?>(
+                options = PaymentMethod.entries,
+                selected = method,
+                onSelect = { method = it },
+                onReselect = { method = null },
+            ) { option -> option?.let { paymentMethodLabel(it) }.orEmpty() }
         }
     }
 

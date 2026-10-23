@@ -17,6 +17,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import com.seblful.klas.R
 import com.seblful.klas.domain.model.Payment
+import com.seblful.klas.domain.model.PaymentMethod
 import com.seblful.klas.format.bulletJoin
 import com.seblful.klas.format.formatDate
 import com.seblful.klas.format.toLocalDate
@@ -32,6 +33,7 @@ import com.seblful.klas.ui.common.classStatusColor
 import com.seblful.klas.ui.common.classStatusLabel
 import com.seblful.klas.ui.common.dateTimeText
 import com.seblful.klas.ui.common.insetRowPress
+import com.seblful.klas.ui.common.paymentMethodLabel
 import com.seblful.klas.ui.common.text
 import com.seblful.klas.ui.homework.HomeworkUndo
 import com.seblful.klas.ui.homework.homeworkUndo
@@ -100,7 +102,9 @@ internal fun PaymentRow(
 ) {
     ListItem(
         headlineContent = { Text(payment.amount.text()) },
-        supportingContent = { Text(payment.date.formatDate()) },
+        supportingContent = {
+            Text(bulletJoin(listOfNotNull(payment.date.formatDate(), payment.method?.let { paymentMethodLabel(it) })))
+        },
         trailingContent = {
             IconButton(onClick = onDelete) {
                 Icon(
@@ -162,7 +166,8 @@ internal fun PaymentDialogs(
             title = stringResource(R.string.payment_add_title),
             initialAmount = null,
             initialDate = viewModel.paymentDay(),
-            onConfirm = { amount, date -> viewModel.addPayment(amount, date) },
+            initialMethod = viewModel.lastPaymentMethod(),
+            onConfirm = viewModel::addPayment,
             onDismiss = onDismiss,
         )
     }
@@ -171,7 +176,8 @@ internal fun PaymentDialogs(
             title = stringResource(R.string.payment_edit_title),
             initialAmount = payment.amount,
             initialDate = payment.date.toLocalDate(),
-            onConfirm = { amount, date -> viewModel.editPayment(payment, amount, date) },
+            initialMethod = payment.method,
+            onConfirm = { amount, date, method -> viewModel.editPayment(payment, amount, date, method) },
             onDismiss = onDismiss,
         )
     }

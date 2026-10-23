@@ -9,6 +9,7 @@ import com.seblful.klas.R
 import com.seblful.klas.domain.lesson.LessonPhase
 import com.seblful.klas.domain.model.ClassMode
 import com.seblful.klas.domain.model.LessonStatus
+import com.seblful.klas.domain.model.PaymentMethod
 import com.seblful.klas.format.MoneyField
 import com.seblful.klas.format.labelRes
 import com.seblful.klas.ui.students.balanceColor
@@ -87,3 +88,13 @@ fun durationLabel(minutes: Int): String = when (minutes) {
     120 -> stringResource(R.string.hours_two)
     else -> stringResource(R.string.minutes_short, minutes)
 }
+
+/** «Наличные», «Карта», «Перевод». */
+@Composable
+fun paymentMethodLabel(method: PaymentMethod): String = stringResource(
+    when (method) {
+        PaymentMethod.CASH -> R.string.payment_method_cash
+        PaymentMethod.CARD -> R.string.payment_method_card
+        PaymentMethod.TRANSFER -> R.string.payment_method_transfer
+    },
+)

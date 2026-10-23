@@ -17,6 +17,7 @@ import com.seblful.klas.domain.model.ClassMode
 import com.seblful.klas.domain.model.Homework
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Payment
+import com.seblful.klas.domain.model.PaymentMethod
 import com.seblful.klas.domain.model.Student
 import com.seblful.klas.domain.time.WallClock
 import com.seblful.klas.domain.time.today
@@ -173,22 +174,25 @@ class StudentDetailViewModel @AssistedInject constructor(
     }
 
     /** Records a payment, on the day it was actually made. */
-    fun addPayment(amount: Money, day: LocalDate) {
+    fun addPayment(amount: Money, day: LocalDate, method: PaymentMethod? = null) {
         if (amount.isZero) return
-        write { payments.record(studentId, amount, day) }
+        write { payments.record(studentId, amount, day, method) }
     }
+
+    /** How they paid last — what a new payment is offered as. */
+    fun lastPaymentMethod(): PaymentMethod? = state.value.valueOrNull()?.lastPaymentMethod
 
     /** The day the payment dialog opens on — off the same clock that will stamp the save. */
     fun paymentDay(): LocalDate = payments.today()
 
     /** Corrects a payment already recorded, keeping its id, and offers the correction back. */
-    fun editPayment(payment: Payment, amount: Money, day: LocalDate) {
+    fun editPayment(payment: Payment, amount: Money, day: LocalDate, method: PaymentMethod? = payment.method) {
         if (amount.isZero) return
         write(
             onWritten = { corrected: Payment ->
                 if (corrected != payment) events.send(Event.PaymentCorrected(payment, corrected))
             },
-        ) { payments.correct(payment, amount, day) }
+        ) { payments.correct(payment, amount, day, method) }
     }
 
     /** Takes [correction] back while the payment still reads as corrected — see [PaymentRepository.undoCorrection]. */

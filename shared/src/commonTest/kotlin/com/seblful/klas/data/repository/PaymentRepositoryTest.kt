@@ -2,6 +2,7 @@ package com.seblful.klas.data.repository
 
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Payment
+import com.seblful.klas.domain.model.PaymentMethod
 import com.seblful.klas.domain.time.today
 import com.seblful.klas.testutil.MutableClock
 import com.seblful.klas.testutil.TestEnv
@@ -108,6 +109,35 @@ class PaymentRepositoryTest {
         payments.restore(Payment(studentId = sid, date = lastMonth, amount = Money.ofMajor(40)))
 
         assertEquals(lastMonth, payments.observeForStudent(sid).first().single().date)
+    }
+
+    @Test
+    fun `a payment keeps how it was made, and a correction can change it`() = runTest {
+        val sid = student()
+        payments.record(sid, Money.ofMajor(40), today, PaymentMethod.CASH)
+        val original = payments.observeForStudent(sid).first().single()
+        assertEquals(PaymentMethod.CASH, original.method)
+
+        val sameMethod = payments.correct(original, Money.ofMajor(45), today)
+        assertEquals("a correction that does not say keeps the method", PaymentMethod.CASH, sameMethod.method)
+
+        val corrected = payments.correct(sameMethod, Money.ofMajor(45), today, PaymentMethod.TRANSFER)
+        assertEquals(corrected, payments.observeForStudent(sid).first().single())
+
+        assertTrue(payments.undoCorrection(sameMethod, corrected))
+        assertEquals(PaymentMethod.CASH, payments.observeForStudent(sid).first().single().method)
+    }
+
+    @Test
+    fun `an undo does not overwrite a method changed since`() = runTest {
+        val sid = student()
+        payments.record(sid, Money.ofMajor(40), today)
+        val original = payments.observeForStudent(sid).first().single()
+        val corrected = payments.correct(original, Money.ofMajor(45), today)
+        val later = payments.correct(corrected, Money.ofMajor(45), today, PaymentMethod.CARD)
+
+        assertFalse(payments.undoCorrection(original, corrected))
+        assertEquals(later, payments.observeForStudent(sid).first().single())
     }
 
     @Test

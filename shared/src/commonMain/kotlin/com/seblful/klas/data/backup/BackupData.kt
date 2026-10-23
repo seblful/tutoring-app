@@ -176,8 +176,9 @@ data class BackupData(
          * flat classes and are converted by [splitIntoLessons]; v8 homework is converted by
          * [legacyHomework]. Older lesson notes are not restored. Schema v10 removed only fields that were
          * already blank, so it did not require a backup version bump.
+         * v10 adds a payment's method, which an older build would drop on import.
          */
-        const val CURRENT_VERSION = 9
+        const val CURRENT_VERSION = 10
 
         /**
          * Whether a backup of [version] can be safely imported by this build. A newer version may

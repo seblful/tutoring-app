@@ -14,6 +14,7 @@ import com.seblful.klas.domain.model.Attended
 import com.seblful.klas.domain.model.ClassMode
 import com.seblful.klas.domain.model.Currency
 import com.seblful.klas.domain.model.LessonStatus
+import com.seblful.klas.domain.model.PaymentMethod
 import com.seblful.klas.domain.model.ThemeChoice
 import com.seblful.klas.domain.reminders.Reminders
 import kotlinx.serialization.Serializable
@@ -94,6 +95,8 @@ data class PaymentEntity(
     val studentId: Long,
     val dateMillis: Long,
     val amountMinor: Long,
+    /** Schema v13 and backup v10; null for every payment recorded before, and whenever it was not said. */
+    val method: PaymentMethod? = null,
 )
 
 /** One student's summed charges and payments — see [BalanceDao]. */

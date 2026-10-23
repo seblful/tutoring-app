@@ -19,6 +19,8 @@ mirrors and [database and backup](database-and-backup.md) for persistence contra
   report reads only its period and the one before (`Reports.window`). Partial payments and
   overpayments work. `Billing.billedOrNull` distinguishes a taught zero-rate lesson (show zero) from an
   unbilled absence (show no amount).
+- A payment may say how it was made (`PaymentMethod`: cash, card, transfer). It is optional — payments
+  before schema v13 have none — and moves no money; a new payment is offered as the student's last.
 - Auto-completion is opt-in: scheduled lessons become completed, and therefore billable, after ending.
   Upkeep and app start catch up; enabling it asks before settling the backlog and reports the result.
 - Reports retain archived students' earnings and outstanding debts. Debts use all history; income means

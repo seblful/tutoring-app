@@ -48,8 +48,8 @@ Preserve on-device data and existing backup files when changing storage. Before 
   IDs and commits in one transaction. `BackupIntegrity` checks readability before writes;
   `BackupFailure` classifies refusals; `BackupRestore` owns rows, first-run state and mirror refresh.
 - Older file versions import with defaults; newer ones are refused. v8 homework becomes rows through
-  `legacyHomework`; old lesson notes are not restored. Dropping always-blank columns need not bump the
-  file version. `BackupData.version` is independent of schema version and also supports transfer from
+  `legacyHomework`; old lesson notes are not restored. v10 added a payment's method, bumped because an
+  older build would drop it on import. Dropping always-blank columns need not bump the file version. `BackupData.version` is independent of schema version and also supports transfer from
   the old `com.seblful.repetit` app ID, which cannot upgrade in place.
 - JSON must explicitly contain `version`, `subjects` and `students`, including empty arrays in an empty
   backup. Missing envelope fields are malformed; defaults for later tables preserve older exports.

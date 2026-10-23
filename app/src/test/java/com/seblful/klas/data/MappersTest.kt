@@ -18,6 +18,7 @@ import com.seblful.klas.domain.model.Homework
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Payment
+import com.seblful.klas.domain.model.PaymentMethod
 import com.seblful.klas.domain.model.Price
 import com.seblful.klas.domain.model.RateChange
 import com.seblful.klas.domain.model.RateOwner
@@ -128,6 +129,8 @@ class MappersTest {
             id = 4, studentId = 1, date = Instant.fromEpochMilliseconds(1_700_000_123_000), amount = Money(150000),
         )
         assertEquals(p, p.toEntity().toDomain())
+        val byCard = p.copy(method = PaymentMethod.CARD)
+        assertEquals(byCard, byCard.toEntity().toDomain())
     }
 
     private fun TutoringClass.roundTrip(): TutoringClass = rejoin(toLessonEntity(), toAttendanceEntity())
@@ -266,7 +269,7 @@ class MappersTest {
             "RateChangeEntity" to setOf(
                 "id", "studentId", "subjectId", "groupId", "fromMinor", "toMinor", "atMillis",
             ),
-            "PaymentEntity" to setOf("id", "studentId", "dateMillis", "amountMinor"),
+            "PaymentEntity" to setOf("id", "studentId", "dateMillis", "amountMinor", "method"),
             "LessonEntity" to setOf(
                 "id", "subjectId", "startMillis", "durationMinutes", "status", "groupId", "mode",
             ),

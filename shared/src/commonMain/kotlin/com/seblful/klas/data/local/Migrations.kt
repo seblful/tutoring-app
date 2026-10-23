@@ -249,6 +249,13 @@ object Migrations {
         }
     }
 
+    /** v12 → v13 says how a payment was made; every earlier one has no method. */
+    val MIGRATION_12_13 = object : Migration(12, 13) {
+        override fun migrate(connection: SQLiteConnection) {
+            connection.execSQL("ALTER TABLE payments ADD COLUMN method TEXT")
+        }
+    }
+
     /** Everything above, in the order Room should be handed it. See `di/DatabaseModule`. */
     val ALL: Array<Migration> = arrayOf(
         MIGRATION_5_6,
@@ -258,5 +265,6 @@ object Migrations {
         MIGRATION_9_10,
         MIGRATION_10_11,
         MIGRATION_11_12,
+        MIGRATION_12_13,
     )
 }

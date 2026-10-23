@@ -18,6 +18,7 @@ import com.seblful.klas.domain.model.Attended
 import com.seblful.klas.domain.model.ClassMode
 import com.seblful.klas.domain.model.Currency
 import com.seblful.klas.domain.model.LessonStatus
+import com.seblful.klas.domain.model.PaymentMethod
 import com.seblful.klas.domain.model.ThemeChoice
 import com.seblful.klas.testutil.ProjectFiles
 import org.junit.Assert.assertEquals
@@ -35,6 +36,7 @@ class StoredEnumNamesTest {
     )
     private val storedLanguages = setOf("SYSTEM", "RUSSIAN", "ENGLISH")
     private val storedThemes = setOf("LIGHT", "DARK", "SYSTEM")
+    private val storedMethods = setOf("CASH", "CARD", "TRANSFER")
 
     private val converters = EnumConverters()
 
@@ -92,6 +94,17 @@ class StoredEnumNamesTest {
     }
 
     @Test
+    fun `the stored payment method names are the ones the payments table holds`() {
+        val message = "A PaymentMethod constant was renamed, added or removed. The `payments.method` column " +
+            "stores these names — payments holding the old text will silently read as having no method. " +
+            "Migrate the column, then update this list."
+        assertEquals(message, storedMethods, PaymentMethod.entries.map { it.name }.toSet())
+        assertEquals(message, storedMethods, PaymentMethod.entries.mapNotNull(converters::fromMethod).toSet())
+        assertEquals("an unknown name reads as no method", null, converters.toMethod("CHEQUE"))
+        assertEquals(null, converters.toMethod(null))
+    }
+
+    @Test
     fun `every entity column defaulting to an enum writes a stored name`() {
         assertTrue(converters.fromMode(StudentEntity(name = "Иван").defaultMode) in storedModes)
         assertTrue(converters.fromMode(GroupEntity(name = "11 «А»").defaultMode) in storedModes)
@@ -136,7 +149,7 @@ class StoredEnumNamesTest {
         val writable = methods.filter { it.returnType == String::class.java && it.parameterCount == 1 }
             .map { it.parameterTypes.single() }.toSet()
 
-        assertEquals("the six enum types the schema stores", 6, enumColumns.size)
+        assertEquals("the seven enum types the schema stores", 7, enumColumns.size)
         assertEquals("An enum column has no converter to read it", emptySet<Class<*>>(), enumColumns - readable)
         assertEquals("An enum column has no converter to write it", emptySet<Class<*>>(), enumColumns - writable)
     }

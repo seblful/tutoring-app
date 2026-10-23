@@ -5,6 +5,7 @@ import com.seblful.klas.data.toEntity
 import com.seblful.klas.domain.billing.PaymentDate
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Payment
+import com.seblful.klas.domain.model.PaymentMethod
 import com.seblful.klas.domain.time.WallClock
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.Inject
@@ -28,13 +29,14 @@ class PaymentRepository @Inject constructor(
     /** The day a fresh payment is offered on — today, by the same clock [record] will stamp it against. */
     fun today(): LocalDate = PaymentDate.today(clock)
 
-    /** Records [amount] from [studentId] as having been made on [day]. Returns the new row's id. */
-    suspend fun record(studentId: Long, amount: Money, day: LocalDate): Long =
+    /** Records [amount] from [studentId] as made on [day], by [method]. Returns the new row's id. */
+    suspend fun record(studentId: Long, amount: Money, day: LocalDate, method: PaymentMethod? = null): Long =
         dao.insert(
             Payment(
                 studentId = studentId,
                 date = PaymentDate.instantFor(day, clock),
                 amount = amount,
+                method = method,
             ).toEntity(),
         )
 
@@ -42,8 +44,13 @@ class PaymentRepository @Inject constructor(
      * Corrects a payment already recorded — its amount, its date, or both — **keeping its id**. Returns
      * the payment as corrected, which [undoCorrection] checks is still what is stored.
      */
-    suspend fun correct(payment: Payment, amount: Money, day: LocalDate): Payment {
-        val corrected = payment.copy(amount = amount, date = PaymentDate.instantFor(day, clock))
+    suspend fun correct(
+        payment: Payment,
+        amount: Money,
+        day: LocalDate,
+        method: PaymentMethod? = payment.method,
+    ): Payment {
+        val corrected = payment.copy(amount = amount, date = PaymentDate.instantFor(day, clock), method = method)
         dao.update(corrected.toEntity())
         return corrected
     }
@@ -55,7 +62,9 @@ class PaymentRepository @Inject constructor(
     suspend fun undoCorrection(original: Payment, corrected: Payment): Boolean {
         val from = corrected.toEntity()
         val to = original.toEntity()
-        return dao.updateIfUnchanged(to.id, from.dateMillis, from.amountMinor, to.dateMillis, to.amountMinor) > 0
+        return dao.updateIfUnchanged(
+            to.id, from.dateMillis, from.amountMinor, from.method, to.dateMillis, to.amountMinor, to.method,
+        ) > 0
     }
 
     /** Puts [payment] back exactly as it was, id, instant and all — the undo behind a just-deleted row. */

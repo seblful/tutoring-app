@@ -10,6 +10,7 @@ import androidx.room.Upsert
 import com.seblful.klas.domain.model.Attended
 import com.seblful.klas.domain.model.ClassMode
 import com.seblful.klas.domain.model.LessonStatus
+import com.seblful.klas.domain.model.PaymentMethod
 import kotlinx.coroutines.flow.Flow
 
 /** A student taking a subject — a price row without its amount. */
@@ -88,10 +89,18 @@ interface PaymentDao {
      * Returns how many rows it changed: 0 when the payment changed or was deleted since.
      */
     @Query(
-        "UPDATE payments SET dateMillis = :toMillis, amountMinor = :toAmount " +
-            "WHERE id = :id AND dateMillis = :fromMillis AND amountMinor = :fromAmount",
+        "UPDATE payments SET dateMillis = :toMillis, amountMinor = :toAmount, method = :toMethod " +
+            "WHERE id = :id AND dateMillis = :fromMillis AND amountMinor = :fromAmount AND method IS :fromMethod",
     )
-    suspend fun updateIfUnchanged(id: Long, fromMillis: Long, fromAmount: Long, toMillis: Long, toAmount: Long): Int
+    suspend fun updateIfUnchanged(
+        id: Long,
+        fromMillis: Long,
+        fromAmount: Long,
+        fromMethod: PaymentMethod?,
+        toMillis: Long,
+        toAmount: Long,
+        toMethod: PaymentMethod?,
+    ): Int
 
     @Delete
     suspend fun delete(payment: PaymentEntity)

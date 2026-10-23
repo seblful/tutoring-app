@@ -7,6 +7,7 @@ import com.seblful.klas.domain.lesson.LessonKind
 import com.seblful.klas.domain.model.Balance
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Payment
+import com.seblful.klas.domain.model.PaymentMethod
 import com.seblful.klas.domain.model.RateChange
 import com.seblful.klas.domain.model.Student
 import com.seblful.klas.domain.model.Subject
@@ -95,6 +96,9 @@ data class StudentDetails(
      * number does not say, and what a tutor deciding whether to chase it wants next.
      */
     val lastPaymentAt: Instant? get() = payments.maxOfOrNull { it.date }
+
+    /** How they paid last — what a new payment of theirs is offered as. */
+    val lastPaymentMethod: PaymentMethod? get() = payments.maxByOrNull { it.date }?.method
 
     /** What the archive action should do, given what this student is carrying. */
     val archiveIntent: ArchiveIntent
