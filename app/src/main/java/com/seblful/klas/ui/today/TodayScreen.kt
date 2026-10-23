@@ -33,7 +33,6 @@ import com.seblful.klas.queries.homework.HomeworkRow
 import com.seblful.klas.ui.common.KlasScreen
 import com.seblful.klas.ui.common.ListSkeleton
 import com.seblful.klas.ui.common.LocalCurrency
-import com.seblful.klas.ui.common.NamedIconButton
 import com.seblful.klas.ui.common.ScrollsToTopOnReselect
 import com.seblful.klas.ui.common.SettingsGear
 import com.seblful.klas.ui.common.Spacing
@@ -222,22 +221,22 @@ private fun ToMark(rows: List<TodayLessonRow>, actions: TodayActions) {
         // One lesson has its own tick; the batch is for the evening with several.
         action = SectionAction(stringResource(R.string.today_mark_all), actions.markAllTaught).takeIf { rows.size > 1 },
     ) {
+        val taught = stringResource(R.string.class_status_completed)
         rows.forEach { row ->
-            // The widget's tick, leading as on homework (R1): the empty circle marks the lesson taught, and
-            // the row itself opens it.
-            val markOne = stringResource(R.string.today_mark_one, row.who, row.session.start.timeText())
+            // The widget's tick, leading as on homework and the day below (R6): the empty circle marks the
+            // lesson taught, and the row itself opens it.
+            val open = { actions.openLesson(row.session.first.id) }
             KlasRow(
                 title = row.who,
                 supporting = bulletJoin(timeRange(row), row.subject),
-                onClick = { actions.openLesson(row.session.first.id) },
-                start = RowStart.Custom {
-                    NamedIconButton(
-                        KlasIcons.Outlined.Circle,
-                        markOne,
-                        onClick = { actions.markTaught(row) },
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                },
+                onClick = open,
+                start = RowStart.Done(
+                    done = false,
+                    label = stringResource(R.string.today_mark_one, row.who, row.session.start.timeText()),
+                    doneWord = taught,
+                    onDone = { actions.markTaught(row) },
+                    onOpen = open,
+                ),
                 end = RowEnd.Opens,
             )
         }

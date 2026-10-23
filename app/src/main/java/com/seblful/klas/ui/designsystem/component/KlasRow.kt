@@ -21,8 +21,8 @@ import com.seblful.klas.ui.common.insetRowPress
 import com.seblful.klas.ui.common.rememberToggleFeedback
 
 /**
- * What leads a row — one of these, or nothing. Domain-aware leads (an avatar, a lesson's time, the
- * mark-done button) are [Custom] parts from `ui/shared`; the design system knows no students or lessons.
+ * What leads a row — **one of these**, or nothing: typed, so a row cannot lead with a control of its own
+ * making, as Today's to-mark rows once did with a circle beside the [Done] button every other list has.
  */
 sealed interface RowStart {
     /** A navigation or setting row's icon, in the supporting tone unless [tint] says otherwise. */
@@ -37,9 +37,6 @@ sealed interface RowStart {
         val onOpen: () -> Unit,
         val enabled: Boolean = true,
     ) : RowStart
-
-    @Immutable
-    data class Custom(val content: @Composable () -> Unit) : RowStart
 }
 
 /**
@@ -121,7 +118,6 @@ private fun Lead(start: RowStart) {
         is RowStart.Icon -> Icon(start.icon, contentDescription = null, tint = start.tint.takeOrElse())
         is RowStart.Done ->
             DoneButton(start.done, start.label, start.doneWord, start.onDone, start.onOpen, enabled = start.enabled)
-        is RowStart.Custom -> start.content()
     }
 }
 

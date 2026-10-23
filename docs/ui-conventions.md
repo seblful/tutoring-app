@@ -32,8 +32,8 @@ Build screens from shared state and controls. Feature rules belong in the domain
 ## Layout and controls
 
 - Generic parts live in `ui/designsystem/component` and take no domain types: `KlasRow` (typed
-  `RowStart`/`RowEnd`, so a row has one trailing thing: an `Amount`, a value, a chevron, a switch or one
-  named icon action), `Amount` (an `AmountText` worded with its meaning), `HeaderedCard` (title, count or
+  `RowStart`/`RowEnd`, so a row leads with an icon or the mark-done button and nothing of its own making,
+  and has one trailing thing: an `Amount`, a value, a chevron, a switch or one named icon action), `Amount` (an `AmountText` worded with its meaning), `HeaderedCard` (title, count or
   summary and one `SectionAction` inside the card), `KlasButton` (`ButtonKind`), `KlasFab` (labelled,
   icon-only from 1.5× text, named once for TalkBack), `KlasDivider`, `FormDialog`/`ChoiceDialog`,
   `AccentCard` and `KlasSheet`. detekt's `ForbiddenImport` keeps the Material components they wrap out
