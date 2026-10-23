@@ -62,8 +62,8 @@ import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.common.state.valueOrNull
 import com.seblful.klas.ui.common.text
 import com.seblful.klas.ui.designsystem.component.FormBar
-import com.seblful.klas.ui.designsystem.component.FormSaveBar
 import com.seblful.klas.ui.designsystem.component.KlasDivider
+import com.seblful.klas.ui.designsystem.template.FormScreen
 import com.seblful.klas.ui.subjects.SubjectNameDialog
 import com.seblful.klas.ui.theme.KlasMotion
 import com.seblful.klas.ui.theme.klasSemantics
@@ -99,21 +99,16 @@ fun StudentFormScreen(
     // Back — the arrow or the system gesture — asks before throwing a filled-in form away.
     val requestLeave = leaveGuard(form = state, onLeave = onBack, onSave = save)
 
-    KlasScreen(
+    // `StudentFormContent` keeps an `imePadding()` of its own only because onboarding embeds it — a no-op here,
+    // where the template has already taken the keyboard's inset.
+    FormScreen(
         title = stringResource(if (state.isNew) R.string.student_add_title else R.string.student_edit_title),
-        onBack = requestLeave,
+        saveLabel = stringResource(if (state.isNew) R.string.student_form_add else R.string.action_save),
+        bar = studentBar(state),
+        onSave = save,
+        onLeave = requestLeave,
         messages = messages,
-        // The per-subject price fields sit at the foot of the form. The shell owns the rule, as it does
-        // for the group and booking forms; `StudentFormContent` keeps its own `imePadding()` only
-        // because onboarding embeds it — and that one is a no-op here, the inset already consumed.
-        imeAware = true,
-    ) { modifier, bottomInset ->
-        Column(modifier) {
-            StudentFormContent(state = state, viewModel = viewModel, modifier = Modifier.weight(1f))
-            val label = stringResource(if (state.isNew) R.string.student_form_add else R.string.action_save)
-            FormSaveBar(label, studentBar(state), save, bottomInset)
-        }
-    }
+    ) { fields -> StudentFormContent(state = state, viewModel = viewModel, modifier = fields) }
 }
 
 /**

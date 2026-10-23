@@ -31,6 +31,9 @@ Build screens from shared state and controls. Feature rules belong in the domain
 
 ## Layout and controls
 
+- A screen is chosen as a template, then filled: `ui/designsystem/template` holds `FormScreen` (title, fields,
+  the typed `FormBar` with a save that names the act, the keyboard and the leave guard) for booking, the
+  student and the group forms; the other screens are `KlasScreen` with a `Selection` where they pick.
 - Generic parts live in `ui/designsystem/component` and take no domain types: `KlasRow` (typed
   `RowStart`/`RowEnd`, so a row leads with an icon or the mark-done button and nothing of its own making,
   and has one trailing thing: an `Amount`, a value, a chevron, a switch or one named icon action), `Amount` (an `AmountText` worded with its meaning), `HeaderedCard` (title, count or

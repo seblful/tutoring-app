@@ -54,9 +54,9 @@ import com.seblful.klas.ui.common.supportingTextOf
 import com.seblful.klas.ui.common.text
 import com.seblful.klas.ui.designsystem.component.ButtonKind
 import com.seblful.klas.ui.designsystem.component.FormBar
-import com.seblful.klas.ui.designsystem.component.FormSaveBar
 import com.seblful.klas.ui.designsystem.component.KlasButton
 import com.seblful.klas.ui.designsystem.component.KlasDivider
+import com.seblful.klas.ui.designsystem.template.FormScreen
 import com.seblful.klas.ui.students.AddSubjectPriceDialog
 import com.seblful.klas.ui.theme.KlasIcons
 import com.seblful.klas.ui.theme.klasSemantics
@@ -126,21 +126,14 @@ private fun GroupForm(
         )
     }
 
-    KlasScreen(
+    FormScreen(
         title = title,
-        onBack = requestLeave,
+        saveLabel = stringResource(if (viewModel.isNew) R.string.group_form_create else R.string.action_save),
+        bar = formBar(state.missing) { FormBar.Ready(state.form.name.trim(), groupSummary(state)) },
+        onSave = ::requestSave,
+        onLeave = requestLeave,
         messages = messages,
-        // The rate field and the roster are at the bottom of a long form, and under edge-to-edge the
-        // IME is an inset rather than a resize — the shell composes it in ahead of the scroll.
-        imeAware = true,
-    ) { modifier, bottomInset ->
-        Column(modifier) {
-            GroupFormBody(state, viewModel, { pricingMemberId = it }, onAddStudent, Modifier.weight(1f))
-            val label = stringResource(if (viewModel.isNew) R.string.group_form_create else R.string.action_save)
-            val bar = formBar(state.missing) { FormBar.Ready(state.form.name.trim(), groupSummary(state)) }
-            FormSaveBar(label, bar, ::requestSave, bottomInset)
-        }
-    }
+    ) { fields -> GroupFormBody(state, viewModel, { pricingMemberId = it }, onAddStudent, fields) }
 }
 
 @Composable

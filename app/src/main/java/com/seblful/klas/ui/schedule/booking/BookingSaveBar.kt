@@ -23,34 +23,18 @@ import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.text
 import com.seblful.klas.ui.common.timeText
 import com.seblful.klas.ui.designsystem.component.FormBar
-import com.seblful.klas.ui.designsystem.component.FormSaveBar
 import com.seblful.klas.ui.designsystem.component.KlasButton
 import com.seblful.klas.ui.schedule.timeConflictText
 import com.seblful.klas.ui.theme.KlasMotion
 import com.seblful.klas.ui.theme.klasSemantics
 
 /**
- * The booking form's [FormSaveBar]: what it will book beside the save — or, while it cannot, the one thing in
- * the way, which here can be a reason the button alone would not say (a taken hour).
+ * Booking's [SaveBar] as the form bar every form shows — what it will book, or, while it cannot, the one thing
+ * in the way, which here can be a reason the button alone would not say (a taken hour). Ready exactly when
+ * `canSave` (ClassFormState).
  */
 @Composable
-internal fun BookingSaveBar(
-    state: ClassFormState,
-    isNew: Boolean,
-    bottomInset: PaddingValues,
-    onSave: () -> Unit,
-) {
-    FormSaveBar(
-        label = stringResource(if (isNew) R.string.class_book_action else R.string.action_save),
-        bar = bookingBar(state),
-        onSave = onSave,
-        bottomInset = bottomInset,
-    )
-}
-
-/** Booking's [SaveBar] as the form bar every form shows: Ready exactly when `canSave` (ClassFormState). */
-@Composable
-private fun bookingBar(state: ClassFormState): FormBar = when (val bar = state.saveBar) {
+internal fun bookingBar(state: ClassFormState): FormBar = when (val bar = state.saveBar) {
     is SaveBar.Missing -> FormBar.Missing(bar.gaps.map { gapLabel(it) })
     SaveBar.Taken -> FormBar.Blocked(
         state.conflict?.let { timeConflictText(it) } ?: stringResource(R.string.class_series_refused_all_taken),

@@ -33,6 +33,7 @@ import com.seblful.klas.ui.common.leaveGuard
 import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.common.timeText
+import com.seblful.klas.ui.designsystem.template.FormScreen
 import com.seblful.klas.ui.theme.KlasIcons
 import dev.zacsweers.metrox.viewmodel.assistedMetroViewModel
 
@@ -146,33 +147,27 @@ private fun ClassEditForm(
     // answers «Сохранить» through the same request.
     val requestLeave = leaveGuard(form = state, onLeave = onBack, onSave = ::requestSave)
 
-    KlasScreen(
+    // A taken time is as disqualifying as a missing field, and `canSave` already says so — the lesson could not
+    // happen. The bar says which of the two it is.
+    FormScreen(
         title = title,
-        onBack = requestLeave,
+        saveLabel = stringResource(if (viewModel.isNew) R.string.class_book_action else R.string.action_save),
+        bar = bookingBar(state),
+        onSave = ::requestSave,
+        onLeave = requestLeave,
         messages = messages,
-        // The keyboard shrinks the viewport rather than covering it; the shell composes that in ahead of
-        // the scroll below, so the save bar rides above the keyboard.
-        imeAware = true,
-    ) { modifier, bottomInset ->
-        Column(modifier) {
-            Column(
-                Modifier
-                    .weight(1f)
-                    .verticalScroll(rememberScrollState())
-                    .padding(Spacing.gutter),
-                verticalArrangement = Arrangement.spacedBy(Spacing.gutter),
-            ) {
-                FormSection(stringResource(R.string.class_section_who)) {
-                    WhoSection(state, viewModel.isNew, viewModel, setup)
-                }
-                FormSection(stringResource(R.string.class_section_when)) {
-                    WhenSection(state, viewModel)
-                }
-                DetailsSection(state, viewModel, viewModel.isNew)
+    ) { fields ->
+        Column(
+            fields.verticalScroll(rememberScrollState()).padding(Spacing.gutter),
+            verticalArrangement = Arrangement.spacedBy(Spacing.gutter),
+        ) {
+            FormSection(stringResource(R.string.class_section_who)) {
+                WhoSection(state, viewModel.isNew, viewModel, setup)
             }
-            // A taken time is as disqualifying as a missing field, and `canSave` already says so — the
-            // lesson could not happen. The bar says which of the two it is.
-            BookingSaveBar(state, viewModel.isNew, bottomInset, onSave = ::requestSave)
+            FormSection(stringResource(R.string.class_section_when)) {
+                WhenSection(state, viewModel)
+            }
+            DetailsSection(state, viewModel, viewModel.isNew)
         }
     }
 
