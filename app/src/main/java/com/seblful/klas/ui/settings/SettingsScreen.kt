@@ -35,6 +35,8 @@ import com.seblful.klas.ui.common.insetRowPress
 import com.seblful.klas.ui.common.languageLabel
 import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.state.Loadable
+import com.seblful.klas.ui.designsystem.component.SettingsGroup
+import com.seblful.klas.ui.designsystem.component.settingsRowColors
 import com.seblful.klas.ui.theme.KlasIcons
 import dev.zacsweers.metrox.viewmodel.metroViewModel
 

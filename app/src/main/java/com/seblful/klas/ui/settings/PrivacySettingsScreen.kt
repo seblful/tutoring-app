@@ -16,6 +16,7 @@ import com.seblful.klas.lock.rememberLockAvailable
 import com.seblful.klas.ui.common.ChoiceRow
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.durationLabel
+import com.seblful.klas.ui.designsystem.component.SettingsGroup
 import dev.zacsweers.metrox.viewmodel.metroViewModel
 
 @Composable

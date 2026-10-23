@@ -15,6 +15,7 @@ import com.seblful.klas.ui.common.ChoiceRow
 import com.seblful.klas.ui.common.LanguageChoices
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.languageLabel
+import com.seblful.klas.ui.designsystem.component.SettingsGroup
 import com.seblful.klas.ui.theme.dynamicColorAvailable
 import dev.zacsweers.metrox.viewmodel.metroViewModel
 

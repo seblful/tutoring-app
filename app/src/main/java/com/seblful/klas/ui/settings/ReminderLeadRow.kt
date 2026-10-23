@@ -33,6 +33,8 @@ import com.seblful.klas.ui.common.TickedMenuItem
 import com.seblful.klas.ui.common.insetRowPress
 import com.seblful.klas.ui.designsystem.component.DialogAction
 import com.seblful.klas.ui.designsystem.component.FormDialog
+import com.seblful.klas.ui.designsystem.component.SettingsGroup
+import com.seblful.klas.ui.designsystem.component.settingsRowColors
 import com.seblful.klas.ui.theme.KlasIcons
 import com.seblful.klas.ui.theme.klasSemantics
 

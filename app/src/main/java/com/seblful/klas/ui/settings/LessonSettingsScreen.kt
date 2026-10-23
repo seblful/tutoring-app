@@ -28,6 +28,7 @@ import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.currencyChoiceLabel
 import com.seblful.klas.ui.common.currencyChoices
 import com.seblful.klas.ui.designsystem.component.ChoiceDialog
+import com.seblful.klas.ui.designsystem.component.SettingsGroup
 import dev.zacsweers.metrox.viewmodel.metroViewModel
 
 @Composable

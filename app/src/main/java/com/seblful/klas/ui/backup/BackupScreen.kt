@@ -43,8 +43,8 @@ import com.seblful.klas.ui.common.rememberOpenDocument
 import com.seblful.klas.ui.common.rememberOpenFolder
 import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.common.state.valueOrNull
-import com.seblful.klas.ui.settings.SettingsGroup
-import com.seblful.klas.ui.settings.settingsRowColors
+import com.seblful.klas.ui.designsystem.component.SettingsGroup
+import com.seblful.klas.ui.designsystem.component.settingsRowColors
 import com.seblful.klas.ui.theme.KlasIcons
 import com.seblful.klas.ui.theme.klasSemantics
 import dev.zacsweers.metrox.viewmodel.metroViewModel
