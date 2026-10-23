@@ -49,8 +49,6 @@ import com.seblful.klas.ui.common.ConfirmDialog
 import com.seblful.klas.ui.common.EmptyState
 import com.seblful.klas.ui.common.FabClearance
 import com.seblful.klas.ui.common.FabListPadding
-import com.seblful.klas.ui.common.FilterChipRow
-import com.seblful.klas.ui.common.FilterMenuAction
 import com.seblful.klas.ui.common.KlasScreen
 import com.seblful.klas.ui.common.ListSkeleton
 import com.seblful.klas.ui.common.MaxContentWidth
@@ -128,10 +126,11 @@ fun ScheduleScreen(
     val nowMark by viewModel.nowMark.collectAsStateWithLifecycle()
     // Where each lesson stands this minute — being taught, or over and unmarked — see [ScheduleViewModel.phases].
     val phases by viewModel.phases.collectAsStateWithLifecycle()
-    // Whose lessons are on screen, or null for everyone's. Both the chip and the queries read this one
-    // value, so the schedule can never be quietly narrowed with nothing saying so.
-    val studentFilter by viewModel.studentFilter.collectAsStateWithLifecycle()
+    // What the schedule is narrowed to. Both the chips and the queries read this one value, so the schedule
+    // can never be quietly narrowed with nothing saying so.
+    val filter by viewModel.filter.collectAsStateWithLifecycle()
     val filterableStudents by viewModel.filterableStudents.collectAsStateWithLifecycle()
+    val filterableGroups by viewModel.filterableGroups.collectAsStateWithLifecycle()
     // Why an empty schedule is empty — one answer for all three views, so they cannot disagree about
     // whether the tutor is looking at a quiet week or a narrowed one. See [ScheduleEmpty].
     val emptyReason by viewModel.emptyReason.collectAsStateWithLifecycle()
@@ -230,19 +229,6 @@ fun ScheduleScreen(
                     BatchActions(viewModel.batch)
                     return@KlasScreen
                 }
-                // Offered only once there is somebody to narrow to — a menu whose every entry is «Все
-                // ученики» is a control that cannot do anything.
-                if (filterableStudents.isNotEmpty()) {
-                    FilterMenuAction(
-                        name = stringResource(R.string.schedule_filter_student),
-                        allLabel = stringResource(R.string.schedule_filter_all),
-                        options = filterableStudents,
-                        selected = filterableStudents.firstOrNull { it.id == studentFilter?.studentId },
-                        optionLabel = { it.name },
-                        onSelect = { viewModel.setStudentFilter(it?.id) },
-                        narrowed = studentFilter != null,
-                    )
-                }
                 SettingsGear(onSettings)
             },
             floatingActionButton = {
@@ -293,17 +279,6 @@ fun ScheduleScreen(
                 headerAlignment = if (monthBeside) Alignment.Start else Alignment.CenterHorizontally,
                 headerMaxWidth = if (monthBeside) CalendarPaneWidth else MaxContentWidth,
                 header = {
-                    // **The chip is what makes the filter honest.** A narrowed schedule and a genuinely quiet
-                    // week look identical, so for as long as one student's lessons are what is on screen their
-                    // name stays above it — carrying its own way out, which is the difference between a filter
-                    // and a mode the tutor can get stuck in.
-                    studentFilter?.let { filter ->
-                        FilterChipRow(
-                            name = filter.name,
-                            onClear = { viewModel.setStudentFilter(null) },
-                        )
-                    }
-
                     // The navigator stays pinned in every mode, so paging is always one tap away.
                     when (viewMode) {
                         ScheduleViewMode.DAY -> {
@@ -317,15 +292,6 @@ fun ScheduleScreen(
                                 onToday = viewModel::goToToday,
                                 selected = date,
                                 onPick = viewModel::selectDate,
-                            )
-                            // What the day comes to, under the day it names — the stepper's title is the date,
-                            // so this is the one place in this view the summary can sit. No rule under it: the
-                            // week's and month's divide a calendar grid from the agenda, and here there is no
-                            // grid — the cards begin on surfaces of their own, and once they pass beneath, the
-                            // tinted header is the edge ([ScreenHeader]).
-                            DaySummaryLine(
-                                summary = dayContent.valueOrNull()?.summary ?: DaySummary.NONE,
-                                modifier = Modifier.padding(horizontal = Spacing.gutter),
                             )
                         }
                         ScheduleViewMode.WEEK -> WeekNavigator(
@@ -344,6 +310,24 @@ fun ScheduleScreen(
                             selected = date,
                             onPick = viewModel::selectDate,
                         )
+                    }
+                    // **The chips are what make the filter honest**: a narrowed schedule and a quiet week look
+                    // alike, so the chips name what is shown and are the way back. The Day view's summary
+                    // sits beside them — what the day comes to, under the day it names — so the header is
+                    // one height whatever is chosen ([ScreenHeader]).
+                    ScheduleFilterRow(
+                        filter = filter,
+                        students = filterableStudents,
+                        groups = filterableGroups,
+                        onWho = viewModel::setWho,
+                        onStatus = viewModel::setStatusFilter,
+                    ) {
+                        if (viewMode == ScheduleViewMode.DAY) {
+                            DaySummaryLine(
+                                summary = dayContent.valueOrNull()?.summary ?: DaySummary.NONE,
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
                     }
                 },
             ) {

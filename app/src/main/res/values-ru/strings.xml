@@ -135,10 +135,10 @@
       own way out. An empty state reached *through* a filter offers no «Записать занятие» — booking from
       there would land on the day, not on the student being looked at.
     -->
-    <string name="schedule_filter_student">Показать одного ученика</string>
-    <string name="schedule_filter_all">Все ученики</string>
+    <string name="schedule_filter_everyone">Все</string>
+    <string name="schedule_filter_any_status">Любой статус</string>
     <string name="schedule_filter_clear">Показать всех</string>
-    <string name="schedule_filter_empty">У этого ученика здесь занятий нет</string>
+    <string name="schedule_filter_empty">Нет занятий под этот фильтр</string>
     <string name="schedule_filter_empty_detail">Уберите фильтр, чтобы увидеть остальные занятия</string>
     <!--
       The mark in the day list saying where the current time falls. Lower case: it is a label on a

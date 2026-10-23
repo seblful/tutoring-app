@@ -101,7 +101,7 @@ class ScheduleArrivalTest : ScheduleTestFixture() {
             today.plus(1, DateTimeUnit.DAY).atStartOfDayIn(zone),
         ).first().single { it.studentId == bob }.id
         val vm = vm()
-        observing(vm.studentFilter)
+        observing(vm.filter)
         observing(vm.askedSheet)
         vm.setStudentFilter(ann)
         advanceUntilIdle()
@@ -109,7 +109,7 @@ class ScheduleArrivalTest : ScheduleTestFixture() {
         vm.arrive(Arrival(ScheduleTarget.Lesson(bobs)))
         advanceUntilIdle()
 
-        assertNull(vm.studentFilter.value)
+        assertNull(vm.filter.value.who)
         assertEquals(bobs, vm.askedSheet.value?.klass?.id)
     }
 

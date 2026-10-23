@@ -100,10 +100,10 @@
     <string name="schedule_add_student">Add a student</string>
     <!-- Narrowing the schedule to one student. The chip is the point: a filtered calendar that looks
          empty has to say why, so the name stays on screen and carries its own way out. -->
-    <string name="schedule_filter_student">Show one student</string>
-    <string name="schedule_filter_all">All students</string>
+    <string name="schedule_filter_everyone">Everyone</string>
+    <string name="schedule_filter_any_status">Any status</string>
     <string name="schedule_filter_clear">Show all</string>
-    <string name="schedule_filter_empty">This student has no lessons here</string>
+    <string name="schedule_filter_empty">No lessons match the filter</string>
     <string name="schedule_filter_empty_detail">Clear the filter to see the other lessons</string>
     <!-- The mark in the day list saying where the current time falls. Lower case: it is a label on a
          hairline, not a heading. -->

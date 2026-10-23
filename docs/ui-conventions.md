@@ -94,7 +94,9 @@ Build screens from shared state and controls. Feature rules belong in the domain
   name or next lesson. The archive is last in every order. Groups narrow by subject once they are taught two.
 - Filters are a `FilterBar`: at most three chips, wrapped and never scrolled sideways (they sit in pages
   that swipe), the rest behind a «Filter» chip that names the one chosen (R5). Above the list, not in it,
-  so a filter that leaves nothing can still be taken off.
+  so a filter that leaves nothing can still be taken off. A filter with a menu is a `MenuChip` named by
+  its choice. The schedule's row (`ScheduleFilterRow`) is two of them — Everyone/a student/a group, and
+  a status — with the Day view's summary beside them, so its header keeps one height.
 - Items sit on `itemSurface`, sections (`SectionCard`, `StatRow`, report slices) on `sectionSurface`:
   both above the `surfaceContainer` the bar tints to. Settings groups rows on cards too
   (`SettingsGroup`), their `ListItem`s transparent (`settingsRowColors`).

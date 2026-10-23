@@ -18,6 +18,7 @@ import com.seblful.klas.domain.lesson.SessionRules
 import com.seblful.klas.domain.model.Assignee
 import com.seblful.klas.domain.model.Attended
 import com.seblful.klas.domain.model.ClassSession
+import com.seblful.klas.domain.model.Group
 import com.seblful.klas.domain.model.Homework
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Student
@@ -67,6 +68,7 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.scan
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.DayOfWeek
@@ -82,9 +84,6 @@ import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Instant
-
-private fun List<TutoringClass>.shownFor(filter: StudentFilter?): List<TutoringClass> =
-    filter?.let { SessionRules.lessonsWith(this, it.studentId) } ?: this
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @ViewModelKey
@@ -126,27 +125,45 @@ class ScheduleViewModel @Inject constructor(
     private val _viewMode = MutableStateFlow(pages.mode)
     val viewMode: StateFlow<ScheduleViewMode> = _viewMode.asStateFlow()
 
-    private val filterStudentId = MutableStateFlow<Long?>(null)
+    /** The filter as asked, by ids — [filter] is it resolved against who still exists. */
+    private val askedFilter = MutableStateFlow(ScheduleFilter())
 
     /** Every student, read once for the filter, the week's captions and the lesson sheet. */
     private val everyone: Flow<List<Student>> =
         students.observeAll().shared(this)
 
-    /** Whose lessons the schedule is showing, or null for everyone's — see [StudentFilter]. */
-    val studentFilter: StateFlow<StudentFilter?> =
-        combine(filterStudentId, everyone) { id, all ->
-            id?.let { wanted -> all.firstOrNull { it.id == wanted } }
-                ?.let { StudentFilter(it.id, it.name) }
+    /**
+     * What the schedule is narrowed to, named — see [ScheduleFilter]. Somebody the database no longer holds
+     * is no one to narrow to, so the filter falls back to everyone rather than to an empty schedule.
+     */
+    val filter: StateFlow<ScheduleFilter> =
+        combine(askedFilter, everyone, groups.observeAll()) { asked, people, groupList ->
+            asked.copy(
+                who = when (val who = asked.who) {
+                    null -> null
+                    is ScheduleWho.Student ->
+                        people.firstOrNull { it.id == who.id }?.let { ScheduleWho.Student(it.id, it.name) }
+                    is ScheduleWho.Group ->
+                        groupList.firstOrNull { it.id == who.id }?.let { ScheduleWho.Group(it.id, it.name) }
+                },
+            )
         }
-            .derive(this, computation, null)
+            .derive(this, computation, ScheduleFilter())
 
     /** The students the filter menu offers — the active ones, in the repository's name order. */
     val filterableStudents: StateFlow<List<Student>> = students.observeActive().hold(this, emptyList())
 
-    /** Narrows the schedule to one student, or shows everyone again with null. */
-    fun setStudentFilter(studentId: Long?) {
-        filterStudentId.value = studentId
-    }
+    /** The groups the filter menu offers after the students. */
+    val filterableGroups: StateFlow<List<Group>> = groups.observeActive().hold(this, emptyList())
+
+    /** Narrows the schedule to one student, or to everyone again with null. */
+    fun setStudentFilter(studentId: Long?) = setWho(studentId?.let { ScheduleWho.Student(it) })
+
+    /** Narrows the schedule to one student's or group's lessons, or to everyone's with null. */
+    fun setWho(who: ScheduleWho?) = askedFilter.update { it.copy(who = who) }
+
+    /** Narrows the schedule to lessons in one status, or to every status with null. */
+    fun setStatusFilter(status: LessonStatus?) = askedFilter.update { it.copy(status = status) }
 
     private val _timeConflict = MutableStateFlow<TimeConflict?>(null)
     val timeConflict: StateFlow<TimeConflict?> = _timeConflict.asStateFlow()
@@ -203,8 +220,8 @@ class ScheduleViewModel @Inject constructor(
      * so day, month and week cannot answer it differently. See [ScheduleEmpty].
      */
     val emptyReason: StateFlow<Loadable<ScheduleEmpty>> =
-        combine(studentFilter, canAddClass) { filter, bookable ->
-            bookable.map { ScheduleEmpty.of(filtered = filter != null, canAddClass = it) }
+        combine(filter, canAddClass) { filter, bookable ->
+            bookable.map { ScheduleEmpty.of(filtered = filter.narrowed, canAddClass = it) }
         }
             // Loading until [canAddClass] is known, for its reason: an empty day read before the setup was
             // offered «Нечего планировать» and «Добавить ученика» for the frame the answer took.
@@ -226,7 +243,7 @@ class ScheduleViewModel @Inject constructor(
      * never widens the query, and so the day view pays for no markers at all.
      */
     val dayLoads: StateFlow<Loadable<Map<LocalDate, CalendarLayout.DayLoad>>> =
-        combine(_viewMode, _visibleMonth, _visibleWeek, studentFilter, clock.zones(), ::MarkerKey)
+        combine(_viewMode, _visibleMonth, _visibleWeek, filter, clock.zones(), ::MarkerKey)
             .flatMapLatest { key ->
                 val zone = key.zone
                 val range = when (key.mode) {
@@ -258,10 +275,10 @@ class ScheduleViewModel @Inject constructor(
         val mode: ScheduleViewMode,
         val month: YearMonth,
         val week: LocalDate,
-        val filter: StudentFilter?,
+        val filter: ScheduleFilter,
         val zone: TimeZone,
     ) {
-        fun narrow(classes: List<TutoringClass>): List<TutoringClass> = classes.shownFor(filter)
+        fun narrow(classes: List<TutoringClass>): List<TutoringClass> = filter.narrow(classes)
     }
 
     /**
@@ -269,7 +286,7 @@ class ScheduleViewModel @Inject constructor(
      * month views is the selected day's (see [SchedulePages.select]).
      */
     val content: StateFlow<Loadable<ScheduleContent.Week>> =
-        combine(_visibleWeek, studentFilter, clock.zones(), ::Triple)
+        combine(_visibleWeek, filter, clock.zones(), ::Triple)
             .flatMapLatest { (week, filter, zone) ->
                 val bounds = DayBounds.of(week, week.plus(DAYS_IN_WEEK, DateTimeUnit.DAY), zone)
                 combine(
@@ -278,7 +295,7 @@ class ScheduleViewModel @Inject constructor(
                     subjects.observeAll(),
                     groups.observeAll(),
                 ) { readClasses, studentList, subjectList, groupList ->
-                    val visibleClasses = readClasses.shownFor(filter)
+                    val visibleClasses = filter.narrow(readClasses)
                     // Built once per emission and asked per lesson — the three `associateBy` maps this
                     // replaces, plus the rule about which name titles a lesson. See [Captions].
                     val captions = Captions.of(studentList, subjectList, groupList)
@@ -382,8 +399,9 @@ class ScheduleViewModel @Inject constructor(
             events.send(Event.LESSON_GONE)
             return
         }
-        val filter = filterStudentId.value
-        if (filter != null && session.classes.none { it.studentId == filter }) setStudentFilter(null)
+        // A filter that would hide the lesson the tray named is lifted, rather than opening nothing.
+        val asked = askedFilter.value
+        if (asked.narrowed && asked.narrow(session.classes).isEmpty()) askedFilter.value = ScheduleFilter()
         selectDate(session.start.toLocalDateTime(zone).date)
         askedLessonId.value = classId
     }
