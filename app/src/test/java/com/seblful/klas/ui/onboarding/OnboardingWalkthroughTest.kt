@@ -9,6 +9,7 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performImeAction
 import androidx.compose.ui.test.performTextInput
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
@@ -120,6 +121,25 @@ class OnboardingWalkthroughTest {
 
             compose.onNodeWithText(MATH).assertIsNotSelected()
             assertTrue(compose.onAllNodesWithText(text(R.string.action_undo)).fetchSemanticsNodes().isNotEmpty())
+        }
+    }
+
+    @Test
+    fun `a subject is typed in place, and setup can be skipped from any step`() {
+        ActivityScenario.launch(MainActivity::class.java).use {
+            tap(R.string.onboarding_start)
+            tap(R.string.onboarding_continue)
+            waitFor(R.string.onboarding_subjects_desc)
+
+            compose.onNodeWithText(text(R.string.subjects_add)).performTextInput("Astronomy")
+            compose.onNodeWithText(text(R.string.subjects_add)).performImeAction()
+            stored { graph.subjects.observeAll().first().map { it.name } == listOf("Astronomy") }
+
+            tap(R.string.onboarding_skip)
+            compose.waitUntil(TIMEOUT) {
+                compose.onAllNodesWithText(text(R.string.onboarding_subjects_desc)).fetchSemanticsNodes().isEmpty()
+            }
+            assertTrue(runBlocking { graph.settings.get().onboardingComplete })
         }
     }
 

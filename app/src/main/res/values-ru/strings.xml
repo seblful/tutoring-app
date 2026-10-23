@@ -1273,4 +1273,5 @@
     <string name="reports_export_menu">Экспорт</string>
     <string name="reports_filter">Фильтр отчёта</string>
     <string name="reports_filter_all">Все ученики и предметы</string>
+    <string name="onboarding_subject_field_hint">Введите название и нажмите Ввод</string>
 </resources>

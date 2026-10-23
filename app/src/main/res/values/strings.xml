@@ -1124,4 +1124,5 @@
     <string name="reports_export_menu">Export</string>
     <string name="reports_filter">Filter the report</string>
     <string name="reports_filter_all">All students and subjects</string>
+    <string name="onboarding_subject_field_hint">Type a name and press Enter</string>
 </resources>
