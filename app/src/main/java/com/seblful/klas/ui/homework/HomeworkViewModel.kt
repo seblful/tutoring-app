@@ -80,6 +80,7 @@ class HomeworkViewModel @Inject constructor(
     /** Narrows the tab to [who] — a student (with their groups') or a group — or shows everybody with null. */
     fun setFilter(who: Assignee?) {
         filter.value = who
+        batch.clear()
     }
 
     private data class People(val students: List<Student>, val groups: List<Group>, val rosters: Map<Long, List<Long>>)
@@ -154,6 +155,9 @@ class HomeworkViewModel @Inject constructor(
     val events = UiEvents<Event>()
 
     private val actions = HomeworkActions(homework, appScope, events, Event.ACTION_FAILED)
+
+    /** Current homework picked by a long-press, among what the tab shows now — see [HomeworkBatch]. */
+    val batch = HomeworkBatch(actions) { state.value.valueOrNull()?.lists?.current.orEmpty().map { it.homework } }
 
     fun give(assignee: Assignee, text: String) = actions.give(assignee, text)
 

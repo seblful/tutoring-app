@@ -181,7 +181,12 @@ fun SwipeableHomework(
     modifier: Modifier = Modifier,
     owner: Assignee? = null,
     container: Color = ListItemDefaults.containerColor,
+    picking: HomeworkPicking = HomeworkPicking.NONE,
 ) {
+    if (picking.active && !nested) {
+        HomeworkCard(row, messages, { picking.toggle(row) }, onSwipe, modifier, picking)
+        return
+    }
     val shape = if (nested) RectangleShape else MaterialTheme.shapes.medium
     // Toward the list it goes to: done is the tab on the right, current the one on the left. So a row
     // always takes the way its tab cannot turn, and the other way still turns it.
@@ -201,7 +206,7 @@ fun SwipeableHomework(
         if (nested) {
             HomeworkListItem(row, named, messages, onClick, onSwipe, container, swipe)
         } else {
-            HomeworkCard(row, messages, onClick, onSwipe, swipe)
+            HomeworkCard(row, messages, onClick, onSwipe, swipe, picking)
         }
     }
 }
@@ -232,8 +237,15 @@ private fun HomeworkCard(
     onClick: () -> Unit,
     onDone: () -> Unit,
     modifier: Modifier,
+    picking: HomeworkPicking,
 ) {
-    ContentCard(onClick = onClick, modifier = modifier) {
+    ContentCard(
+        onClick = onClick,
+        modifier = modifier,
+        selected = picking.isPicked(row),
+        onLongClick = if (picking.enabled) ({ picking.toggle(row) }) else null,
+        onLongClickLabel = stringResource(R.string.batch_select),
+    ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 // **The kind glyph prefixes the name**, as on the schedule's card, and the lines below start

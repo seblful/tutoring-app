@@ -125,6 +125,48 @@ class HomeworkViewModelTest {
     }
 
     @Test
+    fun `picked homework goes to the archive together, and one undo brings it all back`() =
+        runTest(mainRule.dispatcher) {
+            val anya = fixtures.student("Аня")
+            val boris = fixtures.student("Борис")
+            val first = fixtures.homework(Assignee.Student(anya))
+            val second = fixtures.homework(Assignee.Student(boris))
+            val left = fixtures.homework(Assignee.Student(boris))
+            val vm = vm()
+            observing(vm.state)
+
+            vm.batch.toggle(first.id)
+            vm.batch.toggle(second.id)
+            val moved = vm.batch.markDone()
+            runCurrent()
+
+            assertEquals(setOf(first.id, second.id), moved.map { it.id }.toSet())
+            assertTrue("the pick closes with the action", vm.batch.selected.value.isEmpty())
+            assertEquals(listOf(left.id), vm.state.current.lists.current.map { it.homework.id })
+
+            vm.batch.undo(moved)
+            runCurrent()
+            assertEquals(
+                setOf(first.id, second.id, left.id),
+                vm.state.current.lists.current.map { it.homework.id }.toSet(),
+            )
+        }
+
+    @Test
+    fun `narrowing the tab lets go of the pick`() = runTest(mainRule.dispatcher) {
+        val anya = fixtures.student("Аня")
+        val given = fixtures.homework(Assignee.Student(anya))
+        val vm = vm()
+        observing(vm.state)
+
+        vm.batch.toggle(given.id)
+        vm.setFilter(Assignee.Student(anya))
+
+        assertTrue(vm.batch.selected.value.isEmpty())
+        assertTrue(vm.batch.markDone().isEmpty())
+    }
+
+    @Test
     fun `an archived student's homework leaves the tab`() = runTest(mainRule.dispatcher) {
         val anya = fixtures.student("Аня")
         val boris = fixtures.student("Борис")

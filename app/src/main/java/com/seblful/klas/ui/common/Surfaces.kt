@@ -90,6 +90,7 @@ fun ContentCard(
         )
     }
 }
+
 /**
  * A surface for a **section** — a group of rows read as one thing: the stat strip, a report's
  * breakdown. One rung above [ContentCard] on the tonal ladder, which is what gives a screen holding

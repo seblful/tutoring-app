@@ -35,6 +35,7 @@ import com.seblful.klas.ui.common.KlasScreen
 import com.seblful.klas.ui.common.LessonKindIcon
 import com.seblful.klas.ui.common.ListSkeleton
 import com.seblful.klas.ui.common.Messages
+import com.seblful.klas.ui.common.PickBackHandler
 import com.seblful.klas.ui.common.SegmentedPage
 import com.seblful.klas.ui.common.SettingsGear
 import com.seblful.klas.ui.common.ShowMessagesFor
@@ -44,6 +45,7 @@ import com.seblful.klas.ui.common.constrainedContent
 import com.seblful.klas.ui.common.plusInset
 import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.state.Loadable
+import com.seblful.klas.ui.common.titleOrPicked
 import com.seblful.klas.ui.designsystem.component.KlasFab
 import com.seblful.klas.ui.theme.KlasIcons
 import dev.zacsweers.metrox.viewmodel.metroViewModel
@@ -64,6 +66,9 @@ fun HomeworkScreen(
 ) {
     var side by rememberSaveable { mutableStateOf(HomeworkSide.CURRENT) }
     val state by viewModel.state.collectAsStateWithLifecycle()
+    // Current homework picked by a long-press: while any is, the bar is theirs.
+    val picked by viewModel.batch.selected.collectAsStateWithLifecycle()
+    PickBackHandler(picked.size, viewModel.batch::clear)
     // The dialog's choices are taken when it opens — see `HomeworkViewModel.choices`.
     var adding by remember { mutableStateOf<List<AssigneeChoice>?>(null) }
     var opened by remember { mutableStateOf<Opened?>(null) }
@@ -90,37 +95,33 @@ fun HomeworkScreen(
 
     val loaded = (state as? Loadable.Ready)?.value
     KlasScreen(
-        title = stringResource(R.string.nav_homework),
+        title = titleOrPicked(stringResource(R.string.nav_homework), picked.size),
+        onBack = viewModel.batch::clear.takeIf { picked.isNotEmpty() },
         page = side,
         messages = messages,
         actions = {
-            // Keep the clear action available if the last homework for the selected filter is deleted.
-            if (loaded != null && (loaded.filterAssignees.isNotEmpty() || loaded.filter != null)) {
-                FilterMenuAction(
-                    name = stringResource(R.string.homework_filter),
-                    allLabel = stringResource(R.string.homework_filter_all),
-                    options = loaded.filterAssignees,
-                    selected = loaded.filter,
-                    optionLabel = loaded.captions::titleOf,
-                    onSelect = viewModel::setFilter,
-                    leading = { who ->
-                        LessonKindIcon(if (who is Assignee.Group) LessonKind.GROUP else LessonKind.INDIVIDUAL)
-                    },
-                )
+            if (picked.isNotEmpty()) {
+                MarkPickedDone(viewModel.batch, messages)
+                return@KlasScreen
             }
+            loaded?.let { HomeworkFilterAction(it, viewModel::setFilter) }
             SettingsGear(onSettings)
         },
         // The cards lay themselves out in columns (see [HomeworkList]); the tabs above them keep a column's width.
         maxContentWidth = Dp.Infinity,
         floatingActionButton = {
-            KlasFab(stringResource(R.string.homework_add), onClick = ::add)
+            // While homework is picked the bar is theirs, and giving more waits.
+            if (picked.isEmpty()) KlasFab(stringResource(R.string.homework_add), onClick = ::add)
         },
     ) { modifier, bottomInset ->
         // The same two-sided shape as «Люди»: segments on the page, and a drag across the body turns it.
         SegmentedPage(
             options = HomeworkSide.entries,
             selected = side,
-            onSelect = { side = it },
+            onSelect = {
+                side = it
+                viewModel.batch.clear()
+            },
             label = { entry -> sideLabel(entry, loaded?.lists) },
             modifier = modifier,
             header = {
@@ -137,6 +138,9 @@ fun HomeworkScreen(
                         filterName = ready.value.filterName,
                         messages = messages,
                         undo = undo,
+                        picking = HomeworkPicking(picked, enabled = side == HomeworkSide.CURRENT) {
+                            viewModel.batch.toggle(it.homework.id)
+                        },
                         onAdd = ::add,
                         onOpen = { row -> scope.launch { opened = Opened(row, viewModel.choicesFor(row)) } },
                         bottomInset = bottomInset,
@@ -164,6 +168,23 @@ fun HomeworkScreen(
     }
 }
 
+@Composable
+private fun HomeworkFilterAction(loaded: HomeworkState, onSelect: (Assignee?) -> Unit) {
+    // Keep the clear action available if the last homework for the selected filter is deleted.
+    if (loaded.filterAssignees.isEmpty() && loaded.filter == null) return
+    FilterMenuAction(
+        name = stringResource(R.string.homework_filter),
+        allLabel = stringResource(R.string.homework_filter_all),
+        options = loaded.filterAssignees,
+        selected = loaded.filter,
+        optionLabel = loaded.captions::titleOf,
+        onSelect = onSelect,
+        leading = { who ->
+            LessonKindIcon(if (who is Assignee.Group) LessonKind.GROUP else LessonKind.INDIVIDUAL)
+        },
+    )
+}
+
 private data class Opened(val row: HomeworkRow, val choices: List<AssigneeChoice>)
 
 @Composable
@@ -180,6 +201,7 @@ private fun HomeworkList(
     filterName: String?,
     messages: Messages,
     undo: HomeworkUndo,
+    picking: HomeworkPicking,
     onAdd: () -> Unit,
     onOpen: (HomeworkRow) -> Unit,
     bottomInset: PaddingValues,
@@ -235,6 +257,7 @@ private fun HomeworkList(
                 messages = messages,
                 nested = false,
                 modifier = animateInPlace(),
+                picking = picking,
             )
         }
     }

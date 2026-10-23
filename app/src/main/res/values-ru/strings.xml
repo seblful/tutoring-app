@@ -1247,4 +1247,11 @@
     <string name="batch_select">Выбрать</string>
     <string name="batch_mark_taught">Отметить проведёнными</string>
     <string name="batch_cancel">Отменить занятия</string>
+    <plurals name="homework_batch_done">
+        <item quantity="one">В архив: %1$d</item>
+        <item quantity="few">В архив: %1$d</item>
+        <item quantity="many">В архив: %1$d</item>
+        <item quantity="other">В архив: %1$d</item>
+    </plurals>
+    <string name="homework_batch_mark_done">Отметить выполненными</string>
 </resources>

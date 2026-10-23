@@ -23,6 +23,7 @@ import androidx.test.espresso.Espresso
 import com.seblful.klas.MainActivity
 import com.seblful.klas.R
 import com.seblful.klas.domain.model.AppLanguage
+import com.seblful.klas.domain.model.Assignee
 import com.seblful.klas.domain.model.ClassMode
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
@@ -192,6 +193,23 @@ class TutorWorkflowTest {
             compose.onNodeWithContentDescription(text(R.string.batch_mark_taught)).performClick()
             compose.waitUntil(5_000) {
                 runBlocking { graph.classes.getById(lessonId)?.status == LessonStatus.COMPLETED }
+            }
+            compose.onNodeWithText(selected(1)).assertDoesNotExist()
+        }
+    }
+
+    @Test
+    fun `a long-press picks homework, and the bar moves the pick to the archive`() {
+        val given = runBlocking { graph.homework.give(Assignee.Student(studentId), "Workflow exercises") }
+        ActivityScenario.launch(MainActivity::class.java).use {
+            waitForText("Workflow student")
+            compose.onNode(hasText(text(R.string.nav_homework)) and isSelectable()).performClick()
+            waitForText("Workflow exercises")
+            compose.onNodeWithText("Workflow exercises").performTouchInput { longClick() }
+            waitForText(selected(1))
+            compose.onNodeWithContentDescription(text(R.string.homework_batch_mark_done)).performClick()
+            compose.waitUntil(5_000) {
+                runBlocking { graph.homework.observeAll().first().single { it.id == given.id }.isDone }
             }
             compose.onNodeWithText(selected(1)).assertDoesNotExist()
         }

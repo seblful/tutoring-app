@@ -38,9 +38,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.navigationevent.NavigationEventInfo
-import androidx.navigationevent.compose.NavigationBackHandler
-import androidx.navigationevent.compose.rememberNavigationEventState
 import com.seblful.klas.R
 import com.seblful.klas.domain.lesson.DeleteWarning
 import com.seblful.klas.domain.lesson.LessonPhase
@@ -58,6 +55,7 @@ import com.seblful.klas.ui.common.KlasScreen
 import com.seblful.klas.ui.common.ListSkeleton
 import com.seblful.klas.ui.common.MaxContentWidth
 import com.seblful.klas.ui.common.NoticeDialog
+import com.seblful.klas.ui.common.PickBackHandler
 import com.seblful.klas.ui.common.SegmentedPage
 import com.seblful.klas.ui.common.SettingsGear
 import com.seblful.klas.ui.common.ShowMessagesFor
@@ -73,6 +71,7 @@ import com.seblful.klas.ui.common.roomForSupportingPane
 import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.common.state.valueOrNull
 import com.seblful.klas.ui.common.timeText
+import com.seblful.klas.ui.common.titleOrPicked
 import com.seblful.klas.ui.designsystem.component.KlasDivider
 import com.seblful.klas.ui.designsystem.component.KlasFab
 import com.seblful.klas.ui.navigation.Arrival
@@ -138,11 +137,7 @@ fun ScheduleScreen(
     val emptyReason by viewModel.emptyReason.collectAsStateWithLifecycle()
     // Lessons picked by a long-press: while any are, the bar is theirs — see [LessonBatch].
     val picked by viewModel.batch.selected.collectAsStateWithLifecycle()
-    NavigationBackHandler(
-        state = rememberNavigationEventState(NavigationEventInfo.None),
-        isBackEnabled = picked.isNotEmpty(),
-        onBackCompleted = viewModel.batch::clear,
-    )
+    PickBackHandler(picked.size, viewModel.batch::clear)
 
     /** *A change of view is a new page, and a page starts at the top.** */
     val listState = rememberLazyListState()
@@ -225,11 +220,7 @@ fun ScheduleScreen(
     val picking = LessonPicking(picked) { viewModel.batch.toggle(it.session.first.id) }
     CompositionLocalProvider(LocalLessonPicking provides picking) {
         KlasScreen(
-            title = if (picked.isEmpty()) {
-                stringResource(R.string.schedule_title)
-            } else {
-                pluralStringResource(R.plurals.batch_selected, picked.size, picked.size)
-            },
+            title = titleOrPicked(stringResource(R.string.schedule_title), picked.size),
             onBack = viewModel.batch::clear.takeIf { picked.isNotEmpty() },
             page = viewMode,
             messages = messages,
