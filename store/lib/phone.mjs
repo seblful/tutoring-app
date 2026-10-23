@@ -68,7 +68,9 @@ export const PHONE_CSS = `
     /* The home screen (homeScreen): the lock screen's wallpaper, with the app's widgets laid on it. */
     .home > :not(.status) { position: absolute; }
     .home-date { font-weight: 500; font-size: calc(var(--phone) * .052); color: #fff; }
-    .widget { border-radius: calc(var(--phone) * .058); overflow: hidden;
+    /* The widgets' captures have their own clear 24 dp corners; the radius only shapes the shadow. Clipped
+       too, an edge was antialiased twice on some frames of a zoom, and blinked. */
+    .widget { border-radius: calc(var(--phone) * ${(0.956 * 24 / 412).toFixed(5)});
       box-shadow: 0 calc(var(--phone) * .008) calc(var(--phone) * .03) rgba(8, 10, 48, .28); }
     .widget-face { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
     .widget-face.ticked { opacity: 0; }
