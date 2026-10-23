@@ -78,7 +78,10 @@ Build screens from shared state and controls. Feature rules belong in the domain
 - People's students and groups are one surface with dividers (`SurfaceRow`, `SlicePosition`; D3), the
   divider drawn over each row's edge so rows keep one height; lessons stay a card each. Each side has its
   own orders behind the bar's sort button, tinted when not the first: students by name or debt, groups by
-  name or next lesson. The archive is last in every order.
+  name or next lesson. The archive is last in every order. Groups narrow by subject once they are taught two.
+- Filters are a `FilterBar`: at most three chips, wrapped and never scrolled sideways (they sit in pages
+  that swipe), the rest behind a «Filter» chip that names the one chosen (R5). Above the list, not in it,
+  so a filter that leaves nothing can still be taken off.
 - Items sit on `itemSurface`, sections (`SectionCard`, `StatRow`, report slices) on `sectionSurface`:
   both above the `surfaceContainer` the bar tints to. Settings groups rows on cards too
   (`SettingsGroup`), their `ListItem`s transparent (`settingsRowColors`).

@@ -1,5 +1,6 @@
 package com.seblful.klas.ui.designsystem.component
 
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 
 /**
@@ -19,3 +20,11 @@ data class DialogAction(
 /** The one text action a section header may carry: "See all ›", "+ Add". */
 @Immutable
 data class SectionAction(val label: String, val onClick: () -> Unit)
+
+/** One way of narrowing a list: what it is called, whether it is in force, and what choosing it does. */
+class FilterOption(
+    val label: String,
+    val selected: Boolean,
+    val onClick: () -> Unit,
+    val leading: (@Composable () -> Unit)? = null,
+)

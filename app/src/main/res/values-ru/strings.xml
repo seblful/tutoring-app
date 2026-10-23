@@ -1224,4 +1224,6 @@
     <string name="form_gap_subject">предмет</string>
     <string name="form_gap_price">цена</string>
     <string name="form_gap_members">участники</string>
+    <string name="filter_more">Фильтр</string>
+    <string name="filter_all">Все</string>
 </resources>

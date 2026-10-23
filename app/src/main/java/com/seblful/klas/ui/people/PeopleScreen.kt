@@ -29,6 +29,7 @@ import com.seblful.klas.ui.designsystem.component.KlasFab
 import com.seblful.klas.ui.groups.GroupSort
 import com.seblful.klas.ui.groups.GroupsList
 import com.seblful.klas.ui.groups.GroupsViewModel
+import com.seblful.klas.ui.groups.groupSubjectFilters
 import com.seblful.klas.ui.students.StudentSort
 import com.seblful.klas.ui.students.StudentsList
 import com.seblful.klas.ui.students.StudentsViewModel
@@ -63,6 +64,8 @@ fun PeopleScreen(
     val studentSort by studentsViewModel.sort.collectAsStateWithLifecycle()
     val groupRows by groupsViewModel.rows.collectAsStateWithLifecycle()
     val groupSort by groupsViewModel.sort.collectAsStateWithLifecycle()
+    val groupSubject by groupsViewModel.subjectFilter.collectAsStateWithLifecycle()
+    val groupSubjects by groupsViewModel.subjects.collectAsStateWithLifecycle()
 
     // Whichever side is on top answers the bar's buttons; the other keeps its own state untouched.
     val side: PeopleSide = when (tab) {
@@ -148,7 +151,9 @@ fun PeopleScreen(
 
                     PeopleTab.GROUPS -> GroupsList(
                         state = groupRows,
-                        searching = query.isNotBlank(),
+                        // A subject that leaves nothing is "nothing matched", not "no groups yet".
+                        searching = query.isNotBlank() || groupSubject != null,
+                        filters = groupSubjectFilters(groupSubjects, groupSubject, groupsViewModel::setSubjectFilter),
                         onGroupClick = onGroupClick,
                         onAddGroup = onAddGroup,
                         bottomInset = bottomInset,

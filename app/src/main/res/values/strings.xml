@@ -1085,4 +1085,6 @@
     <string name="form_gap_subject">a subject</string>
     <string name="form_gap_price">a price</string>
     <string name="form_gap_members">members</string>
+    <string name="filter_more">Filter</string>
+    <string name="filter_all">All</string>
 </resources>

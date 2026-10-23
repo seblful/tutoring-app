@@ -15,6 +15,7 @@ import com.seblful.klas.domain.time.WallClock
 import com.seblful.klas.format.minutes
 import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.common.state.derive
+import com.seblful.klas.ui.common.state.hold
 import com.seblful.klas.ui.common.state.ready
 import com.seblful.klas.ui.people.LessonLine
 import com.seblful.klas.ui.people.PeopleSide
@@ -25,6 +26,7 @@ import dev.zacsweers.metro.binding
 import dev.zacsweers.metrox.viewmodel.ViewModelKey
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -40,6 +42,9 @@ data class GroupRow(
     val subjectName: String? = null,
     val lessons: LessonLine = LessonLine.Never,
 )
+
+/** A subject the listed groups are taught — one of the groups filter's chips. */
+data class SubjectChoice(val id: Long, val name: String)
 
 /** How the groups list is ordered: by name, or by which meets soonest — a group with none booked last. */
 enum class GroupSort { NAME, NEXT_LESSON }
@@ -72,14 +77,18 @@ class GroupsViewModel @Inject constructor(
     private val _sort = MutableStateFlow(GroupSort.NAME)
     val sort: StateFlow<GroupSort> = _sort.asStateFlow()
 
+    private val _subjectFilter = MutableStateFlow<Long?>(null)
+
+    /** The subject the list is narrowed to, or null for every group. */
+    val subjectFilter: StateFlow<Long?> = _subjectFilter.asStateFlow()
+
     /**
      * Each group's nearest lessons, re-read every minute so a card left open moves on from a lesson once it
      * ends. **A test that collects [rows] must advance time by a stated amount, never `advanceUntilIdle()`.**
      */
     private val spans = clock.minutes().flatMapLatest { now -> classes.observeGroupSpans(now).map { it to now } }
 
-    /** [Loadable], so "no groups yet" is never said about groups that have not been read — see `Loadable`. */
-    val rows: StateFlow<Loadable<List<GroupRow>>> =
+    private val listed: Flow<List<GroupRow>> =
         _showArchived.flatMapLatest { archived ->
             val source = if (archived) groups.observeAll() else groups.observeActive()
             combine(
@@ -114,8 +123,24 @@ class GroupsViewModel @Inject constructor(
                 }
             }.combine(_sort) { rows, sort -> rows.sortedFor(sort) }
         }
+
+    /** [Loadable], so "no groups yet" is never said about groups that have not been read — see `Loadable`. */
+    val rows: StateFlow<Loadable<List<GroupRow>>> =
+        combine(listed, _subjectFilter) { rows, subject ->
+            rows.filter {
+                subject == null ||
+                    it.group.subjectId == subject
+            }
+        }
             .ready()
             .derive(this, computation, Loadable.Loading)
+
+    /** The subjects the listed groups are taught, by name — the filter offers them only when there are two. */
+    val subjects: StateFlow<List<SubjectChoice>> = listed.map { rows ->
+        rows.mapNotNull { row -> row.group.subjectId?.let { SubjectChoice(it, row.subjectName.orEmpty()) } }
+            .distinct()
+            .sortedBy { it.name.lowercase() }
+    }.hold(this, emptyList())
 
     override fun toggleArchived() {
         _showArchived.value = !_showArchived.value
@@ -127,6 +152,10 @@ class GroupsViewModel @Inject constructor(
 
     fun setSort(sort: GroupSort) {
         _sort.value = sort
+    }
+
+    fun setSubjectFilter(subjectId: Long?) {
+        _subjectFilter.value = subjectId
     }
 }
 
