@@ -4,12 +4,14 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.unit.height
 import com.seblful.klas.domain.lesson.LessonPhase
 import com.seblful.klas.domain.model.Attended
 import com.seblful.klas.domain.model.ClassSession
@@ -24,6 +26,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
 import kotlin.time.Instant
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -102,6 +105,18 @@ class ClassActionsSheetTest {
         compose.onNodeWithText("Return to planned").performScrollTo().performClick()
 
         assertEquals(listOf<Any>("correct"), asked)
+    }
+
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    @Config(qualifiers = "en-rUS-w360dp", fontScale = 1.5f)
+    fun `at large text the three buttons wrap rather than squeeze a label`() {
+        show(LessonStatus.SCHEDULED)
+
+        val height = button("Reschedule").getUnclippedBoundsInRoot().height
+        listOf("Taught", "Edit").forEach { label ->
+            assertEquals(label, height, button(label).getUnclippedBoundsInRoot().height)
+        }
     }
 
     @Test

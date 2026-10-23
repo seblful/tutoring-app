@@ -3,6 +3,8 @@ package com.seblful.klas.ui.schedule
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -172,13 +174,18 @@ private fun SheetHeader(row: ScheduleRow, phase: LessonPhase) {
 /**
  * The three things done to a lesson most, as buttons: «Taught» filled (R3), «Reschedule» and «Edit» tonal.
  * A taught lesson's button stays, ticked and spent; a cancelled one's says why it cannot be marked yet.
+ * They wrap rather than squeeze: at large text the three do not fit one line.
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun FrequentActions(row: ScheduleRow, onTaught: () -> Unit, onMove: () -> Unit, onEdit: () -> Unit) {
     val status = row.session.status
     val taught = status == LessonStatus.COMPLETED
     Column(Modifier.padding(horizontal = SheetGutter, vertical = Spacing.inline)) {
-        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.inline)) {
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(Spacing.inline),
+            verticalArrangement = Arrangement.spacedBy(Spacing.inline),
+        ) {
             KlasButton(
                 onClick = onTaught,
                 enabled = !taught && LessonStatus.COMPLETED in row.statusChoices,
