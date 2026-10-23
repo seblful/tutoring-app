@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -26,6 +27,7 @@ import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.animateInPlace
 import com.seblful.klas.ui.common.plusInset
 import com.seblful.klas.ui.common.state.Loadable
+import com.seblful.klas.ui.designsystem.component.SlicePosition
 import com.seblful.klas.ui.people.PeopleCard
 import com.seblful.klas.ui.people.lessonLineText
 import com.seblful.klas.ui.theme.KlasIcons
@@ -74,9 +76,8 @@ fun StudentsList(
         modifier.fillMaxSize(),
         // Past the add button, so it never sits on the last row.
         contentPadding = FabListPadding.plusInset(bottomInset),
-        verticalArrangement = Arrangement.spacedBy(Spacing.itemGap),
     ) {
-        items(rows, key = { it.student.id }) { row ->
+        itemsIndexed(rows, key = { _, row -> row.student.id }) { index, row ->
             // Archiving somebody, or re-sorting by debt, moves rows. Without this they teleport, which reads as a
             // glitch rather than as a change.
             StudentCard(
@@ -84,6 +85,7 @@ fun StudentsList(
                 onClick = { onStudentClick(row.student.id) },
                 modifier = animateInPlace(),
                 selected = row.student.id == openId,
+                position = SlicePosition.of(index, rows.size),
             )
         }
     }
@@ -96,6 +98,7 @@ internal fun StudentCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     selected: Boolean = false,
+    position: SlicePosition = SlicePosition.ONLY,
 ) {
     PeopleCard(
         title = row.student.name,
@@ -104,6 +107,7 @@ internal fun StudentCard(
         leading = { Avatar(row.student.name, row.student.id) },
         modifier = modifier,
         selected = selected,
+        position = position,
     ) {
         // Only a balance that is something — a debt or a credit. «Нет задолженности» on most rows was the same
         // news repeated, and it drowned out the rows that differ.

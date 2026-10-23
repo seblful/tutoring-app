@@ -75,6 +75,8 @@ Build screens from shared state and controls. Feature rules belong in the domain
   student's balance with its payment button; the group's earnings), then `OverviewSection`s with their
   latest few rows and «See all» to the full list (`StudentList`/`GroupList` routes, beside People like the
   card). Short lists — a student's subjects, a group's members — are shown in full.
+- People's students and groups are one surface with dividers (`SurfaceRow`, `SlicePosition`; D3), the
+  divider drawn over each row's edge so rows keep one height; lessons stay a card each.
 - Items sit on `itemSurface`, sections (`SectionCard`, `StatRow`, report slices) on `sectionSurface`:
   both above the `surfaceContainer` the bar tints to. Settings groups rows on cards too
   (`SettingsGroup`), their `ListItem`s transparent (`settingsRowColors`).

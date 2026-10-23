@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
@@ -22,6 +23,7 @@ import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.animateInPlace
 import com.seblful.klas.ui.common.plusInset
 import com.seblful.klas.ui.common.state.Loadable
+import com.seblful.klas.ui.designsystem.component.SlicePosition
 import com.seblful.klas.ui.people.PeopleCard
 import com.seblful.klas.ui.people.lessonLineText
 import com.seblful.klas.ui.theme.KlasIcons
@@ -68,14 +70,14 @@ fun GroupsList(
         modifier.fillMaxSize(),
         // Past the add button, so it never sits on the last row.
         contentPadding = FabListPadding.plusInset(bottomInset),
-        verticalArrangement = Arrangement.spacedBy(Spacing.itemGap),
     ) {
-        items(rows, key = { it.group.id }) { row ->
+        itemsIndexed(rows, key = { _, row -> row.group.id }) { index, row ->
             GroupCard(
                 row,
                 onClick = { onGroupClick(row.group.id) },
                 modifier = animateInPlace(),
                 selected = row.group.id == openId,
+                position = SlicePosition.of(index, rows.size),
             )
         }
     }
@@ -88,6 +90,7 @@ internal fun GroupCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     selected: Boolean = false,
+    position: SlicePosition = SlicePosition.ONLY,
 ) {
     PeopleCard(
         title = row.group.name,
@@ -106,6 +109,7 @@ internal fun GroupCard(
         leading = { IconAvatar(KlasIcons.Outlined.Groups, selected = selected) },
         modifier = modifier,
         selected = selected,
+        position = position,
     ) {
         if (row.group.archived) ArchivedBadge()
     }
