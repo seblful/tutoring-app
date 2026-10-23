@@ -57,6 +57,7 @@ import com.seblful.klas.ui.common.ListSkeleton
 import com.seblful.klas.ui.common.MaxContentWidth
 import com.seblful.klas.ui.common.NoticeDialog
 import com.seblful.klas.ui.common.PickBackHandler
+import com.seblful.klas.ui.common.ScrollsToTopOnReselect
 import com.seblful.klas.ui.common.SegmentedPage
 import com.seblful.klas.ui.common.SettingsGear
 import com.seblful.klas.ui.common.ShowMessagesFor
@@ -149,6 +150,7 @@ fun ScheduleScreen(
     /** *A change of view is a new page, and a page starts at the top.** */
     val listState = rememberLazyListState()
     val listScope = rememberCoroutineScope()
+    ScrollsToTopOnReselect { listState.animateScrollToItem(0) }
     val cancelDayLabel = stringResource(R.string.schedule_cancel_day)
     val openDay = { viewModel.setViewMode(ScheduleViewMode.DAY) }
     // Keyed on the view the list was last put at the top *for*, and saved with it: an effect keyed on the

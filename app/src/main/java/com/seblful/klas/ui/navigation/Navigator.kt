@@ -77,6 +77,9 @@ class KlasNavigator internal constructor(
         if (at > 0) stack.removeRange(at, stack.size)
     }
 
+    /** Whether [tab]'s own screen is the one on top — a tap on it then sends its page to the top instead. */
+    fun isOnTab(tab: TopDestination): Boolean = TopDestination.of(top.route) == tab
+
     /**
      * Switches to [tab] the way the bar does, keeping each tab's screens. External interruptions use
      * [openTabFromTray] to preserve a pushed form.

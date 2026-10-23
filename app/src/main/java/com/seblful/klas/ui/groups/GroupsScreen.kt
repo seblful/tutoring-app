@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
@@ -20,6 +21,7 @@ import com.seblful.klas.ui.common.FabListPadding
 import com.seblful.klas.ui.common.IconAvatar
 import com.seblful.klas.ui.common.ListSkeleton
 import com.seblful.klas.ui.common.NoSearchResults
+import com.seblful.klas.ui.common.ScrollsToTopOnReselect
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.animateInPlace
 import com.seblful.klas.ui.common.plusInset
@@ -85,8 +87,11 @@ private fun GroupRows(
         }
         return
     }
+    val listState = rememberLazyListState()
+    ScrollsToTopOnReselect { listState.animateScrollToItem(0) }
     LazyColumn(
         modifier.fillMaxSize(),
+        state = listState,
         // Past the add button, so it never sits on the last row.
         contentPadding = FabListPadding.plusInset(bottomInset),
     ) {

@@ -10,6 +10,7 @@ import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyGridItemScope
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -41,6 +42,7 @@ import com.seblful.klas.ui.common.LessonKindIcon
 import com.seblful.klas.ui.common.ListSkeleton
 import com.seblful.klas.ui.common.Messages
 import com.seblful.klas.ui.common.PickBackHandler
+import com.seblful.klas.ui.common.ScrollsToTopOnReselect
 import com.seblful.klas.ui.common.SectionTitle
 import com.seblful.klas.ui.common.SegmentedPage
 import com.seblful.klas.ui.common.SettingsGear
@@ -219,9 +221,12 @@ private fun HomeworkList(
         return
     }
     // Cards side by side once the window holds two: a column of them on a tablet is a strip down the middle.
+    val gridState = rememberLazyGridState()
+    ScrollsToTopOnReselect { gridState.animateScrollToItem(0) }
     LazyVerticalGrid(
         columns = GridCells.Adaptive(MinCardWidth),
         modifier = Modifier.fillMaxSize(),
+        state = gridState,
         contentPadding = PaddingValues(
             start = Spacing.gutter,
             end = Spacing.gutter,

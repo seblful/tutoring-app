@@ -1,7 +1,9 @@
 package com.seblful.klas.ui.navigation
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertSame
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class NavigateToTabTest {
@@ -70,6 +72,17 @@ class NavigateToTabTest {
 
         assertEquals(shown, navigator.backStack)
         assertEquals(TopDestination.HOMEWORK, showing())
+    }
+
+    @Test
+    fun `only the tab whose own screen is on top counts as tapped again`() {
+        tap(TopDestination.PEOPLE)
+        assertTrue(navigator.isOnTab(TopDestination.PEOPLE))
+        assertFalse(navigator.isOnTab(TopDestination.TODAY))
+
+        // A card over the list: the first tap closes it, so this one is not a reselect.
+        navigator.navigate(Routes.StudentDetail(1))
+        assertFalse(navigator.isOnTab(TopDestination.PEOPLE))
     }
 
     @Test

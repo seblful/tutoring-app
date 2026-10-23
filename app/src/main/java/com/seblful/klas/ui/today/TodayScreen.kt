@@ -34,6 +34,7 @@ import com.seblful.klas.ui.common.KlasScreen
 import com.seblful.klas.ui.common.ListSkeleton
 import com.seblful.klas.ui.common.LocalCurrency
 import com.seblful.klas.ui.common.NamedIconButton
+import com.seblful.klas.ui.common.ScrollsToTopOnReselect
 import com.seblful.klas.ui.common.SettingsGear
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.durationLabel
@@ -141,9 +142,11 @@ internal fun TodayContent(
     modifier: Modifier = Modifier,
     bottomInset: PaddingValues = PaddingValues(),
 ) {
+    val scroll = rememberScrollState()
+    ScrollsToTopOnReselect { scroll.animateScrollTo(0) }
     Column(
         modifier
-            .verticalScroll(rememberScrollState())
+            .verticalScroll(scroll)
             .padding(horizontal = Spacing.gutter)
             .padding(bottom = Spacing.gutter)
             .padding(bottomInset),

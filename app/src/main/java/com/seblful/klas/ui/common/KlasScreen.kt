@@ -128,6 +128,11 @@ fun KlasScreen(
     val shownPage = remember { ShownPage(page) }
     if (page != shownPage.value) scrollBehavior.state.contentOffset = 0f
     SideEffect { shownPage.value = page }
+    // Back to the top on a second tab tap: the lists scroll themselves; a collapsed bar opens again here.
+    ScrollsToTopOnReselect {
+        scrollBehavior.state.heightOffset = 0f
+        scrollBehavior.state.contentOffset = 0f
+    }
 
     // A large title has two lines to spend on a name while it is large; collapsed into an ordinary bar it
     // has one, like any other — it was two there too, and a long name drew two lines of 22sp in a 64 dp

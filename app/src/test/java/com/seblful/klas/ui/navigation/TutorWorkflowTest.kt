@@ -3,9 +3,12 @@ package com.seblful.klas.ui.navigation
 import android.content.Intent
 import android.net.Uri
 import android.view.KeyEvent
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.hasAnyDescendant
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasScrollAction
+import androidx.compose.ui.test.hasScrollToIndexAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isSelectable
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
@@ -240,6 +243,24 @@ class TutorWorkflowTest {
     }
 
     @Test
+    fun `a second tap on People brings a scrolled list back to the first student`() {
+        runBlocking { repeat(PUPILS) { graph.students.upsert(Student(name = "Pupil %02d".format(it))) } }
+        ActivityScenario.launch(MainActivity::class.java).use {
+            val people = hasText(text(R.string.nav_people)) and isSelectable()
+            compose.onNode(people).performClick()
+            waitForText("Pupil 00")
+            compose.onNode(hasScrollToIndexAction() and hasAnyDescendant(hasText("Pupil", substring = true)))
+                .performScrollToNode(hasText("Workflow student"))
+            compose.onNodeWithText("Pupil 00").assertDoesNotExist()
+
+            compose.onNode(people).performClick()
+
+            waitForText("Pupil 00")
+            compose.onNodeWithText("Pupil 00").assertIsDisplayed()
+        }
+    }
+
+    @Test
     fun `the widget's today opens the Today tab`() {
         val today = Intent(ApplicationProvider.getApplicationContext(), MainActivity::class.java)
             .setAction(TrayNavigation.ACTION_OPEN_TODAY)
@@ -339,5 +360,10 @@ class TutorWorkflowTest {
             }
             assertTrue(runBlocking { graph.classes.getAll().size == 1 })
         }
+    }
+
+    private companion object {
+        /** More than a phone shows, so the list has somewhere to scroll. */
+        const val PUPILS = 40
     }
 }
