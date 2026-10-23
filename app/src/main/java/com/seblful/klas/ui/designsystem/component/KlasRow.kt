@@ -28,6 +28,16 @@ sealed interface RowStart {
     /** A navigation or setting row's icon, in the supporting tone unless [tint] says otherwise. */
     data class Icon(val icon: ImageVector, val tint: Color = Color.Unspecified) : RowStart
 
+    /** The mark-done button ([DoneButton]): Today's lessons, the widget's tick in the app. */
+    data class Done(
+        val done: Boolean,
+        val label: String,
+        val doneWord: String,
+        val onDone: () -> Unit,
+        val onOpen: () -> Unit,
+        val enabled: Boolean = true,
+    ) : RowStart
+
     @Immutable
     data class Custom(val content: @Composable () -> Unit) : RowStart
 }
@@ -109,6 +119,8 @@ fun KlasRow(
 private fun Lead(start: RowStart) {
     when (start) {
         is RowStart.Icon -> Icon(start.icon, contentDescription = null, tint = start.tint.takeOrElse())
+        is RowStart.Done ->
+            DoneButton(start.done, start.label, start.doneWord, start.onDone, start.onOpen, enabled = start.enabled)
         is RowStart.Custom -> start.content()
     }
 }

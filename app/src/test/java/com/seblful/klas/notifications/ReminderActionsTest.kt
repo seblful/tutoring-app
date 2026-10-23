@@ -21,7 +21,9 @@ class ReminderActionsTest {
     val env = TestEnv()
     private val notifier = RecordingNotifier()
 
-    private val actions = ReminderActions(classes = env.classRepo, notifier = notifier)
+    private val marks = RecentMarks()
+    private val actions =
+        ReminderActions(classes = env.classRepo, notifier = notifier, marks = marks, clock = env.clock)
 
     private val start: Instant = Instant.parse("2026-07-25T10:00:00Z")
 
@@ -48,6 +50,22 @@ class ReminderActionsTest {
 
         assertEquals(LessonStatus.COMPLETED, statusOf(id))
         assertEquals(Money.ofMajor(30), chargeOf(id))
+    }
+
+    @Test
+    fun `a lesson marked from outside the app is kept for Today's undo, and a refused one is not`() = runTest {
+        // Cancelled first, which frees the hour for the other.
+        val cancelled = lesson().single()
+        env.fixtures.setStatus(cancelled, LessonStatus.CANCELLED)
+        val taught = lesson().single()
+
+        actions.complete(taught)
+        actions.complete(cancelled)
+
+        val kept = marks.marks.value.single()
+        assertEquals(taught, kept.session.first.id)
+        assertEquals(LessonStatus.COMPLETED, kept.session.status)
+        assertEquals(env.clock.now(), kept.at)
     }
 
     @Test

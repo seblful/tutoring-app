@@ -1,19 +1,24 @@
 package com.seblful.klas.ui.today
 
+import com.seblful.klas.data.lessons.LessonWrite
 import com.seblful.klas.domain.lesson.LessonPhase
 import com.seblful.klas.domain.model.Assignee
 import com.seblful.klas.domain.model.LessonStatus
+import com.seblful.klas.domain.model.Money
+import com.seblful.klas.notifications.RecentMarks
 import com.seblful.klas.testutil.MainDispatcherRule
 import com.seblful.klas.testutil.TestEnv
 import com.seblful.klas.testutil.current
 import com.seblful.klas.testutil.observing
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.atTime
 import kotlinx.datetime.toInstant
+import kotlinx.datetime.toLocalDateTime
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -22,6 +27,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import kotlin.time.Duration.Companion.days
+import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Instant
 
 /** The test clock reads 15:00 in Minsk on 1 June 2026. */
@@ -36,6 +42,8 @@ class TodayViewModelTest {
     val env = TestEnv()
     private val fixtures get() = env.fixtures
 
+    private val marks = RecentMarks()
+
     private fun vm() = mainRule.own(
         TodayViewModel(
             classes = env.classRepo,
@@ -45,6 +53,8 @@ class TodayViewModelTest {
             balances = env.balanceRepo,
             homework = env.homeworkRepo,
             settings = env.settingsRepo,
+            payments = env.paymentRepo,
+            recentMarks = marks,
             clock = env.clock,
             appScope = mainRule.appScope,
             computation = mainRule.dispatcher,
@@ -85,6 +95,51 @@ class TodayViewModelTest {
             )
             assertEquals("the lesson on now leads, not the one after it", "Борис", vm.state.current.next?.who)
             assertEquals(listOf("Аня"), vm.state.current.toMark.map { it.who })
+        }
+
+    @Test
+    fun `a debtor is listed with what they owe and when they last paid`() = runTest(mainRule.dispatcher) {
+        val subject = fixtures.subject("Алгебра")
+        val anya = fixtures.pricedStudent("Аня", subject)
+        fixtures.pricedStudent("Борис", subject)
+        fixtures.setStatus(fixtures.lesson(subject, listOf(anya), at(10)).single(), LessonStatus.COMPLETED)
+        env.paymentRepo.record(anya, Money.ofMajor(10), TODAY.minusDay())
+
+        val vm = vm()
+        observing(vm.state)
+        runCurrent()
+
+        val debtor = vm.state.current.debtors.single()
+        assertEquals("Аня", debtor.name)
+        assertEquals(Money.ofMajor(20), debtor.owed)
+        assertEquals(TODAY.minusDay(), debtor.lastPaidAt?.toLocalDateTime(env.clock.zone)?.date)
+    }
+
+    @Test
+    fun `a mark made outside the app is offered for ten minutes, and its undo re-plans the lesson`() =
+        runTest(mainRule.dispatcher) {
+            day()
+            val anya = env.classRepo.observeBetween(at(9), at(11)).first().single().id
+            val boris = env.classRepo.observeBetween(at(14), at(15)).first().single().id
+            fun taught(classId: Long) = runBlocking {
+                val written = env.classRepo.setStatus(env.classRepo.getSessionFor(classId)!!, LessonStatus.COMPLETED)
+                env.classRepo.getSessionFor(classId)!!.also { check(written is LessonWrite.Written) }
+            }
+            marks.record(taught(anya), env.clock.now())
+            marks.record(taught(boris), env.clock.now() - 11.minutes)
+
+            val vm = vm()
+            observing(vm.state)
+            runCurrent()
+
+            val recent = vm.state.current.recentMarks
+            assertEquals("Борис's was marked too long ago to undo here", listOf("Аня"), recent.map { it.who })
+
+            vm.undo(recent.single())
+            runCurrent()
+
+            assertEquals(LessonStatus.SCHEDULED, env.classRepo.getById(anya)?.status)
+            assertTrue(vm.state.current.recentMarks.isEmpty())
         }
 
     @Test

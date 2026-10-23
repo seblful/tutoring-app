@@ -1178,7 +1178,7 @@
     <string name="today_next">Далее</string>
     <string name="today_to_mark">Прошли и не отмечены</string>
     <string name="today_mark_all">Отметить все проведёнными</string>
-    <string name="today_mark_one">Отметить «%1$s» проведённым</string>
+    <string name="today_mark_one">Отметить «%1$s», %2$s, проведённым</string>
     <string name="today_lessons">Занятия сегодня</string>
     <string name="today_no_lessons">Сегодня занятий нет</string>
     <string name="today_owed">Вам должны</string>
@@ -1295,4 +1295,16 @@
     <string name="class_step_first_free">− или + ставит %1$s — первое свободное время</string>
     <string name="fab_new_student">Новый ученик</string>
     <string name="fab_new_group">Новая группа</string>
+    <string name="today_next_in">Далее · через %1$s</string>
+    <string name="today_open">Открыть</string>
+    <string name="today_last_paid">Последняя оплата %1$s</string>
+    <string name="today_never_paid">Оплат ещё не было</string>
+    <string name="today_recent_marks">Отмечено вне приложения</string>
+    <string name="today_marked_at">Проведено · отмечено в %1$s</string>
+    <plurals name="today_members">
+        <item quantity="one">%1$d участник</item>
+        <item quantity="few">%1$d участника</item>
+        <item quantity="many">%1$d участников</item>
+        <item quantity="other">%1$d участника</item>
+    </plurals>
 </resources>

@@ -1041,7 +1041,7 @@
     <string name="today_next">Next</string>
     <string name="today_to_mark">Over and not marked</string>
     <string name="today_mark_all">Mark all taught</string>
-    <string name="today_mark_one">Mark %1$s taught</string>
+    <string name="today_mark_one">Mark %1$s, %2$s taught</string>
     <string name="today_lessons">Today\'s lessons</string>
     <string name="today_no_lessons">No lessons today</string>
     <string name="today_owed">Owed to you</string>
@@ -1146,4 +1146,14 @@
     <string name="class_step_first_free">− or + takes %1$s, the first free time</string>
     <string name="fab_new_student">New student</string>
     <string name="fab_new_group">New group</string>
+    <string name="today_next_in">Next · in %1$s</string>
+    <string name="today_open">Open</string>
+    <string name="today_last_paid">Last paid %1$s</string>
+    <string name="today_never_paid">No payment yet</string>
+    <string name="today_recent_marks">Marked outside the app</string>
+    <string name="today_marked_at">Taught · marked at %1$s</string>
+    <plurals name="today_members">
+        <item quantity="one">%1$d member</item>
+        <item quantity="other">%1$d members</item>
+    </plurals>
 </resources>

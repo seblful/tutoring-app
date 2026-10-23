@@ -95,6 +95,8 @@ class KlasGraph(
                 },
                 onHomework = { navigator.navigateToTab(TopDestination.HOMEWORK) },
                 onBackup = { go(Routes.Backup) },
+                onSchedule = { navigator.navigateToTab(TopDestination.SCHEDULE) },
+                onOpenStudent = { go(Routes.StudentDetail(it)) },
             )
             Routes.Schedule -> Schedule(screen.id)
             Routes.Reports -> ReportsScreen(

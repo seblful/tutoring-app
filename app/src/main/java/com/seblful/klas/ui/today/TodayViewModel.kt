@@ -3,6 +3,7 @@ package com.seblful.klas.ui.today
 import androidx.lifecycle.ViewModel
 import com.seblful.klas.data.backup.AutoBackup
 import com.seblful.klas.data.billing.BalanceRepository
+import com.seblful.klas.data.billing.PaymentRepository
 import com.seblful.klas.data.billing.balanceOf
 import com.seblful.klas.data.homework.HomeworkRepository
 import com.seblful.klas.data.lessons.ClassRepository
@@ -18,12 +19,15 @@ import com.seblful.klas.domain.lesson.LessonPhase
 import com.seblful.klas.domain.lesson.SessionRules
 import com.seblful.klas.domain.model.ClassSession
 import com.seblful.klas.domain.model.LessonStatus
+import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.people.Captions
 import com.seblful.klas.domain.reports.Reports
 import com.seblful.klas.domain.schedule.DayBounds
+import com.seblful.klas.domain.schedule.DaySummary
 import com.seblful.klas.domain.time.WallClock
 import com.seblful.klas.format.days
 import com.seblful.klas.format.minutes
+import com.seblful.klas.notifications.RecentMarks
 import com.seblful.klas.queries.homework.HomeworkLists
 import com.seblful.klas.queries.homework.HomeworkRow
 import com.seblful.klas.ui.common.state.Loadable
@@ -48,8 +52,24 @@ import kotlinx.coroutines.launch
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Instant
 
-/** One of today's lessons, captioned, with where the clock stands on it. */
-data class TodayLessonRow(val session: ClassSession, val who: String, val subject: String, val phase: LessonPhase)
+/**
+ * One of today's lessons, captioned, with where the clock stands on it.
+ *
+ * @param minutesAway how long until it starts — negative once it has.
+ */
+data class TodayLessonRow(
+    val session: ClassSession,
+    val who: String,
+    val subject: String,
+    val phase: LessonPhase,
+    val minutesAway: Long = 0,
+)
+
+/** A student who owes, for Today's «Owed to you»: what, and when they last paid, if ever. */
+data class TodayDebtor(val studentId: Long, val name: String, val owed: Money, val lastPaidAt: Instant?)
+
+/** A lesson marked taught outside the app — the widget, a reminder — still within its Undo's window. */
+data class TodayMark(val mark: RecentMarks.Mark, val who: String)
 
 /**
  * The working day at a glance: the lesson now or next, the ones over and still to mark, the rest of the day,
@@ -59,11 +79,16 @@ data class TodayState(
     val lessons: List<TodayLessonRow>,
     val outstanding: Reports.Outstanding,
     val homework: List<HomeworkRow>,
+    val debtors: List<TodayDebtor> = emptyList(),
+    val recentMarks: List<TodayMark> = emptyList(),
     val lastBackupAt: Instant?,
     val backupStale: Boolean,
 ) {
     /** Over and unaccounted for — the ones "Mark all taught" settles. */
     val toMark: List<TodayLessonRow> get() = lessons.filter { it.phase.isUnfinished }
+
+    /** What the day comes to — lessons, hours and what is billed so far — for its card's header. */
+    val summary: DaySummary get() = DaySummary.of(lessons.map { it.session })
 
     /** The lesson being taught, else the next one today. */
     val next: TodayLessonRow?
@@ -81,6 +106,8 @@ class TodayViewModel @Inject constructor(
     balances: BalanceRepository,
     homework: HomeworkRepository,
     settings: SettingsRepository,
+    payments: PaymentRepository,
+    private val recentMarks: RecentMarks,
     private val clock: WallClock,
     @param:ApplicationScope private val appScope: CoroutineScope,
     @param:Computation computation: CoroutineDispatcher,
@@ -111,13 +138,38 @@ class TodayViewModel @Inject constructor(
     private val lessons: Flow<List<TodayLessonRow>> =
         combine(todaysSessions, captions, clock.minutes()) { sessions, names, now ->
             sessions.sortedBy { it.start }.map { session ->
-                TodayLessonRow(session, names.titleOf(session), names.subjectOf(session), LessonPhase.of(session, now))
+                TodayLessonRow(
+                    session = session,
+                    who = names.titleOf(session),
+                    subject = names.subjectOf(session),
+                    phase = LessonPhase.of(session, now),
+                    minutesAway = (session.start - now).inWholeMinutes,
+                )
             }
         }
 
-    private val outstanding: Flow<Reports.Outstanding> =
-        combine(balances.observe(), students.observeActive()) { sums, active ->
-            Reports.Outstanding.of(active.map { sums.balanceOf(it.id) })
+    /** What is owed in all, and by whom — most first, each with when they last paid. */
+    private val owed: Flow<Pair<Reports.Outstanding, List<TodayDebtor>>> =
+        combine(
+            balances.observe(),
+            students.observeActive(),
+            payments.observeBetween(null, null),
+        ) { sums, active, paid ->
+            val owing = active.map { sums.balanceOf(it.id) }
+            val lastPaid = paid.groupBy { it.studentId }.mapValues { (_, theirs) -> theirs.maxOf { it.date } }
+            val names = active.associateBy { it.id }
+            val debtors = Reports.debts(owing).mapNotNull { debt ->
+                names[debt.student.value]?.let { TodayDebtor(it.id, it.name, debt.amount, lastPaid[it.id]) }
+            }
+            Reports.Outstanding.of(owing) to debtors
+        }
+
+    /** Marks made outside the app within their window, newest first — see [RecentMarks]. */
+    private val recent: Flow<List<TodayMark>> =
+        combine(recentMarks.marks, captions, clock.minutes()) { marks, names, now ->
+            marks.filter { now - it.at < RecentMarks.WINDOW }
+                .sortedByDescending { it.at }
+                .map { TodayMark(it, names.titleOf(it.session)) }
         }
 
     /** Current homework whose lesson is today, or has passed with it still open. */
@@ -144,11 +196,19 @@ class TodayViewModel @Inject constructor(
         }
 
     val state: StateFlow<Loadable<TodayState>> =
-        combine(lessons, outstanding, homeworkDue, backup) { rows, owed, due, (lastBackupAt, stale) ->
+        combine(lessons, owed, homeworkDue, backup, recent) {
+                rows,
+                (total, debtors),
+                due,
+                (lastBackupAt, stale),
+                marks,
+            ->
             TodayState(
                 lessons = rows,
-                outstanding = owed,
+                outstanding = total,
                 homework = due,
+                debtors = debtors,
+                recentMarks = marks,
                 lastBackupAt = lastBackupAt,
                 backupStale = stale,
             )
@@ -170,6 +230,15 @@ class TodayViewModel @Inject constructor(
                     ?.let { ClassSession(session.groupId, it) }
             }
             if (marked.isNotEmpty()) events.send(Event.Marked(marked))
+        }
+    }
+
+    /** Takes back a mark made outside the app, only if nothing about the lesson has changed since. */
+    fun undo(recent: TodayMark) {
+        recentMarks.forget(recent.mark.session)
+        appScope.launch {
+            val session = recent.mark.session
+            if (!classes.correctCompletion(session, unchanged = session)) events.send(Event.UndoChanged)
         }
     }
 
