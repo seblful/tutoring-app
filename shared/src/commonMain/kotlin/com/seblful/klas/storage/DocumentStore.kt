@@ -14,7 +14,7 @@ import kotlin.jvm.JvmInline
 @JvmInline
 value class DocumentRef(val value: String)
 
-/** Reads and writes the whole text of a user-picked document. */
+/** Reads and writes the whole of a user-picked document. */
 interface DocumentStore {
 
     /** The document's entire contents as text. Throws if it cannot be opened or read. */
@@ -22,4 +22,7 @@ interface DocumentStore {
 
     /** Replaces the document's contents with [text]. Throws if it cannot be opened or written. */
     suspend fun write(ref: DocumentRef, text: String)
+
+    /** Replaces the document's contents with [bytes] — a file that is not text, a PDF. */
+    suspend fun write(ref: DocumentRef, bytes: ByteArray)
 }

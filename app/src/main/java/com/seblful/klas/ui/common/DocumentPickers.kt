@@ -50,6 +50,22 @@ fun rememberOpenDocument(
     return { types -> launcher.launchGuarded(types, failureMessage, messages) }
 }
 
+/**
+ * Asks for a folder to keep writing into; [onPicked] hears only of a folder actually picked. The grant it
+ * comes with can be kept across restarts — see `FolderGrants.keep`.
+ */
+@Composable
+fun rememberOpenFolder(
+    failureMessage: String,
+    messages: Messages,
+    onPicked: (DocumentRef) -> Unit,
+): () -> Unit {
+    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
+        uri?.let { onPicked(DocumentRef(it.toString())) }
+    }
+    return { launcher.launchGuarded(null, failureMessage, messages) }
+}
+
 private fun <I> ActivityResultLauncher<I>.launchGuarded(input: I, failureMessage: String, messages: Messages) {
     runCatching { launch(input) }.onFailure { messages.show(failureMessage) }
 }

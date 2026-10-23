@@ -6,6 +6,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -14,31 +15,42 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.seblful.klas.R
 import com.seblful.klas.domain.lesson.LessonFilter
 import com.seblful.klas.domain.model.Assignee
+import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Payment
+import com.seblful.klas.format.bulletJoin
+import com.seblful.klas.format.formatHours
+import com.seblful.klas.format.formatMonth
 import com.seblful.klas.queries.homework.AssigneeChoice
 import com.seblful.klas.queries.homework.HomeworkRow
 import com.seblful.klas.queries.students.ClassRow
+import com.seblful.klas.queries.students.LessonMonth
 import com.seblful.klas.queries.students.StudentDetails
+import com.seblful.klas.queries.students.statusTally
 import com.seblful.klas.ui.common.AddRow
 import com.seblful.klas.ui.common.EmptyState
 import com.seblful.klas.ui.common.KlasScreen
 import com.seblful.klas.ui.common.LoadingDetailScreen
 import com.seblful.klas.ui.common.Messages
-import com.seblful.klas.ui.common.ShowMessagesFor
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.animateInPlace
 import com.seblful.klas.ui.common.plusInset
 import com.seblful.klas.ui.common.rememberMessages
+import com.seblful.klas.ui.common.sectionRowColors
 import com.seblful.klas.ui.common.state.Loadable
+import com.seblful.klas.ui.common.text
+import com.seblful.klas.ui.designsystem.component.HeaderedCard
 import com.seblful.klas.ui.homework.CardHomeworkDialogs
 import com.seblful.klas.ui.homework.homeworkItems
 import com.seblful.klas.ui.theme.KlasIcons
 import dev.zacsweers.metrox.viewmodel.assistedMetroViewModel
+import kotlinx.datetime.TimeZone
+import kotlin.time.Instant
 
 /** One of a student's lists in full — what «See all» under a section of their card opens. */
 @Composable
@@ -62,14 +74,14 @@ private fun StudentList(
     onBack: () -> Unit,
     onLessonClick: (Long) -> Unit,
 ) {
-    var lessonFilter by rememberSaveable { mutableStateOf(LessonFilter.ALL) }
-    // Filtered here rather than in the list's builder, which runs again on every scroll-driven remeasure.
-    val lessonRows = remember(state, lessonFilter) { state.lessonsShown(lessonFilter) }
+    val history = rememberLessonHistory(state)
     var addingPayment by remember { mutableStateOf(false) }
     var editingPayment by remember { mutableStateOf<Payment?>(null) }
     // Taken when the dialog opens — see `StudentDetailViewModel.homeworkChoice`.
     var addingHomework by remember { mutableStateOf<AssigneeChoice?>(null) }
     var openedHomework by remember { mutableStateOf<HomeworkRow?>(null) }
+    // A value here, not a delegate the list's builder reads — see docs/ui-conventions.md.
+    val now = viewModel.minute.collectAsStateWithLifecycle().value
 
     val messages = rememberMessages()
     ShowStudentMessages(viewModel, messages)
@@ -88,16 +100,15 @@ private fun StudentList(
             when (section) {
                 StudentSection.LESSONS -> lessons(
                     state = state,
-                    rows = lessonRows,
-                    filter = lessonFilter,
-                    onFilter = { lessonFilter = it },
+                    months = history.months,
+                    filters = history.filters,
+                    now = now,
                     onLessonClick = onLessonClick,
                 )
                 StudentSection.PAYMENTS -> payments(
                     payments = state.payments,
                     onAdd = { addingPayment = true },
                     onEdit = { editingPayment = it },
-                    onDelete = deletePayment,
                 )
                 StudentSection.HOMEWORK -> homeworkItems(
                     owner = state.student?.let { Assignee.Student(it.id) },
@@ -115,6 +126,7 @@ private fun StudentList(
         viewModel = viewModel,
         adding = addingPayment,
         editing = editingPayment,
+        onDelete = deletePayment,
         onDismiss = { addingPayment = false; editingPayment = null },
     )
     CardHomeworkDialogs(
@@ -127,39 +139,59 @@ private fun StudentList(
     )
 }
 
-/** Only a failed write reaches this page; the other two events follow the card's own actions. */
+/** The card's events, in the card's words — a payment corrected on this page is offered back here. */
 @Composable
 private fun ShowStudentMessages(viewModel: StudentDetailViewModel, messages: Messages) {
     val resources by rememberUpdatedState(LocalContext.current.resources)
-    ShowMessagesFor(viewModel.events, messages) { event ->
-        when (event) {
-            StudentDetailViewModel.Event.WriteFailed -> resources.getString(R.string.action_failed)
-            StudentDetailViewModel.Event.RemoveBlockedHasClasses ->
-                resources.getString(R.string.student_subject_remove_blocked)
-            is StudentDetailViewModel.Event.ArchiveCancelledLessons ->
-                resources.getQuantityString(R.plurals.student_archive_lessons_cancelled, event.count, event.count)
-        }
+    LaunchedEffect(viewModel) {
+        viewModel.events.stream.collect { messages.showStudentEvent(it, resources, viewModel) }
     }
 }
 
+/** The lesson history as narrowed: its filters, and its months under them. */
+private class LessonHistory(val filters: LessonHistoryFilters, val months: List<LessonMonth>)
+
+@Composable
+private fun rememberLessonHistory(state: StudentDetails): LessonHistory {
+    var kind by rememberSaveable { mutableStateOf(LessonFilter.ALL) }
+    var status by rememberSaveable { mutableStateOf<LessonStatus?>(null) }
+    // Filtered and cut into months here rather than in the list's builder, which runs again on every
+    // scroll-driven remeasure.
+    val months = remember(state, kind, status) {
+        LessonMonth.of(state.lessonsShown(kind, status), TimeZone.currentSystemDefault())
+    }
+    return LessonHistory(LessonHistoryFilters(kind, { kind = it }, status) { status = it }, months)
+}
+
+/** What the lesson history is narrowed to, and how to change it. */
+private class LessonHistoryFilters(
+    val kind: LessonFilter,
+    val onKind: (LessonFilter) -> Unit,
+    val status: LessonStatus?,
+    val onStatus: (LessonStatus?) -> Unit,
+)
+
 private fun LazyListScope.lessons(
     state: StudentDetails,
-    rows: List<ClassRow>,
-    filter: LessonFilter,
-    onFilter: (LessonFilter) -> Unit,
+    months: List<LessonMonth>,
+    filters: LessonHistoryFilters,
+    now: Instant,
     onLessonClick: (Long) -> Unit,
 ) {
-    if (state.hasBothKinds) {
+    if (state.classes.isNotEmpty()) {
         item(key = StudentDetailKeys.CLASSES_FILTER, contentType = StudentDetailKeys.CLASSES_FILTER) {
-            LessonFilterChips(
-                selected = filter,
-                tally = state.lessonKinds,
-                onSelect = onFilter,
+            LessonHistoryChips(
+                status = filters.status,
+                statuses = remember(state) { statusTally(state.classes) },
+                onStatus = filters.onStatus,
+                kind = filters.kind,
+                kinds = state.lessonKinds.takeIf { state.hasBothKinds },
+                onKind = filters.onKind,
                 modifier = Modifier.padding(vertical = Spacing.inline),
             )
         }
     }
-    if (rows.isEmpty()) {
+    if (months.isEmpty()) {
         item(key = StudentDetailKeys.CLASSES_EMPTY, contentType = StudentDetailKeys.CLASSES_EMPTY) {
             // No action: booking belongs to the schedule's form, reached from the card's next lesson.
             EmptyState(
@@ -170,8 +202,17 @@ private fun LazyListScope.lessons(
         }
         return
     }
-    items(rows, key = { StudentDetailKeys.klass(it.klass.id) }, contentType = { "lesson" }) { row ->
-        LessonRow(row, onClick = { onLessonClick(row.klass.id) })
+    // A card a month, its totals in the header: the history reads as months, as the tutor bills them.
+    items(months, key = { "month-${it.month}" }, contentType = { "month" }) { month ->
+        HeaderedCard(
+            title = formatMonth(month.month),
+            summary = monthSummary(month),
+            modifier = animateInPlace(Modifier.padding(horizontal = Spacing.gutter, vertical = Spacing.tight)),
+        ) {
+            month.rows.forEach { row ->
+                LessonRow(row, now, onClick = { onLessonClick(row.klass.id) }, colors = sectionRowColors())
+            }
+        }
     }
 }
 
@@ -179,7 +220,6 @@ private fun LazyListScope.payments(
     payments: List<Payment>,
     onAdd: () -> Unit,
     onEdit: (Payment) -> Unit,
-    onDelete: (Payment) -> Unit,
 ) {
     if (payments.isEmpty()) {
         item(key = StudentDetailKeys.PAYMENTS_EMPTY, contentType = StudentDetailKeys.PAYMENTS_EMPTY) {
@@ -200,8 +240,19 @@ private fun LazyListScope.payments(
         PaymentRow(
             payment = payment,
             onEdit = { onEdit(payment) },
-            onDelete = { onDelete(payment) },
             modifier = animateInPlace(),
         )
+    }
+}
+
+/** "9 lessons · 12 h · 287.50 $ earned" — the earned part only once the month has taught something. */
+@Composable
+private fun monthSummary(month: LessonMonth): String {
+    val lessons = pluralStringResource(R.plurals.lesson_count, month.held, month.held)
+    val hours = stringResource(R.string.hours_value, formatHours(month.minutes))
+    return if (month.earned.isZero) {
+        bulletJoin(lessons, hours)
+    } else {
+        bulletJoin(lessons, hours, stringResource(R.string.lesson_month_earned, month.earned.text()))
     }
 }

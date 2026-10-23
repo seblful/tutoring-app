@@ -1,10 +1,20 @@
 package com.seblful.klas.domain.reports
 
+import com.seblful.klas.domain.model.Attended
+import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
+import com.seblful.klas.domain.model.Payment
+import com.seblful.klas.domain.model.PaymentMethod
+import com.seblful.klas.domain.model.Student
+import com.seblful.klas.domain.model.SubjectId
+import com.seblful.klas.domain.model.TutoringClass
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
 import kotlinx.datetime.YearMonth
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import kotlin.time.Instant
 
 class ReportCsvTest {
 
@@ -18,6 +28,11 @@ class ReportCsvTest {
     private val headings = ReportCsv.Headings(
         total = "Доход", period = "Июнь 2026", byGroup = "По группам", bySubject = "По предметам",
         byStudent = "По ученикам", debts = "Долги", outstanding = "Всего к получению",
+        received = "Получено",
+        methods = mapOf(
+            PaymentMethod.CASH to "Наличные", PaymentMethod.CARD to "Карта",
+            PaymentMethod.TRANSFER to "Перевод", null to "Не указано",
+        ),
     )
 
     private fun line(amount: Long, label: String) = Reports.Line(id = 0, label = label, amount = Money(amount))
@@ -54,6 +69,40 @@ class ReportCsvTest {
             ),
             ReportCsv.linesFor(report, headings).map { it.section to it.label },
         )
+    }
+
+    @Test
+    fun `money received follows the income, split by method when any payment said one`() {
+        val report = Reports.Report(
+            period = ReportPeriod(ReportPeriod.Kind.MONTH, YearMonth(2026, 6)),
+            totalIncome = Money(9000),
+            received = Reports.Received(
+                Money(7000),
+                listOf(Reports.MethodLine(PaymentMethod.CARD, Money(5000)), Reports.MethodLine(null, Money(2000))),
+            ),
+        )
+
+        assertEquals(
+            listOf(
+                "Доход" to "Июнь 2026",
+                "Получено" to "Июнь 2026",
+                "Получено" to "Карта",
+                "Получено" to "Не указано",
+            ),
+            ReportCsv.linesFor(report, headings).map { it.section to it.label },
+        )
+    }
+
+    @Test
+    fun `a period nothing was paid in has no received section, and unsaid methods no split`() {
+        val period = ReportPeriod(ReportPeriod.Kind.MONTH, YearMonth(2026, 6))
+        val unpaid = Reports.Report(period = period, totalIncome = Money(9000))
+        val unsaid = unpaid.copy(
+            received = Reports.Received(Money(3000), listOf(Reports.MethodLine(null, Money(3000)))),
+        )
+
+        assertEquals(listOf("Доход"), ReportCsv.linesFor(unpaid, headings).map { it.section })
+        assertEquals(listOf("Доход", "Получено"), ReportCsv.linesFor(unsaid, headings).map { it.section })
     }
 
     @Test
@@ -169,5 +218,80 @@ class ReportCsvTest {
     @Test
     fun `an empty report is still a well-formed file with its header`() {
         assertEquals(BOM + "Раздел;Название;Сумма\r\n", build())
+    }
+
+    private val june = ReportPeriod(ReportPeriod.Kind.MONTH, YearMonth(2026, 6))
+
+    private fun taught(id: Long, at: String, charge: Long, status: LessonStatus = LessonStatus.COMPLETED) =
+        TutoringClass(
+            id = id, lessonId = id, studentId = 1, subjectId = 1,
+            start = Instant.parse(at), durationMinutes = 60, price = Money(charge),
+            status = status, attended = Attended.PRESENT, charge = Money(charge),
+        )
+
+    private fun paid(at: String, amount: Long, method: PaymentMethod? = null) =
+        Payment(studentId = 1, date = Instant.parse(at), amount = Money(amount), method = method)
+
+    private fun lesson(day: Int, amount: Long) =
+        Reports.LedgerEntry(LocalDate(2026, 6, day), "Аня", "Физика", payment = false, method = null, Money(amount))
+
+    private fun ledgerOf(classes: List<TutoringClass>, payments: List<Payment>) = Reports.of(
+        period = june,
+        classes = classes,
+        students = listOf(Student(id = 1, name = "Аня")),
+        payments = payments,
+        subjectNames = mapOf(SubjectId(1) to "Физика"),
+        groupNames = emptyMap(),
+        zone = TimeZone.UTC,
+        today = LocalDate(2026, 6, 30),
+    )
+
+    @Test
+    fun `the ledger has every taught lesson and payment of the period by day - a lesson before a payment`() {
+        val report = ledgerOf(
+            classes = listOf(
+                taught(1, "2026-06-14T10:00:00Z", 3000),
+                taught(2, "2026-06-02T10:00:00Z", 3000),
+                taught(3, "2026-06-20T10:00:00Z", 3000, LessonStatus.SCHEDULED),
+                taught(4, "2026-05-30T10:00:00Z", 3000),
+            ),
+            payments = listOf(
+                paid("2026-06-14T08:00:00Z", 6000, PaymentMethod.CASH),
+                paid("2026-07-01T08:00:00Z", 1000),
+            ),
+        )
+
+        assertEquals(
+            listOf(
+                lesson(day = 2, amount = 3000),
+                lesson(day = 14, amount = 3000),
+                Reports.LedgerEntry(LocalDate(2026, 6, 14), "Аня", null, true, PaymentMethod.CASH, Money(6000)),
+            ),
+            report.ledger,
+        )
+    }
+
+    @Test
+    fun `the ledger file is a row per entry - ISO day, kind, student, subject or method, amount`() {
+        val report = ledgerOf(
+            classes = listOf(taught(1, "2026-06-14T10:00:00Z", 3000)),
+            payments = listOf(paid("2026-06-15T08:00:00Z", 6000)),
+        )
+        val words = ReportCsv.LedgerWords(lesson = "Занятие", payment = "Оплата", methods = headings.methods)
+
+        val csv = ReportCsv.buildLedger(
+            listOf("Дата", "Запись", "Ученик", "Предмет или способ", "Сумма"),
+            report,
+            words,
+            ReportCsv.Dialect.COMMA_DECIMAL,
+        )
+
+        assertEquals(
+            BOM + "Дата;Запись;Ученик;Предмет или способ;Сумма\r\n" +
+                "2026-06-14;Занятие;Аня;Физика;30,00\r\n" +
+                "2026-06-15;Оплата;Аня;Не указано;60,00\r\n",
+            csv,
+        )
+        assertEquals("klas-ledger-2026-06.csv", ReportCsv.ledgerFileName(june))
     }
 }

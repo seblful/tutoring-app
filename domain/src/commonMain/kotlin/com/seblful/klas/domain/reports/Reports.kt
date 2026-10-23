@@ -6,6 +6,7 @@ import com.seblful.klas.domain.model.Balance
 import com.seblful.klas.domain.model.GroupId
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Payment
+import com.seblful.klas.domain.model.PaymentMethod
 import com.seblful.klas.domain.model.Student
 import com.seblful.klas.domain.model.StudentBalance
 import com.seblful.klas.domain.model.StudentId
@@ -29,17 +30,49 @@ object Reports {
     data class Debt(val student: StudentId, val amount: Money)
 
     /**
-     * The number of students in debt and the total they owe.
+     * The number of students in debt, the total they owe, and [debts] — who, most owed first.
      */
-    data class Outstanding(val students: Int, val total: Money) {
+    data class Outstanding(val students: Int, val total: Money, val debts: List<Debt> = emptyList()) {
 
         companion object {
             /**
              * Summarizes the balances supplied by the caller.
              */
-            fun of(balances: List<StudentBalance>): Outstanding =
-                Outstanding(students = debts(balances).size, total = totalOutstanding(balances))
+            fun of(balances: List<StudentBalance>): Outstanding {
+                val debts = debts(balances)
+                return Outstanding(students = debts.size, total = totalOutstanding(balances), debts = debts)
+            }
         }
+    }
+
+    /**
+     * What was **paid** in a period — money in hand — as against [Report.totalIncome], which is what was
+     * earned. The two differ by every payment in advance and every debt, which is why they are two cards
+     * and two sections of the export (D6) rather than one number.
+     */
+    data class Received(val total: Money, val byMethod: List<MethodLine>) {
+        /** Whether the split says anything: not when every payment left the method unsaid. */
+        val showsMethods: Boolean get() = byMethod.any { it.method != null }
+
+        companion object {
+            val NONE = Received(Money.ZERO, emptyList())
+        }
+    }
+
+    /** What one way of paying brought in; [method] null for payments that did not say. */
+    data class MethodLine(val method: PaymentMethod?, val amount: Money)
+
+    /**
+     * [payments] made inside [period], by the day they land on in [zone]; by method in the order the
+     * methods are offered, the unsaid last.
+     */
+    fun received(payments: List<Payment>, period: ReportPeriod, zone: TimeZone): Received {
+        val inPeriod = payments.filter { period.contains(it.date, zone) }
+        val byMethod = inPeriod.groupBy { it.method }
+            .map { (method, paid) -> MethodLine(method, Money(paid.sumOf { it.amount.minor })) }
+            .filter { it.amount.minor != 0L }
+            .sortedBy { it.method?.ordinal ?: Int.MAX_VALUE }
+        return Received(Money(inPeriod.sumOf { it.amount.minor }), byMethod)
     }
 
     /** Income from one kind of teaching — see [incomeByKind]. */
@@ -105,6 +138,21 @@ object Reports {
     )
 
     /**
+     * One line of the ledger: a lesson a student was billed for, or a payment they made, on [day].
+     *
+     * @param subject the lesson's subject, null for a payment.
+     * @param method how a payment was made, null for a lesson or a payment that did not say.
+     */
+    data class LedgerEntry(
+        val day: LocalDate,
+        val student: String,
+        val subject: String?,
+        val payment: Boolean,
+        val method: PaymentMethod?,
+        val amount: Money,
+    )
+
+    /**
      * Income for one kind of teaching.
      */
     data class KindLine(val kind: LessonKind, val amount: Money, val percent: Int)
@@ -149,6 +197,10 @@ object Reports {
          * The period rather than a formatted label, because naming one is a string resource.
          */
         val previousPeriod: ReportPeriod? = null,
+        /** What was paid in [period] — see [Received]. */
+        val received: Received = Received.NONE,
+        /** Every taught lesson and every payment in [period], by day — the ledger export, [ReportCsv.buildLedger]. */
+        val ledger: List<LedgerEntry> = emptyList(),
     ) {
         /** The period earned nothing — the sections below the total have nothing to break down. */
         val noIncome: Boolean get() = totalIncome.isZero
@@ -178,6 +230,7 @@ object Reports {
             // clipping the charges to a period while the payments stay whole would invent credit.
             balances = Billing.balancesFor(students, classes, payments),
             hasData = classes.any { it.studentId in studentIds } || payments.any { it.studentId in studentIds },
+            payments = payments,
             subjectNames = subjectNames,
             groupNames = groupNames,
             zone = zone,
@@ -209,6 +262,8 @@ object Reports {
         groupNames: Map<GroupId, String>,
         zone: TimeZone,
         today: LocalDate,
+        /** Payments covering at least [period]; those of students not in [students] are left out. */
+        payments: List<Payment> = emptyList(),
     ): Report {
         val studentIds = students.map { it.id }.toSet()
         val knownClasses = classes.filter { it.studentId in studentIds }
@@ -251,7 +306,49 @@ object Reports {
             change = change(changeNow, changeBefore),
             changeToDate = elapsed != null && previous != null,
             previousPeriod = previous,
+            received = received(payments.filter { it.studentId in studentIds }, period, zone),
+            ledger = ledger(
+                Billing.billable(inPeriod),
+                payments.filter { it.studentId in studentIds && period.contains(it.date, zone) },
+                studentNames,
+                subjectNames,
+                zone,
+            ),
         )
+    }
+
+    /**
+     * [classes] billed and [payments] made, one entry each, by day — a lesson before a payment on the same
+     * day, each by its time: the same report whatever order its rows came in.
+     */
+    private fun ledger(
+        classes: List<TutoringClass>,
+        payments: List<Payment>,
+        studentNames: Map<StudentId, String>,
+        subjectNames: Map<SubjectId, String>,
+        zone: TimeZone,
+    ): List<LedgerEntry> {
+        val lessons = classes.sortedWith(compareBy({ it.start }, { it.id }, { it.studentId })).map {
+            LedgerEntry(
+                day = it.start.toLocalDateTime(zone).date,
+                student = studentNames[StudentId(it.studentId)].orEmpty(),
+                subject = subjectNames[SubjectId(it.subjectId)],
+                payment = false,
+                method = null,
+                amount = it.charge,
+            )
+        }
+        val paid = payments.sortedWith(compareBy({ it.date }, { it.id }, { it.studentId }, { it.amount.minor })).map {
+            LedgerEntry(
+                day = it.date.toLocalDateTime(zone).date,
+                student = studentNames[StudentId(it.studentId)].orEmpty(),
+                subject = null,
+                payment = true,
+                method = it.method,
+                amount = it.amount,
+            )
+        }
+        return (lessons + paid).sortedWith(compareBy<LedgerEntry> { it.day }.thenBy { it.payment })
     }
 
     /**

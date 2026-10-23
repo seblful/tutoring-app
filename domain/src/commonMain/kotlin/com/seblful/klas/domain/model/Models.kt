@@ -121,6 +121,7 @@ data class Payment(
     val studentId: Long,
     val date: Instant,
     val amount: Money,
+    val method: PaymentMethod? = null,
 )
 
 /**

@@ -27,13 +27,12 @@ import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -42,6 +41,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
@@ -51,36 +51,54 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawOutline
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.seblful.klas.R
+import com.seblful.klas.domain.model.Currency
+import com.seblful.klas.domain.model.PaymentMethod
 import com.seblful.klas.domain.reports.ReportCsv
 import com.seblful.klas.domain.reports.ReportPeriod
 import com.seblful.klas.domain.reports.Reports
+import com.seblful.klas.domain.reports.Taught
+import com.seblful.klas.format.bulletJoin
+import com.seblful.klas.format.formatHours
 import com.seblful.klas.format.formatMonth
 import com.seblful.klas.format.formatMonthName
+import com.seblful.klas.format.money
+import com.seblful.klas.print.Sheet
+import com.seblful.klas.print.SheetPrinter
+import com.seblful.klas.queries.reports.ReportScope
+import com.seblful.klas.queries.reports.ScopeChoice
 import com.seblful.klas.ui.common.EmptyState
+import com.seblful.klas.ui.common.FilterChipRow
+import com.seblful.klas.ui.common.FilterMenuAction
 import com.seblful.klas.ui.common.HeroCard
 import com.seblful.klas.ui.common.KlasMenu
 import com.seblful.klas.ui.common.KlasScreen
 import com.seblful.klas.ui.common.ListSkeleton
+import com.seblful.klas.ui.common.LocalCurrency
 import com.seblful.klas.ui.common.MaxContentWidth
+import com.seblful.klas.ui.common.MenuItem
 import com.seblful.klas.ui.common.MinTouchTarget
 import com.seblful.klas.ui.common.NamedIconButton
 import com.seblful.klas.ui.common.PageStepper
 import com.seblful.klas.ui.common.ScreenHeader
+import com.seblful.klas.ui.common.ScrollsToTopOnReselect
 import com.seblful.klas.ui.common.SectionCard
 import com.seblful.klas.ui.common.SectionTitle
+import com.seblful.klas.ui.common.SegmentedChoice
+import com.seblful.klas.ui.common.SettingsGear
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.StatRow
 import com.seblful.klas.ui.common.SupportingPaneMaxWidth
@@ -91,6 +109,7 @@ import com.seblful.klas.ui.common.lessonKindFill
 import com.seblful.klas.ui.common.lessonKindLabel
 import com.seblful.klas.ui.common.lessonsStat
 import com.seblful.klas.ui.common.outsetRowPress
+import com.seblful.klas.ui.common.paymentMethodLabel
 import com.seblful.klas.ui.common.plusInset
 import com.seblful.klas.ui.common.rememberCreateDocument
 import com.seblful.klas.ui.common.rememberMessages
@@ -99,6 +118,12 @@ import com.seblful.klas.ui.common.roomForSupportingPane
 import com.seblful.klas.ui.common.sectionSurface
 import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.common.text
+import com.seblful.klas.ui.designsystem.component.Amount
+import com.seblful.klas.ui.designsystem.component.AmountMeaning
+import com.seblful.klas.ui.designsystem.component.AmountText
+import com.seblful.klas.ui.designsystem.component.ButtonKind
+import com.seblful.klas.ui.designsystem.component.KlasButton
+import com.seblful.klas.ui.designsystem.component.KlasDivider
 import com.seblful.klas.ui.navigation.Arrival
 import com.seblful.klas.ui.theme.KlasIcons
 import com.seblful.klas.ui.theme.KlasMotion
@@ -113,9 +138,11 @@ fun ReportsScreen(
     onStudentClick: (Long) -> Unit,
     /** The debt digest's latest tap, which scrolls to the debts once — see `AppRoot`. */
     debtsArrival: Arrival<Unit>? = null,
+    onSettings: () -> Unit = {},
     viewModel: ReportsViewModel = metroViewModel(),
 ) {
     val listState = rememberLazyListState()
+    ScrollsToTopOnReselect(listState)
     // The debts are the last card, below every breakdown — on a busy year, several screens down. There is
     // no list to scroll until the report has arrived, so this waits for one to have been laid out; and the
     // tap is recorded only once the scroll has run, so leaving the tab while the report is still being
@@ -126,6 +153,8 @@ fun ReportsScreen(
     // drawn and what may be sent differ for that frame or two: see [ReportView].
     val period by viewModel.period.collectAsStateWithLifecycle()
     val (report, exportable) = reportState.viewFor(period)
+    val scope by viewModel.scope.collectAsStateWithLifecycle()
+    val scopes by viewModel.scopes.collectAsStateWithLifecycle()
     val shown by rememberUpdatedState(report)
     LaunchedEffect(debtsArrival) {
         if (!viewModel.owesDebts(debtsArrival)) return@LaunchedEffect
@@ -151,23 +180,15 @@ fun ReportsScreen(
         }
     }
 
-    // Assembled here, where the section headings are string resources and the rows are already in
-    // the order the screen shows them — so the file reads like the report rather than like a dump.
-    val csvHeader = listOf(
-        stringResource(R.string.reports_csv_section),
-        stringResource(R.string.reports_csv_label),
-        stringResource(R.string.reports_csv_amount),
-    )
-    // Remembered: this walks every group, subject, student and debt row, and recomposition is not
-    // a new report. Rebuilt only when the report itself changes.
-    val csvHeadings = csvHeadings(period)
-    val csvLines = remember(exportable, csvHeadings) {
-        exportable?.let { ReportCsv.linesFor(it, csvHeadings) }.orEmpty()
+    val files = rememberReportFiles(exportable, period, scopes.firstOrNull { it.scope == scope }?.name.orEmpty())
+    // Which file the picker was opened for: one picker per type, one menu for every file.
+    var saving by remember { mutableStateOf<ReportsViewModel.ReportFile?>(null) }
+    val exportCsv = rememberCreateDocument(CSV_MIME_TYPE, noPickerMsg, messages) { document ->
+        saving?.let { viewModel.export(document, it) }
     }
-    val export = rememberCreateDocument(CSV_MIME_TYPE, noPickerMsg, messages) { document ->
-        viewModel.export(document, csvHeader, csvLines)
+    val exportPdf = rememberCreateDocument(SheetPrinter.PDF_MIME_TYPE, noPickerMsg, messages) { document ->
+        saving?.let { viewModel.export(document, it) }
     }
-    val exportFilename = stringResource(R.string.reports_export_filename)
     // Names the period, so a report arriving in somebody's mail says which month it is.
     val shareSubject = stringResource(R.string.reports_share_subject, periodTitle(period))
 
@@ -188,23 +209,19 @@ fun ReportsScreen(
                 // different acts, and the share sheet cannot put one on the SD card.
                 // Kept on screen while a new period assembles, so they don't blink with every arrow tap;
                 // a tap inside that frame or two sends nothing rather than the previous period's file.
-                NamedIconButton(
-                    KlasIcons.Outlined.Share,
-                    stringResource(R.string.reports_share),
-                    onClick = {
-                        if (exportable != null) {
-                            viewModel.share(ReportCsv.fileName(period), shareSubject, csvHeader, csvLines)
-                        }
+                // One Export menu (R1): two look-alike icons left the tutor to guess which sent and which saved.
+                ReportExportMenu(
+                    files = files,
+                    period = period,
+                    onShare = { name, file -> viewModel.share(name, shareSubject, file) },
+                    onSave = { name, file ->
+                        saving = file
+                        if (file is ReportsViewModel.ReportFile.Pdf) exportPdf(name) else exportCsv(name)
                     },
                 )
-                NamedIconButton(
-                    KlasIcons.Filled.Download,
-                    stringResource(R.string.reports_export),
-                    onClick = {
-                        if (exportable != null) export(exportFilename)
-                    },
-                )
+                ScopeMenu(scopes, scope, viewModel::setScope)
             }
+            SettingsGear(onSettings)
         },
     ) { modifier, bottomInset ->
         // «Нет данных» says the tutor has earned nothing, which is a claim about their year — so it
@@ -238,8 +255,12 @@ fun ReportsScreen(
                         onKind = viewModel::setKind,
                     )
                 }
+                // A narrowed report says so beside the period it covers, and is let go from there.
+                scopes.firstOrNull { it.scope == scope }?.let { choice ->
+                    FilterChipRow(choice.name, onClear = { viewModel.setScope(ReportScope.Everything) })
+                }
             }
-            ReportBody(report, onStudentClick, listState, bottomInset, twoPane, Modifier.weight(1f))
+            ReportBody(report, scope, onStudentClick, listState, bottomInset, twoPane, Modifier.weight(1f))
         }
     }
 }
@@ -263,7 +284,7 @@ private val SectionCardHeight = 132.dp
 private const val CSV_MIME_TYPE = "text/csv"
 
 @Composable
-private fun csvHeadings(period: ReportPeriod): ReportCsv.Headings = ReportCsv.Headings(
+private fun csvHeadings(period: ReportPeriod, methods: Map<PaymentMethod?, String>) = ReportCsv.Headings(
     total = stringResource(R.string.reports_total_income),
     period = periodTitle(period),
     byGroup = stringResource(R.string.reports_by_group),
@@ -271,6 +292,66 @@ private fun csvHeadings(period: ReportPeriod): ReportCsv.Headings = ReportCsv.He
     byStudent = stringResource(R.string.reports_by_student),
     debts = stringResource(R.string.reports_debts),
     outstanding = stringResource(R.string.reports_total_outstanding),
+    received = stringResource(R.string.reports_received),
+    methods = methods,
+)
+
+/** The files a report leaves as, for the report [exportable] — null while there is none to send. */
+private class ReportFiles(
+    val summary: ReportsViewModel.ReportFile,
+    val ledger: ReportsViewModel.ReportFile,
+    val pdf: ReportsViewModel.ReportFile,
+)
+
+/**
+ * Assembled here, where the headings are string resources and the rows already in the order the screen
+ * shows them — so the summary reads like the report rather than like a dump. Remembered: it walks every
+ * row of the report, and recomposition is not a new report.
+ */
+@Composable
+private fun rememberReportFiles(exportable: Reports.Report?, period: ReportPeriod, scopeName: String): ReportFiles? {
+    val methods = (PaymentMethod.entries + null).associateWith { method ->
+        method?.let { paymentMethodLabel(it) } ?: stringResource(R.string.payment_method_none)
+    }
+    val summaryHeader = listOf(
+        stringResource(R.string.reports_csv_section),
+        stringResource(R.string.reports_csv_label),
+        stringResource(R.string.reports_csv_amount),
+    )
+    val ledgerHeader = listOf(
+        stringResource(R.string.reports_ledger_day),
+        stringResource(R.string.reports_ledger_entry),
+        stringResource(R.string.reports_ledger_student),
+        stringResource(R.string.reports_ledger_detail),
+        stringResource(R.string.reports_csv_amount),
+    )
+    val words = ReportCsv.LedgerWords(
+        lesson = stringResource(R.string.reports_ledger_lesson),
+        payment = stringResource(R.string.reports_ledger_payment),
+        methods = methods,
+    )
+    val headings = csvHeadings(period, methods)
+    val title = stringResource(R.string.reports_share_subject, periodTitle(period))
+    val currency = LocalCurrency.current
+    return remember(exportable, headings, words, title, scopeName, currency) {
+        exportable?.let { report ->
+            val lines = ReportCsv.linesFor(report, headings)
+            ReportFiles(
+                summary = ReportsViewModel.ReportFile.Summary(summaryHeader, lines),
+                ledger = ReportsViewModel.ReportFile.Ledger(ledgerHeader, report, words),
+                pdf = ReportsViewModel.ReportFile.Pdf(reportSheet(title, scopeName, lines, currency)),
+            )
+        }
+    }
+}
+
+/** The summary printed: the CSV's lines under their sections, amounts in [currency], narrowed to [scopeName]. */
+internal fun reportSheet(title: String, scopeName: String, lines: List<ReportCsv.Line>, currency: Currency) = Sheet(
+    title = title,
+    subtitle = scopeName,
+    sections = lines.groupBy { it.section }.map { (section, rows) ->
+        Sheet.Section(section, rows.map { Sheet.Row(it.label, it.amount.money(currency)) })
+    },
 )
 
 /**
@@ -282,6 +363,7 @@ private fun csvHeadings(period: ReportPeriod): ReportCsv.Headings = ReportCsv.He
 @Composable
 private fun ReportBody(
     state: Reports.Report,
+    scope: ReportScope,
     onStudentClick: (Long) -> Unit,
     listState: LazyListState,
     bottomInset: PaddingValues,
@@ -299,13 +381,15 @@ private fun ReportBody(
     // cards is each card's own, and its rows sit as close as they did inside one card.
     if (!twoPane) {
         LazyColumn(modifier = modifier.fillMaxWidth(), state = listState, contentPadding = padding) {
-            summaryItems(state)
+            summaryItems(state, scope)
             breakdownItems(state, titles, onStudentClick)
         }
         return
     }
+    val summaryState = rememberLazyListState()
+    ScrollsToTopOnReselect(summaryState)
     Row(modifier.fillMaxWidth()) {
-        LazyColumn(Modifier.weight(1f), contentPadding = padding) { summaryItems(state) }
+        LazyColumn(Modifier.weight(1f), state = summaryState, contentPadding = padding) { summaryItems(state, scope) }
         // Its first card's own gap above, taken off the top, so the two panes' first cards line up.
         LazyColumn(
             Modifier.weight(1f),
@@ -323,8 +407,9 @@ private fun ReportBody(
 private class BreakdownTitles(val byGroup: String, val bySubject: String, val byStudent: String)
 
 /** What the period came to: the income, then — if there was any — its stats, its shape and its kinds. */
-private fun LazyListScope.summaryItems(state: Reports.Report) {
-    item(key = "income", contentType = "income") { IncomeCard(state) }
+private fun LazyListScope.summaryItems(state: Reports.Report, scope: ReportScope) {
+    // Earned and received on one hero (D6), so a period paid for without earning still has its card.
+    item(key = "income", contentType = "income") { IncomeCard(state, showsReceived = scope.showsReceived) }
     if (state.noIncome) {
         standalone("no-income") {
             Text(
@@ -335,7 +420,6 @@ private fun LazyListScope.summaryItems(state: Reports.Report) {
         }
         return
     }
-    standalone("stats") { StatRow(listOf(lessonsStat(state.taught), hoursStat(state.taught.minutes))) }
     // The one breakdown ordered by time rather than by size, so it is drawn as a timeline.
     if (!state.trend.isEmpty) standalone("trend") { TrendCard(state.trend) }
     // Where the money came from, by *kind* of teaching — the one split the per-student and
@@ -352,7 +436,8 @@ private fun LazyListScope.breakdownItems(
     if (!state.noIncome) {
         rankedSection("group", titles.byGroup, state.byGroup)
         rankedSection("subject", titles.bySubject, state.bySubject)
-        rankedSection("student", titles.byStudent, state.byStudent)
+        // Each student's row opens them, as a debt's does (R6): a name worth reading here is worth a tap.
+        rankedSection("student", titles.byStudent, state.byStudent, onOpen = onStudentClick)
     }
     // Last, and it has to stay last: the debt digest's tap scrolls to it — see [debtsItemCount].
     debtsSection(state, onStudentClick)
@@ -367,11 +452,18 @@ private fun LazyListScope.standalone(key: String, content: @Composable () -> Uni
  * A ranked breakdown, one list item per line: a year's per-student section can run to hundreds, and as a
  * single card it was composed whole in the frame it scrolled into view.
  */
-private fun LazyListScope.rankedSection(section: String, title: String, lines: List<Reports.Line>) {
+private fun LazyListScope.rankedSection(
+    section: String,
+    title: String,
+    lines: List<Reports.Line>,
+    onOpen: ((Long) -> Unit)? = null,
+) {
     if (lines.isEmpty()) return
     item(key = "$section/heading", contentType = CARD_HEADING) { CardSlice(first = true) { CardHeading(title) } }
     itemsIndexed(lines, key = { _, line -> "$section/${line.id}" }, contentType = { _, _ -> "ranked" }) { index, line ->
-        CardSlice(last = index == lines.lastIndex, gapAbove = Spacing.itemGap) { RankedLine(line) }
+        CardSlice(last = index == lines.lastIndex, gapAbove = Spacing.itemGap) {
+            RankedLine(line, onOpen?.let { open -> { open(line.id) } })
+        }
     }
 }
 
@@ -398,9 +490,9 @@ private fun PeriodNavigator(
     ) {
         Box {
             // Ink like the schedule's page title: the same control in both places, the arrow saying it opens.
-            TextButton(
+            KlasButton(
                 onClick = { expanded = true },
-                colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.onSurface),
+                kind = ButtonKind.Quiet,
             ) {
                 Text(
                     periodTitle(period),
@@ -437,16 +529,172 @@ private fun periodKindLabel(kind: ReportPeriod.Kind): Int = when (kind) {
 }
 
 @Composable
-private fun IncomeCard(state: Reports.Report) {
+internal fun IncomeCard(state: Reports.Report, showsReceived: Boolean = true) {
+    // Earned is the default: income stays "earned" (D6), and received is the cash view beside it — not
+    // offered for a subject, which no payment belongs to.
+    var chosen by rememberSaveable { mutableStateOf(IncomeView.EARNED) }
+    val view = if (showsReceived) chosen else IncomeView.EARNED
     HeroCard(
         label = stringResource(R.string.reports_total_income),
-        value = state.totalIncome.text(),
+        value = (if (view == IncomeView.EARNED) state.totalIncome else state.received.total).text(),
     ) {
-        ComparisonLine(state)
+        if (showsReceived) {
+            SegmentedChoice(
+                options = IncomeView.entries,
+                selected = view,
+                onSelect = { chosen = it },
+                modifier = Modifier.padding(vertical = Spacing.tight),
+                // Filled with the card's ink: the default selected fill is the hero's own tint, and which of the
+                // two the figure above is could not be told.
+                colors = SegmentedButtonDefaults.colors(
+                    activeContainerColor = MaterialTheme.colorScheme.primary,
+                    activeContentColor = MaterialTheme.colorScheme.onPrimary,
+                ),
+            ) { stringResource(it.labelRes) }
+        }
+        when (view) {
+            IncomeView.EARNED -> {
+                if (!state.noIncome) TaughtLine(state.taught)
+                ComparisonLine(state)
+                Text(stringResource(R.string.reports_earned_hint), style = MaterialTheme.typography.bodySmall)
+            }
+            IncomeView.RECEIVED -> ReceivedDetail(state.received)
+        }
+    }
+}
+
+private enum class IncomeView(val labelRes: Int) {
+    EARNED(R.string.reports_earned),
+    RECEIVED(R.string.reports_received),
+}
+
+/** "121 lessons · 134 h · 42 ahead" — the period's teaching, on the hero rather than a card of its own. */
+@Composable
+private fun TaughtLine(taught: Taught.Totals) {
+    val stat = lessonsStat(taught)
+    Text(
+        bulletJoin(
+            listOfNotNull(
+                pluralStringResource(R.plurals.lesson_count, taught.lessons, taught.lessons),
+                stringResource(R.string.hours_value, formatHours(taught.minutes)),
+                stat.hint,
+            ),
+        ),
+        style = MaterialTheme.typography.bodyMedium,
+    )
+}
+
+/** Money in — what was paid in the period, by how it was paid when more than one way was used. */
+@Composable
+private fun ReceivedDetail(received: Reports.Received) {
+    if (received.showsMethods) {
         Text(
-            stringResource(R.string.reports_earned_hint),
-            style = MaterialTheme.typography.bodySmall,
+            bulletJoin(
+                received.byMethod.map { line ->
+                    val method = line.method?.let { paymentMethodLabel(it) }
+                        ?: stringResource(R.string.payment_method_none)
+                    "$method ${line.amount.text()}"
+                },
+            ),
+            style = MaterialTheme.typography.bodyMedium,
         )
+    }
+    Text(stringResource(R.string.reports_received_hint), style = MaterialTheme.typography.bodySmall)
+}
+
+/** The funnel narrowing the report to one subject or one student (R5), as the homework tab's does. */
+@Composable
+private fun ScopeMenu(choices: List<ScopeChoice>, scope: ReportScope, onSelect: (ReportScope) -> Unit) {
+    if (choices.isEmpty()) return
+    FilterMenuAction(
+        name = stringResource(R.string.reports_filter),
+        allLabel = stringResource(R.string.reports_filter_all),
+        options = choices,
+        selected = choices.firstOrNull { it.scope == scope },
+        optionLabel = { it.name },
+        onSelect = { onSelect(it?.scope ?: ReportScope.Everything) },
+        leading = { choice ->
+            Icon(
+                if (choice.scope is ReportScope.Subject) KlasIcons.Outlined.MenuBook else KlasIcons.Outlined.Person,
+                contentDescription = null,
+            )
+        },
+        narrowed = scope != ReportScope.Everything,
+    )
+}
+
+/**
+ * [ExportMenu] over [files]: each sent under the period's own name ([ReportCsv.fileName]), or saved under
+ * a plain one the tutor renames in the picker. Taps before the report has arrived send nothing.
+ */
+@Composable
+private fun ReportExportMenu(
+    files: ReportFiles?,
+    period: ReportPeriod,
+    onShare: (name: String, file: ReportsViewModel.ReportFile) -> Unit,
+    onSave: (name: String, file: ReportsViewModel.ReportFile) -> Unit,
+) {
+    val summaryName = stringResource(R.string.reports_export_filename)
+    val ledgerName = stringResource(R.string.reports_ledger_filename)
+    val pdfName = stringResource(R.string.reports_pdf_filename)
+    ExportMenu(
+        onShare = { files?.let { onShare(ReportCsv.fileName(period), it.summary) } },
+        onSave = { files?.let { onSave(summaryName, it.summary) } },
+        onShareLedger = { files?.let { onShare(ReportCsv.ledgerFileName(period), it.ledger) } },
+        onSaveLedger = { files?.let { onSave(ledgerName, it.ledger) } },
+        onSharePdf = { files?.let { onShare(ReportCsv.pdfFileName(period), it.pdf) } },
+        onSavePdf = { files?.let { onSave(pdfName, it.pdf) } },
+    )
+}
+
+/** «⤓» and the two ways a report leaves the phone: sent, or saved as a file. */
+@Composable
+internal fun ExportMenu(
+    onShare: () -> Unit,
+    onSave: () -> Unit,
+    onShareLedger: () -> Unit = {},
+    onSaveLedger: () -> Unit = {},
+    onSharePdf: () -> Unit = {},
+    onSavePdf: () -> Unit = {},
+) {
+    var open by remember { mutableStateOf(false) }
+    Box {
+        NamedIconButton(KlasIcons.Filled.Download, stringResource(R.string.reports_export_menu), { open = true })
+        KlasMenu(expanded = open, onDismissRequest = { open = false }) {
+            MenuItem(
+                text = { Text(stringResource(R.string.reports_share)) },
+                leadingIcon = { Icon(KlasIcons.Outlined.Share, contentDescription = null) },
+                onClick = { open = false; onShare() },
+            )
+            MenuItem(
+                text = { Text(stringResource(R.string.reports_export)) },
+                leadingIcon = { Icon(KlasIcons.Filled.Download, contentDescription = null) },
+                onClick = { open = false; onSave() },
+            )
+            // Every lesson and payment, a row each — what an accountant reconciles, beside the summary a
+            // tutor reads.
+            MenuItem(
+                text = { Text(stringResource(R.string.reports_share_ledger)) },
+                leadingIcon = { Icon(KlasIcons.Outlined.Share, contentDescription = null) },
+                onClick = { open = false; onShareLedger() },
+            )
+            MenuItem(
+                text = { Text(stringResource(R.string.reports_export_ledger)) },
+                leadingIcon = { Icon(KlasIcons.Filled.Download, contentDescription = null) },
+                onClick = { open = false; onSaveLedger() },
+            )
+            // The summary as a page to read — for someone who will not open a spreadsheet.
+            MenuItem(
+                text = { Text(stringResource(R.string.reports_share_pdf)) },
+                leadingIcon = { Icon(KlasIcons.Outlined.Share, contentDescription = null) },
+                onClick = { open = false; onSharePdf() },
+            )
+            MenuItem(
+                text = { Text(stringResource(R.string.reports_export_pdf)) },
+                leadingIcon = { Icon(KlasIcons.Filled.Download, contentDescription = null) },
+                onClick = { open = false; onSavePdf() },
+            )
+        }
     }
 }
 
@@ -508,17 +756,47 @@ private fun TrendCard(trend: Reports.Trend) {
     val isMonths = trend.bucket == Reports.Trend.Bucket.MONTHS
     ReportCard(stringResource(if (isMonths) R.string.reports_by_month else R.string.reports_by_year)) {
         IncomeTrendChart(trend) { bar -> if (isMonths) months[bar.monthIndex] else bar.key.toString() }
-        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+        // The accent bar explained, and named: the chart itself is not read aloud.
+        trend.peak?.let { peak ->
+            PeakLegend(
+                if (isMonths) {
+                    stringResource(R.string.reports_best_month, formatMonthName(peak.key))
+                } else {
+                    stringResource(R.string.reports_best_year, peak.key.toString())
+                },
+            )
+        }
+        KlasDivider()
         // `rows`, not `bars`: newest first and without the empty buckets, which are a gap in the chart
         // above and would only be a row of zeros here. Both halves of that are stated on [Reports.Trend].
         trend.rows.forEach { bar ->
             AmountRow(
                 label = if (isMonths) formatMonthName(bar.key) else bar.key.toString(),
-                amount = bar.total.text(),
+                amount = AmountText(bar.total.text()),
             )
         }
     }
 }
+
+/** A swatch of the peak bar's colour and what it marks. */
+@Composable
+private fun PeakLegend(text: String) {
+    Row(
+        Modifier.padding(top = Spacing.tight),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.tight),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            Modifier
+                .size(PeakSwatch)
+                .clip(MaterialTheme.shapes.extraSmall)
+                .background(MaterialTheme.colorScheme.primary),
+        )
+        Text(text, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+private val PeakSwatch = 10.dp
 
 @Composable
 private fun IncomeTrendChart(trend: Reports.Trend, labelOf: (Reports.Trend.Bar) -> String) {
@@ -553,10 +831,13 @@ private fun IncomeTrendChart(trend: Reports.Trend, labelOf: (Reports.Trend.Bar) 
                     },
                 )
                 // Shrinks rather than clipping: a twelfth of a phone at a large font scale cut «сен» to «се».
+                // The peak's name in its bar's accent and bold, tying it to the legend under the chart.
+                val isPeak = bar.key == peak.key
                 Text(
                     labelOf(bar),
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = if (isPeak) filled else MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontWeight = if (isPeak) FontWeight.Bold else null,
                     maxLines = 1,
                     softWrap = false,
                     textAlign = TextAlign.Center,
@@ -607,12 +888,12 @@ private fun KindSplitCard(lines: List<Reports.KindLine>) {
 }
 
 @Composable
-private fun RankedLine(line: Reports.Line) {
+private fun RankedLine(line: Reports.Line, onClick: (() -> Unit)? = null) {
     Column(verticalArrangement = Arrangement.spacedBy(BarGap)) {
         // Ink, like every other amount on the screen that is not a debt. Colour on this screen
         // means something — the hero's fill, a debt's red — and primary here meant nothing the
         // primary bar under it was not already saying.
-        AmountRow(line.label, line.amount.text())
+        AmountRow(line.label, AmountText(line.amount.text()), onClick = onClick)
         // The fraction and the single-line rule are the report's own — see [Reports.Line.share].
         line.share?.let { share ->
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -678,7 +959,7 @@ private fun LazyListScope.debtsSection(state: Reports.Report, onStudentClick: (L
         CardSlice(gapAbove = Spacing.itemGap) {
             AmountRow(
                 label = stringResource(R.string.reports_total_outstanding),
-                amount = state.totalOutstanding.text(),
+                amount = AmountText(state.totalOutstanding.text()),
                 bold = true,
                 // In the column the debts below it are in, which their chevron pulls inwards.
                 alignWithLinks = true,
@@ -695,8 +976,7 @@ private fun LazyListScope.debtsSection(state: Reports.Report, onStudentClick: (L
         CardSlice(last = index == state.debts.lastIndex, gapAbove = if (index == 0) Spacing.itemGap else 0.dp) {
             AmountRow(
                 label = debt.label,
-                amount = debt.amount.text(),
-                color = MaterialTheme.colorScheme.error,
+                amount = AmountText(debt.amount.text(), AmountMeaning.Debt),
                 onClick = debt.studentId?.let { id -> { onStudentClick(id) } },
             )
         }
@@ -785,9 +1065,8 @@ private fun CardSlice(
 @Composable
 private fun AmountRow(
     label: String,
-    amount: String,
+    amount: AmountText,
     bold: Boolean = false,
-    color: Color = Color.Unspecified,
     onClick: (() -> Unit)? = null,
     /** Leaves the room a linked row's chevron and inset take, so a total lines up over the rows it sums. */
     alignWithLinks: Boolean = false,
@@ -817,10 +1096,9 @@ private fun AmountRow(
             modifier = Modifier.weight(1f),
         )
         Spacer(Modifier.width(Spacing.itemGap))
-        Text(
+        Amount(
             amount,
             style = if (bold) MaterialTheme.typography.titleMedium else MaterialTheme.typography.titleSmall,
-            color = color,
         )
         if (onClick != null) {
             Icon(

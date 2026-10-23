@@ -1,12 +1,22 @@
 package com.seblful.klas.ui.navigation
 
 import android.content.Intent
+import android.net.Uri
+import android.view.KeyEvent
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.hasAnyDescendant
+import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasScrollAction
+import androidx.compose.ui.test.hasScrollToIndexAction
+import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isSelectable
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
+import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -14,12 +24,14 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextReplacement
+import androidx.compose.ui.test.performTouchInput
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.espresso.Espresso
 import com.seblful.klas.MainActivity
 import com.seblful.klas.R
 import com.seblful.klas.domain.model.AppLanguage
+import com.seblful.klas.domain.model.Assignee
 import com.seblful.klas.domain.model.ClassMode
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
@@ -93,6 +105,9 @@ class TutorWorkflowTest {
 
     private fun text(res: Int) = ApplicationProvider.getApplicationContext<StoreApp>().getString(res)
 
+    private fun selected(count: Int) = ApplicationProvider.getApplicationContext<StoreApp>().resources
+        .getQuantityString(R.plurals.batch_selected, count, count)
+
     private fun waitFor(res: Int) {
         waitForText(text(res))
     }
@@ -109,8 +124,10 @@ class TutorWorkflowTest {
     fun `lesson actions undo a completion and carry the student into the next booking`() {
         ActivityScenario.launch(MainActivity::class.java).use {
             waitForText("Workflow student")
+            compose.onNode(hasText(text(R.string.nav_schedule)) and isSelectable()).performClick()
+            waitForText("Workflow student")
             compose.onNodeWithText("Workflow student").performClick()
-            compose.onNode(hasText(text(R.string.class_status_completed)) and isSelectable()).performClick()
+            compose.onNode(hasText(text(R.string.class_status_completed)) and hasClickAction()).performClick()
             waitFor(R.string.class_completed_message)
             click(R.string.action_undo)
             compose.waitUntil(5_000) {
@@ -136,7 +153,7 @@ class TutorWorkflowTest {
         runBlocking { graph.subjects.upsert(Subject(name = "Science")) }
         ActivityScenario.launch(MainActivity::class.java).use {
             waitForText("Workflow student")
-            compose.onNodeWithContentDescription(text(R.string.schedule_add_class)).performClick()
+            compose.onNodeWithContentDescription(text(R.string.class_book)).performClick()
             waitFor(R.string.class_add_title)
             // The title is drawn while the form still loads; the «Who» list comes with the loaded form, and
             // adding a group is in it.
@@ -155,9 +172,9 @@ class TutorWorkflowTest {
             waitFor(R.string.student_add_title)
             compose.onNodeWithText(text(R.string.student_name_label)).performTextInput("New joiner")
             compose.onNodeWithText(text(R.string.price_label)).performScrollTo().performTextInput("35")
-            click(R.string.action_save)
+            click(R.string.student_form_add)
             waitFor(R.string.group_add_title)
-            click(R.string.action_save)
+            click(R.string.group_form_create)
             waitFor(R.string.class_add_title)
             compose.onNodeWithText("After school").assertExists()
             compose.onNodeWithText("Science").assertExists()
@@ -172,6 +189,125 @@ class TutorWorkflowTest {
             .setAction(TrayNavigation.ACTION_OPEN_LESSON)
             .putExtra(TrayNavigation.EXTRA_CLASS_ID, lessonId)
             .addFlags(flags)
+
+    @Test
+    fun `a long-press picks a lesson, and the bar marks the pick taught`() {
+        ActivityScenario.launch(MainActivity::class.java).use {
+            waitForText("Workflow student")
+            compose.onNode(hasText(text(R.string.nav_schedule)) and isSelectable()).performClick()
+            waitForText("Workflow student")
+            compose.onNodeWithText("Workflow student").performTouchInput { longClick() }
+            waitForText(selected(1))
+            compose.onNodeWithContentDescription(text(R.string.batch_mark_taught)).performClick()
+            compose.waitUntil(5_000) {
+                runBlocking { graph.classes.getById(lessonId)?.status == LessonStatus.COMPLETED }
+            }
+            compose.onNodeWithText(selected(1)).assertDoesNotExist()
+        }
+    }
+
+    @Test
+    fun `a long-press picks homework, and the bar moves the pick to the archive`() {
+        val given = runBlocking { graph.homework.give(Assignee.Student(studentId), "Workflow exercises") }
+        ActivityScenario.launch(MainActivity::class.java).use {
+            waitForText("Workflow student")
+            compose.onNode(hasText(text(R.string.nav_homework)) and isSelectable()).performClick()
+            waitForText("Workflow exercises")
+            compose.onNodeWithText("Workflow exercises").performTouchInput { longClick() }
+            waitForText(selected(1))
+            compose.onNodeWithContentDescription(text(R.string.homework_batch_mark_done)).performClick()
+            compose.waitUntil(5_000) {
+                runBlocking { graph.homework.observeAll().first().single { it.id == given.id }.isDone }
+            }
+            compose.onNodeWithText(selected(1)).assertDoesNotExist()
+        }
+    }
+
+    @Test
+    fun `a student is corrected on a form of their own, saved from its bar`() {
+        ActivityScenario.launch(MainActivity::class.java).use {
+            waitForText("Workflow student")
+            compose.onNode(hasText(text(R.string.nav_people)) and isSelectable()).performClick()
+            waitForText("Workflow student")
+            compose.onNodeWithText("Workflow student").performClick()
+            compose.waitUntil(5_000) {
+                compose.onAllNodesWithContentDescription(text(R.string.action_edit)).fetchSemanticsNodes().isNotEmpty()
+            }
+            compose.onNodeWithContentDescription(text(R.string.action_edit)).performClick()
+            waitFor(R.string.student_edit_title)
+            // The field is its own node only once the form has come in; under load the title shows first.
+            val name = hasText("Workflow student") and hasSetTextAction()
+            compose.waitUntil(5_000) { compose.onAllNodes(name).fetchSemanticsNodes().isNotEmpty() }
+            compose.onNode(name).performTextReplacement("Workflow pupil")
+            click(R.string.action_save)
+            compose.waitUntil(5_000) {
+                runBlocking { graph.students.getById(studentId)?.name == "Workflow pupil" }
+            }
+        }
+    }
+
+    @Test
+    fun `a second tap on People brings a scrolled list back to the first student`() {
+        runBlocking { repeat(PUPILS) { graph.students.upsert(Student(name = "Pupil %02d".format(it))) } }
+        ActivityScenario.launch(MainActivity::class.java).use {
+            val people = hasText(text(R.string.nav_people)) and isSelectable()
+            compose.onNode(people).performClick()
+            waitForText("Pupil 00")
+            compose.onNode(hasScrollToIndexAction() and hasAnyDescendant(hasText("Pupil", substring = true)))
+                .performScrollToNode(hasText("Workflow student"))
+            compose.onNodeWithText("Pupil 00").assertDoesNotExist()
+
+            compose.onNode(people).performClick()
+
+            waitForText("Pupil 00")
+            compose.onNodeWithText("Pupil 00").assertIsDisplayed()
+        }
+    }
+
+    @Test
+    fun `the widget's today opens the Today tab`() {
+        val today = Intent(ApplicationProvider.getApplicationContext(), MainActivity::class.java)
+            .setAction(TrayNavigation.ACTION_OPEN_TODAY)
+        ActivityScenario.launch<MainActivity>(today).use {
+            waitFor(R.string.today_lessons)
+            compose.onNode(hasText(text(R.string.nav_today)) and isSelectable()).assertIsSelected()
+        }
+    }
+
+    @Test
+    fun `bare keys open today and the search of the tab in front`() {
+        ActivityScenario.launch(MainActivity::class.java).use { scenario ->
+            waitForText("Workflow student")
+            compose.onNode(hasText(text(R.string.nav_people)) and isSelectable()).performClick()
+            waitForText("Workflow student")
+            fun press(keyCode: Int) = scenario.onActivity {
+                it.onKeyDown(keyCode, KeyEvent(KeyEvent.ACTION_DOWN, keyCode))
+            }
+
+            press(KeyEvent.KEYCODE_SLASH)
+            compose.waitUntil(5_000) {
+                compose.onAllNodesWithContentDescription(text(R.string.search_close)).fetchSemanticsNodes().isNotEmpty()
+            }
+            compose.onNodeWithContentDescription(text(R.string.search_close)).performClick()
+
+            press(KeyEvent.KEYCODE_T)
+            waitFor(R.string.today_lessons)
+            compose.onNode(hasText(text(R.string.nav_today)) and isSelectable()).assertIsSelected()
+        }
+    }
+
+    @Test
+    fun `a student link opens their profile on the People tab`() {
+        val link = Intent(Intent.ACTION_VIEW, Uri.parse("klas://student/$studentId"))
+            .setClass(ApplicationProvider.getApplicationContext(), MainActivity::class.java)
+        ActivityScenario.launch<MainActivity>(link).use {
+            compose.waitUntil(10_000) {
+                compose.onAllNodesWithContentDescription(text(R.string.action_edit)).fetchSemanticsNodes().isNotEmpty()
+            }
+            compose.onNode(hasText(text(R.string.nav_people)) and isSelectable()).assertIsSelected()
+            compose.onAllNodesWithText("Workflow student").onFirst().assertExists()
+        }
+    }
 
     @Test
     fun `a cold start from the tray opens the lesson it names`() {
@@ -197,7 +333,7 @@ class TutorWorkflowTest {
     fun `notification and widget arrivals preserve the typed booking until Back returns to it`() {
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
             waitForText("Workflow student")
-            compose.onNodeWithContentDescription(text(R.string.schedule_add_class)).performClick()
+            compose.onNodeWithContentDescription(text(R.string.class_book)).performClick()
             waitFor(R.string.class_add_title)
             // Price is folded to a line; the rate is typed once it is opened.
             compose.onNodeWithText(text(R.string.class_section_price)).performScrollTo().performClick()
@@ -228,5 +364,10 @@ class TutorWorkflowTest {
             }
             assertTrue(runBlocking { graph.classes.getAll().size == 1 })
         }
+    }
+
+    private companion object {
+        /** More than a phone shows, so the list has somewhere to scroll. */
+        const val PUPILS = 40
     }
 }

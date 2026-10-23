@@ -1,5 +1,6 @@
 package com.seblful.klas.notifications
 
+import android.content.Intent
 import kotlinx.datetime.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -103,5 +104,44 @@ class TrayNavigationTest {
     @Test
     fun `a lesson id with somebody else's action is not ours to act on`() {
         assertNull(TrayNavigation.destinationFor(ReminderActionReceiver.ACTION_COMPLETE, classId = 42))
+    }
+
+    @Test
+    fun `an app link opens the place it names`() {
+        fun link(uri: String) = TrayNavigation.destinationFor(Intent.ACTION_VIEW, classId = 0, link = uri)
+
+        assertEquals(TrayNavigation.Destination.Today, link("klas://today"))
+        assertEquals(TrayNavigation.Destination.Reports, link("klas://reports/"))
+        assertEquals(TrayNavigation.Destination.NewLesson, link("klas://book?from=calendar"))
+        assertEquals(TrayNavigation.Destination.LessonOnSchedule(42L), link("klas://lesson/42"))
+        assertEquals(TrayNavigation.Destination.Day(LocalDate(2026, 10, 23)), link("klas://day/2026-10-23"))
+        assertEquals(TrayNavigation.Destination.Student(7L), link("klas://student/7"))
+    }
+
+    /** The activity is exported: a link is anyone's to write, so one the app cannot read goes nowhere. */
+    @Test
+    fun `a link the app does not know, or with a bad argument, goes nowhere`() {
+        fun link(uri: String?) = TrayNavigation.destinationFor(Intent.ACTION_VIEW, classId = 0, link = uri)
+
+        assertNull(link("https://example.com/today"))
+        assertNull(link("klas://payments/delete"))
+        assertNull(link("klas://lesson/0"))
+        assertNull(link("klas://lesson/abc"))
+        assertNull(link("klas://day/yesterday"))
+        assertNull(link("klas://student/0"))
+        assertNull(link("klas://student"))
+        assertNull(link(null))
+    }
+
+    @Test
+    fun `the keyboard's tabs and settings have entries of their own`() {
+        assertEquals(
+            TrayNavigation.Destination.Schedule,
+            TrayNavigation.destinationFor(TrayNavigation.ACTION_OPEN_SCHEDULE, classId = 0),
+        )
+        assertEquals(
+            TrayNavigation.Destination.Settings,
+            TrayNavigation.destinationFor(TrayNavigation.ACTION_OPEN_SETTINGS, classId = 0),
+        )
     }
 }

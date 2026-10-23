@@ -3,7 +3,6 @@ package com.seblful.klas.ui.people
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconToggleButton
 import androidx.compose.material3.MaterialTheme
@@ -24,7 +23,10 @@ import com.seblful.klas.ui.common.KlasScreen
 import com.seblful.klas.ui.common.NamedIconButton
 import com.seblful.klas.ui.common.ScreenSearch
 import com.seblful.klas.ui.common.SegmentedPage
+import com.seblful.klas.ui.common.SettingsGear
 import com.seblful.klas.ui.common.TickedMenuItem
+import com.seblful.klas.ui.designsystem.component.KlasFab
+import com.seblful.klas.ui.groups.GroupSort
 import com.seblful.klas.ui.groups.GroupsList
 import com.seblful.klas.ui.groups.GroupsViewModel
 import com.seblful.klas.ui.students.StudentSort
@@ -50,6 +52,7 @@ fun PeopleScreen(
     onAddStudent: () -> Unit,
     onGroupClick: (Long) -> Unit,
     onAddGroup: () -> Unit,
+    onSettings: () -> Unit = {},
     open: Assignee? = null,
     studentsViewModel: StudentsViewModel = metroViewModel(),
     groupsViewModel: GroupsViewModel = metroViewModel(),
@@ -59,6 +62,11 @@ fun PeopleScreen(
     val studentRows by studentsViewModel.rows.collectAsStateWithLifecycle()
     val studentSort by studentsViewModel.sort.collectAsStateWithLifecycle()
     val groupRows by groupsViewModel.rows.collectAsStateWithLifecycle()
+    val groupSort by groupsViewModel.sort.collectAsStateWithLifecycle()
+    val groupSubject by groupsViewModel.subjectFilter.collectAsStateWithLifecycle()
+    val groupSubjects by groupsViewModel.subjects.collectAsStateWithLifecycle()
+    val owing by studentsViewModel.owing.collectAsStateWithLifecycle()
+    val owesOnly by studentsViewModel.owesOnly.collectAsStateWithLifecycle()
 
     // Whichever side is on top answers the bar's buttons; the other keeps its own state untouched.
     val side: PeopleSide = when (tab) {
@@ -85,32 +93,27 @@ fun PeopleScreen(
             onClose = { studentsViewModel.setQuery(""); groupsViewModel.setQuery("") },
         ),
         actions = {
-            // Sorting by debt is a students question; a group carries no balance.
-            if (tab == PeopleTab.STUDENTS) {
-                SortMenu(selected = studentSort, onSelect = studentsViewModel::setSort)
-            }
-            // A toggle, and said as one: the tint alone told a screen reader nothing about whether the
-            // archive was showing — «Показать архив» was read the same either way.
-            HoldToName(stringResource(R.string.students_show_archived)) {
-                // Selected as Material's toggle icon button is: the filled glyph, in the accent.
-                IconToggleButton(checked = archived, onCheckedChange = { side.toggleArchived() }) {
-                    Icon(
-                        if (archived) KlasIcons.Filled.Inventory2 else KlasIcons.Outlined.Inventory2,
-                        stringResource(R.string.students_show_archived),
-                    )
-                }
-            }
-        },
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = if (tab == PeopleTab.STUDENTS) onAddStudent else onAddGroup,
-            ) {
-                // Named for what it adds, which the side decides: a bare «Добавить» said neither.
-                Icon(
-                    KlasIcons.Filled.Add,
-                    stringResource(if (tab == PeopleTab.STUDENTS) R.string.students_add else R.string.groups_add),
+            when (tab) {
+                PeopleTab.STUDENTS -> StudentFilterAction(
+                    owing, owesOnly, studentsViewModel::toggleOwes,
+                    archived, side::toggleArchived,
+                    studentSort, studentsViewModel::setSort,
+                )
+                PeopleTab.GROUPS -> GroupFilterAction(
+                    groupSubjects, groupSubject, groupsViewModel::setSubjectFilter,
+                    archived, side::toggleArchived,
+                    groupSort, groupsViewModel::setSort,
                 )
             }
+            SettingsGear(onSettings)
+        },
+        floatingActionButton = {
+            // Named for what it adds, which the side decides: a bare «Добавить» said neither.
+            val students = tab == PeopleTab.STUDENTS
+            KlasFab(
+                label = stringResource(if (students) R.string.fab_new_student else R.string.fab_new_group),
+                onClick = if (students) onAddStudent else onAddGroup,
+            )
         },
     ) { modifier, bottomInset ->
         // The segments are the control; the drag is the shortcut — see [swipeBetweenSegments]. On the whole
@@ -135,7 +138,14 @@ fun PeopleScreen(
                 when (tab) {
                     PeopleTab.STUDENTS -> StudentsList(
                         state = studentRows,
-                        searching = query.isNotBlank(),
+                        // Debtors only that leaves nothing is "nothing matched", not "no students yet".
+                        searching = query.isNotBlank() || owesOnly,
+                        chips = {
+                            StudentFilters(
+                                owing, owesOnly, studentsViewModel::toggleOwes,
+                                archived, side::toggleArchived,
+                            )
+                        },
                         onStudentClick = onStudentClick,
                         onAddStudent = onAddStudent,
                         bottomInset = bottomInset,
@@ -144,7 +154,14 @@ fun PeopleScreen(
 
                     PeopleTab.GROUPS -> GroupsList(
                         state = groupRows,
-                        searching = query.isNotBlank(),
+                        // A subject that leaves nothing is "nothing matched", not "no groups yet".
+                        searching = query.isNotBlank() || groupSubject != null,
+                        chips = {
+                            GroupFilters(
+                                groupSubjects, groupSubject, groupsViewModel::setSubjectFilter,
+                                archived, side::toggleArchived,
+                            )
+                        },
                         onGroupClick = onGroupClick,
                         onAddGroup = onAddGroup,
                         bottomInset = bottomInset,
@@ -154,33 +171,4 @@ fun PeopleScreen(
             }
         }
     }
-}
-
-@Composable
-private fun SortMenu(selected: StudentSort, onSelect: (StudentSort) -> Unit) {
-    var expanded by remember { mutableStateOf(false) }
-    Box {
-        NamedIconButton(
-            KlasIcons.Filled.Sort,
-            stringResource(R.string.students_sort),
-            onClick = { expanded = true },
-            // Tinted while the list is in a non-default order, so a surprising order has a visible cause
-            // in the bar above it.
-            tint = MaterialTheme.colorScheme.primary.takeIf { selected != StudentSort.NAME },
-        )
-        KlasMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            StudentSort.entries.forEach { option ->
-                TickedMenuItem(
-                    text = stringResource(sortLabel(option)),
-                    selected = option == selected,
-                    onClick = { onSelect(option); expanded = false },
-                )
-            }
-        }
-    }
-}
-
-private fun sortLabel(sort: StudentSort): Int = when (sort) {
-    StudentSort.NAME -> R.string.students_sort_name
-    StudentSort.DEBT -> R.string.students_sort_debt
 }

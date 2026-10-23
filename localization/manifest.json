@@ -1,0 +1,143 @@
+{
+  "status": "active",
+  "source": "app/src/main/res/values/strings.xml",
+  "totalLanguageVariants": 25,
+  "resourcesPerLanguage": 768,
+  "languages": [
+    {
+      "tag": "en",
+      "language": "English",
+      "path": "app/src/main/res/values/strings.xml"
+    },
+    {
+      "tag": "ru",
+      "language": "Russian",
+      "path": "app/src/main/res/values-ru/strings.xml"
+    },
+    {
+      "tag": "uk",
+      "language": "Ukrainian",
+      "path": "app/src/main/res/values-uk/strings.xml"
+    },
+    {
+      "tag": "pl",
+      "language": "Polish",
+      "path": "app/src/main/res/values-pl/strings.xml"
+    },
+    {
+      "tag": "de",
+      "language": "German",
+      "path": "app/src/main/res/values-de/strings.xml"
+    },
+    {
+      "tag": "fr",
+      "language": "French",
+      "path": "app/src/main/res/values-fr/strings.xml"
+    },
+    {
+      "tag": "es",
+      "language": "Spanish",
+      "path": "app/src/main/res/values-es/strings.xml"
+    },
+    {
+      "tag": "pt-BR",
+      "language": "Portuguese (Brazil)",
+      "path": "app/src/main/res/values-pt-rBR/strings.xml"
+    },
+    {
+      "tag": "tr",
+      "language": "Turkish",
+      "path": "app/src/main/res/values-tr/strings.xml"
+    },
+    {
+      "tag": "it",
+      "language": "Italian",
+      "path": "app/src/main/res/values-it/strings.xml"
+    },
+    {
+      "tag": "be",
+      "language": "Belarusian",
+      "path": "app/src/main/res/values-be/strings.xml"
+    },
+    {
+      "tag": "pt-PT",
+      "language": "Portuguese (Portugal)",
+      "path": "app/src/main/res/values-pt-rPT/strings.xml"
+    },
+    {
+      "tag": "nl",
+      "language": "Dutch",
+      "path": "app/src/main/res/values-nl/strings.xml"
+    },
+    {
+      "tag": "el",
+      "language": "Greek",
+      "path": "app/src/main/res/values-el/strings.xml"
+    },
+    {
+      "tag": "fi",
+      "language": "Finnish",
+      "path": "app/src/main/res/values-fi/strings.xml"
+    },
+    {
+      "tag": "da",
+      "language": "Danish",
+      "path": "app/src/main/res/values-da/strings.xml"
+    },
+    {
+      "tag": "nb",
+      "language": "Norwegian Bokmål",
+      "path": "app/src/main/res/values-nb/strings.xml"
+    },
+    {
+      "tag": "sv",
+      "language": "Swedish",
+      "path": "app/src/main/res/values-sv/strings.xml"
+    },
+    {
+      "tag": "ar",
+      "language": "Arabic",
+      "path": "app/src/main/res/values-ar/strings.xml"
+    },
+    {
+      "tag": "kk",
+      "language": "Kazakh",
+      "path": "app/src/main/res/values-kk/strings.xml"
+    },
+    {
+      "tag": "hi",
+      "language": "Hindi",
+      "path": "app/src/main/res/values-hi/strings.xml"
+    },
+    {
+      "tag": "zh-CN",
+      "language": "Chinese (Simplified)",
+      "path": "app/src/main/res/values-zh-rCN/strings.xml"
+    },
+    {
+      "tag": "zh-TW",
+      "language": "Chinese (Traditional)",
+      "path": "app/src/main/res/values-zh-rTW/strings.xml"
+    },
+    {
+      "tag": "ja",
+      "language": "Japanese",
+      "path": "app/src/main/res/values-ja/strings.xml"
+    },
+    {
+      "tag": "ko",
+      "language": "Korean",
+      "path": "app/src/main/res/values-ko/strings.xml"
+    }
+  ],
+  "translationMethod": "Machine translation with direct completion of remaining Korean and Traditional Chinese text, and manual terminology, count wording, and plural corrections.",
+  "reviewStatus": "Technical validation passed; targeted semantic corrections completed; full native-speaker review pending.",
+  "reviewReport": "review.json",
+  "verificationReport": "verification.json",
+  "sourceSnapshot": {
+    "activationBaseCommit": "fc3a441c",
+    "sourceChanges": "Language autonyms moved from strings.xml to Language.kt during activation.",
+    "englishSha256": "9edbb80a694b8ac982c2fb416e4ab180f2b974da7196e5ec46f0f5ee57f9cfa9",
+    "russianSha256": "fdca2f7feb85678f1354b5668bb903483af4a31e657d33b4ebc6473bc912b9ea"
+  }
+}

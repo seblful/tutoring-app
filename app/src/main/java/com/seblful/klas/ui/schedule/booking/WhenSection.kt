@@ -19,6 +19,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -27,7 +28,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.seblful.klas.R
+import com.seblful.klas.domain.schedule.DayTimeline
 import com.seblful.klas.domain.schedule.TimeConflict
+import com.seblful.klas.format.bulletJoin
 import com.seblful.klas.format.formatDay
 import com.seblful.klas.ui.common.DatePickerModal
 import com.seblful.klas.ui.common.MinTouchTarget
@@ -37,6 +40,7 @@ import com.seblful.klas.ui.common.TimePickerModal
 import com.seblful.klas.ui.common.timeText
 import com.seblful.klas.ui.schedule.timeConflictText
 import com.seblful.klas.ui.theme.KlasIcons
+import com.seblful.klas.ui.theme.klasSemantics
 
 /*
  * The booking form's «When» section — see [WhenSection].
@@ -60,6 +64,18 @@ internal fun WhenSection(state: ClassFormState, viewModel: ClassEditViewModel) {
         onPick = { pickingDay = true },
     )
     Stepper(state, onStep = viewModel::step, onPick = { pickingTime = true })
+    // Before a start is set, what the first press does is said: it takes the first free time, not 15 minutes.
+    if (state.slot == null) {
+        state.stepped(later = true)?.let { first ->
+            Text(
+                stringResource(R.string.class_step_first_free, first.timeText()),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+    }
     state.conflict?.let { conflict -> ConflictLine(conflict, state) }
 
     if (pickingDay) {
@@ -81,7 +97,10 @@ internal fun WhenSection(state: ClassFormState, viewModel: ClassEditViewModel) {
     }
 }
 
-/** «‹ Friday, 23 October ›» over how many other lessons the day holds; the date itself opens the dialog. */
+/**
+ * «‹ Friday, 23 October ›» over the day's lessons and its free time written out — «2 lessons · free 09:00–11:00,
+ * from 19:30» — so a slot is found by reading, not by stepping to it. The date itself opens the dialog.
+ */
 @Composable
 private fun DayRow(state: ClassFormState, onPrevious: () -> Unit, onNext: () -> Unit, onPick: () -> Unit) {
     val date = state.form.date
@@ -105,21 +124,45 @@ private fun DayRow(state: ClassFormState, onPrevious: () -> Unit, onNext: () -> 
                 textAlign = TextAlign.Center,
             )
             state.timeline?.let { day ->
-                val others = day.booked.size
                 Text(
-                    if (others == 0) {
-                        stringResource(R.string.class_day_free)
-                    } else {
-                        pluralStringResource(R.plurals.lessons_count, others, others)
-                    },
+                    dayLine(day, state.form.durationMinutes ?: state.slot?.durationMinutes ?: DEFAULT_MINUTES),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
                 )
             }
         }
         NamedIconButton(KlasIcons.Filled.ChevronRight, stringResource(R.string.class_day_next), onNext)
     }
 }
+
+/** The day's lessons, then where a lesson of [minutes] still fits — at most [SHOWN_WINDOWS] stretches of it. */
+@Composable
+private fun dayLine(day: DayTimeline, minutes: Int): String {
+    val others = day.booked.size
+    if (others == 0) return stringResource(R.string.class_day_free)
+    val resources = LocalResources.current
+    // `map`, being inline, may read the clock format; `joinToString`'s transform may not.
+    val windows = day.freeFor(minutes).take(SHOWN_WINDOWS).map { (from, to) ->
+        if (to == day.end) {
+            resources.getString(R.string.class_day_free_from, from.timeText())
+        } else {
+            "${from.timeText()}–${to.timeText()}"
+        }
+    }.joinToString(", ")
+    return bulletJoin(
+        pluralStringResource(R.plurals.lessons_count, others, others),
+        if (windows.isEmpty()) {
+            stringResource(R.string.class_day_full)
+        } else {
+            stringResource(R.string.class_day_free_list, windows)
+        },
+    )
+}
+
+private const val SHOWN_WINDOWS = 3
+
+private const val DEFAULT_MINUTES = 60
 
 /**
  * The start and end in large numbers between a step earlier and a step later — see
@@ -130,9 +173,15 @@ private fun Stepper(state: ClassFormState, onStep: (later: Boolean) -> Unit, onP
     val slot = state.slot
     val colors = MaterialTheme.colorScheme
     val pick = stringResource(R.string.class_time_pick)
+    val earlier = state.stepped(later = false)
+    val later = state.stepped(later = true)
     StepRow(
-        lessName = stringResource(R.string.class_step_earlier),
-        moreName = stringResource(R.string.class_step_later),
+        // Named by where a press goes, which is not always 15 minutes on: past a lesson in the way, or to the
+        // first free time while there is no start yet ([ClassFormState.stepped]).
+        lessName = earlier?.let { stringResource(R.string.class_step_earlier_to, it.timeText()) }
+            ?: stringResource(R.string.class_step_earlier),
+        moreName = later?.let { stringResource(R.string.class_step_later_to, it.timeText()) }
+            ?: stringResource(R.string.class_step_later),
         onLess = state.stepped(later = false)?.let { { onStep(false) } },
         onMore = state.stepped(later = true)?.let { { onStep(true) } },
         size = StartButtonSize,
@@ -184,7 +233,7 @@ private fun ConflictLine(conflict: TimeConflict, state: ClassFormState) {
         },
         style = MaterialTheme.typography.bodySmall,
         color = if (state.conflictBlocksSave) {
-            MaterialTheme.colorScheme.error
+            klasSemantics.validation
         } else {
             MaterialTheme.colorScheme.onSurfaceVariant
         },

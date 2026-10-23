@@ -18,9 +18,11 @@ import com.seblful.klas.data.people.GroupMemberCrossRef
 import com.seblful.klas.data.people.StudentEntity
 import com.seblful.klas.data.people.StudentSubjectCrossRef
 import com.seblful.klas.data.people.SubjectEntity
+import com.seblful.klas.data.settings.SettingsRepository
 import com.seblful.klas.domain.model.Attended
 import com.seblful.klas.domain.model.ClassMode
 import com.seblful.klas.domain.model.LessonStatus
+import com.seblful.klas.settings.DevicePreferences
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -43,7 +45,11 @@ class BackupRoundTripTest {
             .setDriver(BundledSQLiteDriver())
             .build()
 
-    private fun managerFor(db: AppDatabase) = BackupManager(RoomTransactor(db), db.snapshotDao())
+    private fun managerFor(db: AppDatabase) = BackupManager(
+        RoomTransactor(db),
+        db.snapshotDao(),
+        SettingsRepository(db.settingsDao(), DevicePreferences(listOf("ru-BY"), listOf("BYN"))),
+    )
 
     @Before fun setUp() {
         db = newDb()

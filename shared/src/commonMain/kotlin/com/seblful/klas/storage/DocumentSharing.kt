@@ -16,5 +16,9 @@ interface DocumentSharing {
      * Throws if the file cannot be written or nothing can receive it — the caller decides what to say,
      * as with [DocumentStore].
      */
-    suspend fun share(filename: String, mimeType: String, subject: String, text: String)
+    suspend fun share(filename: String, mimeType: String, subject: String, text: String) =
+        share(filename, mimeType, subject, text.encodeToByteArray())
+
+    /** Offers [bytes] — a file that is not text, a PDF — as [share] offers text. */
+    suspend fun share(filename: String, mimeType: String, subject: String, bytes: ByteArray)
 }

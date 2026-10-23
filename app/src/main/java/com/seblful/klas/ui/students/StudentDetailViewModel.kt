@@ -3,29 +3,39 @@ package com.seblful.klas.ui.students
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.createSavedStateHandle
+import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.CreationExtras
 import com.seblful.klas.data.billing.PaymentRepository
 import com.seblful.klas.data.homework.HomeworkRepository
+import com.seblful.klas.data.lessons.ClassRepository
+import com.seblful.klas.data.lessons.SessionReceipt
 import com.seblful.klas.data.people.EnrollmentRepository
 import com.seblful.klas.data.people.StudentRepository
 import com.seblful.klas.di.ApplicationScope
 import com.seblful.klas.di.Computation
+import com.seblful.klas.domain.billing.PaymentSuggestions
 import com.seblful.klas.domain.model.Assignee
 import com.seblful.klas.domain.model.ClassMode
 import com.seblful.klas.domain.model.Homework
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Payment
+import com.seblful.klas.domain.model.PaymentMethod
 import com.seblful.klas.domain.model.Student
 import com.seblful.klas.domain.time.WallClock
 import com.seblful.klas.domain.time.today
 import com.seblful.klas.format.minutes
+import com.seblful.klas.print.Sheet
+import com.seblful.klas.print.SheetPrinter
 import com.seblful.klas.queries.homework.AssigneeChoice
 import com.seblful.klas.queries.students.StudentDetails
 import com.seblful.klas.queries.students.StudentDetailsQuery
+import com.seblful.klas.runCatchingCancellable
+import com.seblful.klas.storage.DocumentSharing
 import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.common.state.UiEvents
 import com.seblful.klas.ui.common.state.derive
 import com.seblful.klas.ui.common.state.ready
+import com.seblful.klas.ui.common.state.settleAfterUndoWindow
 import com.seblful.klas.ui.common.state.valueOrNull
 import com.seblful.klas.ui.common.state.write
 import com.seblful.klas.ui.homework.HomeworkActions
@@ -40,12 +50,16 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.datetime.LocalDate
+import kotlin.time.Instant
 
 /** The student's card. */
 class StudentDetailViewModel @AssistedInject constructor(
     @Assisted savedStateHandle: SavedStateHandle,
     private val students: StudentRepository,
+    private val classes: ClassRepository,
     details: StudentDetailsQuery,
     homework: HomeworkRepository,
     private val payments: PaymentRepository,
@@ -53,6 +67,8 @@ class StudentDetailViewModel @AssistedInject constructor(
     @param:ApplicationScope private val appScope: CoroutineScope,
     @param:Computation private val computation: CoroutineDispatcher,
     private val clock: WallClock,
+    private val sharing: DocumentSharing,
+    private val printer: SheetPrinter,
 ) : ViewModel() {
 
     /** Hands over the screen's navigation arguments as the [SavedStateHandle]; the rest is injected. */
@@ -72,15 +88,27 @@ class StudentDetailViewModel @AssistedInject constructor(
         data object RemoveBlockedHasClasses : Event
 
         /**
-         * Archiving called off [count] lessons that were still planned. Confirmed beforehand by the
-         * dialog, and confirmed again here: it changed the schedule, which is another screen. The count
-         * is the write's own, not the card's — a lesson marked taught from the tray while the card was
-         * open made the card's figure one too many.
+         * The card was archived, calling off the lessons in [cancelled] that were still planned. Shown
+         * with Undo ([undoArchive]): it changed the schedule, which is another screen. The count is the
+         * write's own, not the card's — a lesson marked taught from the tray while the card was open made
+         * the card's figure one too many.
          */
-        data class ArchiveCancelledLessons(val count: Int) : Event
+        data class Archived(val cancelled: List<SessionReceipt>) : Event
+
+        /** An archive was taken back, but [count] of its lessons stayed cancelled — changed, or their hour taken. */
+        data class ArchiveUndoKept(val count: Int) : Event
+
+        /** A payment was corrected — said with Undo ([undoPaymentCorrection]), which puts [original] back. */
+        data class PaymentCorrected(val original: Payment, val corrected: Payment) : Event
+
+        /** An undo found the payment changed or deleted since, so the correction stands. */
+        data object PaymentChangedSince : Event
 
         /** A write failed — a database error rather than a rule. */
         data object WriteFailed : Event
+
+        /** The statement could not be printed or handed to another app. */
+        data object ShareFailed : Event
     }
 
     val events = UiEvents<Event>()
@@ -100,24 +128,45 @@ class StudentDetailViewModel @AssistedInject constructor(
         loaded.valueOrNull()?.let { StudentOverview.of(it, now, clock.zone) }
     }.derive(this, computation, null)
 
+    /**
+     * This minute, for the lessons listed here: one over and unmarked reads «Не отмечено», as on the schedule,
+     * not «Запланировано». See `lessonBadgeLabel`.
+     */
+    val minute: StateFlow<Instant> = clock.minutes().derive(this, computation, clock.now())
+
+    /** Prints [sheet] — the statement — and hands it to another app as [filename], through the share sheet. */
+    fun shareStatement(filename: String, subject: String, sheet: Sheet) {
+        viewModelScope.launch {
+            runCatchingCancellable {
+                val pdf = withContext(computation) { printer.print(sheet) }
+                sharing.share(filename, SheetPrinter.PDF_MIME_TYPE, subject, pdf)
+            }.onFailure { events.send(Event.ShareFailed) }
+        }
+    }
+
     private fun <T> write(onWritten: suspend (T) -> Unit = {}, block: suspend () -> T) =
         appScope.write(events, Event.WriteFailed, onWritten, block)
 
-    fun editStudent(name: String, phone: String, email: String, note: String, mode: ClassMode) {
-        val current = state.value.valueOrNull()?.student ?: return
-        val edited = typedStudent(name, phone, email, note, mode, onto = current) ?: return
-        write { students.upsert(edited) }
-    }
-
     /**
      * Archives or restores the student. Archiving also calls off their planned lessons — see
-     * [StudentRepository.setArchived] — and says how many, since that is a change to the schedule the
-     * tutor is making on purpose but from another screen.
+     * [StudentRepository.archive] — and says how many with an Undo, since that is a change to the schedule
+     * the tutor is making on purpose but from another screen.
      */
     fun setArchived(archived: Boolean) {
         val current = state.value.valueOrNull()?.student ?: return
-        write(onWritten = { cancelled -> if (cancelled > 0) events.send(Event.ArchiveCancelledLessons(cancelled)) }) {
-            students.setArchived(current, archived)
+        if (!archived) return write { students.setArchived(current, archived = false) }
+        write(
+            onWritten = { cancelled: List<SessionReceipt> ->
+                events.send(Event.Archived(cancelled))
+                appScope.settleAfterUndoWindow(events, Event.WriteFailed) { classes.settleAll(cancelled) }
+            },
+        ) { students.archive(current) }
+    }
+
+    /** Takes [archived] back — see [StudentRepository.unarchive]. */
+    fun undoArchive(archived: Event.Archived) {
+        write(onWritten = { kept: Int -> if (kept > 0) events.send(Event.ArchiveUndoKept(kept)) }) {
+            students.unarchive(studentId, archived.cancelled)
         }
     }
 
@@ -149,18 +198,36 @@ class StudentDetailViewModel @AssistedInject constructor(
     }
 
     /** Records a payment, on the day it was actually made. */
-    fun addPayment(amount: Money, day: LocalDate) {
+    fun addPayment(amount: Money, day: LocalDate, method: PaymentMethod? = null) {
         if (amount.isZero) return
-        write { payments.record(studentId, amount, day) }
+        write { payments.record(studentId, amount, day, method) }
     }
+
+    /** The one-tap amounts a new payment offers — see [PaymentSuggestions]. */
+    fun paymentSuggestions(): PaymentSuggestions =
+        state.value.valueOrNull()?.paymentSuggestions ?: PaymentSuggestions.NONE
+
+    /** How they paid last — what a new payment is offered as. */
+    fun lastPaymentMethod(): PaymentMethod? = state.value.valueOrNull()?.lastPaymentMethod
 
     /** The day the payment dialog opens on — off the same clock that will stamp the save. */
     fun paymentDay(): LocalDate = payments.today()
 
-    /** Corrects a payment already recorded, keeping its id. */
-    fun editPayment(payment: Payment, amount: Money, day: LocalDate) {
+    /** Corrects a payment already recorded, keeping its id, and offers the correction back. */
+    fun editPayment(payment: Payment, amount: Money, day: LocalDate, method: PaymentMethod? = payment.method) {
         if (amount.isZero) return
-        write { payments.correct(payment, amount, day) }
+        write(
+            onWritten = { corrected: Payment ->
+                if (corrected != payment) events.send(Event.PaymentCorrected(payment, corrected))
+            },
+        ) { payments.correct(payment, amount, day, method) }
+    }
+
+    /** Takes [correction] back while the payment still reads as corrected — see [PaymentRepository.undoCorrection]. */
+    fun undoPaymentCorrection(correction: Event.PaymentCorrected) {
+        write(onWritten = { undone: Boolean -> if (!undone) events.send(Event.PaymentChangedSince) }) {
+            payments.undoCorrection(correction.original, correction.corrected)
+        }
     }
 
     fun deletePayment(payment: Payment) {

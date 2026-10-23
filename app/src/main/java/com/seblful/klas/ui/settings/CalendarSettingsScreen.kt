@@ -13,6 +13,7 @@ import com.seblful.klas.calendar.rememberCalendarPermissionRequest
 import com.seblful.klas.data.settings.AppSettings
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.rememberRejectFeedback
+import com.seblful.klas.ui.designsystem.component.SettingsGroup
 import dev.zacsweers.metrox.viewmodel.metroViewModel
 
 @Composable

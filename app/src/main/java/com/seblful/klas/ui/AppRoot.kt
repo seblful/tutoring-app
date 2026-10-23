@@ -29,6 +29,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -47,16 +48,20 @@ import androidx.navigation3.ui.NavDisplay
 import com.seblful.klas.data.settings.SettingsRepository
 import com.seblful.klas.domain.model.Currency
 import com.seblful.klas.domain.model.ThemeChoice
+import com.seblful.klas.lock.AppLockGate
 import com.seblful.klas.ui.common.LocalCurrency
 import com.seblful.klas.ui.common.LocalRailAction
+import com.seblful.klas.ui.common.LocalTabReselect
 import com.seblful.klas.ui.common.ProvideClockFormat
 import com.seblful.klas.ui.common.ProvideLocalizedResources
 import com.seblful.klas.ui.common.RailAction
+import com.seblful.klas.ui.common.TabReselect
 import com.seblful.klas.ui.navigation.Arrival
 import com.seblful.klas.ui.navigation.KlasGraph
 import com.seblful.klas.ui.navigation.KlasNavigator
 import com.seblful.klas.ui.navigation.KlasTabs
 import com.seblful.klas.ui.navigation.OpensWhatTheTrayNames
+import com.seblful.klas.ui.navigation.Routes
 import com.seblful.klas.ui.navigation.Screen
 import com.seblful.klas.ui.navigation.TopDestination
 import com.seblful.klas.ui.navigation.fadeThrough
@@ -64,13 +69,15 @@ import com.seblful.klas.ui.navigation.listBesideDetail
 import com.seblful.klas.ui.navigation.owningTab
 import com.seblful.klas.ui.navigation.predictiveBackPop
 import com.seblful.klas.ui.navigation.rememberKlasNavigator
+import com.seblful.klas.ui.onboarding.FirstLesson
 import com.seblful.klas.ui.onboarding.OnboardingScreen
 import com.seblful.klas.ui.schedule.ScheduleTarget
 import com.seblful.klas.ui.theme.KlasTheme
 import dev.zacsweers.metrox.viewmodel.metroViewModel
+import kotlinx.coroutines.launch
 
 @Composable
-fun AppRoot(rootViewModel: RootViewModel = metroViewModel()) {
+fun AppRoot(rootViewModel: RootViewModel = metroViewModel(), onUnlock: (title: String) -> Unit = {}) {
     // The upkeep pass that the tutor's own arrival is worth: settle, in process, whatever the clock
     // passed while the app was closed, so the schedule and the reports they are about to look at are
     // current — and so the passes that run while nobody is here keep the report they are owed. See
@@ -118,7 +125,14 @@ fun AppRoot(rootViewModel: RootViewModel = metroViewModel()) {
                             }
                             RootRoute.ONBOARDING ->
                                 OnboardingScreen(onFinished = { /* settings flip re-renders into MainApp */ })
-                            RootRoute.MAIN -> MainApp()
+                            RootRoute.MAIN -> {
+                                val open by rootViewModel.appLock.open.collectAsStateWithLifecycle()
+                                val available by rootViewModel.appLock.available.collectAsStateWithLifecycle()
+                                // A phone with no screen lock left is never locked out of its own data.
+                                AppLockGate(settings?.privacy?.appLock == true && available && !open, onUnlock) {
+                                    MainApp(rootViewModel.firstLesson)
+                                }
+                            }
                         }
                     }
                 }
@@ -150,8 +164,9 @@ internal fun RootSwitch(route: RootRoute, content: @Composable (RootRoute) -> Un
 
 @OptIn(ExperimentalMaterial3AdaptiveApi::class)
 @Composable
-private fun MainApp() {
+private fun MainApp(firstLesson: FirstLesson) {
     val navigator = rememberKlasNavigator()
+    OpensFirstLesson(navigator, firstLesson)
     val backStack = navigator.backStack
 
     // The same pane directive decides both whether a detail sits beside its list and, below, whether the
@@ -182,17 +197,17 @@ private fun MainApp() {
     var scheduleArrival by remember { mutableStateOf<Pair<Long, Arrival<ScheduleTarget>>?>(null) }
     var debtsArrival by remember { mutableStateOf<Pair<Long, Arrival<Unit>>?>(null) }
 
-    OpensWhatTheTrayNames(
-        navigator,
-        onSchedule = { target -> scheduleArrival = navigator.top.id to Arrival(target) },
-        onDebts = { debtsArrival = navigator.top.id to Arrival(Unit) },
-    )
+    val arriveAtSchedule: (ScheduleTarget) -> Unit = { target -> scheduleArrival = navigator.top.id to Arrival(target) }
+    val arriveAtDebts = { debtsArrival = navigator.top.id to Arrival(Unit) }
+    OpensWhatTheTrayNames(navigator, onSchedule = arriveAtSchedule, onDebts = arriveAtDebts)
 
     val graph = remember(navigator) {
         KlasGraph(
             navigator,
             scheduleArrival = { id -> scheduleArrival?.takeIf { it.first == id }?.second },
             debtsArrival = { id -> debtsArrival?.takeIf { it.first == id }?.second },
+            arriveAtSchedule = arriveAtSchedule,
+            arriveAtDebts = arriveAtDebts,
         )
     }
     // Material's current components for the width: the short bar on a phone (a landscape one included), the
@@ -232,12 +247,14 @@ private fun MainApp() {
     )
     LaunchedEffect(onTab) { if (onTab) chrome.show() else chrome.hide() }
 
+    val reselect = remember { TabReselect() }
+    val onTabTap = rememberTabTap(navigator, reselect)
     NavigationSuiteScaffold(
         // A camera cutout at the side is the whole app's to clear, once: the rail would sit under it, and the
         // screens beside the rail would pad for it again.
         modifier = Modifier.windowInsetsPadding(WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal)),
         navigationItems = {
-            KlasTabs(tabs = TopDestination.entries, selected = selectedTab, onSelect = navigator::navigateToTab)
+            KlasTabs(tabs = TopDestination.entries, selected = selectedTab, onSelect = onTabTap)
         },
         // Hidden on a pushed screen, which owns the whole window: a card or a form is not somewhere the
         // tabs apply — unless the card shares the window with the People list. Still one call site,
@@ -247,15 +264,34 @@ private fun MainApp() {
         // Always a button's height, so the tabs below stay put between a tab with one and a tab without.
         primaryActionContent = { if (railLayout) RailHeader(railAction) },
     ) {
-        NavDisplay(
-            entries = entries,
-            modifier = Modifier.fillMaxSize(),
-            sceneStrategies = listOf(listDetail, SinglePaneSceneStrategy()),
-            transitionSpec = { fadeThrough() },
-            popTransitionSpec = { fadeThrough() },
-            predictivePopTransitionSpec = { edge -> predictiveBackPop(edge, shiftInset) },
-            onBack = navigator::goBack,
-        )
+        CompositionLocalProvider(LocalTabReselect provides reselect) {
+            NavDisplay(
+                entries = entries,
+                modifier = Modifier.fillMaxSize(),
+                sceneStrategies = listOf(listDetail, SinglePaneSceneStrategy()),
+                transitionSpec = { fadeThrough() },
+                popTransitionSpec = { fadeThrough() },
+                predictivePopTransitionSpec = { edge -> predictiveBackPop(edge, shiftInset) },
+                onBack = navigator::goBack,
+            )
+        }
+    }
+}
+
+/** A tab tap: another tab opens, the one already on top goes back to the top of its page — see [TabReselect]. */
+@Composable
+private fun rememberTabTap(navigator: KlasNavigator, reselect: TabReselect): (TopDestination) -> Unit {
+    val scope = rememberCoroutineScope()
+    return { tab ->
+        if (navigator.isOnTab(tab)) scope.launch { reselect.reselected() } else navigator.navigateToTab(tab)
+    }
+}
+
+/** Setup's «Book the first lesson»: the booking form for its student, over Today, once. */
+@Composable
+private fun OpensFirstLesson(navigator: KlasNavigator, firstLesson: FirstLesson) {
+    LaunchedEffect(navigator) {
+        firstLesson.take()?.let { student -> navigator.navigate(Routes.classEdit(0, studentId = student)) }
     }
 }
 

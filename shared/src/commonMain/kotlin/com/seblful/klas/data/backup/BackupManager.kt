@@ -2,6 +2,7 @@ package com.seblful.klas.data.backup
 
 import com.seblful.klas.data.local.SnapshotDao
 import com.seblful.klas.data.local.Transactor
+import com.seblful.klas.data.settings.SettingsRepository
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
@@ -12,6 +13,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.intOrNull
+import kotlin.time.Instant
 
 /**
  * Exports the whole database to a JSON string and restores it. Import is a full replace inside
@@ -26,6 +28,7 @@ import kotlinx.serialization.json.intOrNull
 class BackupManager @Inject constructor(
     private val transactor: Transactor,
     private val snapshot: SnapshotDao,
+    private val settings: SettingsRepository,
 ) {
     // Compact, not pretty-printed: indentation roughly doubled a large backup's size and memory.
     private val json = Json {
@@ -33,9 +36,35 @@ class BackupManager @Inject constructor(
         encodeDefaults = true
     }
 
-    suspend fun export(): BackupData = transactor.transaction { snapshot.read() }.toBackupData()
+    /** The data, with the settings that give it its meaning ([BackupPreferences]). */
+    suspend fun export(): BackupData {
+        val rows = transactor.transaction { snapshot.read() }
+        return rows.toBackupData().copy(preferences = settings.get().toBackupPreferences())
+    }
 
-    suspend fun exportJson(): String = json.encodeToString(export())
+    /** The backup as its file says it, stamped with [at] — the moment it was made — when given. */
+    suspend fun exportJson(at: Instant? = null): String = encode(export(), at)
+
+    /** [data] as a backup file, stamped with [at] when given. */
+    fun encode(data: BackupData, at: Instant? = null): String =
+        json.encodeToString(data.copy(exportedAtMillis = at?.toEpochMilliseconds()))
+
+    /**
+     * What [text] would restore, read the way [parse] reads it — so a file that will be refused is refused
+     * here, before the tutor is asked anything.
+     */
+    fun preview(text: String): BackupPreview {
+        val data = parse(text)
+        return BackupPreview(
+            exportedAt = data.exportedAtMillis?.let { Instant.fromEpochMilliseconds(it) },
+            students = data.students.size,
+            groups = data.groups.size,
+            // A file older than v6 keeps its lessons as flat classes.
+            lessons = data.lessons.size.takeIf { it > 0 } ?: data.classes.splitIntoLessons().first.size,
+            payments = data.payments.size,
+            homework = data.homework.size,
+        )
+    }
 
     /**
      * The file as a [BackupData] — with its **version read first**, and a newer one refused before any row
@@ -51,15 +80,20 @@ class BackupManager @Inject constructor(
     fun parse(text: String): BackupData {
         // Decoded straight from the text both times: a whole `JsonElement` tree of a large backup was its
         // biggest copy in memory. Anything [Header] cannot read is left to the decode to refuse.
-        val version = runCatching { json.decodeFromString<Header>(text).version }.getOrNull()
-            .let { (it as? JsonPrimitive)?.intOrNull }
+        val header = runCatching { json.decodeFromString<Header>(text) }.getOrNull()
+        if (header?.klasSealed != null) throw PasswordNeededException()
+        val version = (header?.version as? JsonPrimitive)?.intOrNull
         if (version != null) requireSupported(version)
         return json.decodeFromString(text)
     }
 
-    /** A backup's version alone; every other key is skipped. */
+    /** Whether [text] is a sealed backup ([SealedBackup]) — one to ask the password of before reading. */
+    fun isSealed(text: String): Boolean =
+        runCatching { json.decodeFromString<Header>(text).klasSealed != null }.getOrDefault(false)
+
+    /** A backup's version, and whether it is sealed ([SealedBackup]); every other key is skipped. */
     @Serializable
-    private class Header(val version: JsonElement? = null)
+    private class Header(val version: JsonElement? = null, val klasSealed: JsonElement? = null)
 
     private fun requireSupported(version: Int) {
         if (!BackupData.isSupported(version)) {

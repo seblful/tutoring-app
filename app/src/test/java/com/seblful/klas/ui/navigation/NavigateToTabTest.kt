@@ -1,7 +1,9 @@
 package com.seblful.klas.ui.navigation
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertSame
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class NavigateToTabTest {
@@ -23,7 +25,7 @@ class NavigateToTabTest {
         navigator.close(card)
         navigator.close(card)
 
-        assertEquals(listOf("Schedule", "People"), stack())
+        assertEquals(listOf("Today", "People"), stack())
     }
 
     @Test
@@ -40,23 +42,24 @@ class NavigateToTabTest {
     }
 
     @Test
-    fun `settings categories return through the index and retain More tab ownership`() {
-        tap(TopDestination.MORE)
-        navigator.navigate(Routes.Settings)
+    fun `settings opened from a tab's gear belong to that tab and return through the index`() {
+        tap(TopDestination.PEOPLE)
+        navigator.openOnTop(Routes.Settings)
+        navigator.openOnTop(Routes.Settings)
         for (category in listOf(
             Routes.LessonSettings, Routes.NotificationSettings, Routes.CalendarSettings, Routes.AppearanceSettings,
         )) {
             navigator.navigate(category)
-            assertEquals(TopDestination.MORE, owningTab(navigator.backStack))
+            assertEquals(TopDestination.PEOPLE, owningTab(navigator.backStack))
             navigator.goBack()
-            assertEquals(listOf("Schedule", "More", "Settings"), stack())
+            assertEquals(listOf("Today", "People", "Settings"), stack())
         }
         navigator.navigate(Routes.CalendarSettings)
         tap(TopDestination.SCHEDULE)
-        tap(TopDestination.MORE)
-        assertEquals(listOf("Schedule", "More", "Settings", "CalendarSettings"), stack())
-        tap(TopDestination.MORE)
-        assertEquals(listOf("Schedule", "More"), stack())
+        tap(TopDestination.PEOPLE)
+        assertEquals(listOf("Today", "People", "Settings", "CalendarSettings"), stack())
+        tap(TopDestination.PEOPLE)
+        assertEquals(listOf("Today", "People"), stack())
     }
 
     @Test
@@ -72,10 +75,21 @@ class NavigateToTabTest {
     }
 
     @Test
+    fun `only the tab whose own screen is on top counts as tapped again`() {
+        tap(TopDestination.PEOPLE)
+        assertTrue(navigator.isOnTab(TopDestination.PEOPLE))
+        assertFalse(navigator.isOnTab(TopDestination.TODAY))
+
+        // A card over the list: the first tap closes it, so this one is not a reselect.
+        navigator.navigate(Routes.StudentDetail(1))
+        assertFalse(navigator.isOnTab(TopDestination.PEOPLE))
+    }
+
+    @Test
     fun `a tap on the start tab while it shows goes nowhere either`() {
         val shown = navigator.backStack.toList()
 
-        tap(TopDestination.SCHEDULE)
+        tap(TopDestination.START)
 
         assertEquals(shown, navigator.backStack)
     }
@@ -91,12 +105,12 @@ class NavigateToTabTest {
     }
 
     @Test
-    fun `a tap on the schedule closes a form opened from it`() {
+    fun `a tap on the start tab closes a form opened from it`() {
         navigator.navigate(Routes.classEdit(5))
 
-        tap(TopDestination.SCHEDULE)
+        tap(TopDestination.START)
 
-        assertEquals(listOf("Schedule"), stack())
+        assertEquals(listOf("Today"), stack())
     }
 
     @Test
@@ -106,7 +120,7 @@ class NavigateToTabTest {
 
         tap(TopDestination.REPORTS)
 
-        assertEquals(listOf("Schedule", "Reports"), stack())
+        assertEquals(listOf("Today", "Reports"), stack())
         assertEquals(TopDestination.REPORTS, showing())
     }
 
@@ -116,31 +130,31 @@ class NavigateToTabTest {
         navigator.navigate(Routes.StudentDetail(1))
         val card = navigator.top
 
-        tap(TopDestination.SCHEDULE)
-        assertEquals(listOf("Schedule"), stack())
+        tap(TopDestination.START)
+        assertEquals(listOf("Today"), stack())
         assertEquals("a waiting card stays live, so it keeps its state", true, card in navigator.live)
 
         tap(TopDestination.PEOPLE)
-        assertEquals(listOf("Schedule", "People", "StudentDetail"), stack())
+        assertEquals(listOf("Today", "People", "StudentDetail"), stack())
         assertSame(card, navigator.top)
     }
 
     @Test
-    fun `a form opened over the schedule waits with it while another tab shows`() {
+    fun `a form opened over the start tab waits with it while another tab shows`() {
         navigator.navigate(Routes.classEdit(5))
         navigator.openTabFromTray(TopDestination.SCHEDULE)
 
         tap(TopDestination.REPORTS)
         tap(TopDestination.SCHEDULE)
 
-        assertEquals(listOf("Schedule", "ClassEdit", "Schedule"), stack())
+        assertEquals(listOf("Today", "ClassEdit", "Schedule"), stack())
     }
 
     @Test
     fun `back from the start tab is left to the system`() {
         navigator.goBack()
 
-        assertEquals(listOf("Schedule"), stack())
+        assertEquals(listOf("Today"), stack())
     }
 
     @Test

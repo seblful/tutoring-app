@@ -14,6 +14,7 @@ import com.seblful.klas.data.people.SubjectEntity
 import com.seblful.klas.domain.model.Attended
 import com.seblful.klas.domain.model.ClassMode
 import com.seblful.klas.domain.model.LessonStatus
+import com.seblful.klas.domain.model.PaymentMethod
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -100,6 +101,9 @@ class BackupSerializationTest {
         ),
         payments = listOf(
             PaymentEntity(1, studentId = 1, dateMillis = 1_899_000_000_000, amountMinor = 3000),
+            PaymentEntity(
+                2, studentId = 1, dateMillis = 1_899_100_000_000, amountMinor = 2000, method = PaymentMethod.CARD,
+            ),
         ),
         homework = listOf(
             HomeworkEntity(
@@ -134,6 +138,7 @@ class BackupSerializationTest {
         assertEquals("PRESENT", text("attendance", "state"))
         assertEquals("ABSENT", text("attendance", "state", index = 1))
         assertEquals("EXPECTED", text("attendance", "state", index = 2))
+        assertEquals("CARD", text("payments", "method", index = 1))
     }
 
     @Test

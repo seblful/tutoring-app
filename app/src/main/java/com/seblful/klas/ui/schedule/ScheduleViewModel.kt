@@ -5,6 +5,8 @@ import androidx.lifecycle.viewModelScope
 import com.seblful.klas.data.homework.HomeworkRepository
 import com.seblful.klas.data.lessons.ClassRepository
 import com.seblful.klas.data.lessons.LessonWrite
+import com.seblful.klas.data.lessons.SessionReceipt
+import com.seblful.klas.data.lessons.UndoResult
 import com.seblful.klas.data.people.GroupRepository
 import com.seblful.klas.data.people.StudentRepository
 import com.seblful.klas.data.people.SubjectRepository
@@ -16,6 +18,7 @@ import com.seblful.klas.domain.lesson.SessionRules
 import com.seblful.klas.domain.model.Assignee
 import com.seblful.klas.domain.model.Attended
 import com.seblful.klas.domain.model.ClassSession
+import com.seblful.klas.domain.model.Group
 import com.seblful.klas.domain.model.Homework
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Student
@@ -39,6 +42,7 @@ import com.seblful.klas.ui.common.state.hold
 import com.seblful.klas.ui.common.state.map
 import com.seblful.klas.ui.common.state.ready
 import com.seblful.klas.ui.common.state.readyOrLoadingAfter
+import com.seblful.klas.ui.common.state.settleAfterUndoWindow
 import com.seblful.klas.ui.common.state.shared
 import com.seblful.klas.ui.common.state.valueOrNull
 import com.seblful.klas.ui.common.state.write
@@ -64,6 +68,7 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.scan
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.DayOfWeek
@@ -79,9 +84,6 @@ import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Instant
-
-private fun List<TutoringClass>.shownFor(filter: StudentFilter?): List<TutoringClass> =
-    filter?.let { SessionRules.lessonsWith(this, it.studentId) } ?: this
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @ViewModelKey
@@ -123,27 +125,45 @@ class ScheduleViewModel @Inject constructor(
     private val _viewMode = MutableStateFlow(pages.mode)
     val viewMode: StateFlow<ScheduleViewMode> = _viewMode.asStateFlow()
 
-    private val filterStudentId = MutableStateFlow<Long?>(null)
+    /** The filter as asked, by ids — [filter] is it resolved against who still exists. */
+    private val askedFilter = MutableStateFlow(ScheduleFilter())
 
     /** Every student, read once for the filter, the week's captions and the lesson sheet. */
     private val everyone: Flow<List<Student>> =
         students.observeAll().shared(this)
 
-    /** Whose lessons the schedule is showing, or null for everyone's — see [StudentFilter]. */
-    val studentFilter: StateFlow<StudentFilter?> =
-        combine(filterStudentId, everyone) { id, all ->
-            id?.let { wanted -> all.firstOrNull { it.id == wanted } }
-                ?.let { StudentFilter(it.id, it.name) }
+    /**
+     * What the schedule is narrowed to, named — see [ScheduleFilter]. Somebody the database no longer holds
+     * is no one to narrow to, so the filter falls back to everyone rather than to an empty schedule.
+     */
+    val filter: StateFlow<ScheduleFilter> =
+        combine(askedFilter, everyone, groups.observeAll()) { asked, people, groupList ->
+            asked.copy(
+                who = when (val who = asked.who) {
+                    null -> null
+                    is ScheduleWho.Student ->
+                        people.firstOrNull { it.id == who.id }?.let { ScheduleWho.Student(it.id, it.name) }
+                    is ScheduleWho.Group ->
+                        groupList.firstOrNull { it.id == who.id }?.let { ScheduleWho.Group(it.id, it.name) }
+                },
+            )
         }
-            .derive(this, computation, null)
+            .derive(this, computation, ScheduleFilter())
 
     /** The students the filter menu offers — the active ones, in the repository's name order. */
     val filterableStudents: StateFlow<List<Student>> = students.observeActive().hold(this, emptyList())
 
-    /** Narrows the schedule to one student, or shows everyone again with null. */
-    fun setStudentFilter(studentId: Long?) {
-        filterStudentId.value = studentId
-    }
+    /** The groups the filter menu offers after the students. */
+    val filterableGroups: StateFlow<List<Group>> = groups.observeActive().hold(this, emptyList())
+
+    /** Narrows the schedule to one student, or to everyone again with null. */
+    fun setStudentFilter(studentId: Long?) = setWho(studentId?.let { ScheduleWho.Student(it) })
+
+    /** Narrows the schedule to one student's or group's lessons, or to everyone's with null. */
+    fun setWho(who: ScheduleWho?) = askedFilter.update { it.copy(who = who) }
+
+    /** Narrows the schedule to lessons in one status, or to every status with null. */
+    fun setStatusFilter(status: LessonStatus?) = askedFilter.update { it.copy(status = status) }
 
     private val _timeConflict = MutableStateFlow<TimeConflict?>(null)
     val timeConflict: StateFlow<TimeConflict?> = _timeConflict.asStateFlow()
@@ -165,10 +185,22 @@ class ScheduleViewModel @Inject constructor(
          */
         LESSON_GONE,
         CORRECTION_CHANGED,
+
+        /** An undo found the lesson changed since, so the change it would have taken back stands. */
+        UNDO_CHANGED,
+    }
+
+    /** A change from the sheet the tutor can take back from its message — see [undo]. */
+    data class Undoable(val change: Change, val receipt: SessionReceipt) {
+        enum class Change { CANCELLED, REPLANNED, MOVED, ATTENDANCE }
     }
 
     val events = UiEvents<Event>()
     val completions = UiEvents<ClassSession>()
+    val undoables = UiEvents<Undoable>()
+
+    /** Lessons picked by a long-press, marked taught or cancelled together — see [LessonBatch]. */
+    val batch = LessonBatch(classes, appScope)
 
     private val homeworkActions = HomeworkActions(homework, appScope, events, Event.ACTION_FAILED)
 
@@ -188,8 +220,8 @@ class ScheduleViewModel @Inject constructor(
      * so day, month and week cannot answer it differently. See [ScheduleEmpty].
      */
     val emptyReason: StateFlow<Loadable<ScheduleEmpty>> =
-        combine(studentFilter, canAddClass) { filter, bookable ->
-            bookable.map { ScheduleEmpty.of(filtered = filter != null, canAddClass = it) }
+        combine(filter, canAddClass) { filter, bookable ->
+            bookable.map { ScheduleEmpty.of(filtered = filter.narrowed, canAddClass = it) }
         }
             // Loading until [canAddClass] is known, for its reason: an empty day read before the setup was
             // offered «Нечего планировать» and «Добавить ученика» for the frame the answer took.
@@ -211,7 +243,7 @@ class ScheduleViewModel @Inject constructor(
      * never widens the query, and so the day view pays for no markers at all.
      */
     val dayLoads: StateFlow<Loadable<Map<LocalDate, CalendarLayout.DayLoad>>> =
-        combine(_viewMode, _visibleMonth, _visibleWeek, studentFilter, clock.zones(), ::MarkerKey)
+        combine(_viewMode, _visibleMonth, _visibleWeek, filter, clock.zones(), ::MarkerKey)
             .flatMapLatest { key ->
                 val zone = key.zone
                 val range = when (key.mode) {
@@ -243,10 +275,10 @@ class ScheduleViewModel @Inject constructor(
         val mode: ScheduleViewMode,
         val month: YearMonth,
         val week: LocalDate,
-        val filter: StudentFilter?,
+        val filter: ScheduleFilter,
         val zone: TimeZone,
     ) {
-        fun narrow(classes: List<TutoringClass>): List<TutoringClass> = classes.shownFor(filter)
+        fun narrow(classes: List<TutoringClass>): List<TutoringClass> = filter.narrow(classes)
     }
 
     /**
@@ -254,7 +286,7 @@ class ScheduleViewModel @Inject constructor(
      * month views is the selected day's (see [SchedulePages.select]).
      */
     val content: StateFlow<Loadable<ScheduleContent.Week>> =
-        combine(_visibleWeek, studentFilter, clock.zones(), ::Triple)
+        combine(_visibleWeek, filter, clock.zones(), ::Triple)
             .flatMapLatest { (week, filter, zone) ->
                 val bounds = DayBounds.of(week, week.plus(DAYS_IN_WEEK, DateTimeUnit.DAY), zone)
                 combine(
@@ -263,7 +295,7 @@ class ScheduleViewModel @Inject constructor(
                     subjects.observeAll(),
                     groups.observeAll(),
                 ) { readClasses, studentList, subjectList, groupList ->
-                    val visibleClasses = readClasses.shownFor(filter)
+                    val visibleClasses = filter.narrow(readClasses)
                     // Built once per emission and asked per lesson — the three `associateBy` maps this
                     // replaces, plus the rule about which name titles a lesson. See [Captions].
                     val captions = Captions.of(studentList, subjectList, groupList)
@@ -306,17 +338,31 @@ class ScheduleViewModel @Inject constructor(
             }
             .derive(this, computation, Loadable.Loading)
 
+    /**
+     * Whether every lesson picked is cancelled, so the bar offers to return them to the plan. Read from the shown
+     * rows: a pick that is not among them (the selection outlived its page) is not known to be cancelled.
+     */
+    val pickedAllCancelled: StateFlow<Boolean> =
+        combine(batch.selected, content) { ids, loaded ->
+            val rows = loaded.valueOrNull()?.rowsShown.orEmpty()
+            ids.isNotEmpty() && ids.all { id ->
+                rows.firstOrNull { row -> row.classes.any { it.id == id } }?.session?.status == LessonStatus.CANCELLED
+            }
+        }
+            .derive(this, computation, false)
+
     private val minutes: Flow<Instant> = clock.minutes()
 
     /**
      * Where the **"you are here"** mark goes in the selected day's list: the index it sits before, or
-     * null when there is no mark to draw — see [NowMarker].
+     * null when there is no mark to draw — see [NowMarker]. Only the Day view draws one: under the month
+     * the chosen day is a glance at a cell, not a timeline to place yourself on.
      */
     val nowMark: StateFlow<Int?> =
-        combine(shownDay, minutes) { shown, now ->
+        combine(shownDay, minutes, _viewMode) { shown, now, mode ->
+            if (mode != ScheduleViewMode.DAY) return@combine null
             // Among the rows that are drawn, on the day they are — [shownDay]'s date, which for the frames
-            // a step into another week takes to read is still the previous day. Not gated on the view:
-            // the week agenda draws no mark, so a mark computed under it is simply never read.
+            // a step into another week takes to read is still the previous day.
             val day = shown.valueOrNull() ?: return@combine null
             NowMarker.positionIn(day.rows.map { it.session }, day.date, now, zone)
         }
@@ -367,8 +413,9 @@ class ScheduleViewModel @Inject constructor(
             events.send(Event.LESSON_GONE)
             return
         }
-        val filter = filterStudentId.value
-        if (filter != null && session.classes.none { it.studentId == filter }) setStudentFilter(null)
+        // A filter that would hide the lesson the tray named is lifted, rather than opening nothing.
+        val asked = askedFilter.value
+        if (asked.narrowed && asked.narrow(session.classes).isEmpty()) askedFilter.value = ScheduleFilter()
         selectDate(session.start.toLocalDateTime(zone).date)
         askedLessonId.value = classId
     }
@@ -418,18 +465,30 @@ class ScheduleViewModel @Inject constructor(
     // closes as the action is tapped, and marking a lesson completed or deleting one must not be cut
     // in half because the screen went away a moment later — see [ApplicationScope].
 
-    /** Changes a whole lesson's status. */
+    /**
+     * Changes a whole lesson's status. Marking it taught is taken back by [correctCompletion]; cancelling
+     * and re-planning by [undo].
+     */
     fun setStatus(session: ClassSession, status: LessonStatus) {
+        if (status == LessonStatus.COMPLETED) return complete(session)
         write {
-            when (val changed = classes.setStatus(session, status)) {
+            when (val changed = classes.setStatusUndoable(session, status)) {
                 is LessonWrite.HourTaken -> reportHourTaken(changed.clash)
-                // Written, or deleted underneath the sheet: either way the schedule already shows it.
-                is LessonWrite.Written -> {
-                    if (status == LessonStatus.COMPLETED && changed.value.isNotEmpty()) {
-                        completions.send(ClassSession(session.groupId, changed.value))
-                    }
-                }
+                is LessonWrite.Written -> offerUndo(
+                    changed.value,
+                    if (status == LessonStatus.CANCELLED) Undoable.Change.CANCELLED else Undoable.Change.REPLANNED,
+                )
+                // Deleted underneath the sheet: the schedule already shows it gone.
                 LessonWrite.Gone -> Unit
+            }
+        }
+    }
+
+    private fun complete(session: ClassSession) {
+        write {
+            val changed = classes.setStatus(session, LessonStatus.COMPLETED)
+            if (changed is LessonWrite.Written && changed.value.isNotEmpty()) {
+                completions.send(ClassSession(session.groupId, changed.value))
             }
         }
     }
@@ -444,7 +503,11 @@ class ScheduleViewModel @Inject constructor(
 
     fun setAttendance(klass: TutoringClass, attended: Attended) {
         write {
-            if (classes.setAttendance(klass, attended).isEmpty()) events.send(Event.LESSON_GONE)
+            when (val marked = classes.setAttendanceUndoable(klass, attended)) {
+                is LessonWrite.Written -> offerUndo(marked.value, Undoable.Change.ATTENDANCE)
+                LessonWrite.Gone -> events.send(Event.LESSON_GONE)
+                is LessonWrite.HourTaken -> Unit
+            }
         }
     }
 
@@ -457,11 +520,33 @@ class ScheduleViewModel @Inject constructor(
     fun moveTo(session: ClassSession, day: LocalDate, at: LocalTime) {
         val newStart = day.atTime(at).toInstant(zone)
         write {
-            when (val moved = classes.move(session, newStart, now = clock.now())) {
+            when (val moved = classes.moveUndoable(session, newStart, now = clock.now())) {
                 is LessonWrite.HourTaken -> reportHourTaken(moved.clash)
-                is LessonWrite.Written, LessonWrite.Gone -> Unit
+                is LessonWrite.Written -> offerUndo(moved.value, Undoable.Change.MOVED)
+                LessonWrite.Gone -> Unit
             }
         }
+    }
+
+    /**
+     * Takes [change] back while the lesson is still as the change left it, and its hour is free if it
+     * needs one again — see [ClassRepository.undo]. Otherwise the change stands and the tutor is told why.
+     */
+    fun undo(change: Undoable) {
+        write {
+            when (val undone = classes.undo(change.receipt)) {
+                UndoResult.Restored -> Unit
+                UndoResult.ChangedSince -> events.send(Event.UNDO_CHANGED)
+                is UndoResult.HourTaken -> reportHourTaken(undone.clash)
+                UndoResult.Gone -> events.send(Event.LESSON_GONE)
+            }
+        }
+    }
+
+    private suspend fun offerUndo(receipt: SessionReceipt?, change: Undoable.Change) {
+        receipt ?: return
+        undoables.send(Undoable(change, receipt))
+        appScope.settleAfterUndoWindow(events, Event.ACTION_FAILED) { classes.settle(receipt) }
     }
 
     private suspend fun reportHourTaken(clash: ClassSession) {

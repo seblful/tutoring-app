@@ -3,11 +3,11 @@ package com.seblful.klas.ui.students
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -26,25 +26,38 @@ import com.seblful.klas.format.bulletJoin
 import com.seblful.klas.format.formatDate
 import com.seblful.klas.format.formatHours
 import com.seblful.klas.queries.students.StudentDetails
-import com.seblful.klas.ui.common.HeadlineCardInset
 import com.seblful.klas.ui.common.MinHeadlineSize
-import com.seblful.klas.ui.common.SectionCard
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.text
+import com.seblful.klas.ui.designsystem.component.ButtonKind
+import com.seblful.klas.ui.designsystem.component.HeaderedCard
+import com.seblful.klas.ui.designsystem.component.KlasButton
+import com.seblful.klas.ui.designsystem.component.SectionAction
 import com.seblful.klas.ui.theme.KlasIcons
+import com.seblful.klas.ui.theme.klasSemantics
 
 /**
  * Where they stand — owed in red, as everywhere a debt is said — with when they last paid, what they have
- * brought in, and the way to record the next payment.
+ * brought in, and the way to record the next payment. A section like the lessons and payments below it, its
+ * header carries «Statement» (R1): every lesson and payment with the balance each left, to send.
  */
 @Composable
-internal fun BalanceCard(state: StudentDetails, onAddPayment: () -> Unit, modifier: Modifier = Modifier) {
+internal fun BalanceCard(
+    state: StudentDetails,
+    onAddPayment: () -> Unit,
+    onStatement: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val balance = state.balance
     val totals = state.totals
-    SectionCard(modifier) {
+    HeaderedCard(
+        title = stringResource(R.string.student_balance_title),
+        modifier = modifier,
+        action = SectionAction(stringResource(R.string.student_statement), onStatement),
+    ) {
         // The button beside the amount, not beside all four lines: there the lines below get the card's whole
         // width, and a large font does not fold «Last payment …» into a column of single words.
-        Column(HeadlineCardInset, verticalArrangement = Arrangement.spacedBy(Spacing.tight)) {
+        Column(BalanceInset, verticalArrangement = Arrangement.spacedBy(Spacing.tight)) {
             Text(
                 stringResource(if (balance is Balance.Credit) R.string.stat_credit else R.string.stat_debt),
                 style = MaterialTheme.typography.labelMedium,
@@ -54,7 +67,7 @@ internal fun BalanceCard(state: StudentDetails, onAddPayment: () -> Unit, modifi
                 Text(
                     balance.amount.text(),
                     style = MaterialTheme.typography.headlineSmall,
-                    color = if (balance is Balance.Owed) MaterialTheme.colorScheme.error else Color.Unspecified,
+                    color = if (balance is Balance.Owed) klasSemantics.debt else Color.Unspecified,
                     maxLines = 1,
                     // «12 450,50 BYN» at a large font scale must not wrap its currency onto a line of its own.
                     autoSize = TextAutoSize.StepBased(
@@ -87,14 +100,20 @@ internal fun BalanceCard(state: StudentDetails, onAddPayment: () -> Unit, modifi
     }
 }
 
+/** A headline card's inset under a header, which has already spaced the top. */
+private val BalanceInset = Modifier
+    .fillMaxWidth()
+    .padding(start = Spacing.gutter, end = Spacing.itemGap, bottom = Spacing.itemGap)
+
 /** «+ Payment», read out in full as «Add a payment». */
 @Composable
 private fun AddPaymentButton(onClick: () -> Unit) {
     val addPayment = stringResource(R.string.add_payment)
-    FilledTonalButton(
+    KlasButton(
         onClick = onClick,
-        contentPadding = ButtonDefaults.ButtonWithIconContentPadding,
         modifier = Modifier.padding(start = Spacing.inline).semantics { contentDescription = addPayment },
+        kind = ButtonKind.Tonal,
+        withIcon = true,
     ) {
         Icon(KlasIcons.Filled.Add, contentDescription = null, Modifier.size(ButtonDefaults.IconSize))
         Text(stringResource(R.string.payment_add_short), Modifier.padding(start = Spacing.inline))

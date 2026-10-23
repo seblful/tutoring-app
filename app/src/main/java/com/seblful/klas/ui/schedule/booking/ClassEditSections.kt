@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -31,7 +30,9 @@ import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.TickedMenuItem
 import com.seblful.klas.ui.common.classModeLabel
 import com.seblful.klas.ui.common.text
+import com.seblful.klas.ui.designsystem.component.KlasDivider
 import com.seblful.klas.ui.theme.KlasIcons
+import com.seblful.klas.ui.theme.klasSemantics
 
 /*
  * The booking form's three sections, in the order the tutor answers them: who the lesson is for, when it
@@ -123,7 +124,7 @@ private fun WhoField(
                 },
             )
         }
-        if (choices.isNotEmpty()) HorizontalDivider()
+        if (choices.isNotEmpty()) KlasDivider()
         MenuItem(
             text = { Text(stringResource(R.string.schedule_add_student)) },
             onClick = { dismiss(); setup.addStudent() },
@@ -150,7 +151,7 @@ private fun GroupRoster(
         Text(
             stringResource(R.string.class_group_no_active_members),
             style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.error,
+            color = klasSemantics.validation,
         )
         form.groupId?.let { id ->
             AddRow(stringResource(R.string.group_edit_members), onClick = { setup.groupEdit(id) })
@@ -178,7 +179,7 @@ private fun GroupRoster(
         Text(
             stringResource(R.string.class_group_no_members_left),
             style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.error,
+            color = klasSemantics.validation,
         )
     }
 }

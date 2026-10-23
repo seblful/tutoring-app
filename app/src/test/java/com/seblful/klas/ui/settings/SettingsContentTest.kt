@@ -11,6 +11,7 @@ import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isSelected
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -59,7 +60,7 @@ class SettingsContentTest {
         }
 
         compose.onNodeWithText("Your phone is blocking notifications").assertExists()
-        compose.onNodeWithText("Allow notifications").performClick()
+        compose.onNodeWithText("Allow").performClick()
         assertEquals(1, notificationFixes)
         assertFalse(settings.notificationsEnabled)
         assertTrue(settings.dailyAgendaEnabled)
@@ -139,7 +140,7 @@ class SettingsContentTest {
             KlasTheme { LessonSettingsContent(settings, actions.update, onAutoComplete = {}) }
         }
         val order = listOf(
-            "Lessons", "Default lesson duration", "Complete lessons automatically",
+            "Lessons", "Default lesson duration", "Mark lessons taught automatically",
             "Billing", "Currency", "Default group hourly rate",
         ).map { compose.onNodeWithText(it).fetchSemanticsNode().positionInRoot.y }
 
@@ -152,14 +153,15 @@ class SettingsContentTest {
     }
 
     @Test
-    fun `language choices follow autonym order and apply immediately`() {
+    fun `the language dropdown scrolls to new languages and applies immediately`() {
         compose.setContent {
             KlasTheme { AppearanceSettingsContent(settings, actions.update, showDynamicColor = false) }
         }
-        val english = compose.onNodeWithText("English")
-        val russian = compose.onNodeWithText("Русский")
-        assertTrue(english.fetchSemanticsNode().boundsInRoot.left < russian.fetchSemanticsNode().boundsInRoot.left)
-        english.performClick()
+        compose.onNodeWithText("Language").performScrollTo().performClick()
+        compose.onNodeWithText("한국어").performScrollTo().performClick()
+        assertEquals(AppLanguage.KOREAN, settings.language)
+        compose.onNodeWithText("Language").performScrollTo().performClick()
+        compose.onNodeWithText("English").performScrollTo().performClick()
         assertEquals(AppLanguage.ENGLISH, settings.language)
     }
 
@@ -175,12 +177,15 @@ class SettingsContentTest {
                         notifications = { opened = "notifications" },
                         calendar = { opened = "calendar" },
                         appearance = { opened = "appearance" },
+                        privacy = { opened = "privacy" },
                         diagnostics = { opened = "diagnostics" },
                     ),
                 )
             }
         }
-        compose.onNodeWithText("Your phone is blocking notifications").assertExists()
+        // Said twice: the banner above, with «Allow», and the Notifications row's summary.
+        compose.onAllNodesWithText("Your phone is blocking notifications").assertCountEquals(2)
+        compose.onNodeWithText("Allow").assertExists()
         val categories = mapOf(
             "Lessons & billing" to "lessons",
             "Notifications" to "notifications",
@@ -196,12 +201,34 @@ class SettingsContentTest {
     }
 
     @Test
+    fun `the index says live what the app holds, and a blocked feature's banner allows it`() {
+        var allowed = 0
+        compose.setContent {
+            KlasTheme {
+                SettingsIndex(
+                    AppSettings(), NotificationDelivery.BLOCKED, ReminderDelivery.BLOCKED, CalendarDelivery.OFF,
+                    SettingsNavigation({}, {}, {}, {}, {}, {}),
+                    facts = IndexFacts(subjects = 3, version = "0.4.6", crashRecorded = false),
+                    onAllowNotifications = { allowed++ },
+                )
+            }
+        }
+
+        compose.onNodeWithText("3 subjects").performScrollTo().assertExists()
+        compose.onNodeWithText("Never · set up weekly").assertExists()
+        compose.onNodeWithText("Version 0.4.6").assertExists()
+        compose.onNodeWithText("No crashes recorded").performScrollTo().assertExists()
+        compose.onNodeWithText("Allow").performScrollTo().performClick()
+        assertEquals(1, allowed)
+    }
+
+    @Test
     fun `the page open beside the index is the one marked on it`() {
         compose.setContent {
             KlasTheme {
                 SettingsIndex(
                     settings, NotificationDelivery.ENABLED, ReminderDelivery.ON_TIME, CalendarDelivery.OFF,
-                    SettingsNavigation({}, {}, {}, {}, {}),
+                    SettingsNavigation({}, {}, {}, {}, {}, {}),
                     open = SettingsCategory.CALENDAR,
                 )
             }

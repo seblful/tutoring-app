@@ -34,6 +34,7 @@ class AndroidNotifierClockTest {
         val notifier = AndroidNotifier(
             context, FakeNotificationPermission(),
             DisplayLocale(env.settingsRepo, DevicePreferences(listOf("en-US"), listOf("USD"))),
+            env.settingsRepo,
         )
         val lesson = TutoringClass(
             id = 77, studentId = 1, subjectId = 1, durationMinutes = 60,

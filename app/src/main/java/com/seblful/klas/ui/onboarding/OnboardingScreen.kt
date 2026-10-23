@@ -5,8 +5,10 @@ import androidx.compose.animation.EnterExitState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -18,18 +20,21 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -42,8 +47,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -53,11 +63,10 @@ import androidx.navigationevent.compose.rememberNavigationEventState
 import com.seblful.klas.R
 import com.seblful.klas.domain.model.Subject
 import com.seblful.klas.domain.people.SubjectNames
-import com.seblful.klas.storage.DocumentRef
 import com.seblful.klas.ui.backup.BACKUP_MIME_TYPES
 import com.seblful.klas.ui.backup.BackupResult
-import com.seblful.klas.ui.backup.BackupViewModel
-import com.seblful.klas.ui.backup.ConfirmRestoreDialog
+import com.seblful.klas.ui.backup.RestoreDialogs
+import com.seblful.klas.ui.backup.RestoreViewModel
 import com.seblful.klas.ui.backup.messageIn
 import com.seblful.klas.ui.common.ChoiceRow
 import com.seblful.klas.ui.common.CurrencyPicker
@@ -75,12 +84,16 @@ import com.seblful.klas.ui.common.predictiveBack
 import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.rememberOpenDocument
 import com.seblful.klas.ui.common.state.valueOrNull
+import com.seblful.klas.ui.designsystem.component.ButtonKind
+import com.seblful.klas.ui.designsystem.component.FormBar
+import com.seblful.klas.ui.designsystem.component.FormSaveBar
+import com.seblful.klas.ui.designsystem.component.KlasButton
 import com.seblful.klas.ui.navigation.fadeThrough
 import com.seblful.klas.ui.navigation.predictiveBackRelease
 import com.seblful.klas.ui.settings.LessonLengthSetting
 import com.seblful.klas.ui.students.StudentFormContent
 import com.seblful.klas.ui.students.StudentFormViewModel
-import com.seblful.klas.ui.subjects.SubjectNameDialog
+import com.seblful.klas.ui.students.studentBar
 import com.seblful.klas.ui.theme.KlasIcons
 import dev.zacsweers.metrox.viewmodel.metroViewModel
 
@@ -100,6 +113,9 @@ private enum class Step(val number: Int) {
     LOCALE(1),
     SUBJECTS(2),
     STUDENT(3),
+
+    /** Set up, the first student added: book their first lesson now, or not. Not counted — nothing to fill. */
+    READY(0),
     ;
 
     companion object {
@@ -118,10 +134,13 @@ private enum class Step(val number: Int) {
 fun OnboardingScreen(
     onFinished: () -> Unit,
     viewModel: OnboardingViewModel = metroViewModel(),
-    backupViewModel: BackupViewModel = metroViewModel(),
+    restoreViewModel: RestoreViewModel = metroViewModel(),
 ) {
     // Saveable, so turning the phone on step 3 does not throw the tutor back to the welcome screen.
     var step by rememberSaveable { mutableStateOf(Step.WELCOME) }
+    // The student step's student, once saved — whom the last step offers to book for.
+    var addedId by rememberSaveable { mutableStateOf<Long?>(null) }
+    var addedName by rememberSaveable { mutableStateOf("") }
     // Whether the last step change was a back gesture let go, which has drawn half of its own way out.
     var byGesture by remember { mutableStateOf(false) }
     fun goTo(next: Step, released: Boolean = false) {
@@ -130,8 +149,6 @@ fun OnboardingScreen(
     }
     val subjects by viewModel.subjects.collectAsStateWithLifecycle()
     val locale by viewModel.locale.collectAsStateWithLifecycle()
-    var addingSubject by rememberSaveable { mutableStateOf(false) }
-    var confirmRestore by rememberSaveable { mutableStateOf<String?>(null) }
     val messages = rememberMessages()
     val noPickerMsg = stringResource(R.string.student_contact_failed)
 
@@ -140,8 +157,8 @@ fun OnboardingScreen(
     val context by rememberUpdatedState(LocalContext.current)
     // Only a failure needs saying — a successful restore leaves this screen behind. It says which
     // failure: someone restoring on a fresh install has the least context for a bare «Не удалось».
-    LaunchedEffect(backupViewModel, messages) {
-        backupViewModel.events.stream.collect { result ->
+    LaunchedEffect(restoreViewModel, messages) {
+        restoreViewModel.events.stream.collect { result ->
             if (result is BackupResult.Failed) messages.show(result.failure.messageIn(context))
         }
     }
@@ -166,20 +183,17 @@ fun OnboardingScreen(
     // Said **after** the row has gone, not beside the call that removes it. Announcing it up front would
     // be «Предмет удалён» followed by «Не удалось удалить предмет» on a refusal — and a «Вернуть» offered
     // in between would add a *second* subject of the same name, which nothing refuses.
-    val undoLabel = stringResource(R.string.action_undo)
     val subjectRemovedMsg = stringResource(R.string.onboarding_subject_removed)
     fun removeSubject(subject: Subject) {
         viewModel.removeSubject(subject) {
-            messages.show(subjectRemovedMsg, undoLabel) { viewModel.addSubject(subject.name) }
+            messages.undoable(subjectRemovedMsg) { viewModel.addSubject(subject.name) }
         }
     }
 
     val restore = rememberOpenDocument(noPickerMsg, messages) { document ->
         // Whether a restore here would destroy anything is `restoreNeedsConfirming`'s — an import is a
         // full replace, and what that costs is a fact about the backup rather than about this screen.
-        // The handle is kept as its string: it survives rotation in a saveable, which a value class does not.
-        if (viewModel.restoreNeedsConfirming()) confirmRestore = document.value
-        else backupViewModel.import(document)
+        restoreViewModel.open(document, askFirst = viewModel.restoreNeedsConfirming())
     }
 
     // Every step but the first goes back one, so the welcome step's choices (restore, skip) stay
@@ -189,6 +203,8 @@ fun OnboardingScreen(
         Step.LOCALE -> Step.WELCOME
         Step.SUBJECTS -> Step.LOCALE
         Step.STUDENT -> Step.SUBJECTS
+        // Saved already: going back would add them a second time.
+        Step.READY -> null
     }
     // The system back, too: the screen sits outside the `NavDisplay`, so without this the gesture on step 2
     // left the app mid-setup while the arrow above went back a step. Outside it, the gesture's preview is
@@ -202,15 +218,27 @@ fun OnboardingScreen(
 
     KlasScreen(
         // The welcome screen names the app in its own body, under the mark — repeating it in the bar
-        // would be the same word twice on a screen with three lines of text.
+        // would be the same word twice on a screen with three lines of text. The last step says «All set»
+        // the same way, in its body.
         title = when (step) {
-            Step.WELCOME -> null
+            Step.WELCOME, Step.READY -> null
             Step.LOCALE -> stringResource(R.string.onboarding_locale_title)
             Step.SUBJECTS -> stringResource(R.string.onboarding_subjects_title)
             Step.STUDENT -> stringResource(R.string.onboarding_student_title)
         },
         onBack = previousStep?.let { back -> { goTo(back) } },
         messages = messages,
+        // Each step is a page of its own: the bar's tint is the step's scroll, not the one before it.
+        page = step,
+        // On every step, not only the welcome one: a tutor who stops wanting the setup halfway should not
+        // have to walk back to its first screen to leave it. The first and last steps offer theirs below.
+        actions = {
+            if (step != Step.WELCOME && step != Step.READY) {
+                KlasButton(onClick = { viewModel.complete(); onFinished() }, kind = ButtonKind.Text) {
+                    Text(stringResource(R.string.onboarding_skip))
+                }
+            }
+        },
         // Not only inside the embedded student form: the step's «Готово» button sits *below* the form,
         // so without this the keyboard covers the one control that finishes setup.
         imeAware = true,
@@ -234,6 +262,13 @@ fun OnboardingScreen(
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.padding(start = Spacing.gutter, top = Spacing.inline),
+                    )
+                    LinearProgressIndicator(
+                        progress = { shown.number.toFloat() / Step.total },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = Spacing.gutter)
+                            .padding(top = Spacing.tight),
                     )
                 }
                 when (shown) {
@@ -280,7 +315,7 @@ fun OnboardingScreen(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.spacedBy(Spacing.inline),
                         ) {
-                            Button(
+                            KlasButton(
                                 onClick = { goTo(Step.LOCALE) },
                                 modifier = Modifier.fillMaxWidth(),
                             ) { Text(stringResource(R.string.onboarding_start)) }
@@ -288,10 +323,11 @@ fun OnboardingScreen(
                             // choice is made with the outcome in view rather than after a paragraph
                             // above the buttons that has to describe all three at once.
                             Caption(stringResource(R.string.onboarding_welcome_desc))
-                            OutlinedButton(
+                            KlasButton(
                                 onClick = { restore(BACKUP_MIME_TYPES) },
                                 modifier = Modifier.fillMaxWidth(),
-                                contentPadding = ButtonDefaults.ButtonWithIconContentPadding,
+                                kind = ButtonKind.Outlined,
+                                withIcon = true,
                             ) {
                                 Icon(KlasIcons.Outlined.Download, null, Modifier.size(ButtonDefaults.IconSize))
                                 Text(
@@ -300,9 +336,10 @@ fun OnboardingScreen(
                                 )
                             }
                             Caption(stringResource(R.string.onboarding_restore_desc))
-                            TextButton(
+                            KlasButton(
                                 onClick = { viewModel.complete(); onFinished() },
                                 modifier = Modifier.fillMaxWidth(),
+                                kind = ButtonKind.Text,
                             ) { Text(stringResource(R.string.onboarding_skip)) }
                             Caption(stringResource(R.string.onboarding_skip_desc))
                         }
@@ -343,12 +380,14 @@ fun OnboardingScreen(
                                 )
                             }
                         }
-                        Button(
-                            onClick = { goTo(Step.SUBJECTS) },
-                            // Never disabled: both answers are already valid — that is what pre-setting them
-                            // from the phone means — so there is nothing here for the tutor to supply.
-                            modifier = Modifier.fillMaxWidth().padding(Spacing.gutter),
-                        ) { Text(stringResource(R.string.onboarding_continue)) }
+                        // Never disabled: both answers are already valid — that is what pre-setting them
+                        // from the phone means — so there is nothing here for the tutor to supply.
+                        FormSaveBar(
+                            stringResource(R.string.onboarding_continue),
+                            FormBar.Ready(),
+                            onSave = { goTo(Step.SUBJECTS) },
+                            bottomInset = NoInset,
+                        )
                     }
 
                     Step.SUBJECTS -> {
@@ -365,14 +404,11 @@ fun OnboardingScreen(
                             onRemove = ::removeSubject,
                             modifier = Modifier.padding(horizontal = Spacing.gutter),
                         )
-                        OutlinedButton(
-                            onClick = { addingSubject = true },
-                            modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.gutter),
-                            contentPadding = ButtonDefaults.ButtonWithIconContentPadding,
-                        ) {
-                            Icon(KlasIcons.Filled.Add, null, Modifier.size(ButtonDefaults.IconSize))
-                            Text(stringResource(R.string.subjects_add), Modifier.padding(start = Spacing.inline))
-                        }
+                        // Typed in place, Enter adding each: a dialog per subject was three taps for a word.
+                        SubjectField(
+                            onAdd = viewModel::addSubject,
+                            modifier = Modifier.padding(horizontal = Spacing.gutter).padding(top = Spacing.inline),
+                        )
                         // «Нет предметов» is usually the truth on this screen — it runs on a fresh install —
                         // but not always: the step is reachable again once subjects have been added, and it
                         // must not say that over three the tutor has just typed. See [Loadable].
@@ -409,13 +445,12 @@ fun OnboardingScreen(
                                 }
                             }
                         }
-                        Button(
-                            onClick = { goTo(Step.STUDENT) },
-                            // Disabled while the list has not arrived, as it is when the list is empty: the
-                            // step's gate is "at least one subject", and nothing yet says there is one.
-                            enabled = !added.isNullOrEmpty(),
-                            modifier = Modifier.fillMaxWidth().padding(Spacing.gutter),
-                        ) { Text(stringResource(R.string.onboarding_continue)) }
+                        FormSaveBar(
+                            stringResource(R.string.onboarding_continue),
+                            subjectsBar(added),
+                            { goTo(Step.STUDENT) },
+                            NoInset,
+                        )
                     }
 
                     Step.STUDENT -> {
@@ -435,27 +470,66 @@ fun OnboardingScreen(
                             modifier = Modifier.weight(1f).fillMaxWidth(),
                             contacts = false,
                         )
-                        Button(
-                            onClick = { studentVm.save { viewModel.complete(); onFinished() } },
-                            enabled = studentState.canSave,
-                            modifier = Modifier.fillMaxWidth().padding(Spacing.gutter),
-                        ) { Text(stringResource(R.string.onboarding_finish)) }
+                        FormSaveBar(
+                            stringResource(R.string.onboarding_finish),
+                            studentBar(studentState),
+                            {
+                                val name = studentState.form.name.trim()
+                                studentVm.create { id ->
+                                    addedId = id
+                                    addedName = name
+                                    goTo(Step.READY)
+                                }
+                            },
+                            NoInset,
+                        )
+                    }
+
+                    Step.READY -> addedId?.let { id ->
+                        FirstLessonStep(
+                            addedName,
+                            onBook = { viewModel.complete(bookFor = id); onFinished() },
+                            onNotNow = { viewModel.complete(); onFinished() },
+                        )
                     }
                 }
             }
         }
     }
 
-    if (addingSubject) {
-        SubjectNameDialog(onConfirm = { viewModel.addSubject(it) }, onDismiss = { addingSubject = false })
-    }
+    RestoreDialogs(restoreViewModel)
+}
 
-    confirmRestore?.let { document ->
-        ConfirmRestoreDialog(
-            onConfirm = { backupViewModel.import(DocumentRef(document)) },
-            onDismiss = { confirmRestore = null },
-        )
+/** Already applied around the steps (`AnimatedContent`'s padding), so the bar adds none of its own. */
+private val NoInset = PaddingValues()
+
+/** A subject's name, added on Enter or the «+» and emptied for the next. */
+@Composable
+private fun SubjectField(onAdd: (String) -> Unit, modifier: Modifier = Modifier) {
+    var name by rememberSaveable { mutableStateOf("") }
+    fun add() {
+        if (name.isBlank()) return
+        onAdd(name.trim())
+        name = ""
     }
+    OutlinedTextField(
+        value = name,
+        onValueChange = { name = it },
+        label = { Text(stringResource(R.string.subjects_add)) },
+        supportingText = { Text(stringResource(R.string.onboarding_subject_field_hint)) },
+        singleLine = true,
+        keyboardOptions = KeyboardOptions(
+            capitalization = KeyboardCapitalization.Sentences,
+            imeAction = ImeAction.Done,
+        ),
+        keyboardActions = KeyboardActions(onDone = { add() }),
+        trailingIcon = {
+            IconButton(onClick = ::add, enabled = name.isNotBlank()) {
+                Icon(KlasIcons.Filled.Add, stringResource(R.string.subjects_add))
+            }
+        },
+        modifier = modifier.fillMaxWidth(),
+    )
 }
 
 /**
@@ -513,5 +587,73 @@ private fun ValueLine(icon: ImageVector, text: String) {
             modifier = Modifier.size(20.dp),
         )
         Text(text, style = MaterialTheme.typography.bodyMedium)
+    }
+}
+
+/**
+ * The subjects step's bar: «a subject» still needed — also while the list has not arrived, since nothing yet
+ * says there is one — else how many, by name.
+ */
+@Composable
+private fun subjectsBar(added: List<Subject>?): FormBar =
+    if (added.isNullOrEmpty()) {
+        FormBar.Missing(listOf(stringResource(R.string.form_gap_subject)))
+    } else {
+        FormBar.Ready(
+            pluralStringResource(R.plurals.settings_subjects_count, added.size, added.size),
+            added.joinToString { it.name },
+        )
+    }
+
+/**
+ * The step after the setup: the student is in, and their first lesson is one tap away — or «Not now», to Today.
+ * Laid out as the welcome step is, a mark and a few centred lines over the way on, rather than as a form: there
+ * is nothing left to fill in. Optional, as everything after the subjects is: no prompt, nothing asked of the phone.
+ */
+@Composable
+private fun ColumnScope.FirstLessonStep(name: String, onBook: () -> Unit, onNotNow: () -> Unit) {
+    BoxWithConstraints(Modifier.fillMaxWidth().weight(1f)) {
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .heightIn(min = maxHeight)
+                .padding(horizontal = Spacing.sectionGap),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(Spacing.itemGap, Alignment.CenterVertically),
+        ) {
+            Surface(shape = CircleShape, color = MaterialTheme.colorScheme.primaryContainer) {
+                Icon(
+                    KlasIcons.Filled.Check,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                    modifier = Modifier.padding(Spacing.itemGap).size(48.dp),
+                )
+            }
+            Text(
+                stringResource(R.string.onboarding_ready_title),
+                style = MaterialTheme.typography.headlineSmall,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.semantics { heading() },
+            )
+            Text(
+                stringResource(R.string.onboarding_ready_body, name),
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+            )
+        }
+    }
+    Column(
+        Modifier.fillMaxWidth().padding(Spacing.gutter),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(Spacing.inline),
+    ) {
+        KlasButton(onClick = onBook, modifier = Modifier.fillMaxWidth()) {
+            Text(stringResource(R.string.onboarding_book_first))
+        }
+        KlasButton(onClick = onNotNow, modifier = Modifier.fillMaxWidth(), kind = ButtonKind.Text) {
+            Text(stringResource(R.string.onboarding_not_now))
+        }
     }
 }

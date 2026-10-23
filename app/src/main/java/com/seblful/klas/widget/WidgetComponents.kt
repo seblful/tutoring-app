@@ -31,6 +31,7 @@ import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextAlign
 import androidx.glance.text.TextStyle
+import com.seblful.klas.ui.common.Spacing
 
 /*
  * Building blocks shared by the widgets, from the Glance canonical layouts (Android platform samples).
@@ -41,7 +42,7 @@ import androidx.glance.text.TextStyle
 internal fun WidgetListItem(
     headlineContent: @Composable () -> Unit,
     modifier: GlanceModifier = GlanceModifier,
-    contentSpacing: Dp = 16.dp,
+    contentSpacing: Dp = Spacing.leading,
     supportingContent: (@Composable () -> Unit)? = null,
     leadingContent: (@Composable () -> Unit)? = null,
     onClick: Action? = null,
@@ -71,7 +72,7 @@ internal fun <T> RoundedScrollingLazyColumn(
     itemId: (T) -> Long,
     itemContentProvider: @Composable (item: T) -> Unit,
     modifier: GlanceModifier = GlanceModifier,
-    verticalItemsSpacing: Dp = 4.dp,
+    verticalItemsSpacing: Dp = Spacing.tight,
 ) {
     Box(modifier = modifier.fillMaxSize().cornerRadius(16.dp)) {
         LazyColumn {
@@ -107,7 +108,7 @@ internal fun NoDataContent(
                 colorFilter = ColorFilter.tint(GlanceTheme.colors.secondary),
                 contentDescription = null,
             )
-            Spacer(modifier = GlanceModifier.height(8.dp))
+            Spacer(modifier = GlanceModifier.height(Spacing.inline))
         }
         Text(
             text = noDataText,
@@ -118,9 +119,9 @@ internal fun NoDataContent(
                 fontSize = if (LocalSize.current.width < 260.dp) 14.sp else 16.sp,
                 textAlign = TextAlign.Center,
             ),
-            modifier = GlanceModifier.padding(horizontal = 12.dp),
+            modifier = GlanceModifier.padding(horizontal = Spacing.itemGap),
         )
-        Spacer(modifier = GlanceModifier.height(8.dp))
+        Spacer(modifier = GlanceModifier.height(Spacing.inline))
         FilledButton(
             text = actionButtonText,
             icon = actionButtonIcon?.let(::ImageProvider),

@@ -2,6 +2,8 @@ package com.seblful.klas.data.people
 
 import com.seblful.klas.calendar.CalendarMirror
 import com.seblful.klas.data.lessons.ClassRepository
+import com.seblful.klas.data.lessons.SessionReceipt
+import com.seblful.klas.data.lessons.UndoResult
 import com.seblful.klas.data.local.upsertedId
 import com.seblful.klas.data.toDomain
 import com.seblful.klas.data.toEntity
@@ -58,6 +60,27 @@ class StudentRepository @Inject constructor(
         val cancelled = if (archived) classes.cancelScheduledFor(student.id).size else 0
         dao.upsert(student.copy(archived = archived).toEntity())
         return cancelled
+    }
+
+    /**
+     * Archives [student] undoably: their planned lessons are called off as by [setArchived], and the
+     * receipts returned take them back through [unarchive]. The caller settles the receipts
+     * ([ClassRepository.settleAll]) once the undo window closes.
+     */
+    suspend fun archive(student: Student): List<SessionReceipt> {
+        val cancelled = classes.cancelScheduledForUndoable(student.id)
+        dao.upsert(student.copy(archived = true).toEntity())
+        return cancelled
+    }
+
+    /**
+     * Takes [archive] back: the student is active again, and each lesson it called off is restored while
+     * it is unchanged since and its hour free. Returns how many could not be.
+     */
+    suspend fun unarchive(studentId: Long, cancelled: List<SessionReceipt>): Int {
+        // The stored row, not the caller's copy, so an edit made in the window survives.
+        dao.getById(studentId)?.let { dao.upsert(it.copy(archived = false)) }
+        return classes.undoAll(cancelled).count { it != UndoResult.Restored }
     }
 
     /** Who is priced for [subjectId] — the candidates for a group bound to that subject. */

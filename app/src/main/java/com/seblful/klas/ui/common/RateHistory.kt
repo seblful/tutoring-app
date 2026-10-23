@@ -62,6 +62,20 @@ fun RateHistory(changes: List<RateChange>, modifier: Modifier = Modifier) {
     }
 }
 
+/**
+ * A rate's last change in a line — "since 1 Sep · was 20 $/h" — or null while it has not changed or the
+ * day it did is not known. [changes] newest first, as [RateHistoryList] takes them.
+ */
+@Composable
+fun rateChangeLine(changes: List<RateChange>): String? {
+    val change = changes.firstOrNull()
+    val from = change?.from
+    val at = change?.at
+    if (from == null || at == null) return null
+    val was = stringResource(R.string.price_per_hour, from.text())
+    return stringResource(R.string.rate_since_was, at.formatDate(), was)
+}
+
 private const val MaxRateRows = 5
 
 @Composable

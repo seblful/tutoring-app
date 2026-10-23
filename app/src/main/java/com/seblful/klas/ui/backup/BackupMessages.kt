@@ -15,4 +15,6 @@ fun BackupFailure.messageIn(context: Context): String = when (this) {
 
     BackupFailure.FileUnavailable -> context.getString(R.string.backup_error_file)
     BackupFailure.Malformed -> context.getString(R.string.backup_error_malformed)
+    BackupFailure.PasswordNeeded -> context.getString(R.string.backup_error_password_needed)
+    BackupFailure.WrongPassword -> context.getString(R.string.backup_error_wrong_password)
 }

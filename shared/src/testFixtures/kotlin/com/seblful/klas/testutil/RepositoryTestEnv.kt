@@ -16,6 +16,7 @@ import com.seblful.klas.data.people.EnrollmentRepository
 import com.seblful.klas.data.people.GroupRepository
 import com.seblful.klas.data.people.StudentRepository
 import com.seblful.klas.data.people.SubjectRepository
+import com.seblful.klas.data.settings.GuideRepository
 import com.seblful.klas.data.settings.SettingsRepository
 import com.seblful.klas.maintenance.Maintenance
 import com.seblful.klas.notifications.DueDigest
@@ -64,6 +65,7 @@ open class RepositoryTestEnv(
     val digestScheduler = RecordingDigestScheduler()
 
     val settingsRepo = SettingsRepository(settingsDao, preferences)
+    val guideRepo = GuideRepository(settingsRepo, db.guideDao())
     val calendarMirror =
         CalendarMirror(
             classDao, attendanceDao, studentDao, subjectDao, groupDao, calendar, settingsRepo, homeworkDao, transactor,
@@ -97,7 +99,7 @@ open class RepositoryTestEnv(
      * SQLite rather than by a likeness of it. The *failure* paths (an unsupported version, a file that
      * isn't a backup) run through the production code that classifies them.
      */
-    val backupManager = BackupManager(transactor = transactor, snapshot = snapshotDao)
+    val backupManager = BackupManager(transactor = transactor, snapshot = snapshotDao, settings = settingsRepo)
 
     /**
      * Seeds a starting state through the repositories rather than into the DAOs — see [Fixtures] for
@@ -105,11 +107,16 @@ open class RepositoryTestEnv(
      */
     val fixtures: Fixtures by lazy { Fixtures(this) }
 
+    /** Where a restore keeps what it replaced, so a test can undo it. */
+    val restoreSnapshots = InMemoryRestoreSnapshots()
+
     val backupRestore = BackupRestore(
         backup = backupManager,
         settings = settingsRepo,
         calendar = calendarMirror,
         reminders = reminders,
+        snapshots = restoreSnapshots,
+        clock = clock,
     )
 
     /**

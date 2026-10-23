@@ -9,6 +9,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.ui.res.stringResource
+import com.seblful.klas.R
 import com.seblful.klas.ui.common.state.UiEvents
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -17,6 +19,8 @@ import kotlinx.coroutines.launch
 class Messages(
     val hostState: SnackbarHostState,
     private val scope: CoroutineScope,
+    /** «Undo», in the screen's language — the one word every reversible change is taken back with. */
+    private val undoLabel: String,
 ) {
     /** Shows [text]. */
     fun show(text: String) {
@@ -25,6 +29,12 @@ class Messages(
             hostState.showSnackbar(text, duration = SnackbarDuration.Short)
         }
     }
+
+    /**
+     * Says what was just done, with «Undo» — **one call, one wording** for every change that can be taken back;
+     * [undo] puts it back if tapped while the message is up.
+     */
+    fun undoable(text: String, undo: () -> Unit) = show(text, undoLabel, undo)
 
     /** Shows [text] with something to do about it — «Показать», «Отменить». */
     fun show(text: String, actionLabel: String, onAction: () -> Unit) {
@@ -45,7 +55,8 @@ class Messages(
 fun rememberMessages(): Messages {
     val hostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
-    return remember(hostState, scope) { Messages(hostState, scope) }
+    val undo = stringResource(R.string.action_undo)
+    return remember(hostState, scope, undo) { Messages(hostState, scope, undo) }
 }
 
 /**

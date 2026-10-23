@@ -10,6 +10,7 @@ import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Payment
 import com.seblful.klas.domain.people.Phone
+import com.seblful.klas.print.Sheet
 import com.seblful.klas.queries.homework.AssigneeChoice
 import com.seblful.klas.testutil.current
 import com.seblful.klas.testutil.observing
@@ -184,46 +185,6 @@ class StudentDetailViewModelTest : StudentDetailTestFixture() {
         }
 
     @Test
-    fun `editStudent trims fields and ignores a blank name`() = runTest(mainRule.dispatcher) {
-        val sid = seedStudent("Аня")
-        val vm = vm(sid)
-        observing(vm.state)
-        runCurrent()
-
-        vm.editStudent(name = "   ", phone = "x", email = "y", note = "z", mode = ClassMode.REMOTE)
-        runCurrent()
-        assertEquals("Аня", env.studentDao.getById(sid)?.name) // blank name rejected
-
-        vm.editStudent(
-            name = "  Борис  ",
-            phone = " +375 29 1234567 ",
-            email = " e@x.co ",
-            note = " n ",
-            mode = ClassMode.REMOTE,
-        )
-        runCurrent()
-        val updated = env.studentDao.getById(sid)!!
-        assertEquals("Борис", updated.name)
-        assertEquals("+375 29 1234567", updated.phone)
-        assertEquals("e@x.co", updated.email)
-        assertEquals(ClassMode.REMOTE, updated.defaultMode)
-    }
-
-    @Test
-    fun `editStudent keeps no phone when only the dialling code was left`() = runTest(mainRule.dispatcher) {
-        val sid = seedStudent("Аня")
-        val vm = vm(sid)
-        observing(vm.state)
-        runCurrent()
-
-        val codeOnly = Phone.prefill(Currency.GBP)
-        vm.editStudent(name = "Аня", phone = codeOnly, email = "", note = "", mode = ClassMode.IN_PERSON)
-        runCurrent()
-
-        assertEquals("", env.studentDao.getById(sid)!!.phone)
-    }
-
-    @Test
     fun `writes are launched into the application scope, not the view model's`() = runTest(mainRule.dispatcher) {
         val sid = seedStudent(name = "Аня")
         val subject = env.fixtures.subject(name = "Математика")
@@ -235,18 +196,41 @@ class StudentDetailViewModelTest : StudentDetailTestFixture() {
         mainRule.appScope.cancel()
 
         vm.addPayment(Money.ofMajor(50), today)
-        vm.editStudent("Анна", "", "", "", ClassMode.IN_PERSON)
         vm.setPrice(subject, Money.ofMajor(40))
         runCurrent()
 
         assertTrue("no payment was recorded", env.stored().payments.isEmpty())
-        assertEquals("the student was not renamed", "Аня", env.studentDao.getById(sid)!!.name)
         assertEquals(
             "the rate was not changed",
             Money.ofMajor(30).minor,
             env.priceDao.get(sid, subject)!!.amountMinor,
         )
     }
+
+    @Test
+    fun `a payment correction is offered back, and its undo restores the payment`() =
+        runTest(mainRule.dispatcher) {
+            val sid = seedStudent()
+            val vm = vm(sid)
+            observing(vm.state)
+            runCurrent()
+            val recordedOn = today.minus(3, DateTimeUnit.DAY)
+            vm.addPayment(Money.ofMajor(40), recordedOn)
+            runCurrent()
+            val original = env.stored().payments.single()
+            val events = mutableListOf<StudentDetailViewModel.Event>()
+            backgroundScope.launch { vm.events.stream.collect { events += it } }
+
+            vm.editPayment(original.toDomain(), Money.ofMajor(45), recordedOn)
+            runCurrent()
+            val corrected = events.single() as StudentDetailViewModel.Event.PaymentCorrected
+
+            vm.undoPaymentCorrection(corrected)
+            runCurrent()
+
+            assertEquals(original, env.stored().payments.single())
+            assertEquals("the undo went through, so nothing more is said", 1, events.size)
+        }
 
     @Test
     fun `restoring a deleted payment is launched into the application scope`() = runTest(mainRule.dispatcher) {
@@ -404,5 +388,33 @@ class StudentDetailViewModelTest : StudentDetailTestFixture() {
         advanceTimeBy(untilMidnight.inWholeMilliseconds)
 
         assertEquals(HomeworkRules.Due.TODAY, vm.state.current.homework.current.single().due)
+    }
+
+    @Test
+    fun `the statement is printed and shared as a PDF`() = runTest(mainRule.dispatcher) {
+        val vm = vm(seedStudent())
+        val sheet = Sheet("Anna: lessons and payments", emptyList())
+
+        vm.shareStatement("Statement — Anna.pdf", "Anna: lessons and payments", sheet)
+        runCurrent()
+
+        val shared = sharing.shared.single()
+        assertEquals("Statement — Anna.pdf", shared.filename)
+        assertEquals("application/pdf", shared.mimeType)
+        assertEquals("%PDF Anna: lessons and payments", shared.text)
+        assertEquals(listOf(sheet), printer.printed)
+    }
+
+    @Test
+    fun `a statement nothing can receive is said`() = runTest(mainRule.dispatcher) {
+        val vm = vm(seedStudent())
+        sharing.failing = true
+        val events = mutableListOf<StudentDetailViewModel.Event>()
+        backgroundScope.launch { vm.events.stream.collect { events += it } }
+
+        vm.shareStatement("Statement — Anna.pdf", "Anna", Sheet("Anna", emptyList()))
+        runCurrent()
+
+        assertEquals(listOf(StudentDetailViewModel.Event.ShareFailed), events)
     }
 }

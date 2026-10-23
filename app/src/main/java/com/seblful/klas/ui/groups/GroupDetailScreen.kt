@@ -18,11 +18,13 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -51,10 +53,10 @@ import com.seblful.klas.ui.common.OverflowMenu
 import com.seblful.klas.ui.common.OverviewSection
 import com.seblful.klas.ui.common.SectionCard
 import com.seblful.klas.ui.common.SectionNote
-import com.seblful.klas.ui.common.ShowMessagesFor
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.TitleSize
 import com.seblful.klas.ui.common.animateInPlace
+import com.seblful.klas.ui.common.archivedMessage
 import com.seblful.klas.ui.common.plusInset
 import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.sectionRowColors
@@ -64,7 +66,9 @@ import com.seblful.klas.ui.homework.HomeworkSection
 import com.seblful.klas.ui.homework.homeworkUndo
 import com.seblful.klas.ui.people.NextLessonCard
 import com.seblful.klas.ui.theme.KlasIcons
+import com.seblful.klas.ui.theme.klasSemantics
 import dev.zacsweers.metrox.viewmodel.assistedMetroViewModel
+import kotlin.time.Instant
 
 private data class GroupNavigation(
     val back: () -> Unit,
@@ -119,8 +123,11 @@ private fun GroupCard(
 ) {
     val state = overview.details
     val group = state.group
+    // A value here, not a delegate the list's builder reads — see docs/ui-conventions.md.
+    val now = viewModel.minute.collectAsStateWithLifecycle().value
 
     var confirmingDelete by remember { mutableStateOf(false) }
+    var confirmingArchive by remember { mutableStateOf(false) }
     // Taken when the dialog opens — see `GroupDetailViewModel.homeworkChoice`.
     var addingHomework by remember { mutableStateOf<AssigneeChoice?>(null) }
     var openedHomework by remember { mutableStateOf<HomeworkRow?>(null) }
@@ -144,7 +151,12 @@ private fun GroupCard(
             if (group != null) {
                 GroupOverflowMenu(
                     archived = group.archived,
-                    onArchive = { viewModel.setArchived(!group.archived) },
+                    // Archiving calls the planned lessons off, so it asks first when there are any — as a
+                    // student's archive does. Restoring takes nothing away and never asks.
+                    onArchive = {
+                        if (!group.archived && state.plannedLessons > 0) confirmingArchive = true
+                        else viewModel.setArchived(!group.archived)
+                    },
                     onDelete = { confirmingDelete = true }.takeIf { state.canDelete },
                 )
             }
@@ -174,9 +186,19 @@ private fun GroupCard(
             item(key = GroupDetailKeys.EARNED, contentType = GroupDetailKeys.EARNED) {
                 EarnedCard(state.totals, modifier = animateInPlace(cardModifier))
             }
+            // Members before lessons: who is in it, who comes and who owes is what a tutor checks first.
+            item(key = GroupDetailKeys.MEMBERS, contentType = GroupDetailKeys.MEMBERS) {
+                MembersSection(
+                    members = state.members,
+                    onMemberClick = navigation.member,
+                    onEditMembers = navigation.edit,
+                    modifier = animateInPlace(cardModifier),
+                )
+            }
             item(key = GroupDetailKeys.LESSONS, contentType = GroupDetailKeys.LESSONS) {
                 LessonsSection(
                     overview = overview,
+                    now = now,
                     onLessonClick = navigation.lesson,
                     onSeeAll = { navigation.seeAll(GroupSection.LESSONS) },
                     modifier = animateInPlace(cardModifier),
@@ -194,14 +216,6 @@ private fun GroupCard(
                     modifier = animateInPlace(cardModifier),
                 )
             }
-            item(key = GroupDetailKeys.MEMBERS, contentType = GroupDetailKeys.MEMBERS) {
-                MembersSection(
-                    members = state.members,
-                    onMemberClick = navigation.member,
-                    onEditMembers = navigation.edit,
-                    modifier = animateInPlace(cardModifier),
-                )
-            }
         }
     }
 
@@ -213,6 +227,19 @@ private fun GroupCard(
         onEdit = viewModel::editHomework,
         undo = homeworkUndo,
     )
+
+    if (confirmingArchive) {
+        val parts = listOf(
+            pluralStringResource(R.plurals.student_archive_lessons_part, state.plannedLessons, state.plannedLessons),
+            stringResource(R.string.student_archive_question),
+        )
+        ConfirmDialog(
+            text = parts.joinToString(" "),
+            confirmLabel = stringResource(R.string.action_archive),
+            onConfirm = { viewModel.setArchived(true) },
+            onDismiss = { confirmingArchive = false },
+        )
+    }
 
     if (confirmingDelete) {
         ConfirmDialog(
@@ -235,14 +262,22 @@ private fun HomeworkEntry(requested: Boolean, groupId: Long?, onOpen: () -> Unit
     }
 }
 
+/** A hand collector rather than `ShowMessagesFor`: an archive is said with its Undo. */
 @Composable
 internal fun ShowGroupMessages(viewModel: GroupDetailViewModel, messages: Messages) {
-    val deleteBlockedMsg = stringResource(R.string.group_delete_blocked)
-    val writeFailedMsg = stringResource(R.string.action_failed)
-    ShowMessagesFor(viewModel.events, messages) { event ->
-        when (event) {
-            GroupDetailViewModel.Event.DELETE_BLOCKED_HAS_LESSONS -> deleteBlockedMsg
-            GroupDetailViewModel.Event.WRITE_FAILED -> writeFailedMsg
+    val resources by rememberUpdatedState(LocalResources.current)
+    LaunchedEffect(viewModel) {
+        viewModel.events.stream.collect { event ->
+            when (event) {
+                GroupDetailViewModel.Event.DeleteBlockedHasLessons ->
+                    messages.show(resources.getString(R.string.group_delete_blocked))
+                is GroupDetailViewModel.Event.Archived ->
+                    messages.undoable(resources.archivedMessage(event.cancelled.size)) { viewModel.undoArchive(event) }
+                is GroupDetailViewModel.Event.ArchiveUndoKept -> messages.show(
+                    resources.getQuantityString(R.plurals.archive_undo_kept, event.count, event.count),
+                )
+                GroupDetailViewModel.Event.WriteFailed -> messages.show(resources.getString(R.string.action_failed))
+            }
         }
     }
 }
@@ -266,7 +301,7 @@ private fun GroupHeader(state: GroupDetailState, modifier: Modifier = Modifier) 
             FactsLine(
                 listOf(
                     state.subjectName ?: stringResource(R.string.group_no_subject),
-                    stringResource(R.string.price_per_hour, group.price.text()),
+                    stringResource(R.string.price_per_hour_per_student, group.price.text()),
                 ),
                 modifier = Modifier.weight(1f, fill = false),
             )
@@ -320,6 +355,7 @@ internal fun EarnedCard(totals: Taught.Totals, modifier: Modifier = Modifier) {
 @Composable
 private fun LessonsSection(
     overview: GroupOverview,
+    now: Instant,
     onLessonClick: (Long) -> Unit,
     onSeeAll: () -> Unit,
     modifier: Modifier = Modifier,
@@ -333,7 +369,12 @@ private fun LessonsSection(
     ) {
         if (all.isEmpty()) SectionNote(stringResource(R.string.group_lessons_empty))
         overview.lessons.forEach { row ->
-            GroupLessonItem(row, onClick = { onLessonClick(row.session.first.id) }, colors = sectionRowColors())
+            GroupLessonItem(
+                row,
+                now,
+                onClick = { onLessonClick(row.session.first.id) },
+                colors = sectionRowColors(),
+            )
         }
     }
 }
@@ -371,14 +412,14 @@ private fun GroupOverflowMenu(archived: Boolean, onArchive: () -> Unit, onDelete
                 text = {
                     Text(
                         stringResource(R.string.action_delete),
-                        color = MaterialTheme.colorScheme.error,
+                        color = klasSemantics.destructive,
                     )
                 },
                 leadingIcon = {
                     Icon(
                         KlasIcons.Outlined.Delete,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.error,
+                        tint = klasSemantics.destructive,
                     )
                 },
                 onClick = { close(); onDelete() },

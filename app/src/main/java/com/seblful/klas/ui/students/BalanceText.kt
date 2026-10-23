@@ -7,6 +7,7 @@ import androidx.compose.ui.res.stringResource
 import com.seblful.klas.R
 import com.seblful.klas.domain.model.Balance
 import com.seblful.klas.ui.common.text
+import com.seblful.klas.ui.theme.klasSemantics
 
 /** Human-readable balance line: debt, credit, or settled. */
 @Composable
@@ -20,5 +21,5 @@ fun balanceDescription(balance: Balance): String = when (balance) {
 fun balanceColor(balance: Balance): Color = when (balance) {
     Balance.Settled -> MaterialTheme.colorScheme.onSurfaceVariant
     is Balance.Credit -> MaterialTheme.colorScheme.onSurface
-    is Balance.Owed -> MaterialTheme.colorScheme.error
+    is Balance.Owed -> klasSemantics.debt
 }

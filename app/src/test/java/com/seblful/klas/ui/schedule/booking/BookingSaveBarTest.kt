@@ -15,6 +15,7 @@ import androidx.compose.ui.unit.dp
 import com.seblful.klas.domain.schedule.Scheduling
 import com.seblful.klas.domain.schedule.TimeConflict
 import com.seblful.klas.format.MoneyField
+import com.seblful.klas.ui.designsystem.component.FormSaveBar
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import org.junit.Assert.assertTrue
@@ -48,7 +49,9 @@ class BookingSaveBarTest {
         var state by mutableStateOf(ready)
         compose.setContent {
             MaterialTheme {
-                Box(Modifier.testTag(TAG)) { BookingSaveBar(state, isNew = true, PaddingValues(0.dp), onSave = {}) }
+                Box(Modifier.testTag(TAG)) {
+                    FormSaveBar("Book", bookingBar(state), onSave = {}, PaddingValues(0.dp))
+                }
             }
         }
         val twoLines = height()

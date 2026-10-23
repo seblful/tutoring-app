@@ -4,6 +4,8 @@ import androidx.lifecycle.SavedStateHandle
 import com.seblful.klas.queries.students.StudentDetailsQuery
 import com.seblful.klas.testutil.MainDispatcherRule
 import com.seblful.klas.testutil.MutableClock
+import com.seblful.klas.testutil.RecordingDocumentSharing
+import com.seblful.klas.testutil.RecordingSheetPrinter
 import com.seblful.klas.testutil.TestEnv
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.datetime.LocalDate
@@ -21,6 +23,8 @@ abstract class StudentDetailTestFixture {
     protected val zone: TimeZone = TimeZone.of("Europe/Minsk")
     protected val today: LocalDate = LocalDate(2026, 5, 17)
     protected val clock = MutableClock(today.atTime(14, 30).toInstant(zone), zone)
+    protected val sharing = RecordingDocumentSharing()
+    protected val printer = RecordingSheetPrinter()
 
     @get:Rule(order = 0)
     val env = TestEnv(clock = clock)
@@ -29,6 +33,7 @@ abstract class StudentDetailTestFixture {
         StudentDetailViewModel(
             savedStateHandle = SavedStateHandle(mapOf("id" to id)),
             students = env.studentRepo,
+            classes = env.classRepo,
             details = StudentDetailsQuery(
                 env.studentRepo, env.subjectRepo, env.enrollmentRepo, env.classRepo, env.groupRepo,
                 env.homeworkRepo, env.paymentRepo, env.rateHistoryRepo, env.clock,
@@ -39,6 +44,8 @@ abstract class StudentDetailTestFixture {
             appScope = mainRule.appScope,
             computation = mainRule.dispatcher,
             clock = env.clock,
+            sharing = sharing,
+            printer = printer,
         ),
     )
 

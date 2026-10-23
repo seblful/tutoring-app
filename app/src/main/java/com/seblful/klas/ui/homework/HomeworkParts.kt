@@ -10,13 +10,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -35,7 +34,6 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextOverflow
 import com.seblful.klas.R
 import com.seblful.klas.domain.homework.HomeworkRules
-import com.seblful.klas.domain.lesson.LessonKind
 import com.seblful.klas.domain.model.Assignee
 import com.seblful.klas.domain.model.Homework
 import com.seblful.klas.format.bulletJoin
@@ -48,10 +46,10 @@ import com.seblful.klas.ui.common.ChoiceField
 import com.seblful.klas.ui.common.ContentCard
 import com.seblful.klas.ui.common.EmptyState
 import com.seblful.klas.ui.common.ExternalTarget
-import com.seblful.klas.ui.common.KeepTypedInput
-import com.seblful.klas.ui.common.LessonKindIcon
+import com.seblful.klas.ui.common.MenuItem
 import com.seblful.klas.ui.common.Messages
 import com.seblful.klas.ui.common.NamedIconButton
+import com.seblful.klas.ui.common.OverflowMenu
 import com.seblful.klas.ui.common.SectionTitle
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.SwipeReveal
@@ -59,14 +57,18 @@ import com.seblful.klas.ui.common.SwipeToConfirmBox
 import com.seblful.klas.ui.common.SwipeToward
 import com.seblful.klas.ui.common.animateInPlace
 import com.seblful.klas.ui.common.dateTimeText
-import com.seblful.klas.ui.common.destructiveTextButtonColors
 import com.seblful.klas.ui.common.insetRowPress
 import com.seblful.klas.ui.common.rememberExternalApps
 import com.seblful.klas.ui.common.rememberRevealedFocus
 import com.seblful.klas.ui.common.swipeAction
 import com.seblful.klas.ui.common.timeText
+import com.seblful.klas.ui.designsystem.component.CoachMark
+import com.seblful.klas.ui.designsystem.component.CoachMarkSide
+import com.seblful.klas.ui.designsystem.component.DialogAction
+import com.seblful.klas.ui.designsystem.component.FormDialog
 import com.seblful.klas.ui.theme.KlasIcons
 import com.seblful.klas.ui.theme.klasColors
+import com.seblful.klas.ui.theme.klasSemantics
 
 /**
  * A card's homework, inside the card's own list — a student's or a group's: an add row, the current ones
@@ -171,6 +173,7 @@ object HomeworkItemKeys {
  * @param owner the card a nested row stands in; its own homework goes unnamed — see [homeworkItems].
  * @param container what a nested row stands on, painted under it to cover the swipe's panel: the page, or
  * the section card it is listed in.
+ * @param tip the tab's tip about the swipe, when this row carries it.
  */
 @Composable
 fun SwipeableHomework(
@@ -182,7 +185,44 @@ fun SwipeableHomework(
     modifier: Modifier = Modifier,
     owner: Assignee? = null,
     container: Color = ListItemDefaults.containerColor,
+    picking: HomeworkPicking = HomeworkPicking.NONE,
+    tip: HomeworkTip? = null,
 ) {
+    if (tip != null) {
+        CoachMark(
+            tip.text,
+            visible = true,
+            onDismiss = tip.onDismiss,
+            modifier = modifier,
+            side = CoachMarkSide.Above,
+        ) {
+            HomeworkSwipeRow(row, onSwipe, onClick, messages, nested, Modifier, owner, container, picking, tip.peek)
+        }
+        return
+    }
+    HomeworkSwipeRow(row, onSwipe, onClick, messages, nested, modifier, owner, container, picking, peek = false)
+}
+
+/** The homework tab's tip, on the row it is about: [peek] shows the swipe too, unless a screen reader is on. */
+class HomeworkTip(val text: String, val onDismiss: () -> Unit, val peek: Boolean)
+
+@Composable
+private fun HomeworkSwipeRow(
+    row: HomeworkRow,
+    onSwipe: () -> Unit,
+    onClick: () -> Unit,
+    messages: Messages,
+    nested: Boolean,
+    modifier: Modifier,
+    owner: Assignee?,
+    container: Color,
+    picking: HomeworkPicking,
+    peek: Boolean,
+) {
+    if (picking.active && !nested) {
+        HomeworkCard(row, messages, { picking.toggle(row) }, onSwipe, modifier, picking)
+        return
+    }
     val shape = if (nested) RectangleShape else MaterialTheme.shapes.medium
     // Toward the list it goes to: done is the tab on the right, current the one on the left. So a row
     // always takes the way its tab cannot turn, and the other way still turns it.
@@ -191,6 +231,7 @@ fun SwipeableHomework(
         onConfirm = onSwipe,
         modifier = modifier,
         toward = toward,
+        peek = peek,
         reveal = { armed -> HomeworkReveal(done = row.isCurrent, armed = armed, shape = shape, toward = toward) },
     ) {
         // The swipe's twin for a screen reader, on the same node it reads and taps.
@@ -202,7 +243,7 @@ fun SwipeableHomework(
         if (nested) {
             HomeworkListItem(row, named, messages, onClick, onSwipe, container, swipe)
         } else {
-            HomeworkCard(row, messages, onClick, onSwipe, swipe)
+            HomeworkCard(row, messages, onClick, onSwipe, swipe, picking)
         }
     }
 }
@@ -233,37 +274,31 @@ private fun HomeworkCard(
     onClick: () -> Unit,
     onDone: () -> Unit,
     modifier: Modifier,
+    picking: HomeworkPicking,
 ) {
-    ContentCard(onClick = onClick, modifier = modifier) {
+    ContentCard(
+        onClick = onClick,
+        modifier = modifier,
+        selected = picking.isPicked(row),
+        onLongClick = if (picking.enabled) ({ picking.toggle(row) }) else null,
+        onLongClickLabel = stringResource(R.string.batch_select),
+    ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                // **The kind glyph prefixes the name**, as on the schedule's card, and the lines below start
-                // on the glyph's edge, as they do there.
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    LessonKindIcon(
-                        if (row.isGroup) LessonKind.GROUP else LessonKind.INDIVIDUAL,
-                        Modifier.padding(end = Spacing.inline),
-                    )
-                    Text(
-                        row.title,
-                        style = MaterialTheme.typography.titleMedium,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-                DueLine(row)
+            HomeworkTick(row, onDone)
+            // **The task leads**: it is what the tutor scans for; whom it is for and when follow it.
+            Column(Modifier.weight(1f).padding(horizontal = Spacing.inline)) {
+                // A few lines, not the whole of a pasted exercise list: the card is also what is swiped, and a
+                // card several screens tall is a poor target. The dialog holds the full text.
+                Text(
+                    row.text,
+                    style = MaterialTheme.typography.bodyLarge,
+                    maxLines = HomeworkPreviewLines,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                DueLine(row, prefix = row.title, underSection = true)
             }
-            HomeworkActions(row, messages, onDone)
+            HomeworkMenu(row, messages)
         }
-        // A few lines, not the whole of a pasted exercise list: the card is also what is swiped, and a card
-        // several screens tall is a poor target. The dialog holds the full text.
-        Text(
-            row.text,
-            style = MaterialTheme.typography.bodyMedium,
-            maxLines = HomeworkPreviewLines,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(top = Spacing.inline),
-        )
     }
 }
 
@@ -278,10 +313,10 @@ private fun HomeworkListItem(
     modifier: Modifier,
 ) {
     ListItem(
-        leadingContent = { LessonKindIcon(if (row.isGroup) LessonKind.GROUP else LessonKind.INDIVIDUAL) },
+        leadingContent = { HomeworkTick(row, onDone) },
         headlineContent = { Text(row.text, maxLines = HomeworkPreviewLines, overflow = TextOverflow.Ellipsis) },
         supportingContent = { DueLine(row, prefix = row.title.takeIf { named }) },
-        trailingContent = { HomeworkActions(row, messages, onDone) },
+        trailingContent = { HomeworkMenu(row, messages) },
         colors = ListItemDefaults.colors(containerColor = container),
         modifier = Modifier
             // Edge to edge, under the inset press shape: the swipe's panel lies behind this row, and the
@@ -295,22 +330,32 @@ private fun HomeworkListItem(
 
 private const val HomeworkPreviewLines = 4
 
+/**
+ * Whom it is for and the lesson it is for — never «due»: homework has no date of its own, only its lesson's
+ * (domain-rules). [underSection]: under the tab's section titles, which already say which lessons, the line
+ * is the lesson's time alone; in a student's card, which has none, it says «Lesson Fri 16:00».
+ */
 @Composable
-private fun DueLine(row: HomeworkRow, prefix: String? = null) {
+private fun DueLine(row: HomeworkRow, prefix: String? = null, underSection: Boolean = false) {
     val at = row.lessonAt
     val text = when (row.due) {
-        HomeworkRules.Due.OVERDUE -> stringResource(R.string.homework_overdue, at?.dateTimeText().orEmpty())
-        HomeworkRules.Due.TODAY -> stringResource(R.string.homework_due_today, at?.timeText().orEmpty())
-        HomeworkRules.Due.LATER -> stringResource(R.string.homework_due, at?.dateTimeText().orEmpty())
-        HomeworkRules.Due.UNBOOKED -> stringResource(R.string.homework_unbooked)
+        HomeworkRules.Due.TODAY ->
+            if (underSection) at?.timeText().orEmpty()
+            else stringResource(R.string.homework_lesson_today, at?.timeText().orEmpty())
+        HomeworkRules.Due.OVERDUE, HomeworkRules.Due.LATER ->
+            if (underSection) at?.dateTimeText().orEmpty()
+            else stringResource(R.string.homework_lesson_at, at?.dateTimeText().orEmpty())
+        HomeworkRules.Due.UNBOOKED -> if (underSection) "" else stringResource(R.string.homework_unbooked)
         null -> stringResource(R.string.homework_set_on, row.homework.givenAt.formatDate())
     }
     Text(
         bulletJoin(prefix.orEmpty(), text),
         style = MaterialTheme.typography.bodySmall,
-        color = if (row.due == HomeworkRules.Due.OVERDUE) MaterialTheme.colorScheme.error
+        color = if (row.due == HomeworkRules.Due.OVERDUE) klasSemantics.overdue
         else MaterialTheme.colorScheme.onSurfaceVariant,
-        maxLines = 1,
+        // Two lines: beside the row's menu, a group's name and the lesson's date left no room on one, and
+        // the time — when it is due — was what got cut.
+        maxLines = 2,
         overflow = TextOverflow.Ellipsis,
     )
 }
@@ -345,54 +390,49 @@ fun HomeworkDialog(
     // Only a correction opens in the text. A new one opens on nothing: who it is for comes first, and the
     // keyboard it used to raise asked for the homework before that and covered the dialog doing it.
     val focus = if (editing != null) rememberRevealedFocus() else null
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        // A stray tap beside the dialog must not throw away what was just typed.
-        properties = KeepTypedInput,
-        title = { Text(stringResource(if (editing == null) R.string.homework_add else R.string.homework_label)) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(Spacing.itemGap)) {
-                ChoiceField<AssigneeChoice?>(
-                    label = stringResource(R.string.homework_assignee_label),
-                    selected = selected,
-                    options = choices,
-                    optionLabel = { it?.name.orEmpty() },
-                    onSelect = { selected = it },
-                    enabled = canChangeAssignee,
-                )
-                OutlinedTextField(
-                    value = text,
-                    onValueChange = { text = it },
-                    label = { Text(stringResource(R.string.homework_text_label)) },
-                    keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
-                    minLines = HomeworkDialogLines,
-                    supportingText = selected?.takeIf {
-                        editing == null || it.assignee != editing.assignee
-                    }?.let { choice -> { Text(attachedText(choice)) } },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .then(if (focus != null) Modifier.focusRequester(focus) else Modifier),
-                )
-            }
+    val chosen = selected
+    FormDialog(
+        title = stringResource(if (editing == null) R.string.homework_add else R.string.homework_label),
+        confirm = DialogAction(
+            label = stringResource(R.string.action_save),
+            onClick = { if (chosen != null) { onSave(chosen.assignee, text); onDismiss() } },
+            enabled = chosen != null && text.isNotBlank(),
+        ),
+        onDismiss = onDismiss,
+        extra = if (editing != null && onDelete != null) {
+            DialogAction(
+                label = stringResource(R.string.action_delete),
+                onClick = { onDelete(); onDismiss() },
+                destructive = true,
+            )
+        } else {
+            null
         },
-        confirmButton = {
-            val chosen = selected
-            TextButton(
-                onClick = { if (chosen != null) { onSave(chosen.assignee, text); onDismiss() } },
-                enabled = chosen != null && text.isNotBlank(),
-            ) { Text(stringResource(R.string.action_save)) }
-        },
-        dismissButton = {
-            Row {
-                if (editing != null && onDelete != null) {
-                    TextButton(onClick = { onDelete(); onDismiss() }, colors = destructiveTextButtonColors()) {
-                        Text(stringResource(R.string.action_delete))
-                    }
-                }
-                TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
-            }
-        },
-    )
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(Spacing.itemGap)) {
+            ChoiceField<AssigneeChoice?>(
+                label = stringResource(R.string.homework_assignee_label),
+                selected = selected,
+                options = choices,
+                optionLabel = { it?.name.orEmpty() },
+                onSelect = { selected = it },
+                enabled = canChangeAssignee,
+            )
+            OutlinedTextField(
+                value = text,
+                onValueChange = { text = it },
+                label = { Text(stringResource(R.string.homework_text_label)) },
+                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
+                minLines = HomeworkDialogLines,
+                supportingText = selected?.takeIf {
+                    editing == null || it.assignee != editing.assignee
+                }?.let { choice -> { Text(attachedText(choice)) } },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .then(if (focus != null) Modifier.focusRequester(focus) else Modifier),
+            )
+        }
+    }
 }
 
 /**
@@ -410,16 +450,16 @@ class HomeworkUndo internal constructor(
     /** [item] swiped onto the done list, or back off it — put back exactly as it was if taken back. */
     fun swiped(item: Homework, done: Boolean) {
         setDone(item, done)
-        messages.show(if (done) words.done else words.restored, words.undo) { putBack(item) }
+        messages.undoable(if (done) words.done else words.restored) { putBack(item) }
     }
 
     /** [item] deleted from its dialog. */
     fun deleted(item: Homework) {
         delete(item)
-        messages.show(words.deleted, words.undo) { restore(item) }
+        messages.undoable(words.deleted) { restore(item) }
     }
 
-    internal data class Words(val done: String, val restored: String, val deleted: String, val undo: String)
+    internal data class Words(val done: String, val restored: String, val deleted: String)
 }
 
 /**
@@ -441,7 +481,6 @@ fun homeworkUndo(
         done = stringResource(R.string.homework_done_message),
         restored = stringResource(R.string.homework_restored_message),
         deleted = stringResource(R.string.homework_deleted),
-        undo = stringResource(R.string.action_undo),
     )
     val currentSetDone by rememberUpdatedState(setDone)
     val currentPutBack by rememberUpdatedState(putBack)
@@ -504,39 +543,40 @@ private fun attachedText(choice: AssigneeChoice): String =
 private const val HomeworkDialogLines = 3
 
 /**
- * A row's buttons: Send while it is current, then Done or Restore — the swipe, for whoever does not know to
- * swipe. Icons, not words, so a list of homework is not a column of buttons.
+ * A row's leading tick (R1, as on Today and the widget): marks current homework done, or a done piece not
+ * done — the swipe, for whoever does not know to swipe.
  */
 @Composable
-private fun HomeworkActions(row: HomeworkRow, messages: Messages, onDone: () -> Unit) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        if (row.isCurrent) SendHomeworkButton(row, messages)
-        NamedIconButton(
-            if (row.isCurrent) KlasIcons.Outlined.CheckCircle else KlasIcons.Filled.Undo,
-            stringResource(if (row.isCurrent) R.string.homework_done else R.string.homework_restore),
-            onClick = onDone,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    }
+private fun HomeworkTick(row: HomeworkRow, onDone: () -> Unit) {
+    NamedIconButton(
+        if (row.isCurrent) KlasIcons.Outlined.Circle else KlasIcons.Filled.CheckCircle,
+        stringResource(if (row.isCurrent) R.string.homework_done else R.string.homework_restore),
+        onClick = onDone,
+        tint = if (row.isCurrent) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.primary,
+    )
 }
 
 /**
- * «Отправить»: the homework, worded for the student, into the phone's share sheet — a messenger, in
- * practice, which is where a tutor sends it.
+ * «⋮» with «Отправить» while it is current — the row's one trailing slot. Send puts the homework, worded
+ * for the student, into the phone's share sheet: a messenger, in practice, which is where a tutor sends it.
  */
 @Composable
-fun SendHomeworkButton(row: HomeworkRow, messages: Messages) {
+private fun HomeworkMenu(row: HomeworkRow, messages: Messages) {
+    if (!row.isCurrent) return
     val externalApps = rememberExternalApps(messages)
     val text = homeworkShareText(row)
     val chooserTitle = stringResource(R.string.homework_send)
     val failed = stringResource(R.string.student_contact_failed)
-    NamedIconButton(
-        KlasIcons.Outlined.Share,
-        chooserTitle,
-        onClick = { externalApps.open(ExternalTarget.ShareText(text, chooserTitle), failed) },
-        // Quiet: one on every current card, and a column of accent-coloured buttons outshouts the homework.
-        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-    )
+    OverflowMenu { close ->
+        MenuItem(
+            text = { Text(chooserTitle) },
+            leadingIcon = { Icon(KlasIcons.Outlined.Share, contentDescription = null) },
+            onClick = {
+                close()
+                externalApps.open(ExternalTarget.ShareText(text, chooserTitle), failed)
+            },
+        )
+    }
 }
 
 /**

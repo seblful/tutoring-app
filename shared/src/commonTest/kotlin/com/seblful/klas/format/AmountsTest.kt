@@ -29,7 +29,7 @@ class AmountsTest {
 
     @Test
     fun onlyPlainNonNegativeDecimalAmountsAreAccepted() {
-        listOf("", " ", ".", "-5", "+5", "NaN", "Infinity", "1e3", "1e2147483647", "1.2.3", "1,2.3", "１２").forEach {
+        listOf("", " ", ".", "-5", "+5", "NaN", "Infinity", "1e3", "1e2147483647", "1.2.3", "1,2.3", "๑๒").forEach {
             assertNull(parseMoneyOrNull(it), it)
         }
     }

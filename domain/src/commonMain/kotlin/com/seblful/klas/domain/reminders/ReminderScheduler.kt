@@ -24,6 +24,7 @@ interface ReminderScheduler {
      * the app still auto-completes finished lessons and re-derives the reminder plan. It is on the port
      * for the reason the other two are — `KlasApp` was injecting the WorkManager adapter by its concrete
      * class to reach it, which made the app's entry point the one place naming a `work/` implementation.
+     * The daily look at whether the weekly backup is due is arranged beside it.
      */
     fun ensurePeriodicMaintenance()
 

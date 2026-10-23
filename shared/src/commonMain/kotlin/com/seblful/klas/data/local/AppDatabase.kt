@@ -27,6 +27,7 @@ import com.seblful.klas.data.people.StudentEntity
 import com.seblful.klas.data.people.StudentSubjectCrossRef
 import com.seblful.klas.data.people.SubjectDao
 import com.seblful.klas.data.people.SubjectEntity
+import com.seblful.klas.data.settings.GuideDao
 import com.seblful.klas.data.settings.SettingsDao
 import com.seblful.klas.data.settings.SettingsEntity
 
@@ -45,7 +46,7 @@ import com.seblful.klas.data.settings.SettingsEntity
         HomeworkEntity::class,
         SettingsEntity::class,
     ],
-    version = 10,
+    version = 15,
     exportSchema = true,
 )
 // Every enum column, written as the constant's name and read back totally — see [EnumConverters].
@@ -63,6 +64,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun paymentDao(): PaymentDao
     abstract fun balanceDao(): BalanceDao
     abstract fun settingsDao(): SettingsDao
+    abstract fun guideDao(): GuideDao
     abstract fun homeworkDao(): HomeworkDao
 
     /** Whole tables at once, for backup and restore only — see [SnapshotDao]. */

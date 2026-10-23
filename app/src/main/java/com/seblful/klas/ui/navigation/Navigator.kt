@@ -29,7 +29,7 @@ data class Screen(val route: Route, val id: Long = Random.nextLong())
  * chosen tab's, so each tab keeps where the tutor was in it. Set-aside screens keep their state: see [live].
  */
 class KlasNavigator internal constructor(
-    private val stack: SnapshotStateList<Screen> = mutableStateListOf(Screen(Routes.Schedule)),
+    private val stack: SnapshotStateList<Screen> = mutableStateListOf(Screen(TopDestination.START.route)),
     private val setAside: SnapshotStateMap<TopDestination, List<Screen>> = mutableStateMapOf(),
 ) {
     /** What is showing, bottom first: always the start tab, then whatever is above it. */
@@ -77,6 +77,9 @@ class KlasNavigator internal constructor(
         if (at > 0) stack.removeRange(at, stack.size)
     }
 
+    /** Whether [tab]'s own screen is the one on top — a tap on it then sends its page to the top instead. */
+    fun isOnTab(tab: TopDestination): Boolean = TopDestination.of(top.route) == tab
+
     /**
      * Switches to [tab] the way the bar does, keeping each tab's screens. External interruptions use
      * [openTabFromTray] to preserve a pushed form.
@@ -89,14 +92,14 @@ class KlasNavigator internal constructor(
      */
     fun navigateToTab(tab: TopDestination) {
         if (TopDestination.of(top.route) == tab) return
-        val owner = owningTab(stack) ?: TopDestination.SCHEDULE
+        val owner = owningTab(stack) ?: TopDestination.START
         if (owner == tab) {
             stack.removeRange(stack.indexOfLast { it.route == tab.route } + 1, stack.size)
             return
         }
         setAside[owner] = stack.drop(1)
         val restored = setAside.remove(tab)
-            ?: if (tab == TopDestination.SCHEDULE) emptyList() else listOf(Screen(tab.route))
+            ?: if (tab == TopDestination.START) emptyList() else listOf(Screen(tab.route))
         stack.removeRange(1, stack.size)
         stack.addAll(restored)
     }
@@ -127,7 +130,7 @@ class KlasNavigator internal constructor(
 @Composable
 fun rememberKlasNavigator(): KlasNavigator {
     val stack = rememberSerializable(serializer = SnapshotStateListSerializer(Screen.serializer())) {
-        mutableStateListOf(Screen(Routes.Schedule))
+        mutableStateListOf(Screen(TopDestination.START.route))
     }
     val setAside = rememberSerializable(
         serializer = SnapshotStateMapSerializer(TopDestination.serializer(), ListSerializer(Screen.serializer())),

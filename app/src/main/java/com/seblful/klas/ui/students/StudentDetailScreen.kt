@@ -51,6 +51,7 @@ import com.seblful.klas.ui.homework.HomeworkSection
 import com.seblful.klas.ui.people.NextLessonCard
 import com.seblful.klas.ui.theme.KlasIcons
 import dev.zacsweers.metrox.viewmodel.assistedMetroViewModel
+import kotlin.time.Instant
 
 private data class StudentNavigation(
     val back: () -> Unit,
@@ -59,6 +60,7 @@ private data class StudentNavigation(
     val lesson: (Long) -> Unit,
     val book: () -> Unit,
     val seeAll: (StudentSection) -> Unit,
+    val edit: () -> Unit,
 )
 
 /**
@@ -77,13 +79,14 @@ fun StudentDetailScreen(
     onSeeAll: (StudentSection) -> Unit = {},
     initialTask: StudentTask? = null,
     backArrow: Boolean = true,
+    onEdit: () -> Unit = {},
 ) {
     when (val overview = viewModel.overview.collectAsStateWithLifecycle().value) {
         null -> LoadingDetailScreen(onBack.takeIf { backArrow })
         else -> StudentCard(
             overview,
             viewModel,
-            StudentNavigation(onBack, backArrow, onLessonClick, onBookLesson, onSeeAll),
+            StudentNavigation(onBack, backArrow, onLessonClick, onBookLesson, onSeeAll, onEdit),
             initialTask,
         )
     }
@@ -99,8 +102,9 @@ private fun StudentCard(
 ) {
     val state = overview.details
     val student = state.student
+    // A value here, not a delegate the list's builder reads — see docs/ui-conventions.md.
+    val now = viewModel.minute.collectAsStateWithLifecycle().value
 
-    var editing by remember { mutableStateOf(false) }
     var addingSubject by remember { mutableStateOf(false) }
     var pricingSubjectId by remember { mutableStateOf<Long?>(null) }
     // Asked first: taking a subject off a student forgets its price and the log of its past prices.
@@ -148,10 +152,7 @@ private fun StudentCard(
                     ) { seeAll(StudentSection.LESSONS) }
                 }
 
-                is StudentDetailViewModel.Event.ArchiveCancelledLessons -> messages.show(
-                    resources.getQuantityString(R.plurals.student_archive_lessons_cancelled, event.count, event.count),
-                )
-                StudentDetailViewModel.Event.WriteFailed -> messages.show(resources.getString(R.string.action_failed))
+                else -> messages.showStudentEvent(event, resources, viewModel)
             }
         }
     }
@@ -162,6 +163,9 @@ private fun StudentCard(
     // A student's name is what this screen is *about*, so it gets the large title Material designed for
     // exactly that — collapsing into an ordinary bar as the list scrolls. [TitleSize.Large] is that, and the
     // scroll behaviour it needs, said once.
+    val shares = rememberAccountShares(state, externalApps, noAppMsg, viewModel::shareStatement)
+    var choosingStatement by remember { mutableStateOf(false) }
+    if (choosingStatement) StatementChoice(shares) { choosingStatement = false }
     KlasScreen(
         title = student?.name,
         onBack = navigation.back.takeIf { navigation.backArrow },
@@ -169,12 +173,13 @@ private fun StudentCard(
         messages = messages,
         actions = {
             // Booking is the next lesson's «+», in the card it books into.
-            NamedIconButton(KlasIcons.Outlined.Edit, stringResource(R.string.action_edit), onClick = { editing = true })
+            NamedIconButton(KlasIcons.Outlined.Edit, stringResource(R.string.action_edit), onClick = navigation.edit)
             // Archiving is behind the overflow: as a bare text button in the bar it put the most consequential
             // thing on the screen beside the pencil, next to a name that had to ellipsize to make room for it.
             if (student != null) {
                 StudentOverflowMenu(
                     student = student,
+                    remind = shares.remind,
                     // The same launches the contact block makes, through the same guard: a tablet with no
                     // dialler must not crash the card.
                     onCall = { phone -> externalApps.open(ExternalTarget.Dial(phone), noAppMsg) },
@@ -226,11 +231,17 @@ private fun StudentCard(
                 }
             }
             item(key = StudentDetailKeys.BALANCE, contentType = StudentDetailKeys.BALANCE) {
-                BalanceCard(state, onAddPayment = { addingPayment = true }, modifier = animateInPlace(cardModifier))
+                BalanceCard(
+                    state,
+                    onAddPayment = { addingPayment = true },
+                    onStatement = { choosingStatement = true },
+                    modifier = animateInPlace(cardModifier),
+                )
             }
             item(key = StudentDetailKeys.LESSONS, contentType = StudentDetailKeys.LESSONS) {
                 LessonsSection(
                     overview = overview,
+                    now = now,
                     onLessonClick = navigation.lesson,
                     onSeeAll = { navigation.seeAll(StudentSection.LESSONS) },
                     modifier = animateInPlace(cardModifier),
@@ -252,7 +263,6 @@ private fun StudentCard(
                 PaymentsSection(
                     payments = state.payments,
                     onEdit = { editingPayment = it },
-                    onDelete = deletePayment,
                     onSeeAll = { navigation.seeAll(StudentSection.PAYMENTS) },
                     modifier = animateInPlace(cardModifier),
                 )
@@ -261,26 +271,13 @@ private fun StudentCard(
                 SubjectsSection(
                     state = state,
                     onAdd = { addingSubject = true },
-                    onReprice = { pricingSubjectId = it },
-                    onRemove = { removingSubjectId = it },
+                    onOpen = { pricingSubjectId = it },
                     modifier = animateInPlace(cardModifier),
                 )
             }
         }
     }
 
-    if (editing && student != null) {
-        StudentEditDialog(
-            title = stringResource(R.string.student_edit_title),
-            initialName = student.name,
-            initialPhone = Phone.editable(student.phone, LocalCurrency.current),
-            initialEmail = student.email,
-            initialNote = student.note,
-            initialMode = student.defaultMode,
-            onConfirm = { name, phone, email, note, mode -> viewModel.editStudent(name, phone, email, note, mode) },
-            onDismiss = { editing = false },
-        )
-    }
     if (addingSubject) {
         AddSubjectPriceDialog(
             addableSubjects = state.addableSubjects,
@@ -306,6 +303,7 @@ private fun StudentCard(
                 subjectPrice = sp,
                 onConfirm = { viewModel.setPrice(subjectId, it) },
                 onDismiss = { pricingSubjectId = null },
+                onRemove = { removingSubjectId = subjectId },
             )
         }
     }
@@ -313,6 +311,7 @@ private fun StudentCard(
         viewModel = viewModel,
         adding = addingPayment,
         editing = editingPayment,
+        onDelete = deletePayment,
         onDismiss = { addingPayment = false; editingPayment = null },
     )
     CardHomeworkDialogs(
@@ -354,6 +353,7 @@ private fun StudentCard(
 @Composable
 private fun LessonsSection(
     overview: StudentOverview,
+    now: Instant,
     onLessonClick: (Long) -> Unit,
     onSeeAll: () -> Unit,
     modifier: Modifier = Modifier,
@@ -367,7 +367,7 @@ private fun LessonsSection(
     ) {
         if (all.isEmpty()) SectionNote(stringResource(R.string.student_lessons_empty))
         overview.lessons.forEach { row ->
-            LessonRow(row, onClick = { onLessonClick(row.klass.id) }, colors = sectionRowColors())
+            LessonRow(row, now, onClick = { onLessonClick(row.klass.id) }, colors = sectionRowColors())
         }
     }
 }
@@ -376,7 +376,6 @@ private fun LessonsSection(
 private fun PaymentsSection(
     payments: List<Payment>,
     onEdit: (Payment) -> Unit,
-    onDelete: (Payment) -> Unit,
     onSeeAll: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -393,7 +392,6 @@ private fun PaymentsSection(
             PaymentRow(
                 payment,
                 onEdit = { onEdit(payment) },
-                onDelete = { onDelete(payment) },
                 colors = sectionRowColors(),
             )
         }
@@ -405,8 +403,7 @@ private fun PaymentsSection(
 private fun SubjectsSection(
     state: StudentDetails,
     onAdd: () -> Unit,
-    onReprice: (Long) -> Unit,
-    onRemove: (Long) -> Unit,
+    onOpen: (Long) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     OverviewSection(
@@ -419,8 +416,7 @@ private fun SubjectsSection(
         state.subjects.forEach { sp ->
             SubjectRow(
                 sp,
-                onReprice = { onReprice(sp.subject.id) },
-                onRemove = { onRemove(sp.subject.id) },
+                onOpen = { onOpen(sp.subject.id) },
                 colors = sectionRowColors(),
             )
         }

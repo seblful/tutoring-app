@@ -141,9 +141,9 @@ class StringCoverageTest {
             .mapNotNull { dir ->
                 val tag = when {
                     dir.name == "values" -> AppLanguage.FALLBACK.tag
-                    dir.name.startsWith("values-") -> dir.name.removePrefix("values-").takeIf {
-                        it.length in 2..3 && it.all(Char::isLowerCase)
-                    }
+                    dir.name.startsWith("values-") -> dir.name.removePrefix("values-")
+                        .takeIf { Regex("[a-z]{2,3}(-r[A-Z]{2})?").matches(it) }
+                        ?.replace("-r", "-")
                     else -> null
                 }
                 tag?.let { it to Resources(File(dir, "strings.xml")) }
@@ -199,6 +199,29 @@ class StringCoverageTest {
         private val QUANTITIES: Map<String, Set<String>> = mapOf(
             "en" to setOf("one", "other"),
             "ru" to setOf("one", "few", "many", "other"),
+            "uk" to setOf("one", "few", "many", "other"),
+            "pl" to setOf("one", "few", "many", "other"),
+            "be" to setOf("one", "few", "many", "other"),
+            "ar" to setOf("zero", "one", "two", "few", "many", "other"),
+            "fr" to setOf("one", "many", "other"),
+            "es" to setOf("one", "many", "other"),
+            "it" to setOf("one", "many", "other"),
+            "pt-BR" to setOf("one", "many", "other"),
+            "pt-PT" to setOf("one", "many", "other"),
+            "de" to setOf("one", "other"),
+            "tr" to setOf("one", "other"),
+            "nl" to setOf("one", "other"),
+            "el" to setOf("one", "other"),
+            "fi" to setOf("one", "other"),
+            "da" to setOf("one", "other"),
+            "nb" to setOf("one", "other"),
+            "sv" to setOf("one", "other"),
+            "kk" to setOf("one", "other"),
+            "hi" to setOf("one", "other"),
+            "zh-CN" to setOf("other"),
+            "zh-TW" to setOf("other"),
+            "ja" to setOf("other"),
+            "ko" to setOf("other"),
         )
 
         private val POSITIONAL_ARGUMENT = Regex("""%(\d+\$[a-zA-Z])""")

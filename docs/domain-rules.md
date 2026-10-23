@@ -8,7 +8,9 @@ mirrors and [database and backup](database-and-backup.md) for persistence contra
 - Money uses integer minor units, never floats. Typed rates/payments stop at `Money.MAX`; duration-based
   charges can exceed that input ceiling.
 - Currency is a display label (`BYN|RUB|USD|EUR`), never a conversion; display its symbol. A fresh install
-  uses the phone's region. Decimal separators follow app language, not currency.
+  uses the phone's region. Decimal separators follow app language, not currency. Money input accepts
+  dot, comma and Arabic decimal separators, plus Arabic-Indic, Eastern Arabic-Indic, Devanagari and
+  full-width digits; changing language does not invalidate a prefilled amount.
 - A student's empty phone field opens on the dialling code of the currency's country (`Phone.prefill`;
   none for EUR). A phone that is only a `+` code is saved as no phone.
 - Each class books an editable hourly rate, initially the student's/group's. Later rate changes leave
@@ -19,6 +21,24 @@ mirrors and [database and backup](database-and-backup.md) for persistence contra
   report reads only its period and the one before (`Reports.window`). Partial payments and
   overpayments work. `Billing.billedOrNull` distinguishes a taught zero-rate lesson (show zero) from an
   unbilled absence (show no amount).
+- A payment may say how it was made (`PaymentMethod`: cash, card, transfer). It is optional — payments
+  before schema v13 have none — and moves no money; a new payment is offered as the student's last.
+  A new payment also offers its amount at a tap (`PaymentSuggestions`): the whole balance owed, and the
+  last billed lesson's charge — never the same amount twice.
+- A student's statement (`Statement`) is every billed lesson and payment in time order with the balance
+  each left; its last balance is `Billing`'s. It (from the Balance card's header, as a message or a PDF) and
+  a reminder of what is owed (the card's menu, offered only while something is) leave through the share
+  sheet, where Telegram, SMS and mail already are.
+- Income is what was **earned** (taught, billable lessons); **received** is what was paid in the period
+  (`Reports.received`, by the day a payment lands on). They differ by every advance and every debt, so the
+  report's hero switches between them and exports them as two sections (D6), never one number.
+- The ledger (`Report.ledger`, `ReportCsv.buildLedger`) is the second export: every billed lesson and
+  every payment in the period, a row each, by ISO day, a lesson before a payment on the same day. It is
+  what an accountant reconciles; the summary is what a tutor reads.
+- The summary also prints as a PDF (`reportSheet`): the same lines under the same sections, amounts in the
+  tutor's currency, the scope under the title. A PDF is for a reader, the CSVs for a spreadsheet.
+- A report narrows to one student or one subject (`ReportScope`). A student's narrows lessons, payments
+  and debts; a subject's narrows lessons only — no payment belongs to a subject, so received is not offered.
 - Auto-completion is opt-in: scheduled lessons become completed, and therefore billable, after ending.
   Upkeep and app start catch up; enabling it asks before settling the backlog and reports the result.
 - Reports retain archived students' earnings and outstanding debts. Debts use all history; income means
@@ -36,6 +56,10 @@ mirrors and [database and backup](database-and-backup.md) for persistence contra
 - An explicit completion correction returns a taught lesson to Planned, voids charges and turns Present
   into Expected while preserving absences. Immediate Undo is guarded by its completion snapshot so later
   edits, cancellations or deletions cannot be overwritten.
+- Cancelling, re-planning, rescheduling and attendance marks are undone the same way: a
+  `SessionReceipt` restores the lesson's prior snapshot, charges included, only while the lesson is
+  still as the change left it (`ChangedSince`) and its hour is free if it needs one (`HourTaken`). There
+  is no Cancelled → Completed transition; undo restores a snapshot rather than making one.
 - A lesson carries no tutor notes. Homework is attached by rule, below.
 - Writes take a whole `ClassSession`, except per-person `setAttendance`. Editing/deleting works in any
   status and recalculates charges; deleting a completed lesson removes income and requires a UI warning.
@@ -73,7 +97,11 @@ mirrors and [database and backup](database-and-backup.md) for persistence contra
   differing member rates. Only students priced for that subject may join; save intersects the roster
   with eligible students and the form asks before dropping members.
 - Attendance is independent of roster membership and correctable afterwards. Groups with lessons are
-  archive-only; unused groups can be deleted. Calendar events are per member, reminders per lesson.
+  archive-only; unused groups can be deleted. Archiving a group, like a student, cancels its planned
+  lessons and asks first when there are any. Its Undo un-archives and restores each lesson through its
+  `SessionReceipt` — those edited since or whose time is taken stay cancelled, and are counted. Restoring
+  from the archive later is not an undo and re-plans nothing. Calendar events are per member, reminders
+  per lesson.
 - `Captions.title` names group lessons by group, individual lessons by student, with a student fallback
   for an unknown group name. Booking and reminders use the same rule.
 

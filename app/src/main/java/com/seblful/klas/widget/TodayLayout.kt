@@ -13,6 +13,8 @@ import androidx.glance.action.clickable
 import androidx.glance.appwidget.components.CircleIconButton
 import androidx.glance.appwidget.components.Scaffold
 import androidx.glance.appwidget.components.TitleBar
+import androidx.glance.layout.Alignment
+import androidx.glance.layout.Row
 import androidx.glance.layout.fillMaxSize
 import androidx.glance.layout.fillMaxWidth
 import androidx.glance.layout.padding
@@ -23,16 +25,21 @@ import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import com.seblful.klas.MainActivity
 import com.seblful.klas.R
+import com.seblful.klas.ui.common.Spacing
 
 /** One lesson as the Today widget draws it. */
 internal data class TodayRow(
     val classId: Long,
     /** Who the lesson is with. */
     val title: String,
-    /** When, and in what: «10:00 · Математика». */
+    /** When, and in what: «10:00–11:00 · Математика». */
     val supportingText: String,
     val taught: Boolean,
     val canMarkTaught: Boolean,
+    /** Being taught now: said before the time, as the Day view does. */
+    val onNow: Boolean = false,
+    /** What the tick says, naming its lesson: «Mark Olivia Brooks, 15:00 taught». */
+    val tickLabel: String = "",
 )
 
 /** What the Today widget says, in the app's language rather than the phone's. */
@@ -42,6 +49,11 @@ internal data class TodayTexts(
     val bookLesson: String,
     val markTaught: String,
     val taught: String,
+    val onNow: String = "",
+    /** «Mark %1$s, %2$s taught»: who, and when it starts. */
+    val markLesson: String = "%1\$s, %2\$s",
+    /** «%1$s, %2$s: taught». */
+    val lessonTaught: String = "%1\$s, %2\$s",
 )
 
 /**
@@ -120,7 +132,7 @@ private fun LessonRow(row: TodayRow, texts: TodayTexts, open: Action, markTaught
                 imageProvider = ImageProvider(
                     if (row.taught) R.drawable.widget_icon_checked else R.drawable.widget_icon_unchecked,
                 ),
-                contentDescription = if (row.taught) texts.taught else texts.markTaught,
+                contentDescription = row.tickLabel.ifEmpty { if (row.taught) texts.taught else texts.markTaught },
                 backgroundColor = null,
                 contentColor = if (row.taught) TaughtColor else GlanceTheme.colors.secondary,
                 enabled = row.canMarkTaught && !row.taught,
@@ -141,11 +153,25 @@ private fun LessonRow(row: TodayRow, texts: TodayTexts, open: Action, markTaught
             )
         },
         supportingContent = {
-            Text(
-                text = row.supportingText,
-                maxLines = 2,
-                style = TextStyle(fontSize = 12.sp, color = GlanceTheme.colors.secondary),
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (row.onNow) {
+                    Text(
+                        text = texts.onNow,
+                        maxLines = 1,
+                        style = TextStyle(
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = GlanceTheme.colors.primary,
+                        ),
+                        modifier = GlanceModifier.padding(end = Spacing.inline),
+                    )
+                }
+                Text(
+                    text = row.supportingText,
+                    maxLines = 2,
+                    style = TextStyle(fontSize = 12.sp, color = GlanceTheme.colors.secondary),
+                )
+            }
         },
     )
 }
@@ -162,9 +188,9 @@ private fun isSmall(): Boolean = LocalSize.current.width < 260.dp
 private fun TodayLayoutPreview() {
     TodayPreview(
         listOf(
-            TodayRow(1, "Anna Kowalska", "10:00 · Maths", taught = true, canMarkTaught = false),
-            TodayRow(2, "11 A", "14:30 · English", taught = false, canMarkTaught = true),
-            TodayRow(3, "Ivan Petrov", "17:00 · Physics", taught = false, canMarkTaught = true),
+            TodayRow(1, "Anna Kowalska", "10:00–11:00 · Maths", taught = true, canMarkTaught = false),
+            TodayRow(2, "11 A", "14:30–16:00 · English", taught = false, canMarkTaught = true, onNow = true),
+            TodayRow(3, "Ivan Petrov", "17:00–18:00 · Physics", taught = false, canMarkTaught = true),
         ),
     )
 }
@@ -180,7 +206,7 @@ private fun TodayLayoutEmptyPreview() {
 private fun TodayPreview(rows: List<TodayRow>) {
     GlanceTheme(colors = KlasWidgetColors) {
         TodayLayout(
-            texts = TodayTexts("Today", "No lessons today", "Book a lesson", "Mark as taught", "Taught"),
+            texts = TodayTexts("Today", "No lessons today", "Book a lesson", "Mark as taught", "Taught", "On now"),
             rows = rows,
             openToday = PreviewAction,
             bookLesson = PreviewAction,

@@ -5,8 +5,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.CreationExtras
+import com.seblful.klas.data.billing.BalanceRepository
+import com.seblful.klas.data.billing.balanceOf
 import com.seblful.klas.data.homework.HomeworkRepository
 import com.seblful.klas.data.lessons.ClassRepository
+import com.seblful.klas.data.lessons.SessionReceipt
 import com.seblful.klas.data.people.GroupRepository
 import com.seblful.klas.data.people.StudentRepository
 import com.seblful.klas.data.people.SubjectRepository
@@ -18,9 +21,12 @@ import com.seblful.klas.domain.lesson.CardLessons
 import com.seblful.klas.domain.lesson.SessionRules
 import com.seblful.klas.domain.model.Assignee
 import com.seblful.klas.domain.model.Attendance
+import com.seblful.klas.domain.model.Attended
+import com.seblful.klas.domain.model.Balance
 import com.seblful.klas.domain.model.ClassSession
 import com.seblful.klas.domain.model.Group
 import com.seblful.klas.domain.model.Homework
+import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Student
 import com.seblful.klas.domain.model.TutoringClass
@@ -35,6 +41,7 @@ import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.common.state.UiEvents
 import com.seblful.klas.ui.common.state.derive
 import com.seblful.klas.ui.common.state.ready
+import com.seblful.klas.ui.common.state.settleAfterUndoWindow
 import com.seblful.klas.ui.common.state.valueOrNull
 import com.seblful.klas.ui.common.state.write
 import com.seblful.klas.ui.common.state.writeAwaited
@@ -54,8 +61,16 @@ import kotlinx.coroutines.launch
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Instant
 
-/** One member of the group, with how much of the group they have actually attended. */
-data class GroupMemberRow(val student: Student, val attended: Int)
+/**
+ * A member as the group's card lists them: of the group's taught lessons they were booked into ([held]),
+ * how many they were at ([present]) — what a tutor checks about a group — and where their money stands.
+ */
+data class GroupMemberRow(
+    val student: Student,
+    val held: Int,
+    val present: Int,
+    val balance: Balance = Balance.Settled,
+)
 
 /**
  * One of the group's lessons: the classes of a single session, plus what it came to.
@@ -94,6 +109,9 @@ data class GroupDetailState(
      */
     val canDelete: Boolean get() = lessons.isEmpty()
 
+    /** How many planned lessons archiving would call off — asked about first when there are any. */
+    val plannedLessons: Int get() = lessons.count { it.session.status == LessonStatus.SCHEDULED }
+
     /** The lesson the tutor next teaches the group — see [CardLessons.next]. */
     fun nextLesson(now: Instant): GroupLessonRow? = CardLessons.next(lessons, now) { it.session.first }
 
@@ -108,8 +126,9 @@ class GroupDetailViewModel @AssistedInject constructor(
     private val groups: GroupRepository,
     students: StudentRepository,
     subjects: SubjectRepository,
-    classes: ClassRepository,
+    private val classes: ClassRepository,
     homework: HomeworkRepository,
+    balances: BalanceRepository,
     @param:ApplicationScope private val appScope: CoroutineScope,
     @param:Computation private val computation: CoroutineDispatcher,
     private val clock: WallClock,
@@ -125,17 +144,28 @@ class GroupDetailViewModel @AssistedInject constructor(
         fun create(@Assisted savedStateHandle: SavedStateHandle): GroupDetailViewModel
     }
 
-    /** One-shot signals: a deletion refused because the group already has lessons, or a failed write. */
-    enum class Event {
-        DELETE_BLOCKED_HAS_LESSONS,
+    /** One-shot signals: a refused deletion, the lessons archiving called off, or a failed write. */
+    sealed interface Event {
+        data object DeleteBlockedHasLessons : Event
 
-        /** A homework write failed — a database error rather than a rule. */
-        WRITE_FAILED,
+        /**
+         * The card was archived, calling off the lessons in [cancelled] that were still planned. Shown
+         * with Undo ([undoArchive]): it changed the schedule, which is another screen. The count is the
+         * write's own, not the card's — a lesson marked taught from the tray while the card was open made
+         * the card's figure one too many.
+         */
+        data class Archived(val cancelled: List<SessionReceipt>) : Event
+
+        /** An archive was taken back, but [count] of its lessons stayed cancelled — changed, or their hour taken. */
+        data class ArchiveUndoKept(val count: Int) : Event
+
+        /** A write failed — a database error rather than a rule. */
+        data object WriteFailed : Event
     }
 
     val events = UiEvents<Event>()
 
-    private val homeworkActions = HomeworkActions(homework, appScope, events, Event.WRITE_FAILED)
+    private val homeworkActions = HomeworkActions<Event>(homework, appScope, events, Event.WriteFailed)
 
     val groupId: Long = checkNotNull(savedStateHandle["id"])
 
@@ -152,7 +182,7 @@ class GroupDetailViewModel @AssistedInject constructor(
         // Sessions, newest first: one lesson is n member classes sharing a group and a start, and the
         // card counts lessons the tutor taught, not classes billed (see Taught.byGroup).
         val sessions = SessionRules.sessions(groupClasses).reversed()
-        val attendedByStudent = groupClasses.groupingBy { it.studentId }.eachCount()
+        val taughtByStudent = groupClasses.filter { it.status == LessonStatus.COMPLETED }.groupBy { it.studentId }
         val roster = memberIds.toSet()
         val card = GroupDetailState(
             group = group,
@@ -162,7 +192,12 @@ class GroupDetailViewModel @AssistedInject constructor(
             // The roster follows the same order students are listed in everywhere else: observeAll
             // has already applied it, so filtering preserves it rather than restating the rule.
             members = allStudents.filter { it.id in roster }
-                .map { GroupMemberRow(it, attendedByStudent[it.id] ?: 0) },
+                .map { student ->
+                    val taught = taughtByStudent[student.id].orEmpty()
+                    // Not marked absent: a lesson marked taught without a roll call happened for everyone in it.
+                    val present = taught.count { it.attended == Attended.PRESENT || it.attended == Attended.EXPECTED }
+                    GroupMemberRow(student, held = taught.size, present = present)
+                },
             lessons = sessions.map { session ->
                 GroupLessonRow(
                     session = session,
@@ -181,8 +216,9 @@ class GroupDetailViewModel @AssistedInject constructor(
     val state: StateFlow<Loadable<GroupDetailState>> = combine(
         base,
         homework.observeForGroup(groupId),
+        balances.observe(),
         clock.days(),
-    ) { base, homeworkList, today ->
+    ) { base, homeworkList, sums, today ->
         val captions = Captions.of(
             students = emptyList(),
             subjects = emptyList(),
@@ -190,6 +226,7 @@ class GroupDetailViewModel @AssistedInject constructor(
         )
         base.state.copy(
             homework = HomeworkLists.of(homeworkList, base.classes, captions, today, clock.zone),
+            members = base.state.members.map { it.copy(balance = sums.balanceOf(it.student.id).state) },
         )
     }
         .ready()
@@ -206,22 +243,49 @@ class GroupDetailViewModel @AssistedInject constructor(
     }.derive(this, computation, null)
 
     /**
-     * Retires the group, or brings it back. Writes straight through — there is no form here to leave
-     * unsaved, which is half the reason this belongs on the card rather than on one.
+     * This minute, for the lessons listed here: one over and unmarked reads «Не отмечено», as on the schedule,
+     * not «Запланировано». See `lessonBadgeLabel`.
      */
-    fun setArchived(value: Boolean) = appScope.write(events, Event.WRITE_FAILED) {
-        groups.getById(groupId)?.let { groups.setArchived(it, value) }
-    }
+    val minute: StateFlow<Instant> = clock.minutes().derive(this, computation, clock.now())
 
     /**
-     * Deletes the group and leaves, or reports [Event.DELETE_BLOCKED_HAS_LESSONS] — a group with
+     * Retires the group, or brings it back. Writes straight through — there is no form here to leave
+     * unsaved, which is half the reason this belongs on the card rather than on one. Archiving is said
+     * with an Undo, as a student's is.
+     */
+    fun setArchived(value: Boolean) {
+        if (!value) {
+            return appScope.write(events, Event.WriteFailed) {
+                groups.getById(groupId)?.let { groups.setArchived(it, archived = false) }
+            }
+        }
+        appScope.write(
+            events,
+            Event.WriteFailed,
+            onWritten = { cancelled: List<SessionReceipt>? ->
+                if (cancelled == null) return@write
+                events.send(Event.Archived(cancelled))
+                appScope.settleAfterUndoWindow(events, Event.WriteFailed) { classes.settleAll(cancelled) }
+            },
+        ) { groups.getById(groupId)?.let { groups.archive(it) } }
+    }
+
+    /** Takes [archived] back — see [GroupRepository.unarchive]. */
+    fun undoArchive(archived: Event.Archived) = appScope.write(
+        events,
+        Event.WriteFailed,
+        onWritten = { kept: Int -> if (kept > 0) events.send(Event.ArchiveUndoKept(kept)) },
+    ) { groups.unarchive(groupId, archived.cancelled) }
+
+    /**
+     * Deletes the group and leaves, or reports [Event.DeleteBlockedHasLessons] — a group with
      * lessons is refused (its classes must keep naming it) and the card offers archiving instead.
      */
     fun delete(onDeleted: () -> Unit) {
         viewModelScope.launch {
             appScope.writeAwaited { groups.getById(groupId)?.let { groups.delete(it) } ?: false }
-                .onSuccess { if (it) onDeleted() else events.send(Event.DELETE_BLOCKED_HAS_LESSONS) }
-                .onFailure { events.send(Event.WRITE_FAILED) }
+                .onSuccess { if (it) onDeleted() else events.send(Event.DeleteBlockedHasLessons) }
+                .onFailure { events.send(Event.WriteFailed) }
         }
     }
 

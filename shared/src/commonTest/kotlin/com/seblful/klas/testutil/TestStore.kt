@@ -14,6 +14,7 @@ fun TestEnv.store(database: KlasDatabase = KlasDatabase(this.database.db)) = cre
         override val reminders = this@store.reminders
         override val digests = this@store.digestScheduler
         override val notifier = this@store.notifier
+        override val restoreSnapshots = this@store.restoreSnapshots
     },
 )
 

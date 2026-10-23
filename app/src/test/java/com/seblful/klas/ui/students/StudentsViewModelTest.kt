@@ -129,6 +129,32 @@ class StudentsViewModelTest {
     }
 
     @Test
+    fun `Owes narrows the list to those who owe, and counts them`() = runTest(mainRule.dispatcher) {
+        val owes = env.fixtures.student(name = "Аня")
+        env.fixtures.student(name = "Борис")
+        val subj = env.fixtures.subject(name = "Математика")
+        env.fixtures.storedClass(
+            studentId = owes,
+            subjectId = subj,
+            startMillis = 1,
+            durationMinutes = 60,
+            status = LessonStatus.COMPLETED,
+            chargeMinor = Money.ofMajor(30).minor,
+        )
+
+        val vm = vm()
+        observing(vm.rows, vm.owing)
+        runCurrent()
+        assertEquals(1, vm.owing.value)
+        assertEquals(2, vm.rows.current.size)
+
+        vm.toggleOwes()
+        runCurrent()
+
+        assertEquals(listOf("Аня"), vm.rows.current.map { it.student.name })
+    }
+
+    @Test
     fun `toggling archived shows all students including archived ones`() = runTest(mainRule.dispatcher) {
         env.fixtures.student(name = "Аня")
         env.fixtures.student(name = "Старый", archived = true)

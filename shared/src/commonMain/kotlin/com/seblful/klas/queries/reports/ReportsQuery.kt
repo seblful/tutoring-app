@@ -1,17 +1,20 @@
 package com.seblful.klas.queries.reports
 
 import com.seblful.klas.data.billing.BalanceRepository
+import com.seblful.klas.data.billing.PaymentRepository
 import com.seblful.klas.data.lessons.ClassRepository
 import com.seblful.klas.data.people.GroupRepository
 import com.seblful.klas.data.people.StudentRepository
 import com.seblful.klas.data.people.SubjectRepository
 import com.seblful.klas.domain.model.Group
 import com.seblful.klas.domain.model.GroupId
+import com.seblful.klas.domain.model.Payment
 import com.seblful.klas.domain.model.Student
 import com.seblful.klas.domain.model.StudentBalance
 import com.seblful.klas.domain.model.Subject
 import com.seblful.klas.domain.model.SubjectId
 import com.seblful.klas.domain.model.TutoringClass
+import com.seblful.klas.domain.people.NameOrder
 import com.seblful.klas.domain.reports.ReportPeriod
 import com.seblful.klas.domain.reports.Reports
 import com.seblful.klas.domain.time.WallClock
@@ -25,6 +28,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
@@ -41,6 +45,7 @@ class ReportsQuery @Inject constructor(
     private val subjects: SubjectRepository,
     private val groups: GroupRepository,
     private val balances: BalanceRepository,
+    private val payments: PaymentRepository,
     private val clock: WallClock,
 ) {
     private val zone: TimeZone get() = clock.zone
@@ -51,9 +56,14 @@ class ReportsQuery @Inject constructor(
         val subjects: List<Subject>,
         val groups: List<Group>,
         val balances: Map<Long, StudentBalance>,
+        val payments: List<Payment> = emptyList(),
     )
 
-    fun observe(periods: Flow<ReportPeriod>): Flow<Reports.Report> = periods.distinctUntilChanged()
+    /** [periods]' reports, each narrowed to the latest of [scopes] — see [ReportScope]. */
+    fun observe(
+        periods: Flow<ReportPeriod>,
+        scopes: Flow<ReportScope> = flowOf(ReportScope.Everything),
+    ): Flow<Reports.Report> = periods.distinctUntilChanged()
         .flatMapLatest { period ->
             combine(
                 classesIn(Reports.window(period)),
@@ -63,9 +73,20 @@ class ReportsQuery @Inject constructor(
                 balances.observe(),
                 ::Sources,
             )
+                .combine(paymentsIn(period.bounds)) { sources, paid -> sources.copy(payments = paid) }
                 // Today re-read at midnight ([days]), not once per emission: the current period's per-day
                 // figures count the days gone, and the tab stays alive behind the bar overnight.
-                .combine(clock.days()) { sources, today -> sources.report(period, today) }
+                .combine(clock.days()) { sources, today -> sources to today }
+                .combine(scopes.distinctUntilChanged()) { (sources, today), scope ->
+                    sources.report(period, today, scope)
+                }
+        }
+
+    /** What a report can be narrowed to: each subject, then each student, both in name order. */
+    fun observeScopes(): Flow<List<ScopeChoice>> =
+        combine(subjects.observeAll(), students.observeAll()) { subjectList, studentList ->
+            NameOrder.sorted(subjectList) { it.name }.map { ScopeChoice(ReportScope.Subject(it.id), it.name) } +
+                NameOrder.sorted(studentList) { it.name }.map { ScopeChoice(ReportScope.Student(it.id), it.name) }
         }
 
     /**
@@ -81,11 +102,17 @@ class ReportsQuery @Inject constructor(
         )
     }
 
-    private fun Sources.report(period: ReportPeriod, today: LocalDate): Reports.Report = Reports.of(
+    /** Only the period's payments: [Reports.Received] is about money in, and a balance is summed by SQLite. */
+    private fun paymentsIn(bounds: ReportPeriod.Bounds?): Flow<List<Payment>> = payments.observeBetween(
+        bounds?.from?.minus(1, DateTimeUnit.DAY)?.atStartOfDayIn(zone),
+        bounds?.untilExclusive?.plus(1, DateTimeUnit.DAY)?.atStartOfDayIn(zone),
+    )
+
+    private fun Sources.report(period: ReportPeriod, today: LocalDate, scope: ReportScope): Reports.Report = Reports.of(
         period = period,
-        classes = classes,
+        classes = scope.classes(classes),
         students = students,
-        balances = balances.values.toList(),
+        balances = scope.balances(balances.values.toList()),
         // Every student with a class or payment has a balance row, billed or not.
         hasData = students.any { it.id in balances },
         // Keyed by typed ids, so each table can only be handed to the breakdown it names. The two are
@@ -97,5 +124,6 @@ class ReportsQuery @Inject constructor(
         groupNames = groups.associate { GroupId(it.id) to it.name },
         zone = zone,
         today = today,
+        payments = scope.payments(payments),
     )
 }

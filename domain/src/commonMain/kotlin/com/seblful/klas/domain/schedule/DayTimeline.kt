@@ -86,6 +86,14 @@ data class DayTimeline(
         }
     }
 
+    /**
+     * The free stretches a lesson of [minutes] fits in, in order — what the booking form writes out under the
+     * date («free 09:00–11:00, from 19:30»), so a slot is found by reading rather than by stepping to it. The
+     * last one runs to [end] when the day is free from it on.
+     */
+    fun freeFor(minutes: Int): List<Pair<Instant, Instant>> =
+        freeGaps().filter { (gapStart, gapEnd) -> gapEnd - gapStart >= minutes.minutes }
+
     /** The stretches of the timeline no lesson is in, in order — lessons that overlap make one busy stretch. */
     private fun freeGaps(): List<Pair<Instant, Instant>> {
         val gaps = mutableListOf<Pair<Instant, Instant>>()

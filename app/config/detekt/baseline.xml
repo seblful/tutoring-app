@@ -15,7 +15,6 @@
     <ID>LongMethod:ClassEditScreen.kt:@OptIn(ExperimentalMaterial3Api::class) @Composable private fun ClassEditForm</ID>
     <ID>LongMethod:DiagnosticsScreen.kt:@OptIn(ExperimentalMaterial3Api::class) @Composable fun DiagnosticsScreen</ID>
     <ID>LongMethod:GroupDetailScreen.kt:@OptIn(ExperimentalMaterial3Api::class) @Composable private fun GroupCard</ID>
-    <ID>LongMethod:GroupFormScreen.kt:@OptIn(ExperimentalMaterial3Api::class) @Composable private fun GroupForm</ID>
     <ID>LongMethod:GroupsScreen.kt:@Composable fun GroupsList</ID>
     <ID>LongMethod:HomeworkScreen.kt:@Composable fun HomeworkScreen</ID>
     <ID>LongMethod:KlasScreen.kt:@OptIn(ExperimentalMaterial3Api::class) @Composable fun KlasScreen</ID>

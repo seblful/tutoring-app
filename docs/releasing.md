@@ -98,6 +98,8 @@ that track is separate from the required closed test.
      under disclosure and consent. Backup and CSV export, report and homework sharing, and contact
      buttons run only when the user taps them, which is the user-initiated exemption.
    - Google Play's own Android vitals is not the app's collection.
+   - The app lock uses Android's `BiometricPrompt`: the system checks the fingerprint, face or screen
+     lock and tells the app only whether it succeeded, so no biometric data is collected.
 
    Revisit this when adding `INTERNET`, any SDK, or a transfer the user does not start.
    `allowBackup="false"` disables Android backup; it does not mean data is never transferred.

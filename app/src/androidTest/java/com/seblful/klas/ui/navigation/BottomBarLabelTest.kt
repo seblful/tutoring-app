@@ -83,15 +83,15 @@ class BottomBarLabelTest {
         val width = mutableStateOf(NarrowPhone)
         composeRule.setBarContent(width, TopDestination.entries)
 
-        val narrow = composeRule.widthsOf(TopDestination.MORE, TopDestination.SCHEDULE)
+        val narrow = composeRule.widthsOf(TopDestination.PEOPLE, TopDestination.SCHEDULE)
         composeRule.runOnIdle { width.value = LargePhone }
         composeRule.waitForIdle()
-        val large = composeRule.widthsOf(TopDestination.MORE, TopDestination.SCHEDULE)
+        val large = composeRule.widthsOf(TopDestination.PEOPLE, TopDestination.SCHEDULE)
 
         assertEquals(
-            "«Ещё» fits either way, so it must be drawn at the same size either way",
-            large[TopDestination.MORE],
-            narrow[TopDestination.MORE],
+            "«Люди» fits either way, so it must be drawn at the same size either way",
+            large[TopDestination.PEOPLE],
+            narrow[TopDestination.PEOPLE],
         )
         assertTrue(
             "«Расписание» is ${narrow[TopDestination.SCHEDULE]}px on a $NarrowPhone screen and " +

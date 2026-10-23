@@ -24,7 +24,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 
-/** The details card: Length, Repeat, Price and Format, each opened in place. */
+/** The details card: Length, Repeat, Rate and Place, each opened in place. */
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
 class DetailsSectionTest : ClassEditTestFixture() {
@@ -149,7 +149,7 @@ class DetailsSectionTest : ClassEditTestFixture() {
         val vm = vm(day = day, studentId = studentId)
         open(vm)
 
-        tapRow("Price")
+        tapRow("Rate")
         press("Raise the rate")
 
         assertEquals(Money.ofMajor(35), vm.state.current.form.price.amount)
@@ -160,11 +160,11 @@ class DetailsSectionTest : ClassEditTestFixture() {
         val vm = vm(day = day)
         open(vm)
 
-        tapRow("Price")
+        tapRow("Rate")
         compose.onNodeWithContentDescription("Raise the rate").assertExists()
         compose.onNodeWithText("Remote").assertDoesNotExist()
 
-        tapRow("Format")
+        tapRow("Place")
         compose.onNodeWithContentDescription("Raise the rate").assertDoesNotExist()
         compose.onNodeWithText("Remote").performScrollTo().performClick()
         compose.waitForIdle()

@@ -17,6 +17,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -33,16 +34,21 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.dp
+import com.seblful.klas.ui.designsystem.component.CoachMarkDefaults
 import com.seblful.klas.ui.theme.KlasMotion
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.abs
+import kotlin.math.min
 import kotlin.math.roundToInt
 
 /**
@@ -51,6 +57,8 @@ import kotlin.math.roundToInt
  *
  * @param toward the one way the row slides. A drag the other way is left to whatever holds the row — a
  * [SegmentedPage] turning — so a list of swipeable rows does not lock the page it is on.
+ * @param peek whether the row shows its swipe once, as its tip opens: it slides a little way, short of the
+ * mark, and back, the panel behind it saying what a whole swipe does. Nothing moves with animations off.
  */
 @Composable
 fun SwipeToConfirmBox(
@@ -58,6 +66,7 @@ fun SwipeToConfirmBox(
     reveal: @Composable (armed: Boolean) -> Unit,
     modifier: Modifier = Modifier,
     toward: SwipeToward = SwipeToward.End,
+    peek: Boolean = false,
     content: @Composable () -> Unit,
 ) {
     // Read at the lift rather than captured once: `pointerInput(Unit)` keeps its first lambda, and a caller
@@ -86,6 +95,19 @@ fun SwipeToConfirmBox(
         goingHome?.cancel()
         goingHome = scope.launch {
             animate(dragged, 0f, animationSpec = SpringHome) { value, _ -> dragged = value }
+        }
+    }
+
+    // As the job a drag cancels, so a finger landing mid-peek takes the row from where it is.
+    val peekDistance = with(LocalDensity.current) { PeekMax.toPx() }
+    LaunchedEffect(peek) {
+        if (!peek) return@LaunchedEffect
+        delay(CoachMarkDefaults.ShowAfter)
+        goingHome?.cancel()
+        goingHome = scope.launch {
+            val to = toward.clamp(toward.sign * min(width * PeekFraction, peekDistance), width)
+            animate(0f, to, animationSpec = PeekOut) { value, _ -> dragged = value }
+            animate(to, 0f, animationSpec = SpringHome) { value, _ -> dragged = value }
         }
     }
 
@@ -148,6 +170,8 @@ enum class SwipeToward {
 
     internal fun clamp(offset: Float, width: Float): Float =
         if (this == End) offset.coerceIn(0f, width) else offset.coerceIn(-width, 0f)
+
+    internal val sign: Float get() = if (this == End) 1f else -1f
 }
 
 /**
@@ -200,4 +224,11 @@ internal fun swipeArmed(dragged: Float, width: Float): Boolean =
 
 private const val CommitFraction = 0.33f
 
+/** A peek stops well short of [CommitFraction], so it can never look like the swipe having been made. */
+private const val PeekFraction = 0.2f
+
+private val PeekMax = 72.dp
+
 private val SpringHome = KlasMotion.defaultSpatial<Float>()
+
+private val PeekOut = KlasMotion.slowSpatial<Float>()

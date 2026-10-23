@@ -58,6 +58,19 @@ class DayTimelineTest {
     }
 
     @Test
+    fun `the free time a lesson fits in is written out, the last stretch running to the day's end`() {
+        assertEquals(
+            listOf(at(9) to at(15, 30), at(16, 30) to at(18), at(19, 30) to at(23)),
+            thursday.freeFor(60),
+        )
+        assertEquals(
+            listOf(at(9) to at(15, 30), at(19, 30) to at(23)),
+            thursday.freeFor(120),
+            "the 90 minutes between the two lessons is too short for two hours",
+        )
+    }
+
+    @Test
     fun `a tap starts the lesson at the five minutes tapped`() {
         assertEquals(at(13, 45), thursday.place(at(13, 47), minutes = 60))
     }

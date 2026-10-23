@@ -7,10 +7,12 @@ import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.ThemeChoice
 import com.seblful.klas.format.AppLocale
+import com.seblful.klas.lock.AppLock
 import com.seblful.klas.testutil.AppLocaleRule
 import com.seblful.klas.testutil.MainDispatcherRule
 import com.seblful.klas.testutil.TestEnv
 import com.seblful.klas.testutil.observing
+import com.seblful.klas.ui.onboarding.FirstLesson
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
@@ -38,7 +40,9 @@ class RootViewModelTest {
     val locale = AppLocaleRule.russian()
 
     private fun vm() = mainRule.own(
-        RootViewModel(env.settingsRepo, env.deviceLocales, env.maintenance, mainRule.appScope),
+        RootViewModel(
+            env.settingsRepo, env.deviceLocales, env.maintenance, mainRule.appScope, AppLock(), FirstLesson(),
+        ),
     )
 
     @Test

@@ -18,6 +18,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import com.seblful.klas.R
+import com.seblful.klas.domain.guide.Tip
 import com.seblful.klas.domain.lesson.LessonKind
 import com.seblful.klas.domain.lesson.LessonPhase
 import com.seblful.klas.domain.model.LessonStatus
@@ -36,8 +37,14 @@ import com.seblful.klas.ui.common.classStatusLabel
 import com.seblful.klas.ui.common.lessonBadgeColor
 import com.seblful.klas.ui.common.lessonBadgeLabel
 import com.seblful.klas.ui.common.popsOnChange
+import com.seblful.klas.ui.common.sectionSurface
 import com.seblful.klas.ui.common.swipeAction
 import com.seblful.klas.ui.common.timeText
+import com.seblful.klas.ui.designsystem.component.CoachMark
+import com.seblful.klas.ui.designsystem.component.CoachMarkSide
+import com.seblful.klas.ui.designsystem.component.SlicePosition
+import com.seblful.klas.ui.designsystem.component.SurfaceRow
+import com.seblful.klas.ui.designsystem.component.shapeOf
 import com.seblful.klas.ui.theme.KlasIcons
 import com.seblful.klas.ui.theme.klasColors
 
@@ -49,14 +56,75 @@ internal fun LazyItemScope.SwipeToCompleteCard(
     onClick: () -> Unit,
     onComplete: () -> Unit,
     modifier: Modifier = Modifier,
+    slice: SlicePosition? = null,
 ) {
-    if (!row.canSwipeComplete) {
-        ScheduleCard(row, phase, timeWidth, onClick, animateInPlace(modifier))
+    val picking = LocalLessonPicking.current
+    val lessonTip = LocalLessonTip.current
+    val tip = lessonTip.on(row)
+    val reader = lessonTip.reader
+    val tap = if (picking.active) ({ picking.toggle(row) }) else onClick
+    // However it is marked — swiped, or through the action a screen reader offers — the swipe has been learned.
+    val complete = {
+        lessonTip.screen.done(Tip.LESSON_SWIPE)
+        onComplete()
+    }
+    if (!row.canSwipeComplete || picking.active) {
+        LessonCoachMark(tip, reader, lessonTip.screen.dismiss, animateInPlace(modifier)) { anchored ->
+            ScheduleCard(row, phase, timeWidth, tap, anchored, picking, slice)
+        }
         return
     }
+    LessonCoachMark(tip, reader, lessonTip.screen.dismiss, animateInPlace(modifier)) { anchored ->
+        val peek = tip == Tip.LESSON_SWIPE && !reader
+        SwipeCard(row, phase, timeWidth, tap, complete, anchored, slice, picking, peek)
+    }
+}
+
+/**
+ * [content] under the schedule's tip when this card carries one — its modifier then goes on the bubble's anchor,
+ * which is the list item's root — and as it is otherwise.
+ */
+@Composable
+private fun LessonCoachMark(
+    tip: Tip?,
+    reader: Boolean,
+    onDismiss: () -> Unit,
+    modifier: Modifier,
+    content: @Composable (Modifier) -> Unit,
+) {
+    if (tip == null) {
+        content(modifier)
+        return
+    }
+    val text = when (tip) {
+        Tip.LESSON_SWIPE -> if (reader) R.string.tip_lesson_swipe_reader else R.string.tip_lesson_swipe
+        else -> R.string.tip_lesson_pick
+    }
+    CoachMark(
+        stringResource(text),
+        visible = true,
+        onDismiss = onDismiss,
+        modifier = modifier,
+        side = CoachMarkSide.Above,
+    ) { content(Modifier) }
+}
+
+@Composable
+private fun SwipeCard(
+    row: ScheduleRow,
+    phase: LessonPhase,
+    timeWidth: Dp,
+    onClick: () -> Unit,
+    onComplete: () -> Unit,
+    modifier: Modifier,
+    slice: SlicePosition?,
+    picking: LessonPicking,
+    peek: Boolean,
+) {
     SwipeToConfirmBox(
         onConfirm = onComplete,
-        modifier = animateInPlace(modifier),
+        modifier = modifier,
+        peek = peek,
         // **Green, the container tone of the badge this gesture produces.** It was `tertiaryContainer`, which
         // in this palette is a pale cyan — so the swipe promised «Проведено» in a blue, the colour a lesson
         // *still to come* is written in, and then handed back a badge of another colour entirely. Now the
@@ -69,7 +137,7 @@ internal fun LazyItemScope.SwipeToCompleteCard(
                 container = klasColors.successContainer,
                 content = klasColors.onSuccessContainer,
                 armed = armed,
-                shape = MaterialTheme.shapes.medium,
+                shape = slice?.shapeOf(MaterialTheme.shapes.medium) ?: MaterialTheme.shapes.medium,
                 horizontalPadding = SheetGutter,
             )
         },
@@ -80,6 +148,8 @@ internal fun LazyItemScope.SwipeToCompleteCard(
             timeWidth,
             onClick,
             Modifier.swipeAction(stringResource(R.string.class_mark_completed), onComplete),
+            picking,
+            slice,
         )
     }
 }
@@ -91,33 +161,46 @@ private fun ScheduleCard(
     timeWidth: Dp,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    picking: LessonPicking = LessonPicking.NONE,
+    slice: SlicePosition? = null,
 ) {
     // Whether the card recedes is the row's own answer — see [ScheduleRow.recedes]: a day with
     // four lessons and three cancellations must not look like a full day.
     val cancelled = row.recedes
-    ContentCard(onClick = onClick, modifier = modifier, dimmed = cancelled) {
+    LessonSurface(row, onClick, modifier, picking, slice) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             // Ink, not the accent: the time is read, not tapped. A fixed-width column, so every card's
-            // name starts on the same edge whatever the hour.
-            ColumnTime(
-                row.klass.start.timeText(),
-                style = MaterialTheme.typography.titleMedium,
-                width = timeWidth,
-                color = if (cancelled) MaterialTheme.colorScheme.onSurfaceVariant
-                else MaterialTheme.colorScheme.onSurface,
-                // Struck through, so the hour reads as one that was given back.
-                textDecoration = if (cancelled) TextDecoration.LineThrough else null,
-            )
+            // name starts on the same edge whatever the hour. The end under the start, quieter: back-to-back
+            // lessons and the gaps between them read off the column without a time grid.
+            Column {
+                ColumnTime(
+                    row.klass.start.timeText(),
+                    style = MaterialTheme.typography.titleMedium,
+                    width = timeWidth,
+                    color = if (cancelled) MaterialTheme.colorScheme.onSurfaceVariant
+                    else MaterialTheme.colorScheme.onSurface,
+                    // Struck through, so the hour reads as one that was given back.
+                    textDecoration = if (cancelled) TextDecoration.LineThrough else null,
+                )
+                ColumnTime(
+                    row.klass.end.timeText(),
+                    style = MaterialTheme.typography.bodySmall,
+                    width = timeWidth,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textDecoration = if (cancelled) TextDecoration.LineThrough else null,
+                )
+            }
             // [Spacing.itemGap] rather than [Spacing.leading]: the time and the body are two peers
             // in the row, and every dp between them is width the lesson's own name does not get —
             // that name being the one thing on the card that can run long.
             Spacer(Modifier.width(Spacing.itemGap))
             Column(Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    // Both kinds are marked, not just the group ones: an icon that appears only
-                    // sometimes reads as "this lesson has something extra", which leaves an individual
-                    // lesson looking like a lesson with a missing icon rather than an individual one.
-                    LessonKindIcon(LessonKind.of(row.klass), Modifier.padding(end = Spacing.inline))
+                    // Only the group lesson is marked — the one that differs, and the one whose card goes on
+                    // to list its members. An icon on every row said "person" beside every name (R1).
+                    if (row.isGroup) {
+                        LessonKindIcon(LessonKind.GROUP, Modifier.padding(end = Spacing.inline))
+                    }
                     // **One line.** A name long enough to wrap — «Группа Биология» — used to break
                     // across two, and because the time on the left is centred against the whole card
                     // it then sat beside the *second* line with a hole above it. Rows also stopped
@@ -148,11 +231,45 @@ private fun ScheduleCard(
     }
 }
 
+/** A card of its own in the Day view; a row of its day's section in Week and Month (R1). */
 @Composable
-internal fun StatusLine(row: ScheduleRow, phase: LessonPhase, maxLines: Int = 1) {
+private fun LessonSurface(
+    row: ScheduleRow,
+    onClick: () -> Unit,
+    modifier: Modifier,
+    picking: LessonPicking,
+    slice: SlicePosition?,
+    content: @Composable () -> Unit,
+) {
+    val pickLabel = stringResource(R.string.batch_select)
+    if (slice == null) {
+        ContentCard(
+            onClick = onClick,
+            modifier = modifier,
+            dimmed = row.recedes,
+            selected = picking.isPicked(row),
+            onLongClick = { picking.toggle(row) },
+            onLongClickLabel = pickLabel,
+        ) { content() }
+    } else {
+        SurfaceRow(
+            position = slice,
+            onClick = onClick,
+            modifier = modifier,
+            selected = picking.isPicked(row),
+            container = MaterialTheme.colorScheme.sectionSurface,
+            dimmed = row.recedes,
+            onLongClick = { picking.toggle(row) },
+            onLongClickLabel = pickLabel,
+        ) { content() }
+    }
+}
+
+@Composable
+internal fun StatusLine(row: ScheduleRow, phase: LessonPhase, maxLines: Int = 1, rate: String? = null) {
     BadgeLine(badge = { SessionStatusBadge(row, phase) }, Modifier.padding(top = Spacing.tight)) {
         Text(
-            bulletJoin(row.subjectName, classModeLabel(row.klass.mode)),
+            bulletJoin(listOfNotNull(row.subjectName, classModeLabel(row.klass.mode), rate)),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = maxLines,

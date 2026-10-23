@@ -11,7 +11,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -29,10 +28,10 @@ import com.seblful.klas.ui.common.KlasScreen
 import com.seblful.klas.ui.common.SectionCard
 import com.seblful.klas.ui.common.ShowMessagesFor
 import com.seblful.klas.ui.common.Spacing
-import com.seblful.klas.ui.common.destructiveOutlinedButtonBorder
-import com.seblful.klas.ui.common.destructiveOutlinedButtonColors
 import com.seblful.klas.ui.common.rememberCreateDocument
 import com.seblful.klas.ui.common.rememberMessages
+import com.seblful.klas.ui.designsystem.component.ButtonKind
+import com.seblful.klas.ui.designsystem.component.KlasButton
 import com.seblful.klas.ui.theme.KlasIcons
 import dev.zacsweers.metrox.viewmodel.metroViewModel
 
@@ -88,14 +87,13 @@ fun DiagnosticsScreen(
                 Spacer(Modifier.weight(1f))
             } else {
                 Row(horizontalArrangement = Arrangement.spacedBy(Spacing.inline)) {
-                    OutlinedButton(onClick = { export(exportFilename) }) {
+                    KlasButton(onClick = { export(exportFilename) }, kind = ButtonKind.Outlined) {
                         Text(stringResource(R.string.diagnostics_export))
                     }
                     // Clearing loses the log, so it is said in red like every other loss.
-                    OutlinedButton(
+                    KlasButton(
                         onClick = { confirmingClear = true },
-                        colors = destructiveOutlinedButtonColors(),
-                        border = destructiveOutlinedButtonBorder(),
+                        kind = ButtonKind.DestructiveOutlined,
                     ) {
                         Text(stringResource(R.string.diagnostics_clear))
                     }
@@ -124,10 +122,9 @@ fun DiagnosticsScreen(
                 // Debug-only: verify the crash handler actually records and survives a real crash.
                 // The thrown exception is uncaught on purpose — it kills the app; relaunch to see the
                 // entry appear above. Never present in a release build (gated by the debuggable flag).
-                OutlinedButton(
+                KlasButton(
                     onClick = { throw RuntimeException("Test crash from Diagnostics screen") },
-                    colors = destructiveOutlinedButtonColors(),
-                    border = destructiveOutlinedButtonBorder(),
+                    kind = ButtonKind.DestructiveOutlined,
                 ) {
                     Text(stringResource(R.string.diagnostics_test_crash))
                 }

@@ -230,7 +230,66 @@ object Migrations {
         check(orphans.isEmpty()) { "v9 -> v10 left rows pointing at nothing: $orphans" }
     }
 
+    /** v10 → v11 adds the privacy settings, every one starting closed — see `Privacy`. */
+    val MIGRATION_10_11 = object : Migration(10, 11) {
+        override fun migrate(connection: SQLiteConnection) {
+            connection.execSQL("ALTER TABLE settings ADD COLUMN lockScreenDetails INTEGER NOT NULL DEFAULT 0")
+            connection.execSQL("ALTER TABLE settings ADD COLUMN lockScreenWidgets INTEGER NOT NULL DEFAULT 0")
+            connection.execSQL("ALTER TABLE settings ADD COLUMN appLock INTEGER NOT NULL DEFAULT 0")
+            connection.execSQL("ALTER TABLE settings ADD COLUMN relockAfterMinutes INTEGER NOT NULL DEFAULT 1")
+            connection.execSQL("ALTER TABLE settings ADD COLUMN hideInRecents INTEGER NOT NULL DEFAULT 0")
+        }
+    }
+
+    /** v11 → v12 adds the weekly backup, off until the tutor picks a folder. */
+    val MIGRATION_11_12 = object : Migration(11, 12) {
+        override fun migrate(connection: SQLiteConnection) {
+            connection.execSQL("ALTER TABLE settings ADD COLUMN autoBackupFolder TEXT")
+            connection.execSQL("ALTER TABLE settings ADD COLUMN autoBackupFailed INTEGER NOT NULL DEFAULT 0")
+        }
+    }
+
+    /** v12 → v13 says how a payment was made; every earlier one has no method. */
+    val MIGRATION_12_13 = object : Migration(12, 13) {
+        override fun migrate(connection: SQLiteConnection) {
+            connection.execSQL("ALTER TABLE payments ADD COLUMN method TEXT")
+        }
+    }
+
+    /**
+     * The guide a new tutor gets. An install already through setup has found its way without it, so it starts
+     * with every tip of this version seen and the first-steps card put away. The names are frozen here: a tip
+     * added later is one these tutors have not seen either.
+     */
+    val MIGRATION_13_14 = object : Migration(13, 14) {
+        override fun migrate(connection: SQLiteConnection) {
+            connection.execSQL("ALTER TABLE settings ADD COLUMN tipsSeen TEXT NOT NULL DEFAULT ''")
+            connection.execSQL("ALTER TABLE settings ADD COLUMN firstStepsHidden INTEGER NOT NULL DEFAULT 0")
+            connection.execSQL(
+                "UPDATE settings SET tipsSeen = 'SCHEDULE_DATE,LESSON_SWIPE,LESSON_PICK,HOMEWORK_SWIPE', " +
+                    "firstStepsHidden = 1 WHERE onboardingComplete = 1",
+            )
+        }
+    }
+
+    /** What a phone is to be given after a restore — nothing yet on any phone that upgrades. */
+    val MIGRATION_14_15 = object : Migration(14, 15) {
+        override fun migrate(connection: SQLiteConnection) {
+            connection.execSQL("ALTER TABLE settings ADD COLUMN phoneSetup TEXT NOT NULL DEFAULT ''")
+        }
+    }
+
     /** Everything above, in the order Room should be handed it. See `di/DatabaseModule`. */
-    val ALL: Array<Migration> =
-        arrayOf(MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10)
+    val ALL: Array<Migration> = arrayOf(
+        MIGRATION_5_6,
+        MIGRATION_6_7,
+        MIGRATION_7_8,
+        MIGRATION_8_9,
+        MIGRATION_9_10,
+        MIGRATION_10_11,
+        MIGRATION_11_12,
+        MIGRATION_12_13,
+        MIGRATION_13_14,
+        MIGRATION_14_15,
+    )
 }

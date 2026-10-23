@@ -120,9 +120,10 @@ private fun StudentBalancePreview() = PreviewSurface {
             payments = payments,
         ),
         onAddPayment = {},
+        onStatement = {},
     )
     OverviewSection(title = "Платежи", count = 3, onSeeAll = {}) {
-        payments.forEach { PaymentRow(it, onEdit = {}, onDelete = {}, colors = sectionRowColors()) }
+        payments.forEach { PaymentRow(it, onEdit = {}, colors = sectionRowColors()) }
     }
 }
 
@@ -151,6 +152,8 @@ private fun GroupOverviewPreview() = PreviewSurface {
             lesson(3, "2026-05-28T15:00:00Z", LessonStatus.COMPLETED, missed = true),
             lesson(2, "2026-05-21T15:00:00Z", LessonStatus.COMPLETED),
             lesson(1, "2026-05-14T15:00:00Z", LessonStatus.CANCELLED),
-        ).forEach { GroupLessonItem(it, onClick = {}, colors = sectionRowColors()) }
+        ).forEach {
+            GroupLessonItem(it, now = Instant.parse("2026-06-01T12:00:00Z"), onClick = {}, colors = sectionRowColors())
+        }
     }
 }

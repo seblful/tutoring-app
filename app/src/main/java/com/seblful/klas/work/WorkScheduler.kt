@@ -37,11 +37,14 @@ class WorkScheduler @Inject constructor(
 ) : ReminderScheduler, DigestScheduler {
     private val workManager get() = WorkManager.getInstance(context)
 
-    /** Enqueues the recurring maintenance job. Idempotent — safe to call on every app start. */
+    /** Enqueues the recurring jobs. Idempotent — safe to call on every app start. */
     override fun ensurePeriodicMaintenance() {
         val request = PeriodicWorkRequestBuilder<MaintenanceWorker>(PERIODIC_HOURS, TimeUnit.HOURS).build()
         // UPDATE, not KEEP: an install arranged under an older interval takes the new one.
         workManager.enqueueUniquePeriodicWork(PERIODIC_MAINTENANCE, ExistingPeriodicWorkPolicy.UPDATE, request)
+        // Daily, though the copy is weekly: a phone off on the day still gets it the day after.
+        val backup = PeriodicWorkRequestBuilder<AutoBackupWorker>(1, TimeUnit.DAYS).build()
+        workManager.enqueueUniquePeriodicWork(AUTO_BACKUP, ExistingPeriodicWorkPolicy.UPDATE, backup)
     }
 
     override suspend fun scheduleNextPass(at: Instant?) {
@@ -134,6 +137,7 @@ class WorkScheduler @Inject constructor(
         const val AGENDA_DIGEST = "digest-agenda"
         const val UNFINISHED_DIGEST = "digest-unfinished"
         const val DEBT_DIGEST = "digest-debts"
+        const val AUTO_BACKUP = "auto-backup"
 
         /** Reminders are alarms and writes run a pass at once; the tick only slides the week's window. */
         const val PERIODIC_HOURS = 6L

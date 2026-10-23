@@ -1,6 +1,11 @@
 package com.seblful.klas.ui.common
 
 import androidx.compose.material3.Text
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -9,6 +14,8 @@ import androidx.compose.ui.test.performClick
 import com.seblful.klas.testutil.AppLocaleRule
 import com.seblful.klas.ui.theme.KlasTheme
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -36,6 +43,55 @@ class KlasScreenTest {
         compose.onNodeWithContentDescription("Back").performClick()
 
         assertEquals(1, backs)
+    }
+
+    @Test
+    fun `while something is picked the bar counts it aloud, lets go with its cross, and holds the pick's actions`() {
+        var cleared = 0
+        compose.setContent {
+            KlasTheme {
+                KlasScreen(
+                    "Schedule",
+                    selection = Selection(2, onClear = { cleared++ }) { Text("Mark taught") },
+                    actions = { Text("Settings") },
+                    floatingActionButton = { Text("Book") },
+                ) { _, _ -> }
+            }
+        }
+
+        compose.onNodeWithText("2 selected")
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.LiveRegion, LiveRegionMode.Polite))
+        compose.onNodeWithText("Mark taught").assertExists()
+        compose.onNodeWithText("Settings").assertDoesNotExist()
+        compose.onNodeWithText("Book").assertDoesNotExist()
+        compose.onNodeWithContentDescription("Clear selection").performClick()
+        assertEquals(1, cleared)
+    }
+
+    @Test
+    fun `the search key opens the search of the screen on show`() {
+        val key = SearchKey()
+        compose.setContent {
+            KlasTheme {
+                CompositionLocalProvider(LocalSearchKey provides key) {
+                    KlasScreen("People", search = ScreenSearch("", "Find a student", onQueryChange = {})) { _, _ -> }
+                }
+            }
+        }
+
+        compose.runOnIdle { assertTrue(key.press()) }
+
+        compose.onNodeWithText("Find a student").assertIsDisplayed()
+    }
+
+    @Test
+    fun `the search key does nothing where there is no search`() {
+        val key = SearchKey()
+        compose.setContent {
+            KlasTheme { CompositionLocalProvider(LocalSearchKey provides key) { KlasScreen("Reports") { _, _ -> } } }
+        }
+
+        compose.runOnIdle { assertFalse(key.press()) }
     }
 
     @Test

@@ -25,6 +25,12 @@ class HomeworkActions<E>(
 
     fun setDone(item: Homework, done: Boolean) = write { homework.setDone(item, done) }
 
+    /** Moves every one of [items] to the archive at once — a batch picked by a long-press. */
+    fun markDone(items: List<Homework>) = write { items.forEach { homework.setDone(it, true) } }
+
+    /** Undoes [markDone], each piece back exactly as it was. */
+    fun putBack(items: List<Homework>) = write { items.forEach { homework.putBack(it) } }
+
     /** Undoes a swipe on [item], its done state back exactly as it was — see `HomeworkRepository.putBack`. */
     fun putBack(item: Homework) = write { homework.putBack(item) }
 

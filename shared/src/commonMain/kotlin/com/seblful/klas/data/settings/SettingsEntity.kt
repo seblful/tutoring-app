@@ -151,6 +151,41 @@ data class SettingsEntity(
      * and a nullable column carries it without a rule to remember.
      */
     val lastExportMillis: Long? = null,
+    /**
+     * The five [Privacy] choices, added by v10 → v11. Every `defaultValue` matches the migration's
+     * `DEFAULT` and the private start — an upgraded install is as closed as a new one.
+     */
+    @ColumnInfo(defaultValue = "0")
+    val lockScreenDetails: Boolean = false,
+    @ColumnInfo(defaultValue = "0")
+    val lockScreenWidgets: Boolean = false,
+    @ColumnInfo(defaultValue = "0")
+    val appLock: Boolean = false,
+    @ColumnInfo(defaultValue = "1")
+    val relockAfterMinutes: Int = Privacy.DEFAULT_RELOCK_MINUTES,
+    @ColumnInfo(defaultValue = "0")
+    val hideInRecents: Boolean = false,
+    /** The weekly backup's folder (a SAF tree URI), null while it is off. Added by v11 → v12. */
+    val autoBackupFolder: String? = null,
+    /** Whether the last weekly copy could not be written — the folder has to be picked again. */
+    @ColumnInfo(defaultValue = "0")
+    val autoBackupFailed: Boolean = false,
+    /**
+     * The guide a new tutor gets (`Guide`): the [com.seblful.klas.domain.guide.Tip]s seen on this phone, as
+     * their names joined by commas, and whether the first-steps card is put away. Added by v13 → v14, which
+     * marks both done for an install already through setup — the guide is for someone new to the app.
+     */
+    @ColumnInfo(defaultValue = "")
+    val tipsSeen: String = "",
+    @ColumnInfo(defaultValue = "0")
+    val firstStepsHidden: Boolean = false,
+    /**
+     * What this phone is still to be given after a restore (`PhoneSetup`): the
+     * [com.seblful.klas.domain.guide.PhoneStep]s the backup's phone had on, as names joined by commas; empty
+     * when there is no card. Added by v14 → v15.
+     */
+    @ColumnInfo(defaultValue = "")
+    val phoneSetup: String = "",
 ) {
     companion object {
         const val SINGLETON_ID = 0

@@ -24,6 +24,7 @@ import androidx.compose.ui.test.isSelectable
 import androidx.compose.ui.test.isSelected
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToIndex
@@ -179,6 +180,7 @@ class StoreScreenshots {
         val student = tutor.debtor.name
         val group = tutor.group.name
 
+        tab(R.string.nav_schedule)
         waitFor(string(R.string.class_status_in_progress))
         capture("schedule-day", marks = mapOf("onNow" to row(tutor.onNow.name)))
 
@@ -220,12 +222,8 @@ class StoreScreenshots {
 
         reportsTour()
 
-        tab(R.string.nav_more)
-        settle()
-        capture("more")
-
         switchOnReminders()
-        click(string(R.string.settings_title))
+        gear()
         waitFor(string(R.string.settings_lessons_title))
         capture("settings")
         click(string(R.string.settings_calendar_title))
@@ -268,8 +266,7 @@ class StoreScreenshots {
 
     private fun darkTour() {
         val dark = hasText(string(R.string.theme_dark)) and isSelectable()
-        tab(R.string.nav_more)
-        click(string(R.string.settings_title))
+        gear()
         waitFor(string(R.string.settings_appearance_title))
         click(string(R.string.settings_appearance_title))
         waitFor(string(R.string.settings_language))
@@ -510,6 +507,13 @@ class StoreScreenshots {
                 """"marks": $marks, "texts": $texts }"""
         }
         File(out, "shots.json").writeText("{\n$entries\n}\n")
+    }
+
+    /** Settings, through the gear on the tab's bar. */
+    private fun gear() {
+        compose.onAllNodes(hasContentDescription(string(R.string.settings_title)) and hasClickAction())
+            .onFirst().performClick()
+        settle()
     }
 
     private fun tab(@StringRes label: Int) {

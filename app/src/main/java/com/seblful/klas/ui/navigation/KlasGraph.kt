@@ -28,7 +28,6 @@ import com.seblful.klas.ui.groups.GroupFormViewModel
 import com.seblful.klas.ui.groups.GroupListScreen
 import com.seblful.klas.ui.homework.HomeworkScreen
 import com.seblful.klas.ui.more.AboutScreen
-import com.seblful.klas.ui.more.MoreScreen
 import com.seblful.klas.ui.people.PeopleScreen
 import com.seblful.klas.ui.reports.ReportsScreen
 import com.seblful.klas.ui.schedule.ScheduleScreen
@@ -40,6 +39,7 @@ import com.seblful.klas.ui.settings.AppearanceSettingsScreen
 import com.seblful.klas.ui.settings.CalendarSettingsScreen
 import com.seblful.klas.ui.settings.LessonSettingsScreen
 import com.seblful.klas.ui.settings.NotificationSettingsScreen
+import com.seblful.klas.ui.settings.PrivacySettingsScreen
 import com.seblful.klas.ui.settings.SettingsCategory
 import com.seblful.klas.ui.settings.SettingsNavigation
 import com.seblful.klas.ui.settings.SettingsScreen
@@ -49,6 +49,7 @@ import com.seblful.klas.ui.students.StudentListScreen
 import com.seblful.klas.ui.students.StudentTask
 import com.seblful.klas.ui.subjects.SubjectsScreen
 import com.seblful.klas.ui.theme.KlasIcons
+import com.seblful.klas.ui.today.TodayScreen
 import dev.zacsweers.metrox.viewmodel.assistedMetroViewModel
 
 /**
@@ -62,6 +63,10 @@ class KlasGraph(
     private val navigator: KlasNavigator,
     private val scheduleArrival: (Long) -> Arrival<ScheduleTarget>?,
     private val debtsArrival: (Long) -> Arrival<Unit>?,
+    /** Asks the schedule just opened for [ScheduleTarget], as a tray tap does — Today's rows lead there. */
+    private val arriveAtSchedule: (ScheduleTarget) -> Unit = {},
+    /** Asks the reports just opened for their debts. */
+    private val arriveAtDebts: () -> Unit = {},
 ) {
     fun entry(screen: Screen): NavEntry<Screen> =
         NavEntry(screen, contentKey = screen.id, metadata = screen.route.paneMetadata()) { Content(screen) }
@@ -76,14 +81,19 @@ class KlasGraph(
         // This screen's own back, not "whatever is on top": see [KlasNavigator.close].
         val back = { navigator.close(screen) }
         when (val route = screen.route) {
+            Routes.Today -> Today()
             Routes.Schedule -> Schedule(screen.id)
-            Routes.Reports -> ReportsScreen(onStudentClick = { go(Routes.StudentDetail(it)) }, debtsArrival(screen.id))
-            Routes.More -> More()
+            Routes.Reports -> ReportsScreen(
+                onStudentClick = { go(Routes.StudentDetail(it)) },
+                debtsArrival(screen.id),
+                onSettings = settings,
+            )
             Routes.People -> People()
-            Routes.Homework -> HomeworkScreen(onAddStudent = { go(Routes.StudentAdd) })
+            Routes.Homework -> HomeworkScreen(onAddStudent = { go(Routes.StudentAdd) }, onSettings = settings)
             Routes.StudentAdd -> StudentFormScreen(onBack = back)
             is Routes.StudentAddForSubject -> StudentAddForSubject(route, back)
             is Routes.StudentDetail -> StudentDetail(route, back)
+            is Routes.StudentEdit -> StudentFormScreen(onBack = back, studentId = route.id)
             is Routes.StudentList -> StudentListScreen(
                 section = route.section,
                 onBack = back,
@@ -107,6 +117,7 @@ class KlasGraph(
             Routes.NotificationSettings -> NotificationSettingsScreen(onBack = back.takeUnless { besideList() })
             Routes.CalendarSettings -> CalendarSettingsScreen(onBack = back.takeUnless { besideList() })
             Routes.AppearanceSettings -> AppearanceSettingsScreen(onBack = back.takeUnless { besideList() })
+            Routes.PrivacySettings -> PrivacySettingsScreen(onBack = back.takeUnless { besideList() })
             Routes.Diagnostics -> DiagnosticsScreen(onBack = back.takeUnless { besideList() })
             // About is where the app makes the "your data is on this device and nowhere else" promise, which
             // is also where its one obligation is stated — so the way to act on it is here.
@@ -115,11 +126,37 @@ class KlasGraph(
     }
 
     @Composable
+    private fun Today() {
+        TodayScreen(
+            onSettings = settings,
+            onOpenLesson = {
+                navigator.openTabFromTray(TopDestination.SCHEDULE)
+                arriveAtSchedule(ScheduleTarget.Lesson(it))
+            },
+            onBook = { go(Routes.classEdit(0)) },
+            onDebts = {
+                navigator.openTabFromTray(TopDestination.REPORTS)
+                arriveAtDebts()
+            },
+            onHomework = { navigator.navigateToTab(TopDestination.HOMEWORK) },
+            onBackup = { go(Routes.Backup) },
+            onSchedule = { navigator.navigateToTab(TopDestination.SCHEDULE) },
+            onOpenStudent = { go(Routes.StudentDetail(it)) },
+            onRecordPayment = { go(Routes.StudentDetail(it, task = StudentTask.PAYMENT)) },
+            onGiveHomework = { go(Routes.StudentDetail(it, task = StudentTask.HOMEWORK)) },
+            onPeople = { navigator.navigateToTab(TopDestination.PEOPLE) },
+            onReminders = { go(Routes.NotificationSettings) },
+            onCalendar = { go(Routes.CalendarSettings) },
+        )
+    }
+
+    @Composable
     private fun Schedule(id: Long) {
         ScheduleScreen(
             arrival = scheduleArrival(id),
             onAddClass = { day -> go(Routes.classEdit(0, day = day)) },
             onEditClass = { go(Routes.classEdit(it)) },
+            onBookLike = { go(Routes.classEdit(0, like = it)) },
             // The way out of "nothing can be booked yet": the schedule's empty state offers the missing step
             // rather than only naming it.
             onAddStudent = { go(Routes.StudentAdd) },
@@ -128,18 +165,12 @@ class KlasGraph(
             onSetStudentHomework = { go(Routes.StudentDetail(it, task = StudentTask.HOMEWORK)) },
             onSetGroupHomework = { go(Routes.GroupDetail(it, setHomework = true)) },
             onRecordPayment = { go(Routes.StudentDetail(it, task = StudentTask.PAYMENT)) },
+            onSettings = settings,
         )
     }
 
-    @Composable
-    private fun More() {
-        MoreScreen(
-            onSubjects = { go(Routes.Subjects) },
-            onBackup = { go(Routes.Backup) },
-            onSettings = { go(Routes.Settings) },
-            onAbout = { go(Routes.About) },
-        )
-    }
+    /** The gear on every tab's bar: Settings, pushed over the tab it was opened from. */
+    private val settings: () -> Unit = { navigator.openOnTop(Routes.Settings) }
 
     /** The list of the People pane: a card it opens replaces the one shown beside it. */
     @Composable
@@ -149,6 +180,7 @@ class KlasGraph(
             onAddStudent = { go(Routes.StudentAdd) },
             onGroupClick = { navigator.replaceAbove(Routes.People, Routes.GroupDetail(it)) },
             onAddGroup = { go(Routes.GroupAdd) },
+            onSettings = settings,
             open = when (val card = openBeside(Routes.People, navigator.backStack)) {
                 is Routes.StudentDetail -> Assignee.Student(card.id)
                 is Routes.GroupDetail -> Assignee.Group(card.id)
@@ -180,6 +212,7 @@ class KlasGraph(
             initialTask = route.task,
             viewModel = routeViewModel(route),
             backArrow = !besideList(),
+            onEdit = { go(Routes.StudentEdit(route.id)) },
         )
     }
 
@@ -250,7 +283,11 @@ class KlasGraph(
                 notifications = { page(SettingsCategory.NOTIFICATIONS) },
                 calendar = { page(SettingsCategory.CALENDAR) },
                 appearance = { page(SettingsCategory.APPEARANCE) },
+                privacy = { page(SettingsCategory.PRIVACY) },
                 diagnostics = { page(SettingsCategory.DIAGNOSTICS) },
+                subjects = { go(Routes.Subjects) },
+                backup = { go(Routes.Backup) },
+                about = { go(Routes.About) },
             ),
             open = SettingsPages.entries.firstOrNull { it.value == open }?.key,
         )
@@ -263,6 +300,7 @@ private val SettingsPages: Map<SettingsCategory, Route> = mapOf(
     SettingsCategory.NOTIFICATIONS to Routes.NotificationSettings,
     SettingsCategory.LESSONS to Routes.LessonSettings,
     SettingsCategory.CALENDAR to Routes.CalendarSettings,
+    SettingsCategory.PRIVACY to Routes.PrivacySettings,
     SettingsCategory.DIAGNOSTICS to Routes.Diagnostics,
 )
 

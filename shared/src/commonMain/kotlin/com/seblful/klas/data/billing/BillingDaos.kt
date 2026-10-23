@@ -10,6 +10,7 @@ import androidx.room.Upsert
 import com.seblful.klas.domain.model.Attended
 import com.seblful.klas.domain.model.ClassMode
 import com.seblful.klas.domain.model.LessonStatus
+import com.seblful.klas.domain.model.PaymentMethod
 import kotlinx.coroutines.flow.Flow
 
 /** A student taking a subject — a price row without its amount. */
@@ -19,6 +20,10 @@ data class Enrollment(val studentId: Long, val subjectId: Long)
 interface PriceDao {
     @Query("SELECT * FROM prices WHERE studentId = :studentId")
     fun observeForStudent(studentId: Long): Flow<List<PriceEntity>>
+
+    /** Every student's rate for every subject they take — a few dozen rows, not a history. */
+    @Query("SELECT * FROM prices")
+    fun observeAll(): Flow<List<PriceEntity>>
 
     /** Who takes what: one row per student and subject — a few dozen, not a history. */
     @Query("SELECT studentId, subjectId FROM prices")
@@ -69,6 +74,12 @@ interface PaymentDao {
     @Query("SELECT * FROM payments WHERE studentId = :studentId ORDER BY dateMillis DESC")
     fun observeForStudent(studentId: Long): Flow<List<PaymentEntity>>
 
+    @Query("SELECT * FROM payments WHERE dateMillis >= :fromMillis AND dateMillis < :untilMillis")
+    fun observeBetween(fromMillis: Long, untilMillis: Long): Flow<List<PaymentEntity>>
+
+    @Query("SELECT * FROM payments")
+    fun observeAll(): Flow<List<PaymentEntity>>
+
     @Insert
     suspend fun insert(payment: PaymentEntity): Long
 
@@ -81,6 +92,25 @@ interface PaymentDao {
      */
     @Update
     suspend fun update(payment: PaymentEntity)
+
+    /**
+     * Writes the payment back to [toMillis]/[toAmount] only while it still reads [fromMillis]/[fromAmount]
+     * — one statement, so an undo can never overwrite a correction made after the one it takes back.
+     * Returns how many rows it changed: 0 when the payment changed or was deleted since.
+     */
+    @Query(
+        "UPDATE payments SET dateMillis = :toMillis, amountMinor = :toAmount, method = :toMethod " +
+            "WHERE id = :id AND dateMillis = :fromMillis AND amountMinor = :fromAmount AND method IS :fromMethod",
+    )
+    suspend fun updateIfUnchanged(
+        id: Long,
+        fromMillis: Long,
+        fromAmount: Long,
+        fromMethod: PaymentMethod?,
+        toMillis: Long,
+        toAmount: Long,
+        toMethod: PaymentMethod?,
+    ): Int
 
     @Delete
     suspend fun delete(payment: PaymentEntity)

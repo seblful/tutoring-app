@@ -7,6 +7,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertHasNoClickAction
@@ -16,7 +17,9 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performMouseInput
 import androidx.compose.ui.test.performSemanticsAction
+import androidx.compose.ui.test.rightClick
 import com.seblful.klas.ui.theme.KlasTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -48,6 +51,23 @@ class SurfacesTest {
         compose.onNodeWithText("Student").assertIsSelected().performClick()
 
         assertEquals(1, clicks)
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun `a right click picks a card, as a long-press does, and does not open it`() {
+        var clicks = 0
+        var picks = 0
+        compose.setContent {
+            KlasTheme { ContentCard(onClick = { clicks++ }, onLongClick = { picks++ }) { Text("Student") } }
+        }
+
+        compose.onNodeWithText("Student").performMouseInput { rightClick() }
+
+        compose.runOnIdle {
+            assertEquals(1, picks)
+            assertEquals(0, clicks)
+        }
     }
 
     @Test

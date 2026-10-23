@@ -6,6 +6,7 @@ import com.seblful.klas.domain.model.Attended
 import com.seblful.klas.domain.model.ClassMode
 import com.seblful.klas.domain.model.Currency
 import com.seblful.klas.domain.model.LessonStatus
+import com.seblful.klas.domain.model.PaymentMethod
 import com.seblful.klas.domain.model.ThemeChoice
 
 /**
@@ -28,6 +29,8 @@ import com.seblful.klas.domain.model.ThemeChoice
  *   [Currency.BYN], [AppLanguage.SYSTEM] and [ThemeChoice.SYSTEM] — and the app carries on: one lesson
  *   reads «Очно» when it was remote, or amounts are captioned in the wrong code, which is a wrong word on a
  *   screen rather than a screen that will not open.
+ * - **A payment method does not either**, and has no default to fall back to: it reads as none, as it does on
+ *   every payment recorded before it was asked.
  * - **A status does**, and so does an attendance: together they are what makes a lesson count as income
  *   (`TutoringClass.isBillable`), so guessing would move money — `SCHEDULED` un-bills a lesson that earned,
  *   `COMPLETED` invents one that did not, `ABSENT` writes off what a student owes. There is no safe
@@ -63,6 +66,12 @@ class EnumConverters {
 
     @TypeConverter
     fun toCurrency(stored: String): Currency = Currency.parse(stored)
+
+    @TypeConverter
+    fun fromMethod(method: PaymentMethod?): String? = method?.name
+
+    @TypeConverter
+    fun toMethod(stored: String?): PaymentMethod? = PaymentMethod.parse(stored)
 
     @TypeConverter
     fun fromLanguage(language: AppLanguage): String = language.name

@@ -108,4 +108,28 @@ class GroupsViewModelTest {
 
         assertEquals(listOf("анна", "Ярослав"), vm.rows.current.single().memberNames)
     }
+
+    @Test
+    fun `the list narrows to one subject's groups, and offers the subjects groups are taught`() =
+        runTest(mainRule.dispatcher) {
+            val maths = env.fixtures.subject("Математика")
+            val physics = env.fixtures.subject("Физика")
+            env.fixtures.group("11 «А»", maths)
+            env.fixtures.group("Олимпиада", physics)
+            env.fixtures.group("Выпускники", maths)
+
+            val vm = vm()
+            observing(vm.rows, vm.subjects)
+            runCurrent()
+
+            assertEquals(listOf("Математика", "Физика"), vm.subjects.value.map { it.name })
+
+            vm.setSubjectFilter(physics)
+            runCurrent()
+            assertEquals(listOf("Олимпиада"), vm.rows.current.map { it.group.name })
+
+            vm.setSubjectFilter(null)
+            runCurrent()
+            assertEquals(3, vm.rows.current.size)
+        }
 }

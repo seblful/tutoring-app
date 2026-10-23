@@ -7,7 +7,14 @@ data class SettingsState(
     val notifications: NotificationDelivery,
     val reminders: ReminderDelivery,
     val calendar: CalendarDelivery,
+    val facts: IndexFacts = IndexFacts(),
 )
+
+/**
+ * What the index's lower card says live of the app's data and the app itself, where it said what each page
+ * is for: how many subjects, the version, whether a crash is on record.
+ */
+data class IndexFacts(val subjects: Int = 0, val version: String = "", val crashRecorded: Boolean = false)
 
 /** The outcome of asking to turn calendar sync on or off. */
 enum class CalendarSyncToggle {

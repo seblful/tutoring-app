@@ -40,16 +40,27 @@ Preserve on-device data and existing backup files when changing storage. Before 
 
 ## Backup and restore
 
-- Settings are a device-local Room row, written under a `Mutex` and excluded from backup. Android
+- Settings are a device-local Room row, written under a `Mutex` and excluded from backup — the guide's
+  seen tips and hidden card (v14, `tipsSeen`, `firstStepsHidden`) included: a restore marks the guide done
+  instead of carrying another phone's. Two kinds of setting do travel, in the file's `preferences`
+  (`BackupPreferences`, backup v11): what the rows mean — currency, default lesson length, default group rate,
+  auto-mark taught — which a restore applies, since «489» in the wrong currency is wrong data; and whether
+  the file's phone had reminders, calendar sync and a weekly copy on, which no file can carry, so the phone it
+  lands on asks for exactly those on Today (`phoneSetup`, schema v15; `PhoneSetup.UNKNOWN` for an older file).
+  Undoing a restore puts this phone's own preferences back and leaves what it is asked for. The last backup (`lastExportAt`) is device-local too, but a restore
+  moves it to the restored file's own date (or the restore's, for a file too old to carry one), never
+  earlier: the data is then that file's, so «No backup yet» would be false. Undoing a restore leaves it, the
+  kept copy being the app's, not a file the tutor holds. Android
   automatic backup is disabled; manual JSON export through SAF moves tutoring data between devices.
   SAF supports cloud destinations such as Drive without app-held cloud credentials. The export screen
-  states that app preferences remain on the current phone.
+  says which settings go with the file and which stay with the phone.
 - Export reads one transactional snapshot. Import **replaces the database, never merges**, preserves
   IDs and commits in one transaction. `BackupIntegrity` checks readability before writes;
   `BackupFailure` classifies refusals; `BackupRestore` owns rows, first-run state and mirror refresh.
 - Older file versions import with defaults; newer ones are refused. v8 homework becomes rows through
-  `legacyHomework`; old lesson notes are not restored. Dropping always-blank columns need not bump the
-  file version. `BackupData.version` is independent of schema version and also supports transfer from
+  `legacyHomework`; old lesson notes are not restored. v10 added a payment's method, bumped because an
+  older build would drop it on import; v11 added `preferences` for the same reason — an older build would
+  restore every amount in its own currency. Dropping always-blank columns need not bump the file version. `BackupData.version` is independent of schema version and also supports transfer from
   the old `com.seblful.repetit` app ID, which cannot upgrade in place.
 - JSON must explicitly contain `version`, `subjects` and `students`, including empty arrays in an empty
   backup. Missing envelope fields are malformed; defaults for later tables preserve older exports.
@@ -57,3 +68,26 @@ Preserve on-device data and existing backup files when changing storage. Before 
   device's IDs only for matching restored classes (row ID, lesson, student, start), withdraws unclaimed
   events and re-mirrors. This preserves past events and avoids re-inviting upcoming students when
   restoring this phone's own backup; past events are never newly created.
+- A restore is asked about only after the file is read: `BackupManager.preview` parses it as the import
+  will (a refused file is refused before the question) and the dialog names its date and counts.
+  Exports carry an optional `exportedAtMillis`; older files lack it and older builds ignore it, so it
+  needed no version bump.
+- Before replacing anything, `BackupRestore` encodes what is on the phone and, once the import has
+  succeeded, keeps it through `RestoreSnapshots` (Android: one file in `filesDir`, outside platform
+  backup). Backup offers «Undo the last import» until the next import replaces that copy. An empty
+  phone keeps nothing; a refused file leaves the previous copy as it was. Undoing replaces everything,
+  including what was added since, so it asks first.
+- The weekly copy (`AutoBackup`) writes into a SAF folder the tutor picks (`settings.autoBackupFolder`, a
+  persisted tree grant). A daily worker writes once a week has passed since the last export of any kind,
+  so a manual export counts. Copies are named `klas-auto-backup-<day>.json`, apart from manual exports,
+  and only the newest `KEEP` of those are kept. A folder that can no longer be written sets
+  `autoBackupFailed` for the Backup page instead of retrying: a lost grant needs the folder picked again.
+  No foreground service: WorkManager may run it late, never early. The Backup page warns after 14 days
+  without a copy (`AutoBackup.isStale`), and so does Today — there only once there is an active student,
+  so a fresh install is not told to back up nothing.
+- A manual export can be sealed with a password (`SealedBackup`): PBKDF2-HMAC-SHA256 (iterations kept
+  per file, capped on read) and AES-256-GCM, through the `BackupCipher` port. `BackupManager.parse`
+  refuses a sealed file as `PasswordNeeded`, so the restore flow asks for the password first; a wrong
+  one fails the GCM tag and reads as `WrongPassword`, not as a broken file. A lost password is a lost
+  backup, and the export dialog says so. Weekly copies are not sealed: that would mean storing the
+  password on the phone they are meant to outlive.

@@ -3,6 +3,7 @@ package com.seblful.klas
 import com.seblful.klas.calendar.CalendarSync
 import com.seblful.klas.data.backup.BackupManager
 import com.seblful.klas.data.backup.BackupRestore
+import com.seblful.klas.data.backup.RestoreSnapshots
 import com.seblful.klas.data.billing.PaymentRepository
 import com.seblful.klas.data.billing.RateHistoryRepository
 import com.seblful.klas.data.homework.HomeworkRepository
@@ -55,6 +56,7 @@ interface HostServices {
     val reminders: ReminderScheduler
     val digests: DigestScheduler
     val notifier: Notifier
+    val restoreSnapshots: RestoreSnapshots
 }
 
 /** The caller owns [database] and closes it after all store work and collectors stop. */

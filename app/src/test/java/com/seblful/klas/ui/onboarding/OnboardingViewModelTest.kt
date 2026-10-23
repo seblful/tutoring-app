@@ -19,6 +19,7 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -39,7 +40,11 @@ class OnboardingViewModelTest {
     @get:Rule(order = 0)
     val env = TestEnv()
 
-    private fun vm() = mainRule.own(OnboardingViewModel(env.subjectRepo, env.settingsRepo, mainRule.appScope))
+    private val firstLesson = FirstLesson()
+
+    private fun newVm() = OnboardingViewModel(env.subjectRepo, env.settingsRepo, mainRule.appScope, firstLesson)
+
+    private fun vm() = mainRule.own(newVm())
 
     @Test
     fun `the subject list is Loading until read, and Ready even when a fresh install has none`() =
@@ -56,7 +61,7 @@ class OnboardingViewModelTest {
 
     @Test
     fun `the language and currency start where the phone puts them`() = runTest(mainRule.dispatcher) {
-        val minsk = mainRule.own(OnboardingViewModel(env.subjectRepo, env.settingsRepo, mainRule.appScope))
+        val minsk = mainRule.own(newVm())
         observing(minsk.locale)
         advanceUntilIdle()
 
@@ -68,7 +73,9 @@ class OnboardingViewModelTest {
     @Test
     fun `an English phone in Minsk is offered English and rubles`() = runTest(mainRule.dispatcher) {
         TestEnv(deviceLocales = listOf(java.util.Locale.forLanguageTag("en-BY"))).use { env ->
-            val vm = mainRule.own(OnboardingViewModel(env.subjectRepo, env.settingsRepo, mainRule.appScope))
+            val vm = mainRule.own(
+                OnboardingViewModel(env.subjectRepo, env.settingsRepo, mainRule.appScope, firstLesson),
+            )
             observing(vm.locale)
             advanceUntilIdle()
 
@@ -110,7 +117,9 @@ class OnboardingViewModelTest {
     @Test
     fun `skipping the setup still persists the currency the phone named`() = runTest(mainRule.dispatcher) {
         TestEnv(deviceLocales = listOf(java.util.Locale.forLanguageTag("de-DE"))).use { env ->
-            val vm = mainRule.own(OnboardingViewModel(env.subjectRepo, env.settingsRepo, mainRule.appScope))
+            val vm = mainRule.own(
+                OnboardingViewModel(env.subjectRepo, env.settingsRepo, mainRule.appScope, firstLesson),
+            )
 
             vm.complete()
             advanceUntilIdle()
@@ -157,6 +166,7 @@ class OnboardingViewModelTest {
         val vm = mainRule.own(
             OnboardingViewModel(
                 env.subjectRepo, SettingsRepository(broken, env.deviceLocales.toDevicePreferences()), mainRule.appScope,
+                firstLesson,
             ),
         )
         val events = mutableListOf<OnboardingViewModel.Event>()
@@ -206,5 +216,17 @@ class OnboardingViewModelTest {
         assertTrue(env.settingsRepo.get().onboardingComplete)
         assertTrue(env.stored().subjects.isEmpty())
         assertTrue(env.stored().students.isEmpty())
+    }
+
+    @Test
+    fun `finishing with the first lesson hands its student to the app, once`() = runTest(mainRule.dispatcher) {
+        val vm = vm()
+
+        vm.complete(bookFor = 7)
+        advanceUntilIdle()
+
+        assertTrue(env.settingsRepo.get().onboardingComplete)
+        assertEquals(7L, firstLesson.take())
+        assertNull(firstLesson.take())
     }
 }

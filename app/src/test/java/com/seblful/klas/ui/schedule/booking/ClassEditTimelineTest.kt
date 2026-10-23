@@ -4,7 +4,10 @@ import com.seblful.klas.domain.model.ClassMode
 import com.seblful.klas.domain.time.today
 import com.seblful.klas.testutil.current
 import com.seblful.klas.testutil.observing
+import com.seblful.klas.ui.common.state.valueOrNull
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.DateTimeUnit
@@ -199,6 +202,60 @@ class ClassEditTimelineTest : ClassEditTestFixture() {
         val form = vm.state.current.form
         assertEquals(day.plus(1, DateTimeUnit.DAY), form.date)
         assertEquals(LocalTime(14, 0), form.timeFrom)
+    }
+
+    @Test
+    fun `a day moved to is drawn with its lessons - never empty while they are read`() = runTest(mainRule.dispatcher) {
+        seedMaria()
+        val vm = vm(day = day.plus(-1, DateTimeUnit.DAY))
+        val drawn = mutableListOf<ClassFormState>()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+            vm.state.collect { it.valueOrNull()?.let(drawn::add) }
+        }
+        advanceUntilIdle()
+        assertTrue(drawn.last().timeline != null)
+
+        vm.moveDay(1)
+        advanceUntilIdle()
+
+        val moved = drawn.filter { it.form.date == day }
+        assertTrue("no frame of the new day without its lessons", moved.all { it.timeline != null })
+        assertEquals(listOf("Мария"), moved.last().timeline!!.booked.map { it.who })
+    }
+
+    @Test
+    fun `the first day picked is drawn with its lessons too`() = runTest(mainRule.dispatcher) {
+        seedMaria()
+        val vm = vm()
+        val drawn = mutableListOf<ClassFormState>()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+            vm.state.collect { it.valueOrNull()?.let(drawn::add) }
+        }
+        advanceUntilIdle()
+
+        vm.change(BookingIntent.Edit { it.copy(date = day) })
+        advanceUntilIdle()
+
+        val picked = drawn.filter { it.form.date == day }
+        assertTrue("no frame of the day without its lessons", picked.all { it.timeline != null })
+        assertEquals(listOf("Мария"), picked.last().timeline!!.booked.map { it.who })
+    }
+
+    @Test
+    fun `a step pressed right after moving a day takes the new day's free time`() = runTest(mainRule.dispatcher) {
+        val maths = env.fixtures.subject("Математика")
+        env.fixtures.lesson(maths, listOf(env.fixtures.pricedStudent("Мария", maths)), at(9))
+        val vm = vm(day = day.plus(-1, DateTimeUnit.DAY))
+        observing(vm.state)
+        advanceUntilIdle()
+
+        vm.moveDay(1)
+        vm.step(later = true)
+        advanceUntilIdle()
+
+        // 09:00 would be the day left behind's first free time; this one's lesson holds it.
+        assertEquals(day, vm.state.current.form.date)
+        assertEquals(LocalTime(10, 0), vm.state.current.form.timeFrom)
     }
 
     @Test

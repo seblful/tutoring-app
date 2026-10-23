@@ -7,6 +7,9 @@ The database drives both mirrors; neither writes changes back into Klas.
 - Opt-in, one-way through `CalendarContract`; the device's provider handles cloud sync. No Google
   Calendar REST API, Cloud project or OAuth flow is needed.
 - `ClassRepository.write` mirrors after commit; `CalendarMirror` owns backfill and withdrawal.
+- An undoable write holds its lesson's mirror until `settle` (the undo window closed, ~12 s) or `undo`,
+  so an undone cancel never deletes and re-invites. The hold is in memory: a process killed inside the
+  window leaves the event as it was until the lesson's next write.
 - Completed events are refreshed but never created/re-created (`CalendarSyncPolicy.Action.REFRESH`).
 - Event descriptions include current homework attached to that lesson: the student's own assignments
   and homework for that group lesson, oldest first. Other students' individual assignments are excluded.
@@ -52,9 +55,27 @@ The database drives both mirrors; neither writes changes back into Klas.
   | Agenda / evening digest | Schedule on the day carried by the notification, even after midnight |
   | Auto-completion report | Latest day settled |
   | Debt digest | Reports, scrolled to debts |
+  | Reminders summary, widget title and its lessons | The Today tab |
 
   A relaunch from Recents (`FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY`) goes nowhere. On Android 11 and
   below, Back finishes the activity, and Recents replays the intent that started the task: an old tap.
+
+## Lock screen
+
+- Private unless chosen (`Privacy`). Every notification is `VISIBILITY_PRIVATE` with a public version
+  that keeps its neutral title and says «unlock to see details». Its channel redacts on a secure lock
+  screen whatever the phone's own setting is: an app can set that only when it creates a channel, so
+  each kind has a `.private` and a `.shown` channel and only the one in force exists. Choosing details
+  swaps the set (`SettingsChange.movesChannels`), carrying over the importance, sound and vibration the
+  tutor gave the old one; before the settings row is read, the set in place is kept.
+- «Taught» from the tray bills the lesson, so it asks for the unlock first (`setAuthenticationRequired`).
+- On a keyguard host the Today widget shows only its title and «unlock», unless
+  `Privacy.lockScreenWidgets` is on (`listsLessons`).
+- The app lock (`AppLock`, `AppLockGate`) covers the app until `BiometricPrompt` succeeds with
+  biometrics or the screen lock (`UNLOCK_WITH`), and again after `relockAfterMinutes` in the background
+  on a monotonic clock. The app stays composed beneath, hidden from touch and screen readers, so the tutor
+  returns where they were. A phone with no screen lock is never locked out. Hiding in recents — on with
+  the lock too — is `setRecentsScreenshotEnabled(false)` from Android 13 and `FLAG_SECURE` before it.
 
 ## Permissions and digests
 

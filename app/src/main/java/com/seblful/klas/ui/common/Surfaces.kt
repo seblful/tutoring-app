@@ -1,6 +1,9 @@
+@file:Suppress("ForbiddenImport") // ContentCard and SectionCard are the design system's cards.
+
 package com.seblful.klas.ui.common
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -54,6 +57,8 @@ val ColorScheme.sectionSurface: Color get() = surfaceContainerHighest
  * @param dimmed for an item whose content no longer counts — a cancelled lesson. It stays fully
  * legible (it is still a record of something) but stops competing with the lessons that are on.
  * @param selected for the item open beside its list, tinted as the rail marks its tab.
+ * @param onLongClick picks the item (R7: a long-press only ever selects), named for TalkBack by [onLongClickLabel].
+ *   A mouse's right click does the same.
  */
 @Composable
 fun ContentCard(
@@ -61,14 +66,20 @@ fun ContentCard(
     modifier: Modifier = Modifier,
     dimmed: Boolean = false,
     selected: Boolean = false,
+    onLongClick: (() -> Unit)? = null,
+    onLongClickLabel: String? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val surface = if (selected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.itemSurface
+    val shape = CardDefaults.shape
     Card(
-        onClick = onClick,
+        shape = shape,
         modifier = modifier
             .fillMaxWidth()
-            .then(if (selected) Modifier.semantics { this.selected = true } else Modifier),
+            .then(if (selected) Modifier.semantics { this.selected = true } else Modifier)
+            .clip(shape)
+            .rightClickAsLongPress(onLongClick)
+            .combinedClickable(onClick = onClick, onLongClick = onLongClick, onLongClickLabel = onLongClickLabel),
         // The content colour is named: a translucent container matches no role for `contentColorFor` to find.
         colors = CardDefaults.cardColors(
             containerColor = surface.copy(alpha = if (dimmed) DimmedAlpha else 1f),
@@ -81,6 +92,7 @@ fun ContentCard(
         )
     }
 }
+
 /**
  * A surface for a **section** — a group of rows read as one thing: the stat strip, a report's
  * breakdown. One rung above [ContentCard] on the tonal ladder, which is what gives a screen holding
@@ -118,7 +130,7 @@ fun SectionTitle(text: String, modifier: Modifier = Modifier, color: Color = Col
     )
 }
 
-/** Money at the trailing edge of a nested row — what a taught lesson was billed. */
+/** Money at the trailing edge of a nested row — what a taught lesson was billed. Planned ones show none. */
 @Composable
 fun TrailingAmount(text: String, modifier: Modifier = Modifier) {
     Text(

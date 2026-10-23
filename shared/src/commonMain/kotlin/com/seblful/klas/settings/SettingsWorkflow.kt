@@ -6,6 +6,7 @@ import com.seblful.klas.data.settings.SettingsChange
 import com.seblful.klas.data.settings.SettingsRepository
 import com.seblful.klas.domain.reminders.ReminderScheduler
 import com.seblful.klas.maintenance.Maintenance
+import com.seblful.klas.notifications.Notifier
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
@@ -17,6 +18,7 @@ class SettingsWorkflow @Inject constructor(
     private val calendar: CalendarMirror,
     private val reminders: ReminderScheduler,
     private val maintenance: Maintenance,
+    private val notifier: Notifier,
 ) {
     suspend fun update(transform: (AppSettings) -> AppSettings): Int {
         val change = settings.update(transform)
@@ -27,6 +29,7 @@ class SettingsWorkflow @Inject constructor(
             SettingsChange.CalendarWork.NONE -> Unit
         }
         if (change.replansReminders || change.replansDigests) reminders.refreshNow()
+        if (change.movesChannels) notifier.ensureChannels()
         return if (change.sweepsDueLessons) maintenance.run().lessons else 0
     }
 

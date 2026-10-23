@@ -41,6 +41,9 @@ class EnrollmentRepository @Inject constructor(
     fun observePricesFor(studentId: Long): Flow<List<Price>> =
         priceDao.observeForStudent(studentId).map { list -> list.map { it.toDomain() } }
 
+    /** Every student's rate for every subject they take: what the subjects page says each is used at. */
+    fun observeAllPrices(): Flow<List<Price>> = priceDao.observeAll().map { list -> list.map { it.toDomain() } }
+
     /** Every student's subject ids, keyed by student; one who takes nothing yet has no entry. */
     fun observeSubjectIds(): Flow<Map<Long, List<Long>>> =
         priceDao.observeEnrollments().map { rows ->
@@ -93,6 +96,29 @@ class EnrollmentRepository @Inject constructor(
         if (classes.anyForStudentSubject(studentId, subjectId)) return Unenroll.HasClasses
         transactor.transaction { unlink(studentId, subjectId) }
         return Unenroll.Ok
+    }
+
+    /** The subjects [studentId] takes and has lessons in: billed history that keeps each on them ([unenroll]). */
+    suspend fun subjectsWithLessons(studentId: Long): Set<Long> =
+        studentDao.getSubjectIds(studentId).filterTo(mutableSetOf()) { classes.anyForStudentSubject(studentId, it) }
+
+    /**
+     * Makes [pricedSubjects] what [studentId] takes, as the student form saves it, in one transaction: a new
+     * subject is enrolled, a rate that moved is re-priced (and logged), and a subject left out is unenrolled —
+     * unless it has lessons, which keep it, as [unenroll] would.
+     */
+    suspend fun setSubjects(studentId: Long, pricedSubjects: Map<Long, Money>) {
+        val kept = subjectsWithLessons(studentId)
+        transactor.transaction {
+            (studentDao.getSubjectIds(studentId) - pricedSubjects.keys - kept).forEach { unlink(studentId, it) }
+            pricedSubjects.forEach { (subjectId, price) ->
+                when (priceDao.get(studentId, subjectId)?.toDomain()?.amount) {
+                    null -> link(studentId, subjectId, price)
+                    price -> Unit
+                    else -> record(studentId, subjectId, price)
+                }
+            }
+        }
     }
 
     /**

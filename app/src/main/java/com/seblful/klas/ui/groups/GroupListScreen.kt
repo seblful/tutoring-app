@@ -27,6 +27,7 @@ import com.seblful.klas.ui.homework.CardHomeworkDialogs
 import com.seblful.klas.ui.homework.homeworkItems
 import com.seblful.klas.ui.theme.KlasIcons
 import dev.zacsweers.metrox.viewmodel.assistedMetroViewModel
+import kotlin.time.Instant
 
 /** One of a group's lists in full — what «See all» under a section of its card opens. */
 @Composable
@@ -53,6 +54,8 @@ private fun GroupList(
     // Taken when the dialog opens — see `GroupDetailViewModel.homeworkChoice`.
     var addingHomework by remember { mutableStateOf<AssigneeChoice?>(null) }
     var openedHomework by remember { mutableStateOf<HomeworkRow?>(null) }
+    // A value here, not a delegate the list's builder reads — see docs/ui-conventions.md.
+    val now = viewModel.minute.collectAsStateWithLifecycle().value
 
     val messages = rememberMessages()
     ShowGroupMessages(viewModel, messages)
@@ -68,7 +71,7 @@ private fun GroupList(
             contentPadding = PaddingValues(bottom = Spacing.sectionGap).plusInset(bottomInset),
         ) {
             when (section) {
-                GroupSection.LESSONS -> lessons(state.lessons, onLessonClick)
+                GroupSection.LESSONS -> lessons(state.lessons, now, onLessonClick)
                 GroupSection.HOMEWORK -> homeworkItems(
                     owner = state.group?.let { Assignee.Group(it.id) },
                     lists = state.homework,
@@ -91,7 +94,7 @@ private fun GroupList(
     )
 }
 
-private fun LazyListScope.lessons(rows: List<GroupLessonRow>, onLessonClick: (Long) -> Unit) {
+private fun LazyListScope.lessons(rows: List<GroupLessonRow>, now: Instant, onLessonClick: (Long) -> Unit) {
     if (rows.isEmpty()) {
         item(key = GroupDetailKeys.LESSONS_EMPTY, contentType = GroupDetailKeys.LESSONS_EMPTY) {
             // No action: a lesson is booked from the schedule's form, reached from the card's next lesson.
@@ -104,6 +107,6 @@ private fun LazyListScope.lessons(rows: List<GroupLessonRow>, onLessonClick: (Lo
         return
     }
     items(rows, key = { GroupDetailKeys.lesson(it.session.first.id) }, contentType = { "lesson" }) { row ->
-        GroupLessonItem(row, onClick = { onLessonClick(row.session.first.id) }, modifier = animateInPlace())
+        GroupLessonItem(row, now, onClick = { onLessonClick(row.session.first.id) }, modifier = animateInPlace())
     }
 }

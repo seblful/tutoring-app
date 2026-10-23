@@ -1,6 +1,7 @@
 package com.seblful.klas.ui.groups
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemColors
 import androidx.compose.material3.ListItemDefaults
@@ -12,18 +13,23 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import com.seblful.klas.R
+import com.seblful.klas.domain.lesson.LessonPhase
 import com.seblful.klas.domain.model.Attendance
+import com.seblful.klas.domain.model.Balance
 import com.seblful.klas.ui.common.ArchivedBadge
 import com.seblful.klas.ui.common.Avatar
 import com.seblful.klas.ui.common.BadgeLine
 import com.seblful.klas.ui.common.OpensScreenMark
 import com.seblful.klas.ui.common.StatusBadge
 import com.seblful.klas.ui.common.TrailingAmount
-import com.seblful.klas.ui.common.classStatusColor
-import com.seblful.klas.ui.common.classStatusLabel
 import com.seblful.klas.ui.common.dateTimeText
 import com.seblful.klas.ui.common.insetRowPress
+import com.seblful.klas.ui.common.lessonBadgeColor
+import com.seblful.klas.ui.common.lessonBadgeLabel
 import com.seblful.klas.ui.common.text
+import com.seblful.klas.ui.students.balanceColor
+import com.seblful.klas.ui.students.balanceDescription
+import kotlin.time.Instant
 
 /*
  * The rows a group's lessons and members are listed in — the same on its card, inside its section cards, and
@@ -34,15 +40,17 @@ import com.seblful.klas.ui.common.text
 @Composable
 internal fun GroupLessonItem(
     row: GroupLessonRow,
+    now: Instant,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     colors: ListItemColors = ListItemDefaults.colors(),
 ) {
     val status = row.session.status
+    val phase = LessonPhase.of(row.session, now)
     ListItem(
         headlineContent = { Text(row.session.start.dateTimeText()) },
         supportingContent = {
-            BadgeLine(badge = { StatusBadge(classStatusLabel(status), classStatusColor(status)) }) {
+            BadgeLine(badge = { StatusBadge(lessonBadgeLabel(status, phase), lessonBadgeColor(status, phase)) }) {
                 // Said as "who came" only for a lesson that happened: until then everybody is expected, and a
                 // count of that is just the roster. See [Attendance].
                 Text(
@@ -75,14 +83,24 @@ internal fun GroupMemberItem(
         leadingContent = { Avatar(row.student.name, row.student.id) },
         headlineContent = { Text(row.student.name, maxLines = 1, overflow = TextOverflow.Ellipsis) },
         supportingContent = {
-            // An archived member still explains the group's past lessons, so they stay listed — and say so.
-            val attended = pluralStringResource(R.plurals.lessons_count, row.attended, row.attended)
-            if (row.student.archived) {
-                BadgeLine(badge = { ArchivedBadge() }, badgeFirst = false) {
+            val attended = if (row.held == 0) {
+                stringResource(R.string.group_member_no_lessons)
+            } else {
+                stringResource(R.string.group_member_present, row.present, row.held)
+            }
+            Column {
+                // An archived member still explains the group's past lessons, so they stay listed — and say so.
+                if (row.student.archived) {
+                    BadgeLine(badge = { ArchivedBadge() }, badgeFirst = false) {
+                        Text(attended, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                } else {
                     Text(attended, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-            } else {
-                Text(attended, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                // Only a debt: the group's card answers "who owes", and credit is the student's own business.
+                (row.balance as? Balance.Owed)?.let {
+                    Text(balanceDescription(it), color = balanceColor(it))
+                }
             }
         },
         trailingContent = { OpensScreenMark() },

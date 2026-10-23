@@ -1,6 +1,7 @@
 package com.seblful.klas.ui.schedule
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -10,19 +11,25 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.TextAutoSize
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -30,15 +37,24 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.seblful.klas.R
+import com.seblful.klas.domain.guide.Tip
 import com.seblful.klas.domain.schedule.DaySummary
 import com.seblful.klas.format.daySummaryText
 import com.seblful.klas.format.formatDay
 import com.seblful.klas.format.formatMonth
 import com.seblful.klas.format.formatWeekRange
+import com.seblful.klas.ui.common.DatePickerModal
 import com.seblful.klas.ui.common.LocalCurrency
 import com.seblful.klas.ui.common.PageStepper
+import com.seblful.klas.ui.common.ScreenTip
 import com.seblful.klas.ui.common.SectionTitle
 import com.seblful.klas.ui.common.Spacing
+import com.seblful.klas.ui.common.pageByArrow
+import com.seblful.klas.ui.designsystem.component.CoachMark
+import com.seblful.klas.ui.designsystem.component.KlasDivider
+import com.seblful.klas.ui.designsystem.component.SectionAction
+import com.seblful.klas.ui.designsystem.component.SliceHeader
+import com.seblful.klas.ui.designsystem.component.SlicePosition
 import com.seblful.klas.ui.theme.KlasIcons
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.YearMonth
@@ -49,6 +65,8 @@ internal fun DayNavigator(
     onPrevious: () -> Unit,
     onNext: () -> Unit,
     onToday: () -> Unit,
+    selected: LocalDate,
+    onPick: (LocalDate) -> Unit,
 ) {
     PageNavigator(
         title = date.formatDay(),
@@ -57,6 +75,8 @@ internal fun DayNavigator(
         onPrevious = onPrevious,
         onNext = onNext,
         onToday = onToday,
+        selected = selected,
+        onPick = onPick,
     )
 }
 
@@ -66,6 +86,8 @@ internal fun WeekNavigator(
     onPrevious: () -> Unit,
     onNext: () -> Unit,
     onToday: () -> Unit,
+    selected: LocalDate,
+    onPick: (LocalDate) -> Unit,
 ) {
     PageNavigator(
         title = formatWeekRange(days.first(), days.last()),
@@ -74,6 +96,8 @@ internal fun WeekNavigator(
         onPrevious = onPrevious,
         onNext = onNext,
         onToday = onToday,
+        selected = selected,
+        onPick = onPick,
     )
 }
 
@@ -83,6 +107,8 @@ internal fun MonthNavigator(
     onPrevious: () -> Unit,
     onNext: () -> Unit,
     onToday: () -> Unit,
+    selected: LocalDate,
+    onPick: (LocalDate) -> Unit,
 ) {
     PageNavigator(
         title = formatMonth(month),
@@ -91,6 +117,8 @@ internal fun MonthNavigator(
         onPrevious = onPrevious,
         onNext = onNext,
         onToday = onToday,
+        selected = selected,
+        onPick = onPick,
     )
 }
 
@@ -102,7 +130,11 @@ internal fun PageNavigator(
     onPrevious: () -> Unit,
     onNext: () -> Unit,
     onToday: () -> Unit,
+    selected: LocalDate,
+    onPick: (LocalDate) -> Unit,
 ) {
+    var picking by rememberSaveable { mutableStateOf(false) }
+    val direction = LocalLayoutDirection.current
     PageStepper(
         previousDescription = previousDescription,
         nextDescription = nextDescription,
@@ -111,8 +143,18 @@ internal fun PageNavigator(
     ) {
         Text(
             title,
-            // A heading, so a screen reader can jump between the page's title and its days.
-            modifier = Modifier.weight(1f, fill = false).semantics { heading() },
+            // A heading, so a screen reader can jump between the page's title and its days. A tap picks any
+            // date: paging a day or a month at a time was the only way to reach one weeks away.
+            modifier = Modifier
+                .weight(1f, fill = false)
+                .clip(MaterialTheme.shapes.small)
+                .onKeyEvent { pageByArrow(it, direction, onPrevious, onNext) }
+                .clickable(
+                    onClickLabel = stringResource(R.string.schedule_pick_date),
+                    role = Role.Button,
+                ) { picking = true }
+                .padding(horizontal = Spacing.inline, vertical = Spacing.tight)
+                .semantics { heading() },
             style = MaterialTheme.typography.titleMedium,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
@@ -126,33 +168,52 @@ internal fun PageNavigator(
             Icon(KlasIcons.Outlined.Today, stringResource(R.string.schedule_today))
         }
     }
+    if (picking) {
+        DatePickerModal(
+            initial = selected,
+            onConfirm = {
+                picking = false
+                onPick(it)
+            },
+            onDismiss = { picking = false },
+        )
+    }
 }
 
 private val NavigatorTitleMinSize = 11.dp
 
 @Composable
-internal fun SelectedDayHeader(date: LocalDate, summary: DaySummary) {
-    DaySectionHeader(date = date, isSelected = true, summary = summary)
+internal fun SelectedDayHeader(
+    date: LocalDate,
+    summary: DaySummary,
+    position: SlicePosition,
+    action: SectionAction? = null,
+) {
+    DaySectionHeader(date = date, isSelected = true, summary = summary, position = position, action = action)
 }
 
+/**
+ * A day of the Week or Month list: the top slice of its section card (R1) — the date, what the day comes to as
+ * its count, and one action — with the day's lessons as the slices under it. The date is tinted when it is the
+ * selected day, and that is said in words by the strip or grid it was picked from.
+ */
 @Composable
-internal fun DaySectionHeader(date: LocalDate, isSelected: Boolean, summary: DaySummary) {
-    Column(
-        // One extra [Spacing.itemGap] above, so the gap that opens *before* a header is a section
-        // break while the header still sits close to the day it names. The list's uniform `spacedBy`
-        // cannot say that on its own.
-        Modifier.fillMaxWidth().padding(top = Spacing.itemGap),
-    ) {
-        SectionTitle(
-            date.formatDay(),
-            color = if (isSelected) {
-                MaterialTheme.colorScheme.primary
-            } else {
-                MaterialTheme.colorScheme.onSurfaceVariant
-            },
-        )
-        DaySummaryLine(summary)
-    }
+internal fun DaySectionHeader(
+    date: LocalDate,
+    isSelected: Boolean,
+    summary: DaySummary,
+    position: SlicePosition,
+    action: SectionAction? = null,
+) {
+    SliceHeader(
+        title = date.formatDay(),
+        position = position,
+        // The gap before a day is the section break; the day's own rows follow it without one.
+        modifier = Modifier.padding(top = Spacing.itemGap),
+        summary = daySummaryText(LocalContext.current.resources, summary, LocalCurrency.current),
+        action = action,
+        titleColor = if (isSelected) MaterialTheme.colorScheme.primary else Color.Unspecified,
+    )
 }
 
 @Composable
@@ -196,7 +257,7 @@ internal fun NowLine(modifier: Modifier = Modifier) {
             color = MaterialTheme.colorScheme.primary,
             modifier = Modifier.padding(horizontal = Spacing.inline),
         )
-        HorizontalDivider(
+        KlasDivider(
             Modifier.weight(1f),
             color = MaterialTheme.colorScheme.primary,
         )
@@ -204,3 +265,13 @@ internal fun NowLine(modifier: Modifier = Modifier) {
 }
 
 private val NowDotSize = 6.dp
+
+/** The page title under the schedule's date tip while it carries it — see [Tip.SCHEDULE_DATE]. */
+@Composable
+internal fun DateTip(tip: ScreenTip, content: @Composable () -> Unit) {
+    if (tip.tip != Tip.SCHEDULE_DATE) {
+        content()
+        return
+    }
+    CoachMark(stringResource(R.string.tip_schedule_date), visible = true, onDismiss = tip.dismiss, content = content)
+}

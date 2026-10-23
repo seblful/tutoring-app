@@ -119,8 +119,52 @@ sealed interface ScheduleTarget {
     data class Lesson(val classId: Long) : ScheduleTarget
 }
 
-/** The schedule narrowed to one student — who, and the name the chip saying so is drawn from. */
-data class StudentFilter(val studentId: Long, val name: String)
+/** A class id of each planned lesson of the day — what «Cancel day» cancels, as the batch picks them. */
+internal fun WeekSection.plannedIds(): Set<Long> =
+    rows.filter { it.session.status == LessonStatus.SCHEDULED }.mapTo(mutableSetOf()) { it.session.first.id }
+
+/**
+ * The list index [day]'s section starts at in the Week view, or null when it holds no lessons — the strip is
+ * item 0, then each day is its header and its rows.
+ */
+internal fun ScheduleContent.Week.indexOfDay(day: LocalDate): Int? {
+    var index = 1
+    for (section in sections) {
+        if (section.date == day) return index
+        index += 1 + section.rows.size
+    }
+    return null
+}
+
+/** Whose lessons the schedule shows: one student's, or one group's — and the name its chip says. */
+sealed interface ScheduleWho {
+    val id: Long
+    val name: String
+
+    data class Student(override val id: Long, override val name: String = "") : ScheduleWho
+
+    data class Group(override val id: Long, override val name: String = "") : ScheduleWho
+}
+
+/**
+ * The schedule narrowed to one student's or group's lessons ([who]), to one [status], or both. A lesson
+ * stays whole: a group lesson a student is in keeps every member's class.
+ */
+data class ScheduleFilter(val who: ScheduleWho? = null, val status: LessonStatus? = null) {
+    val narrowed: Boolean get() = who != null || status != null
+
+    /** The lessons of [classes] this filter lets through, by ids alone — [who]'s name is not consulted. */
+    fun narrow(classes: List<TutoringClass>): List<TutoringClass> {
+        val theirs = when (who) {
+            null -> classes
+            is ScheduleWho.Student -> SessionRules.lessonsWith(classes, who.id)
+            is ScheduleWho.Group -> classes.filter { it.groupId == who.id }
+        }
+        if (status == null) return theirs
+        val lessons = theirs.filter { it.status == status }.mapTo(mutableSetOf()) { it.lessonId }
+        return theirs.filter { it.lessonId in lessons }
+    }
+}
 
 /** The lessons the schedule body shows — the [Week] the view model assembles, and the [Day] read off it. */
 sealed interface ScheduleContent {

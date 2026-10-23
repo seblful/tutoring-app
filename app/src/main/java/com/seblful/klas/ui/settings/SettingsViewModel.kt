@@ -3,9 +3,12 @@ package com.seblful.klas.ui.settings
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.seblful.klas.calendar.CalendarPermission
+import com.seblful.klas.data.people.SubjectRepository
 import com.seblful.klas.data.settings.AppSettings
 import com.seblful.klas.data.settings.SettingsRepository
 import com.seblful.klas.di.ApplicationScope
+import com.seblful.klas.diagnostics.CrashLogStore
+import com.seblful.klas.diagnostics.DeviceInfo
 import com.seblful.klas.notifications.ExactAlarmPermission
 import com.seblful.klas.notifications.NotificationPermission
 import com.seblful.klas.settings.SettingsWorkflow
@@ -24,6 +27,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
 /** The settings screen. */
@@ -36,18 +40,27 @@ class SettingsViewModel @Inject constructor(
     private val notificationPermission: NotificationPermission,
     private val exactAlarms: ExactAlarmPermission,
     @param:ApplicationScope private val appScope: CoroutineScope,
+    subjects: SubjectRepository,
+    private val crashLogs: CrashLogStore,
+    private val device: DeviceInfo,
 ) : ViewModel() {
 
     private val permissionChecks = MutableStateFlow(0)
 
     /** Preference values and permission status arrive together, without invented loading defaults. */
-    val state: StateFlow<Loadable<SettingsState>> = combine(settings.observe(), permissionChecks) { s, _ ->
+    val state: StateFlow<Loadable<SettingsState>> = combine(
+        settings.observe(),
+        permissionChecks,
+        subjects.observeAll().map { it.size },
+    ) { s, _, subjectCount ->
         val permitted = notificationPermission.isGranted()
         SettingsState(
             settings = s,
             notifications = NotificationDelivery.of(s, permitted),
             reminders = ReminderDelivery.of(s.notificationsEnabled, permitted, exactAlarms.isGranted()),
             calendar = CalendarDelivery.of(s.calendarSyncEnabled, calendarPermission.isGranted()),
+            // Read again with the permissions, on every return to the page: Diagnostics may have cleared it.
+            facts = IndexFacts(subjectCount, device.appVersion, crashRecorded = !crashLogs.isEmpty()),
         )
     }
         .ready()

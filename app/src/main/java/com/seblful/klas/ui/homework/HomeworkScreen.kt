@@ -6,9 +6,11 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyGridItemScope
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.material3.FloatingActionButton
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -18,16 +20,20 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.seblful.klas.R
+import com.seblful.klas.domain.guide.Tip
 import com.seblful.klas.domain.lesson.LessonKind
 import com.seblful.klas.domain.model.Assignee
 import com.seblful.klas.queries.homework.AssigneeChoice
 import com.seblful.klas.queries.homework.HomeworkLists
 import com.seblful.klas.queries.homework.HomeworkRow
+import com.seblful.klas.queries.homework.HomeworkSection
+import com.seblful.klas.queries.homework.bySection
 import com.seblful.klas.ui.common.EmptyState
 import com.seblful.klas.ui.common.FabClearance
 import com.seblful.klas.ui.common.FilterChipRow
@@ -36,15 +42,24 @@ import com.seblful.klas.ui.common.KlasScreen
 import com.seblful.klas.ui.common.LessonKindIcon
 import com.seblful.klas.ui.common.ListSkeleton
 import com.seblful.klas.ui.common.Messages
+import com.seblful.klas.ui.common.ScreenTip
+import com.seblful.klas.ui.common.ScrollsToTopOnReselect
+import com.seblful.klas.ui.common.SectionTitle
 import com.seblful.klas.ui.common.SegmentedPage
+import com.seblful.klas.ui.common.Selection
+import com.seblful.klas.ui.common.SettingsGear
 import com.seblful.klas.ui.common.ShowMessagesFor
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.animateInPlace
 import com.seblful.klas.ui.common.constrainedContent
 import com.seblful.klas.ui.common.plusInset
 import com.seblful.klas.ui.common.rememberMessages
+import com.seblful.klas.ui.common.rememberScreenTip
 import com.seblful.klas.ui.common.state.Loadable
+import com.seblful.klas.ui.designsystem.component.KlasFab
+import com.seblful.klas.ui.designsystem.component.rememberTouchExploration
 import com.seblful.klas.ui.theme.KlasIcons
+import com.seblful.klas.ui.theme.klasSemantics
 import dev.zacsweers.metrox.viewmodel.metroViewModel
 import kotlinx.coroutines.launch
 
@@ -58,10 +73,13 @@ private enum class HomeworkSide(val labelRes: Int) {
 fun HomeworkScreen(
     /** The way out of «Сначала добавьте ученика» — the step it names, as the schedule's message carries. */
     onAddStudent: () -> Unit,
+    onSettings: () -> Unit = {},
     viewModel: HomeworkViewModel = metroViewModel(),
 ) {
     var side by rememberSaveable { mutableStateOf(HomeworkSide.CURRENT) }
     val state by viewModel.state.collectAsStateWithLifecycle()
+    // Current homework picked by a long-press: while any is, the bar is theirs.
+    val picked by viewModel.batch.selected.collectAsStateWithLifecycle()
     // The dialog's choices are taken when it opens — see `HomeworkViewModel.choices`.
     var adding by remember { mutableStateOf<List<AssigneeChoice>?>(null) }
     var opened by remember { mutableStateOf<Opened?>(null) }
@@ -87,39 +105,33 @@ fun HomeworkScreen(
     }
 
     val loaded = (state as? Loadable.Ready)?.value
+    val (screenTip, tip) = rememberHomeworkTip(
+        current = loaded?.lists?.current?.takeIf { side == HomeworkSide.CURRENT && picked.isEmpty() },
+        dialogOpen = listOf(adding, opened).any { it != null },
+    )
     KlasScreen(
         title = stringResource(R.string.nav_homework),
         page = side,
         messages = messages,
+        selection = Selection(picked.size, viewModel.batch::clear) { MarkPickedDone(viewModel.batch, messages) },
         actions = {
-            // Keep the clear action available if the last homework for the selected filter is deleted.
-            if (loaded != null && (loaded.filterAssignees.isNotEmpty() || loaded.filter != null)) {
-                FilterMenuAction(
-                    name = stringResource(R.string.homework_filter),
-                    allLabel = stringResource(R.string.homework_filter_all),
-                    options = loaded.filterAssignees,
-                    selected = loaded.filter,
-                    optionLabel = loaded.captions::titleOf,
-                    onSelect = viewModel::setFilter,
-                    leading = { who ->
-                        LessonKindIcon(if (who is Assignee.Group) LessonKind.GROUP else LessonKind.INDIVIDUAL)
-                    },
-                )
-            }
+            loaded?.let { HomeworkFilterAction(it, viewModel::setFilter) }
+            SettingsGear(onSettings)
         },
         // The cards lay themselves out in columns (see [HomeworkList]); the tabs above them keep a column's width.
         maxContentWidth = Dp.Infinity,
         floatingActionButton = {
-            FloatingActionButton(onClick = ::add) {
-                Icon(KlasIcons.Filled.Add, stringResource(R.string.homework_add))
-            }
+            KlasFab(stringResource(R.string.homework_add), onClick = ::add)
         },
     ) { modifier, bottomInset ->
         // The same two-sided shape as «Люди»: segments on the page, and a drag across the body turns it.
         SegmentedPage(
             options = HomeworkSide.entries,
             selected = side,
-            onSelect = { side = it },
+            onSelect = {
+                side = it
+                viewModel.batch.clear()
+            },
             label = { entry -> sideLabel(entry, loaded?.lists) },
             modifier = modifier,
             header = {
@@ -136,9 +148,14 @@ fun HomeworkScreen(
                         filterName = ready.value.filterName,
                         messages = messages,
                         undo = undo,
+                        picking = HomeworkPicking(picked, enabled = side == HomeworkSide.CURRENT) {
+                            viewModel.batch.toggle(it.homework.id)
+                        },
                         onAdd = ::add,
                         onOpen = { row -> scope.launch { opened = Opened(row, viewModel.choicesFor(row)) } },
                         bottomInset = bottomInset,
+                        tip = tip,
+                        onSwiped = { screenTip.done(Tip.HOMEWORK_SWIPE) },
                     )
                 }
             }
@@ -163,6 +180,40 @@ fun HomeworkScreen(
     }
 }
 
+/**
+ * The swipe's tip and the card form it takes, for the first current card — never over a dialog, a selection or
+ * the archive.
+ *
+ * @param current the current homework while the tip may open: null on the archive, while picking or loading.
+ */
+@Composable
+private fun rememberHomeworkTip(current: List<HomeworkRow>?, dialogOpen: Boolean): Pair<ScreenTip, HomeworkTip?> {
+    val screenTip = rememberScreenTip(blocked = current == null || dialogOpen) { seen ->
+        Tip.forHomework(seen, current = current.orEmpty().size)
+    }
+    val reader = rememberTouchExploration()
+    val text = stringResource(if (reader) R.string.tip_homework_swipe_reader else R.string.tip_homework_swipe)
+    val tip = HomeworkTip(text, screenTip.dismiss, peek = !reader).takeIf { screenTip.tip == Tip.HOMEWORK_SWIPE }
+    return screenTip to tip
+}
+
+@Composable
+private fun HomeworkFilterAction(loaded: HomeworkState, onSelect: (Assignee?) -> Unit) {
+    // Keep the clear action available if the last homework for the selected filter is deleted.
+    if (loaded.filterAssignees.isEmpty() && loaded.filter == null) return
+    FilterMenuAction(
+        name = stringResource(R.string.homework_filter),
+        allLabel = stringResource(R.string.homework_filter_all),
+        options = loaded.filterAssignees,
+        selected = loaded.filter,
+        optionLabel = loaded.captions::titleOf,
+        onSelect = onSelect,
+        leading = { who ->
+            LessonKindIcon(if (who is Assignee.Group) LessonKind.GROUP else LessonKind.INDIVIDUAL)
+        },
+    )
+}
+
 private data class Opened(val row: HomeworkRow, val choices: List<AssigneeChoice>)
 
 @Composable
@@ -179,44 +230,25 @@ private fun HomeworkList(
     filterName: String?,
     messages: Messages,
     undo: HomeworkUndo,
+    picking: HomeworkPicking,
     onAdd: () -> Unit,
     onOpen: (HomeworkRow) -> Unit,
     bottomInset: PaddingValues,
+    tip: HomeworkTip? = null,
+    onSwiped: () -> Unit = {},
 ) {
     val rows = if (side == HomeworkSide.CURRENT) lists.current else lists.archive
-    if (rows.isEmpty() && filterName != null) {
-        // The way out is the chip above, which is where the tutor put the filter.
-        EmptyState(
-            title = stringResource(R.string.homework_filter_empty, filterName),
-            detail = stringResource(R.string.homework_filter_empty_detail),
-            icon = KlasIcons.Outlined.Assignment,
-            modifier = Modifier.padding(bottomInset),
-        )
-        return
-    }
     if (rows.isEmpty()) {
-        when (side) {
-            HomeworkSide.CURRENT -> EmptyState(
-                title = stringResource(R.string.homework_empty_current),
-                detail = stringResource(R.string.homework_empty_current_detail),
-                icon = KlasIcons.Outlined.Assignment,
-                actionLabel = stringResource(R.string.homework_add),
-                onAction = onAdd,
-                modifier = Modifier.padding(bottomInset),
-            )
-            HomeworkSide.ARCHIVE -> EmptyState(
-                title = stringResource(R.string.homework_empty_archive),
-                detail = stringResource(R.string.homework_empty_archive_detail),
-                icon = KlasIcons.Outlined.Inventory2,
-                modifier = Modifier.padding(bottomInset),
-            )
-        }
+        HomeworkEmpty(side, filterName, onAdd, Modifier.padding(bottomInset))
         return
     }
     // Cards side by side once the window holds two: a column of them on a tablet is a strip down the middle.
+    val gridState = rememberLazyGridState()
+    ScrollsToTopOnReselect(gridState)
     LazyVerticalGrid(
         columns = GridCells.Adaptive(MinCardWidth),
         modifier = Modifier.fillMaxSize(),
+        state = gridState,
         contentPadding = PaddingValues(
             start = Spacing.gutter,
             end = Spacing.gutter,
@@ -226,18 +258,82 @@ private fun HomeworkList(
         horizontalArrangement = Arrangement.spacedBy(Spacing.itemGap),
         verticalArrangement = Arrangement.spacedBy(Spacing.itemGap),
     ) {
-        items(rows, key = { it.homework.id }) { row ->
+        // The card first in the list as drawn: by section on the current side.
+        val tipped = if (tip == null || side == HomeworkSide.ARCHIVE) {
+            null
+        } else {
+            bySection(rows).firstOrNull()?.second?.firstOrNull()
+        }
+        val card: @Composable LazyGridItemScope.(HomeworkRow) -> Unit = { row ->
             SwipeableHomework(
                 row = row,
-                onSwipe = { undo.swiped(row.homework, done = side == HomeworkSide.CURRENT) },
+                onSwipe = {
+                    if (side == HomeworkSide.CURRENT) onSwiped()
+                    undo.swiped(row.homework, done = side == HomeworkSide.CURRENT)
+                },
                 onClick = { onOpen(row) },
                 messages = messages,
                 nested = false,
                 modifier = animateInPlace(),
+                picking = picking,
+                tip = tip.takeIf { row == tipped },
             )
+        }
+        if (side == HomeworkSide.ARCHIVE) {
+            items(rows, key = { it.homework.id }) { card(it) }
+        } else {
+            // By the lesson it is for: past lessons' first, then today's — the order the tutor works through it.
+            bySection(rows).forEach { (section, inSection) ->
+                item(key = section.name, span = { GridItemSpan(maxLineSpan) }, contentType = "section") {
+                    SectionTitle(
+                        sectionLabel(section),
+                        modifier = animateInPlace().padding(top = Spacing.inline),
+                        color = if (section == HomeworkSection.OVERDUE) klasSemantics.overdue else Color.Unspecified,
+                    )
+                }
+                items(inSection, key = { it.homework.id }) { card(it) }
+            }
         }
     }
 }
+
+@Composable
+private fun HomeworkEmpty(side: HomeworkSide, filterName: String?, onAdd: () -> Unit, modifier: Modifier) {
+    when {
+        // The way out is the chip above, which is where the tutor put the filter.
+        filterName != null -> EmptyState(
+            title = stringResource(R.string.homework_filter_empty, filterName),
+            detail = stringResource(R.string.homework_filter_empty_detail),
+            icon = KlasIcons.Outlined.Assignment,
+            modifier = modifier,
+        )
+        side == HomeworkSide.CURRENT -> EmptyState(
+            title = stringResource(R.string.homework_empty_current),
+            detail = stringResource(R.string.homework_empty_current_detail),
+            icon = KlasIcons.Outlined.Assignment,
+            actionLabel = stringResource(R.string.homework_add),
+            onAction = onAdd,
+            modifier = modifier,
+        )
+        else -> EmptyState(
+            title = stringResource(R.string.homework_empty_archive),
+            detail = stringResource(R.string.homework_empty_archive_detail),
+            icon = KlasIcons.Outlined.Inventory2,
+            modifier = modifier,
+        )
+    }
+}
+
+@Composable
+private fun sectionLabel(section: HomeworkSection): String = stringResource(
+    when (section) {
+        HomeworkSection.OVERDUE -> R.string.homework_section_past
+        HomeworkSection.TODAY -> R.string.homework_section_today
+        HomeworkSection.NEXT_7_DAYS -> R.string.homework_section_next_7_days
+        HomeworkSection.LATER -> R.string.homework_section_later
+        HomeworkSection.UNBOOKED -> R.string.homework_unbooked
+    },
+)
 
 /** The narrowest a homework card gets before the grid drops a column: its share button and tick still fit. */
 private val MinCardWidth = 340.dp

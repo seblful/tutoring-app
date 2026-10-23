@@ -1,5 +1,6 @@
 package com.seblful.klas.ui.onboarding
 
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsOn
@@ -9,6 +10,7 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performImeAction
 import androidx.compose.ui.test.performTextInput
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
@@ -93,10 +95,19 @@ class OnboardingWalkthroughTest {
             compose.onNodeWithText(text(R.string.onboarding_finish)).assertIsEnabled()
             tap(R.string.onboarding_finish)
 
-            // Setup gives way to the app. Waited for on screen, which lets the save's callback run.
+            // The student is in; their first lesson is offered, and booking it is where setup gives way to the
+            // app — on the booking form, for them.
             compose.waitUntil(TIMEOUT) {
-                compose.onAllNodesWithText(text(R.string.onboarding_finish)).fetchSemanticsNodes().isEmpty()
+                compose.onAllNodesWithText(text(R.string.onboarding_book_first)).fetchSemanticsNodes().isNotEmpty()
             }
+            // A last screen, not a form: «All set» once, in its body, and «Not now» beside the booking, not also above.
+            compose.onAllNodesWithText(text(R.string.onboarding_ready_title)).assertCountEquals(1)
+            compose.onAllNodesWithText(text(R.string.onboarding_not_now)).assertCountEquals(1)
+            tap(R.string.onboarding_book_first)
+            compose.waitUntil(TIMEOUT) {
+                compose.onAllNodesWithText(text(R.string.class_add_title)).fetchSemanticsNodes().isNotEmpty()
+            }
+            compose.onNodeWithText("Anna", substring = true).assertExists()
             assertTrue(runBlocking { graph.settings.get().onboardingComplete })
             val student = runBlocking { graph.students.observeActive().first() }.single()
             val math = runBlocking { graph.subjects.observeAll().first() }.single()
@@ -120,6 +131,25 @@ class OnboardingWalkthroughTest {
 
             compose.onNodeWithText(MATH).assertIsNotSelected()
             assertTrue(compose.onAllNodesWithText(text(R.string.action_undo)).fetchSemanticsNodes().isNotEmpty())
+        }
+    }
+
+    @Test
+    fun `a subject is typed in place, and setup can be skipped from any step`() {
+        ActivityScenario.launch(MainActivity::class.java).use {
+            tap(R.string.onboarding_start)
+            tap(R.string.onboarding_continue)
+            waitFor(R.string.onboarding_subjects_desc)
+
+            compose.onNodeWithText(text(R.string.subjects_add)).performTextInput("Astronomy")
+            compose.onNodeWithText(text(R.string.subjects_add)).performImeAction()
+            stored { graph.subjects.observeAll().first().map { it.name } == listOf("Astronomy") }
+
+            tap(R.string.onboarding_skip)
+            compose.waitUntil(TIMEOUT) {
+                compose.onAllNodesWithText(text(R.string.onboarding_subjects_desc)).fetchSemanticsNodes().isEmpty()
+            }
+            assertTrue(runBlocking { graph.settings.get().onboardingComplete })
         }
     }
 

@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.selection.toggleable
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemColors
@@ -16,7 +15,6 @@ import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -38,7 +36,6 @@ import com.seblful.klas.format.toAmountInput
 import com.seblful.klas.ui.common.ChoiceRow
 import com.seblful.klas.ui.common.DialogRadioRow
 import com.seblful.klas.ui.common.DisabledAlpha
-import com.seblful.klas.ui.common.KeepTypedInput
 import com.seblful.klas.ui.common.MoneyTextField
 import com.seblful.klas.ui.common.SectionCard
 import com.seblful.klas.ui.common.SectionTitle
@@ -50,6 +47,11 @@ import com.seblful.klas.ui.common.rememberRevealedFocus
 import com.seblful.klas.ui.common.rememberToggleFeedback
 import com.seblful.klas.ui.common.text
 import com.seblful.klas.ui.common.timeText
+import com.seblful.klas.ui.designsystem.component.ChoiceDialog
+import com.seblful.klas.ui.designsystem.component.DialogAction
+import com.seblful.klas.ui.designsystem.component.FormDialog
+import com.seblful.klas.ui.designsystem.component.SettingsGroup
+import com.seblful.klas.ui.designsystem.component.settingsRowColors
 import com.seblful.klas.ui.theme.KlasIcons
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.isoDayNumber
@@ -154,32 +156,20 @@ internal fun WeekdayRow(
         picking = true
     }
     if (picking) {
-        AlertDialog(
-            onDismissRequest = { picking = false },
-            title = { Text(title) },
-            text = {
-                Column {
-                    DayOfWeek.entries.forEach { day ->
-                        DialogRadioRow(
-                            label = names[day.isoDayNumber - 1],
-                            selected = day == selected,
-                            onClick = {
-                                onSet(day.isoDayNumber)
-                                picking = false
-                            },
-                        )
-                    }
+        ChoiceDialog(title = title, onDismiss = { picking = false }) {
+            Column {
+                DayOfWeek.entries.forEach { day ->
+                    DialogRadioRow(
+                        label = names[day.isoDayNumber - 1],
+                        selected = day == selected,
+                        onClick = {
+                            onSet(day.isoDayNumber)
+                            picking = false
+                        },
+                    )
                 }
-            },
-            // No «Сохранить»: picking a day *is* the answer, and a confirm button would ask the tutor to
-            // agree with the tap they have just made. «Готово» closes a picker, «Сохранить» writes — this
-            // writes on the tap, so it only needs the way out.
-            confirmButton = {
-                TextButton(onClick = { picking = false }) {
-                    Text(stringResource(R.string.action_cancel))
-                }
-            },
-        )
+            }
+        }
     }
 }
 
@@ -271,84 +261,27 @@ internal fun MoneyRow(
         // saveable and the field derived from it, as every typed dialog field is.
         var text by rememberSaveable { mutableStateOf(amount?.toAmountInput().orEmpty()) }
         val field = MoneyField(text, MoneyField.Kind.OPTIONAL_RATE)
-        AlertDialog(
-            onDismissRequest = { editing = false },
-            // The rule every dialog the tutor types into follows: a stray tap beside the box must not
-            // throw away the amount just entered. See `KeepTypedInput`, where the reasoning is —
-            // «Отмена» is still there for leaving on purpose, and back still closes it.
-            properties = KeepTypedInput,
-            title = { Text(title) },
-            text = {
-                MoneyTextField(
-                    field = field,
-                    onValueChange = { text = it },
-                    label = stringResource(R.string.price_label),
-                    // Like every other one-field dialog: the caret already in it, since a price is the only
-                    // thing it is opened to do.
-                    modifier = Modifier.focusRequester(rememberRevealedFocus()),
-                )
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        // A blank OPTIONAL_RATE parses as zero, and zero is "not set".
-                        onSet(field.amount?.takeUnless { it.isZero })
-                        editing = false
-                    },
-                    enabled = field.isValid,
-                ) {
-                    Text(stringResource(R.string.action_save))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { editing = false }) {
-                    Text(stringResource(R.string.action_cancel))
-                }
-            },
-        )
-    }
-}
-
-/**
- * One section of a settings page: its title, then its rows **on one card** — the surface every other
- * screen groups things on, so Settings reads as the same app.
- *
- * @param title null for a page's untitled lead section, or the index's categories.
- */
-@Composable
-internal fun SettingsGroup(title: String? = null, content: @Composable ColumnScope.() -> Unit) {
-    Column(Modifier.fillMaxWidth().padding(horizontal = Spacing.gutter)) {
-        if (title != null) SectionHeader(title) else Spacer(Modifier.height(Spacing.itemGap))
-        SectionCard {
-            Column(Modifier.padding(vertical = Spacing.inline), content = content)
+        FormDialog(
+            title = title,
+            confirm = DialogAction(
+                label = stringResource(R.string.action_save),
+                onClick = {
+                    // A blank OPTIONAL_RATE parses as zero, and zero is "not set".
+                    onSet(field.amount?.takeUnless { it.isZero })
+                    editing = false
+                },
+                enabled = field.isValid,
+            ),
+            onDismiss = { editing = false },
+        ) {
+            MoneyTextField(
+                field = field,
+                onValueChange = { text = it },
+                label = stringResource(R.string.price_label),
+                // Like every other one-field dialog: the caret already in it, since a price is the only
+                // thing it is opened to do.
+                modifier = Modifier.focusRequester(rememberRevealedFocus()),
+            )
         }
     }
-}
-
-/** A row on a [SettingsGroup]'s card: no surface of its own, dimmed as a whole while it cannot be used. */
-@Composable
-internal fun settingsRowColors(enabled: Boolean = true): ListItemColors =
-    if (enabled) {
-        ListItemDefaults.colors(containerColor = Color.Transparent)
-    } else {
-        ListItemDefaults.colors(
-            containerColor = Color.Transparent,
-            headlineColor = MaterialTheme.colorScheme.onSurface.copy(alpha = DisabledAlpha),
-            supportingColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = DisabledAlpha),
-            leadingIconColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = DisabledAlpha),
-            trailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = DisabledAlpha),
-        )
-    }
-
-@Composable
-private fun SectionHeader(title: String) {
-    // The app's section title, in ink like every other — said as a heading, so the long list can be walked
-    // by section. Set in to the rows' text, not the card's edge.
-    SectionTitle(
-        title,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = Spacing.gutter)
-            .padding(top = Spacing.sectionGap, bottom = Spacing.inline),
-    )
 }

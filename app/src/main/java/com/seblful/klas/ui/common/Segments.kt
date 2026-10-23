@@ -18,6 +18,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.RippleConfiguration
 import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonColors
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Tab
@@ -58,6 +59,7 @@ import kotlin.math.abs
  * @param onReselect a tap on the segment already selected, for the one kind of segment that is a door
  * rather than a value — Settings' «Другое», which opens a picker. Without it a custom reminder lead
  * could not be changed to another custom one: the tap on the segment showing «20 мин» did nothing.
+ * @param colors for a row on a tinted card, where the default selected fill is the card's own tint.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -68,6 +70,7 @@ fun <T> SegmentedChoice(
     modifier: Modifier = Modifier,
     enabled: (T) -> Boolean = { true },
     onReselect: ((T) -> Unit)? = null,
+    colors: SegmentedButtonColors = SegmentedButtonDefaults.colors(),
     label: @Composable (T) -> String,
 ) {
     // Here rather than at the eight call sites, which is the point of this composable existing: the tick is
@@ -91,6 +94,7 @@ fun <T> SegmentedChoice(
                 },
                 enabled = isSelected || enabled(option),
                 shape = SegmentedButtonDefaults.itemShape(index, options.size),
+                colors = colors,
                 // No check mark. Its slot costs ~28dp of a segment that may be one third of a phone,
                 // and the selected segment already carries a tinted container — which is Material's own
                 // affordance, and is what the tick was duplicating.
@@ -216,6 +220,7 @@ fun <T> SegmentedPage(
     header: @Composable ColumnScope.() -> Unit = {},
     content: @Composable ColumnScope.() -> Unit,
 ) {
+    OpensFirstViewOnReselect(onFirst = selected == options.first()) { onSelect(options.first()) }
     Column(modifier.swipeBetweenSegments(options, selected, onSelect)) {
         ScreenHeader {
             // Held to a column's width even over a body that grows wider, so the tabs do not spread apart —

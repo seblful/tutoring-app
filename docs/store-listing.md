@@ -27,7 +27,8 @@ content (`notifications.json`) to `store/build/raw/<locale>/`. Film-only capture
 change data. Without `-PstoreScreenshots`, capture is skipped by ordinary tests/CI.
 
 Settings captures open the index, then Calendar & invitations for `settings-calendar` and Language &
-appearance for the theme transition. Navigate back through the index before returning to More.
+appearance for the theme transition, both through the gear on a tab's bar. Navigate back through the index
+before returning to the tab.
 
 `render.mjs` uses headless Chrome to frame captures with Golos Text and captions, render at higher
 resolution and downsample. Lock-screen entries use recorded notifications; descriptions copy from

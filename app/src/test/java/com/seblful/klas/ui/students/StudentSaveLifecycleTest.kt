@@ -32,7 +32,10 @@ class StudentSaveLifecycleTest {
     private suspend fun TestScope.form(): StudentFormViewModel {
         val subject = env.fixtures.subject("Maths")
         val vm = main.own(
-            StudentFormViewModel(env.subjectRepo, env.enrollmentRepo, env.settingsRepo, main.appScope, main.dispatcher),
+            StudentFormViewModel(
+                env.subjectRepo, env.enrollmentRepo, env.studentRepo, env.settingsRepo, main.appScope,
+                main.dispatcher,
+            ),
         )
         observing(vm.state)
         runCurrent()

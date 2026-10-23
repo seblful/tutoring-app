@@ -11,14 +11,14 @@ internal class SharedDocuments(
     private val directory: File,
     private val clock: WallClock = WallClock.system(TimeZone.UTC),
 ) {
-    fun write(filename: String, text: String): File {
+    fun write(filename: String, bytes: ByteArray): File {
         require(filename == File(filename).name) { "A share filename may not contain a path" }
         directory.mkdirs()
         val expiredBefore = clock.now().toEpochMilliseconds() - RETENTION.inWholeMilliseconds
         directory.listFiles()?.filter { it.lastModified() < expiredBefore }?.forEach { it.deleteRecursively() }
         // URI grants can outlive the chooser. Never reuse a path while an earlier recipient may read it.
         val share = File(directory, UUID.randomUUID().toString()).apply { check(mkdir()) }
-        return File(share, filename).apply { writeText(text) }
+        return File(share, filename).apply { writeBytes(bytes) }
     }
 
     private companion object {

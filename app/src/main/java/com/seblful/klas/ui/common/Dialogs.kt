@@ -1,3 +1,5 @@
+@file:Suppress("ForbiddenImport") // ConfirmDialog, NoticeDialog and TextFieldDialog are the dialog family.
+
 package com.seblful.klas.ui.common
 
 import androidx.compose.foundation.BorderStroke
@@ -10,7 +12,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonColors
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
@@ -29,6 +30,10 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.window.DialogProperties
 import com.seblful.klas.R
+import com.seblful.klas.ui.designsystem.component.ButtonKind
+import com.seblful.klas.ui.designsystem.component.DialogAction
+import com.seblful.klas.ui.designsystem.component.KlasButton
+import com.seblful.klas.ui.theme.klasSemantics
 
 /** The app's dialogs, and the one rule they share. */
 
@@ -58,17 +63,17 @@ fun ConfirmDialog(
 /** A text button that loses something: red label, and a red press, not only red words. */
 @Composable
 fun destructiveTextButtonColors(): ButtonColors =
-    ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+    ButtonDefaults.textButtonColors(contentColor = klasSemantics.destructive)
 
 /** [destructiveTextButtonColors] for an outlined button. */
 @Composable
 fun destructiveOutlinedButtonColors(): ButtonColors =
-    ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
+    ButtonDefaults.outlinedButtonColors(contentColor = klasSemantics.destructive)
 
 /** An outlined button's border in the colour of what it loses, so the whole button says it. */
 @Composable
 fun destructiveOutlinedButtonBorder(): BorderStroke =
-    ButtonDefaults.outlinedButtonBorder().copy(brush = SolidColor(MaterialTheme.colorScheme.error))
+    ButtonDefaults.outlinedButtonBorder().copy(brush = SolidColor(klasSemantics.destructive))
 
 internal val KeepTypedInput = DialogProperties(dismissOnClickOutside = false)
 /**
@@ -84,6 +89,7 @@ fun TextFieldDialog(
     capitalization: KeyboardCapitalization = KeyboardCapitalization.None,
     onConfirm: (String) -> Unit,
     onDismiss: () -> Unit,
+    extra: DialogAction? = null,
 ) {
     var value by rememberSaveable { mutableStateOf(initial) }
     // Its one field is the whole of it, and it opens because something was tapped to name a thing.
@@ -112,7 +118,16 @@ fun TextFieldDialog(
                 enabled = value.isNotBlank(),
             ) { Text(stringResource(R.string.action_save)) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },
+        dismissButton = {
+            extra?.let {
+                KlasButton(
+                    onClick = it.onClick,
+                    kind = if (it.destructive) ButtonKind.Destructive else ButtonKind.Text,
+                    enabled = it.enabled,
+                ) { Text(it.label) }
+            }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
+        },
     )
 }
 /**

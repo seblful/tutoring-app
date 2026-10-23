@@ -103,10 +103,16 @@ fun PaymentEntity.toDomain() =
         studentId = studentId,
         date = Instant.fromEpochMilliseconds(dateMillis),
         amount = Money(amountMinor),
+        method = method,
     )
 
-fun Payment.toEntity() =
-    PaymentEntity(id = id, studentId = studentId, dateMillis = date.toEpochMilliseconds(), amountMinor = amount.minor)
+fun Payment.toEntity() = PaymentEntity(
+    id = id,
+    studentId = studentId,
+    dateMillis = date.toEpochMilliseconds(),
+    amountMinor = amount.minor,
+    method = method,
+)
 
 fun ClassRow.toDomain() = TutoringClass(
     id = id,

@@ -7,8 +7,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.TextAutoSize
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -27,6 +25,7 @@ import com.seblful.klas.ui.common.HoldToName
 import com.seblful.klas.ui.common.MinHeadlineSize
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.durationLabel
+import com.seblful.klas.ui.designsystem.component.AccentCard
 import com.seblful.klas.ui.theme.KlasIcons
 import kotlinx.datetime.TimeZone
 import kotlin.time.Instant
@@ -76,10 +75,6 @@ fun NextLessonCard(
     onBook: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val colors = CardDefaults.cardColors(
-        containerColor = MaterialTheme.colorScheme.primaryContainer,
-        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-    )
     val label = if (next?.running == true) R.string.class_status_in_progress else R.string.student_next_lesson
     val content: @Composable ColumnScope.() -> Unit = {
         Row(
@@ -105,12 +100,7 @@ fun NextLessonCard(
             }
         }
     }
-    if (next != null) {
-        val open = { onOpen(next.classId) }
-        Card(onClick = open, modifier = modifier.fillMaxWidth(), colors = colors, content = content)
-    } else {
-        Card(modifier = modifier.fillMaxWidth(), colors = colors, content = content)
-    }
+    AccentCard(modifier, onClick = next?.let { { onOpen(it.classId) } }, content = content)
 }
 
 /** When it is, in one line that shrinks a step before it breaks, then what and for how long. */

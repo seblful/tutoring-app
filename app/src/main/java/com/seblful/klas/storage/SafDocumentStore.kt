@@ -35,4 +35,12 @@ class SafDocumentStore @Inject constructor(
                 ?: error("Cannot open output stream")
         }
     }
+
+    override suspend fun write(ref: DocumentRef, bytes: ByteArray) {
+        withContext(Dispatchers.IO) {
+            context.contentResolver.openOutputStream(ref.value.toUri())
+                ?.use { it.write(bytes) }
+                ?: error("Cannot open output stream")
+        }
+    }
 }

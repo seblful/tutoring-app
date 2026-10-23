@@ -1,5 +1,10 @@
 package com.seblful.klas.ui.students
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandHorizontally
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -9,12 +14,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -25,6 +30,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
@@ -34,27 +40,39 @@ import com.seblful.klas.domain.lesson.ClassRules
 import com.seblful.klas.domain.model.Subject
 import com.seblful.klas.domain.people.Phone
 import com.seblful.klas.format.MoneyField
+import com.seblful.klas.format.bulletJoin
+import com.seblful.klas.format.labelRes
 import com.seblful.klas.ui.common.AddRow
 import com.seblful.klas.ui.common.KlasScreen
 import com.seblful.klas.ui.common.ListSkeleton
+import com.seblful.klas.ui.common.LoadingFormScreen
 import com.seblful.klas.ui.common.LocalCurrency
 import com.seblful.klas.ui.common.MinTouchTarget
 import com.seblful.klas.ui.common.MoneyTextField
 import com.seblful.klas.ui.common.Reveal
-import com.seblful.klas.ui.common.SaveAction
 import com.seblful.klas.ui.common.SectionTitle
 import com.seblful.klas.ui.common.ShowMessagesFor
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.durationLabel
+import com.seblful.klas.ui.common.formBar
 import com.seblful.klas.ui.common.leaveGuard
 import com.seblful.klas.ui.common.outsetRowPress
 import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.state.Loadable
+import com.seblful.klas.ui.common.state.valueOrNull
 import com.seblful.klas.ui.common.text
+import com.seblful.klas.ui.designsystem.component.FormBar
+import com.seblful.klas.ui.designsystem.component.KlasDivider
+import com.seblful.klas.ui.designsystem.template.FormScreen
 import com.seblful.klas.ui.subjects.SubjectNameDialog
+import com.seblful.klas.ui.theme.KlasMotion
+import com.seblful.klas.ui.theme.klasSemantics
 import dev.zacsweers.metrox.viewmodel.metroViewModel
 
-/** Full-screen "add student" with required subjects + prices. */
+/**
+ * A student, new or — given [studentId] — being corrected: one form (D5), with their subjects and rates, saved
+ * from the bar, which names what it will do («Add student») and, once nothing is missing, sums up whom.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StudentFormScreen(
@@ -62,9 +80,15 @@ fun StudentFormScreen(
     viewModel: StudentFormViewModel = metroViewModel(),
     initialSubjectId: Long? = null,
     onCreated: ((Long) -> Unit)? = null,
+    studentId: Long? = null,
 ) {
     LaunchedEffect(initialSubjectId) { initialSubjectId?.let(viewModel::suggestSubject) }
+    LaunchedEffect(studentId) { studentId?.let(viewModel::edit) }
     val state by viewModel.state.collectAsStateWithLifecycle()
+    if (state.opened == StudentFormViewModel.Opened.Reading) {
+        LoadingFormScreen(title = stringResource(R.string.student_edit_title), onBack = onBack, fields = 5)
+        return
+    }
     val save = { viewModel.create { id -> if (onCreated != null) onCreated(id) else onBack() } }
 
     // A save that failed must not look like one that went through: the form stays open and says so.
@@ -75,18 +99,16 @@ fun StudentFormScreen(
     // Back — the arrow or the system gesture — asks before throwing a filled-in form away.
     val requestLeave = leaveGuard(form = state, onLeave = onBack, onSave = save)
 
-    KlasScreen(
-        title = stringResource(R.string.student_add_title),
-        onBack = requestLeave,
+    // `StudentFormContent` keeps an `imePadding()` of its own only because onboarding embeds it — a no-op here,
+    // where the template has already taken the keyboard's inset.
+    FormScreen(
+        title = stringResource(if (state.isNew) R.string.student_add_title else R.string.student_edit_title),
+        saveLabel = stringResource(if (state.isNew) R.string.student_form_add else R.string.action_save),
+        bar = studentBar(state),
+        onSave = save,
+        onLeave = requestLeave,
         messages = messages,
-        // The per-subject price fields sit at the foot of the form. The shell owns the rule, as it does
-        // for the group and booking forms; `StudentFormContent` keeps its own `imePadding()` only
-        // because onboarding embeds it — and that one is a no-op here, the inset already consumed.
-        imeAware = true,
-        actions = { SaveAction(enabled = state.canSave, onSave = save) },
-    ) { modifier, bottomInset ->
-        StudentFormContent(state = state, viewModel = viewModel, modifier = modifier, bottomInset = bottomInset)
-    }
+    ) { fields -> StudentFormContent(state = state, viewModel = viewModel, modifier = fields) }
 }
 
 /**
@@ -136,7 +158,7 @@ fun StudentFormContent(
             StudentNameField(form.name) { v -> viewModel.update { it.copy(name = v) } }
         }
 
-        HorizontalDivider(Modifier.padding(vertical = Spacing.tight))
+        KlasDivider(Modifier.padding(vertical = Spacing.tight))
         SectionTitle(stringResource(R.string.student_form_subjects_title))
         // «Сначала добавьте предметы» is a refusal, and saying it about subjects that have merely not
         // been read yet is the [Loadable] defect — here in the error red, on the screen a tutor reaches
@@ -164,7 +186,7 @@ private fun SubjectPrices(
     if (subjects.isEmpty()) {
         Text(
             stringResource(R.string.student_form_no_subjects),
-            color = MaterialTheme.colorScheme.error,
+            color = klasSemantics.validation,
             style = MaterialTheme.typography.bodyMedium,
         )
     } else {
@@ -173,44 +195,42 @@ private fun SubjectPrices(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             style = MaterialTheme.typography.bodySmall,
         )
+        // The rate on its subject's row (R6) — below it only when a large font would leave the name no room.
+        val rateBeside = LocalDensity.current.fontScale <= MaxFontScaleForRateBeside
         subjects.forEach { subject ->
             val selected = subject.id in state.selectedSubjectIds
-            val price = form.subjectPrices[subject.id] ?: MoneyField()
-            // Keep the price field below the subject row so names remain readable at larger font scales.
+            val rate: @Composable (Modifier) -> Unit = { fieldModifier ->
+                val price = form.subjectPrices[subject.id] ?: MoneyField()
+                MoneyTextField(
+                    field = price,
+                    onValueChange = { viewModel.setPriceText(subject.id, it) },
+                    label = stringResource(R.string.price_label),
+                    hint = lessonPriceHint(price, state.lessonMinutes),
+                    modifier = fieldModifier,
+                )
+            }
             Column(Modifier.fillMaxWidth()) {
-                Row(
-                    Modifier
-                        .fillMaxWidth()
-                        .outsetRowPress { source ->
-                            Modifier.toggleable(
-                                value = selected,
-                                interactionSource = source,
-                                indication = null,
-                                role = Role.Checkbox,
-                                onValueChange = { on -> viewModel.toggleSubject(subject.id, on) },
-                            )
-                        },
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    // A picture of the state, a thumb tall: `onCheckedChange = null` drops the checkbox's own
-                    // 48 dp, which left the row 24 dp tall to tap. Only as wide as the tick, though — the
-                    // whole row is the target, and centred in 48 dp the tick stood 12 dp in from the edge
-                    // every field above it starts on.
-                    Box(Modifier.heightIn(min = MinTouchTarget), contentAlignment = Alignment.Center) {
-                        Checkbox(checked = selected, onCheckedChange = null)
-                    }
-                    Text(subject.name, Modifier.padding(start = Spacing.inline))
-                }
-                Reveal(selected) {
-                    MoneyTextField(
-                        field = price,
-                        onValueChange = { viewModel.setPriceText(subject.id, it) },
-                        label = stringResource(R.string.price_label),
-                        hint = lessonPriceHint(price, state.lessonMinutes),
-                        // Indented to the width the checkbox takes, so the field sits under the
-                        // name it prices rather than under the tick.
-                        modifier = Modifier.padding(start = PriceFieldIndent, top = Spacing.tight),
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    SubjectTick(
+                        subject.name,
+                        selected,
+                        locked = subject.id in state.locked,
+                        onToggle = { on -> viewModel.toggleSubject(subject.id, on) },
+                        modifier = Modifier.weight(1f),
                     )
+                    if (rateBeside) {
+                        AnimatedVisibility(
+                            selected,
+                            enter =
+                            expandHorizontally(KlasMotion.defaultSpatial()) + fadeIn(KlasMotion.defaultEffects()),
+                            exit =
+                            shrinkHorizontally(KlasMotion.defaultSpatial()) + fadeOut(KlasMotion.defaultEffects()),
+                        ) { rate(Modifier.width(RateFieldWidth)) }
+                    }
+                }
+                // Indented to the width the checkbox takes, so the field sits under the name it prices.
+                if (!rateBeside) Reveal(selected) {
+                    rate(Modifier.padding(start = PriceFieldIndent, top = Spacing.tight))
                 }
             }
         }
@@ -219,6 +239,67 @@ private fun SubjectPrices(
     if (addingSubject) {
         SubjectNameDialog(onConfirm = viewModel::addSubject, onDismiss = { addingSubject = false })
     }
+}
+
+/**
+ * A subject to tick, the whole row the target. [locked]: the student has lessons in it, so it stays — said
+ * under the name, rather than a tick that will not move.
+ */
+@Composable
+private fun SubjectTick(
+    name: String,
+    selected: Boolean,
+    locked: Boolean,
+    onToggle: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier.outsetRowPress { source ->
+            Modifier.toggleable(
+                value = selected,
+                interactionSource = source,
+                indication = null,
+                enabled = !locked,
+                role = Role.Checkbox,
+                onValueChange = onToggle,
+            )
+        },
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        // A picture of the state, a thumb tall: `onCheckedChange = null` drops the checkbox's own 48 dp, which
+        // left the row 24 dp tall to tap. Only as wide as the tick, though — the whole row is the target, and
+        // centred in 48 dp the tick stood 12 dp in from the edge every field above it starts on.
+        Box(Modifier.heightIn(min = MinTouchTarget), contentAlignment = Alignment.Center) {
+            Checkbox(checked = selected, onCheckedChange = null, enabled = !locked)
+        }
+        Column(Modifier.padding(start = Spacing.inline)) {
+            Text(name)
+            if (locked) {
+                Text(
+                    stringResource(R.string.student_form_subject_has_lessons),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+    }
+}
+
+/** The student form's bar: what is missing, or whom it will save — shared with setup's student step. */
+@Composable
+internal fun studentBar(state: StudentFormViewModel.UiState): FormBar =
+    formBar(state.missing) { FormBar.Ready(state.form.name.trim(), studentSummary(state)) }
+
+/** «Math 25 $/h · In person»: the ticked subjects at their rates, then the place — what the save bar sums up. */
+@Composable
+private fun studentSummary(state: StudentFormViewModel.UiState): String {
+    val subjects = state.allSubjects.valueOrNull().orEmpty()
+    val rates = subjects.mapNotNull { subject ->
+        state.form.subjectPrices[subject.id]?.amount?.let {
+            "${subject.name} ${stringResource(R.string.price_per_hour, it.text())}"
+        }
+    }
+    return bulletJoin(*rates.toTypedArray(), stringResource(state.form.mode.labelRes()))
 }
 
 /**
@@ -238,5 +319,11 @@ private fun lessonPriceHint(price: MoneyField, lessonMinutes: Int): String? {
 
 /** Material's checkbox — a 20 dp box in 2 dp of padding — and the gap after it: where the subject's name starts. */
 private val PriceFieldIndent = 24.dp + Spacing.inline
+
+/** «1 250,50» and its label at the default font, beside the subject's name. */
+private val RateFieldWidth = 148.dp
+
+/** Past this, the rate goes under its subject: beside it, the name would wrap a letter or two to a line. */
+private const val MaxFontScaleForRateBeside = 1.3f
 
 private val SubjectRowHeight = MinTouchTarget

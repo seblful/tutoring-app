@@ -10,6 +10,7 @@ import com.seblful.klas.testutil.MainDispatcherRule
 import com.seblful.klas.testutil.TestEnv
 import com.seblful.klas.testutil.current
 import com.seblful.klas.testutil.observing
+import com.seblful.klas.ui.common.FormGap
 import com.seblful.klas.ui.common.state.Loadable
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -120,6 +121,7 @@ class GroupFormViewModelTest {
         advanceUntilIdle()
 
         assertFalse(vm.state.current.canSave)
+        assertEquals(listOf(FormGap.NAME, FormGap.PRICE, FormGap.MEMBERS), vm.state.current.missing)
 
         vm.update { it.copy(name = "11 «А»") }
         advanceUntilIdle()

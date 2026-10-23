@@ -4,9 +4,11 @@ import androidx.annotation.StringRes
 import androidx.compose.ui.test.filter
 import androidx.compose.ui.test.filterToOne
 import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.isSelectable
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
@@ -17,6 +19,7 @@ import com.github.takahirom.roborazzi.captureScreenRoboImage
 import com.seblful.klas.MainActivity
 import com.seblful.klas.R
 import com.seblful.klas.domain.model.ThemeChoice
+import com.seblful.klas.format.formatDay
 import com.seblful.klas.store.DemoTutor
 import com.seblful.klas.store.StoreApp
 import com.seblful.klas.store.StoreGraph
@@ -26,6 +29,7 @@ import com.seblful.klas.testutil.RecordingDigestScheduler
 import com.seblful.klas.testutil.RecordingReminderScheduler
 import dev.zacsweers.metro.createGraphFactory
 import kotlinx.coroutines.runBlocking
+import kotlinx.datetime.LocalDate
 import org.junit.After
 import org.junit.Before
 import org.junit.Rule
@@ -112,12 +116,14 @@ class FormFactorScreenshotTest {
     // showing follows a return to them: the last one is a pushed page, which hides them.
     private fun tour(formFactor: String) {
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
-            // Today is not captured: its «now» line arrives on its own flow, at a moment Robolectric does
-            // not pin down. A later day of the month has none — and on a wide window the month is where the
-            // schedule has two panes, the grid beside the day it opens.
+            // Neither the Today tab nor today's schedule is captured: their «now» arrives on its own flow, at a
+            // moment Robolectric does not pin down. A later day of the month has none — and on a wide window the
+            // month is where the schedule has two panes, the grid beside the day it opens.
+            tab(R.string.nav_schedule)
             waitFor(string(R.string.class_status_in_progress))
             click(R.string.schedule_view_month)
             compose.onAllNodesWithText(LATER_DAY).filterToOne(isSelectable()).performClick()
+            laterDayShown()
             settle()
             capture(formFactor, "schedule-month")
 
@@ -149,10 +155,9 @@ class FormFactorScreenshotTest {
             waitFor(string(R.string.stat_earned))
             capture(formFactor, "people-group")
 
-            // Back again: on a phone the card hides the bar, so More is only there under it.
+            // Back again: on a phone the card's bar has no gear, People's does.
             back(scenario)
-            tab(R.string.nav_more)
-            click(R.string.settings_title)
+            gear()
             click(R.string.settings_lessons_title)
             waitFor(string(R.string.settings_autocomplete))
             capture(formFactor, "settings-lessons")
@@ -161,6 +166,13 @@ class FormFactorScreenshotTest {
 
     private fun back(scenario: ActivityScenario<MainActivity>) {
         scenario.onActivity { it.onBackPressedDispatcher.onBackPressed() }
+        settle()
+    }
+
+    /** Settings, through the gear on the tab's bar. */
+    private fun gear() {
+        compose.onAllNodes(hasContentDescription(string(R.string.settings_title)) and hasClickAction())
+            .onFirst().performClick()
         settle()
     }
 
@@ -190,8 +202,14 @@ class FormFactorScreenshotTest {
         }
     }
 
+    /** The later day's own header: it is the new week's read, which the test clock does not wait for. */
+    private fun laterDayShown() = waitFor(
+        LocalDate(DemoTutor.NOW.year, DemoTutor.NOW.month, LATER_DAY.toInt()).formatDay(),
+    )
+
     private fun settle() {
         compose.mainClock.advanceTimeBy(SETTLE_MS)
+        finishRipples()
         compose.waitForIdle()
     }
 

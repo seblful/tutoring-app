@@ -3,7 +3,9 @@ package com.seblful.klas.notifications
 import com.seblful.klas.data.lessons.ClassRepository
 import com.seblful.klas.data.lessons.LessonWrite
 import com.seblful.klas.domain.lesson.SessionRules
+import com.seblful.klas.domain.model.ClassSession
 import com.seblful.klas.domain.model.LessonStatus
+import com.seblful.klas.domain.time.WallClock
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
@@ -23,6 +25,8 @@ import dev.zacsweers.metro.SingleIn
 class ReminderActions @Inject constructor(
     private val classes: ClassRepository,
     private val notifier: Notifier,
+    private val marks: RecentMarks,
+    private val clock: WallClock,
 ) {
     /**
      * Marks the whole lesson [classId] belongs to as taught, and reports whether it did.
@@ -47,7 +51,10 @@ class ReminderActions @Inject constructor(
         when {
             session == null -> false
             LessonStatus.COMPLETED !in SessionRules.sessionTransitions(session) -> false
-            else -> classes.setStatus(session, LessonStatus.COMPLETED) is LessonWrite.Written
+            else -> (classes.setStatus(session, LessonStatus.COMPLETED) as? LessonWrite.Written)?.value
+                ?.takeIf { it.isNotEmpty() }
+                // Kept for Today's Undo: neither the widget nor a notification can offer one where it is tapped.
+                ?.let { marks.record(ClassSession(session.groupId, it), clock.now()) } != null
         }
     } finally {
         notifier.cancelClassReminder(classId)

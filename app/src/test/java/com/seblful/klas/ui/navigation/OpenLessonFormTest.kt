@@ -17,7 +17,7 @@ class OpenLessonFormTest {
     fun `a tap opens the lesson's form`() {
         open(5)
 
-        assertEquals(listOf("Schedule", "form 5"), stack())
+        assertEquals(listOf("Today", "form 5"), stack())
     }
 
     @Test
@@ -25,7 +25,7 @@ class OpenLessonFormTest {
         open(5)
         open(5)
 
-        assertEquals(listOf("Schedule", "form 5"), stack())
+        assertEquals(listOf("Today", "form 5"), stack())
     }
 
     @Test
@@ -34,19 +34,19 @@ class OpenLessonFormTest {
 
         open(7)
 
-        assertEquals(listOf("Schedule", "form 5", "form 7"), stack())
+        assertEquals(listOf("Today", "form 5", "form 7"), stack())
         navigator.goBack()
-        assertEquals(listOf("Schedule", "form 5"), stack())
+        assertEquals(listOf("Today", "form 5"), stack())
     }
 
     @Test
     fun `a tap opens the form over a screen that is already pushed`() {
-        navigator.navigateToTab(TopDestination.MORE)
-        navigator.navigate(Routes.Settings)
+        navigator.navigateToTab(TopDestination.PEOPLE)
+        navigator.openOnTop(Routes.Settings)
 
         open(7)
 
-        assertEquals(listOf("Schedule", "More", "Settings", "form 7"), stack())
+        assertEquals(listOf("Today", "People", "Settings", "form 7"), stack())
     }
 
     @Test
@@ -54,7 +54,7 @@ class OpenLessonFormTest {
         navigator.openOnTop(Routes.classEdit(0))
         navigator.openOnTop(Routes.classEdit(0))
 
-        assertEquals(listOf("Schedule", "form 0"), stack())
+        assertEquals(listOf("Today", "form 0"), stack())
     }
 
     @Test
@@ -63,6 +63,6 @@ class OpenLessonFormTest {
 
         navigator.openOnTop(Routes.StudentAdd)
 
-        assertEquals(listOf("Schedule", "form 0", "StudentAdd"), stack())
+        assertEquals(listOf("Today", "form 0", "StudentAdd"), stack())
     }
 }

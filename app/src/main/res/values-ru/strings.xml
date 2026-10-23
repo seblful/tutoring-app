@@ -28,7 +28,6 @@
     -->
     <string name="nav_homework">Задания</string>
     <string name="nav_reports">Отчёты</string>
-    <string name="nav_more">Ещё</string>
 
     <!-- Generic actions -->
     <string name="action_edit">Изменить</string>
@@ -97,8 +96,8 @@
         <item quantity="many">Ещё %1$d — уточните поиск</item>
         <item quantity="other">Ещё %1$d — уточните поиск</item>
     </plurals>
-    <string name="students_search_hint">Имя ученика</string>
-    <string name="groups_search_hint">Название группы</string>
+    <string name="students_search_hint">Поиск учеников</string>
+    <string name="groups_search_hint">Поиск групп</string>
     <string name="subjects_search_hint">Название предмета</string>
 
     <!-- Sorting the students list: the tutor's two questions are "who is this" and "who owes me" -->
@@ -128,7 +127,7 @@
       schedule_need_setup). What the original was missing was never the naming; it was the way out.
     -->
     <string name="schedule_empty_no_setup">Пока нечего планировать</string>
-    <string name="schedule_empty_no_setup_detail">Занятие записывается на ученика и предмет с ценой. Начните с ученика.</string>
+    <string name="schedule_empty_no_setup_detail">Занятие записывается на ученика и предмет со ставкой. Начните с ученика.</string>
     <string name="schedule_add_student">Добавить ученика</string>
     <!--
       Narrowing the schedule to one student. The chip is the point: a filtered calendar that looks empty
@@ -136,10 +135,13 @@
       own way out. An empty state reached *through* a filter offers no «Записать занятие» — booking from
       there would land on the day, not on the student being looked at.
     -->
-    <string name="schedule_filter_student">Показать одного ученика</string>
-    <string name="schedule_filter_all">Все ученики</string>
-    <string name="schedule_filter_clear">Показать всех</string>
-    <string name="schedule_filter_empty">У этого ученика здесь занятий нет</string>
+    <string name="schedule_filter_everyone">Все</string>
+    <string name="schedule_filter_any_status">Любой статус</string>
+    <string name="schedule_filter">Фильтр расписания</string>
+    <string name="schedule_filter_who">Чьи занятия</string>
+    <string name="schedule_filter_status">Статус</string>
+    <string name="filter_remove">Убрать фильтр</string>
+    <string name="schedule_filter_empty">Нет занятий под этот фильтр</string>
     <string name="schedule_filter_empty_detail">Уберите фильтр, чтобы увидеть остальные занятия</string>
     <!--
       The mark in the day list saying where the current time falls. Lower case: it is a label on a
@@ -183,9 +185,9 @@
     <!-- The booking form's three sections and the save bar under them. -->
     <string name="class_section_who">Кто</string>
     <string name="class_section_when">Когда</string>
-    <string name="class_section_price">Цена</string>
-    <string name="class_section_format">Формат</string>
-    <string name="class_terms_price_needed">Укажите цену</string>
+    <string name="class_section_price">Ставка</string>
+    <string name="class_section_format">Где</string>
+    <string name="class_terms_price_needed">Укажите ставку</string>
     <string name="class_who_label">Ученик или группа</string>
     <string name="class_book_action">Записать</string>
     <string name="class_still_needed">Осталось указать</string>
@@ -201,7 +203,7 @@
     <string name="class_gap_date">дату</string>
     <string name="class_gap_start">время начала</string>
     <string name="class_gap_length">длительность</string>
-    <string name="class_gap_price">цену</string>
+    <string name="class_gap_price">ставку</string>
     <plurals name="class_series_lessons">
         <item quantity="one">%1$d занятие</item>
         <item quantity="few">%1$d занятия</item>
@@ -211,7 +213,7 @@
     <string name="class_edit_title">Изменить занятие</string>
     <string name="class_student_label">Ученик</string>
     <string name="class_subject_label">Предмет</string>
-    <string name="class_no_subjects_for_student">У ученика нет предметов с ценой. Укажите цену в карточке ученика.</string>
+    <string name="class_no_subjects_for_student">У ученика нет предметов со ставкой. Укажите её в профиле ученика.</string>
     <!--
       Length, chosen as a duration rather than as an end time. A tutor arranges "an hour and a half",
       not "ends at 15:30" — the end time is arithmetic they were being asked to do in their head, and
@@ -280,7 +282,7 @@
     <string name="action_failed">Не удалось выполнить. Попробуйте ещё раз</string>
     <string name="class_location_label">Место</string>
     <string name="class_mode_in_person">Очно</string>
-    <string name="class_mode_remote">Удалённо</string>
+    <string name="class_mode_remote">Онлайн</string>
     <string name="class_move">Перенести</string>
     <string name="class_gone">Этого занятия больше нет</string>
     <string name="class_gone_detail">Его удалили после того, как оно было открыто. Вернитесь к расписанию, чтобы найти нужное занятие.</string>
@@ -302,7 +304,7 @@
         <item quantity="other">%1$d ученика будут убраны из проведённого занятия — их занятия и начисленный доход будут удалены. Сохранить?</item>
     </plurals>
     <string name="class_subject_from_group">Предмет задан группой</string>
-    <string name="class_group_price_label">Цена за час с ученика</string>
+    <string name="class_group_price_label">Ставка с ученика</string>
     <!-- The swipe gesture on a schedule card, and its accessibility label. -->
     <string name="class_mark_completed">Отметить проведённым</string>
 
@@ -310,7 +312,6 @@
     <string name="class_status_label">Статус</string>
     <string name="class_series_availability">Свободных дат: %1$d. Занятые даты будут пропущены.</string>
     <string name="class_attendance_label">Посещаемость</string>
-    <string name="class_attendance_hint">Посещаемость влияет на оплату после отметки «Проведено».</string>
     <string name="class_attendance_expected">Ожидается</string>
     <string name="class_attendance_present">Присутствовал</string>
     <string name="class_attendance_absent">Отсутствовал, без оплаты</string>
@@ -348,9 +349,9 @@
     <!-- Students -->
     <string name="students_title">Ученики</string>
     <string name="students_empty">Пока нет учеников</string>
-    <string name="students_empty_detail">Ученик — это имя, предметы и цена за час. Дальше можно записывать занятия и вести учёт оплат.</string>
+    <string name="students_empty_detail">Ученик — это имя, предметы и ставка за час. Дальше можно записывать занятия и вести учёт оплат.</string>
     <string name="students_add">Добавить ученика</string>
-    <string name="students_show_archived">Показать архив</string>
+    <string name="students_show_archived">Показать архивных</string>
     <string name="student_archived_badge">В архиве</string>
     <string name="student_add_title">Новый ученик</string>
     <string name="student_edit_title">Изменить ученика</string>
@@ -360,10 +361,12 @@
     <string name="student_email_label">Email</string>
     <string name="student_email_hint">Необязательно · для приглашений на занятия, если они включены в настройках</string>
     <string name="student_note_label">Заметка</string>
-    <string name="student_form_subjects_title">Предметы и цены</string>
-    <string name="student_form_subjects_required">Выберите хотя бы один предмет и укажите цену</string>
+    <string name="student_form_subjects_title">Предметы и ставки</string>
+    <string name="student_form_add">Добавить ученика</string>
+    <string name="student_form_subject_has_lessons">Есть занятия — предмет остаётся</string>
+    <string name="student_form_subjects_required">Выберите хотя бы один предмет и укажите ставку</string>
     <string name="student_form_no_subjects">Сначала добавьте предметы</string>
-    <string name="student_mode_label">Место занятий</string>
+    <string name="student_mode_label">Где</string>
     <string name="student_subjects_title">Предметы</string>
     <string name="student_no_subjects">Предметы не выбраны</string>
     <string name="student_add_subject">Добавить предмет</string>
@@ -383,16 +386,25 @@
         <item quantity="many">%1$d запланированных занятий будут отменены.</item>
         <item quantity="other">%1$d запланированных занятия будут отменены.</item>
     </plurals>
-    <plurals name="student_archive_lessons_cancelled">
-        <item quantity="one">Отменено %1$d занятие</item>
-        <item quantity="few">Отменено %1$d занятия</item>
-        <item quantity="many">Отменено %1$d занятий</item>
-        <item quantity="other">Отменено %1$d занятия</item>
+    <string name="archived_message">Перенесено в архив</string>
+    <plurals name="archived_lessons_cancelled">
+        <item quantity="one">В архиве · отменено %1$d занятие</item>
+        <item quantity="few">В архиве · отменено %1$d занятия</item>
+        <item quantity="many">В архиве · отменено %1$d занятий</item>
+        <item quantity="other">В архиве · отменено %1$d занятия</item>
+    </plurals>
+    <plurals name="archive_undo_kept">
+        <item quantity="one">%1$d занятие осталось отменённым: оно изменилось или его время занято</item>
+        <item quantity="few">%1$d занятия остались отменёнными: они изменились или их время занято</item>
+        <item quantity="many">%1$d занятий остались отменёнными: они изменились или их время занято</item>
+        <item quantity="other">%1$d занятия остались отменёнными: они изменились или их время занято</item>
     </plurals>
     <string name="student_last_payment">Последняя оплата %1$s</string>
     <string name="student_lessons_empty">Занятий пока нет</string>
     <string name="student_subject_remove">Убрать предмет «%1$s»</string>
-    <string name="student_subject_remove_confirm">Убрать предмет «%1$s» у ученика? Его цена и история цен будут удалены.</string>
+    <string name="student_subject_remove_confirm">Убрать предмет «%1$s» у ученика? Его ставка и история ставки будут удалены.</string>
+    <string name="student_balance_title">Баланс</string>
+    <string name="student_statement">Выписка</string>
     <string name="student_payments_title">Платежи</string>
     <string name="student_classes_title">Занятия</string>
     <string name="student_homework_title">Домашние задания</string>
@@ -414,8 +426,8 @@
     <string name="stat_cancelled">отменено %1$d</string>
 
     <!-- Rate history -->
-    <string name="rate_history_title">История цены</string>
-    <string name="rate_history_empty">Цена не менялась</string>
+    <string name="rate_history_title">История ставки</string>
+    <string name="rate_history_empty">Ставка не менялась</string>
     <!--
       The tail of a long log, collapsed. The group form shows the history inline above its roster, so a
       rate that has moved a dozen times must not push the roster off the screen.
@@ -438,10 +450,10 @@
     <string name="balance_owes">Долг %1$s</string>
 
     <!-- Price -->
-    <string name="price_edit_title">Изменить цену</string>
-    <string name="price_label">Цена за час</string>
+    <string name="price_edit_title">Изменить ставку</string>
+    <string name="price_label">Ставка за час</string>
     <string name="price_per_lesson_hint">%1$s за занятие %2$s</string>
-    <string name="price_per_hour">%1$s/час</string>
+    <string name="price_per_hour">%1$s/\u2060час</string>
 
     <!-- Payments -->
     <string name="add_payment">Добавить платёж</string>
@@ -453,6 +465,8 @@
     <string name="payment_amount_label">Сумма</string>
     <string name="payment_delete">Удалить платёж %1$s от %2$s</string>
     <string name="payment_deleted">Платёж удалён</string>
+    <string name="payment_corrected">Платёж изменён</string>
+    <string name="payment_undo_changed">Платёж уже изменился, поэтому ничего не вернули.</string>
     <!--
       A payment is recorded when the tutor gets round to it, not when it was handed over — «она
       заплатила во вторник» had no way in, and a wrong amount could only be deleted and re-entered.
@@ -468,48 +482,48 @@
     <!-- Subjects -->
     <string name="subjects_title">Предметы</string>
     <string name="subjects_empty">Пока нет предметов</string>
-    <string name="subjects_empty_detail">Предмет — это то, что вы преподаёте. С него начинается цена и запись занятий.</string>
+    <string name="subjects_empty_detail">Предмет — это то, что вы преподаёте. С него начинаются ставки и запись занятий.</string>
     <string name="subjects_add">Добавить предмет</string>
     <string name="subject_add_title">Новый предмет</string>
     <string name="subject_edit_title">Изменить предмет</string>
     <string name="subject_name_label">Название</string>
     <string name="subject_name_taken">Предмет с таким названием уже есть</string>
     <string name="subject_delete_named">Удалить предмет «%1$s»</string>
-    <string name="subject_delete_confirm">Удалить этот предмет?</string>
+    <string name="subject_deleted">Предмет удалён</string>
     <string name="subject_delete_blocked">Нельзя удалить предмет: по нему есть занятия. Сначала удалите эти занятия.</string>
     <!-- A group is taught the subject. A different fix from removing lessons — the group may have none. -->
     <string name="subject_delete_blocked_group">Нельзя удалить предмет: его изучает группа. Сначала измените предмет группы.</string>
-    <string name="subject_delete_blocked_students">Нельзя удалить предмет: его изучает ученик. Сначала уберите предмет из его карточки.</string>
+    <string name="subject_delete_blocked_students">Нельзя удалить предмет: его изучает ученик. Сначала уберите предмет из его профиля.</string>
 
     <!-- Groups -->
     <string name="groups_title">Группы</string>
     <string name="groups_empty">Пока нет групп</string>
-    <string name="groups_empty_detail">Группа — это несколько учеников с общей ценой. Одно занятие записывается сразу на всех.</string>
+    <string name="groups_empty_detail">Группа — это несколько учеников с общей ставкой. Одно занятие записывается сразу на всех.</string>
     <string name="groups_add">Создать группу</string>
+    <string name="group_form_create">Создать группу</string>
     <string name="group_add_title">Новая группа</string>
     <string name="group_edit_title">Изменить группу</string>
     <string name="group_name_label">Название</string>
     <string name="group_subject_label">Предмет</string>
-    <string name="group_subject_none">Не выбран</string>
-    <string name="group_subject_hint">В группу можно добавить только учеников с ценой на этот предмет</string>
+    <string name="group_subject_none">Без предмета</string>
+    <string name="group_subject_hint">В группу можно добавить только учеников со ставкой на этот предмет</string>
     <string name="group_subject_none_hint">Без предмета: любой ученик, предмет выбирается при записи занятия</string>
-    <string name="group_price_label">Цена за час с ученика</string>
-    <string name="group_price_hint">Одна цена для всех участников группы</string>
+    <string name="group_price_label">Ставка с ученика</string>
+    <string name="group_price_hint">Одна ставка для всех участников группы</string>
     <string name="group_members_title">Участники</string>
     <string name="group_members_required">Выберите хотя бы одного ученика</string>
-    <string name="group_members_selected">Выбрано: %1$d</string>
     <string name="group_no_students">Сначала добавьте учеников</string>
-    <string name="group_no_students_for_subject">Нет учеников с ценой на этот предмет</string>
+    <string name="group_no_students_for_subject">Нет учеников со ставкой на этот предмет</string>
     <string name="group_no_members">Участников нет</string>
     <!-- Spoken only. What a row of overlapping monograms is, for a screen reader that would otherwise
          read them as loose letters — and it names every member, not just the four drawn: the «+2» is a
          concession to the width of a list row, and a reader has no width. -->
     <!-- The save kept only the members priced for the group's subject; somebody was left out. -->
     <plurals name="group_members_leaving_confirm">
-        <item quantity="one">У %1$d участника нет цены на предмет группы — он выйдет из группы. Сохранить?</item>
-        <item quantity="few">У %1$d участников нет цены на предмет группы — они выйдут из группы. Сохранить?</item>
-        <item quantity="many">У %1$d участников нет цены на предмет группы — они выйдут из группы. Сохранить?</item>
-        <item quantity="other">У %1$d участника нет цены на предмет группы — они выйдут из группы. Сохранить?</item>
+        <item quantity="one">У %1$d участника нет ставки на предмет группы — он выйдет из группы. Сохранить?</item>
+        <item quantity="few">У %1$d участников нет ставки на предмет группы — они выйдут из группы. Сохранить?</item>
+        <item quantity="many">У %1$d участников нет ставки на предмет группы — они выйдут из группы. Сохранить?</item>
+        <item quantity="other">У %1$d участника нет ставки на предмет группы — они выйдут из группы. Сохранить?</item>
     </plurals>
     <string name="group_delete_confirm">Удалить эту группу? Ученики и их занятия останутся.</string>
     <string name="group_delete_blocked">Нельзя удалить группу: по ней есть занятия. Отправьте её в архив.</string>
@@ -518,13 +532,13 @@
     <string name="group_students_title">Участники</string>
     <string name="group_lessons_title">Занятия</string>
     <string name="group_lessons_empty">У группы пока нет занятий</string>
-    <string name="group_no_subject">Предмет не выбран</string>
+    <string name="group_no_subject">Без предмета</string>
     <!--
       The way out of an empty roster tab, which used to name the problem and offer nothing. It leads to
       the group's form, since that is the only place a roster changes.
     -->
     <string name="group_edit_members">Изменить состав</string>
-    <string name="group_member_open">Открыть карточку ученика</string>
+    <string name="group_member_open">Открыть профиль</string>
     <!-- %1$d: how many of the group's members were in this lesson -->
     <!-- %1$d of %2$d: how many of a group lesson's students were actually in it. Only shown when
          somebody was not, so it never says «3 из 3». -->
@@ -567,24 +581,23 @@
     <string name="currency_choice_label">%1$s — %2$s (%3$s)</string>
     <string name="settings_system_language">Язык системы</string>
     <string name="settings_theme_summary">%1$s тема</string>
-    <string name="settings_diagnostics_summary">Отчёты о сбоях</string>
+    <string name="settings_diagnostics_none">Сбоев не было</string>
     <string name="settings_notifications_delayed">Напоминания о занятиях могут опаздывать</string>
     <string name="settings_off">Выключено</string>
     <string name="settings_calendar_invites_on">Синхронизация вкл. · Приглашения вкл.</string>
     <string name="settings_calendar_invites_off">Синхронизация вкл. · Приглашения выкл.</string>
     <string name="settings_all_notifications_blocked">Телефон блокирует уведомления</string>
-    <string name="settings_notifications_fix">Разрешить уведомления</string>
-    <string name="settings_completion_notifications_blocked">Автозавершение работает, но телефон блокирует отчёты о нём</string>
+    <string name="settings_completion_notifications_blocked">Автоотметка работает, но телефон блокирует отчёты о ней</string>
     <string name="settings_system_notifications">Уведомления в настройках телефона</string>
     <string name="settings_system_notifications_desc">Звук, вибрация и виды уведомлений</string>
     <string name="settings_calendar_fix">Вернуть доступ к календарю</string>
     <string name="settings_calendar_fix_desc">Разрешите доступ к календарю в настройках телефона</string>
     <string name="settings_email_invites_disabled">Включите синхронизацию с календарём для приглашений</string>
-    <string name="settings_reminder_timing">Общее время напоминаний</string>
+    <string name="settings_reminder_timing">Время напоминаний</string>
     <string name="settings_reminder_shared">Для напоминаний на телефоне и по почте через календарь. Изменение обновит существующие события.</string>
     <string name="settings_reminder_enable">Включите напоминания о занятиях или синхронизацию с календарём, чтобы изменить время</string>
     <string name="settings_summary_enable">Включите эту сводку, чтобы изменить расписание</string>
-    <string name="settings_unfinished_autocomplete">Список прошедших занятий без отметки. Автозавершение включено, поэтому обычно таких занятий не останется.</string>
+    <string name="settings_unfinished_autocomplete">Список прошедших занятий без отметки. Автоотметка включена, поэтому обычно таких занятий не останется.</string>
     <string name="settings_default_lesson_desc">Подставляется в новые записи; длительность существующих занятий не меняется</string>
     <string name="settings_currency_desc">Меняет обозначение валюты у всех сумм, включая историю. Суммы не пересчитываются.</string>
     <plurals name="settings_notification_types">
@@ -699,27 +712,27 @@
         <item>Суббота</item>
         <item>Воскресенье</item>
     </string-array>
-    <string name="settings_autocomplete">Автозавершение занятий</string>
+    <string name="settings_autocomplete">Отмечать занятия проведёнными автоматически</string>
     <string name="settings_autocomplete_desc">Автоматически отмечать прошедшие занятия проведёнными и начислять ученикам оплату за них</string>
     <!-- Confirm backlog completion and billing before enabling automatic completion. -->
     <plurals name="settings_autocomplete_sweep_confirm">
-        <item quantity="one">%1$d прошедшее занятие будет отмечено проведённым, и доход по нему начислится. Включить автозавершение?</item>
-        <item quantity="few">%1$d прошедших занятия будут отмечены проведёнными, и доход по ним начислится. Включить автозавершение?</item>
-        <item quantity="many">%1$d прошедших занятий будут отмечены проведёнными, и доход по ним начислится. Включить автозавершение?</item>
-        <item quantity="other">%1$d прошедших занятия будут отмечены проведёнными, и доход по ним начислится. Включить автозавершение?</item>
+        <item quantity="one">%1$d прошедшее занятие будет отмечено проведённым, и доход по нему начислится. Включить автоотметку?</item>
+        <item quantity="few">%1$d прошедших занятия будут отмечены проведёнными, и доход по ним начислится. Включить автоотметку?</item>
+        <item quantity="many">%1$d прошедших занятий будут отмечены проведёнными, и доход по ним начислится. Включить автоотметку?</item>
+        <item quantity="other">%1$d прошедших занятия будут отмечены проведёнными, и доход по ним начислится. Включить автоотметку?</item>
     </plurals>
     <!-- What the sweep actually settled. Said even when it was not asked about, so no lesson is ever
          completed in silence by a switch. -->
     <plurals name="settings_autocomplete_swept">
-        <item quantity="one">Завершено %1$d занятие</item>
-        <item quantity="few">Завершено %1$d занятия</item>
-        <item quantity="many">Завершено %1$d занятий</item>
-        <item quantity="other">Завершено %1$d занятия</item>
+        <item quantity="one">Отмечено проведённым: %1$d</item>
+        <item quantity="few">Отмечено проведёнными: %1$d</item>
+        <item quantity="many">Отмечено проведёнными: %1$d</item>
+        <item quantity="other">Отмечено проведёнными: %1$d</item>
     </plurals>
     <string name="settings_default_lesson">Длительность занятия по умолчанию</string>
     <string name="settings_currency">Валюта</string>
-    <string name="settings_default_group_price">Цена часа в группе по умолчанию</string>
-    <string name="settings_default_group_price_desc">Подставляется в новую группу: цена за час с ученика</string>
+    <string name="settings_default_group_price">Ставка группы по умолчанию</string>
+    <string name="settings_default_group_price_desc">Подставляется в новую группу: ставка за час с ученика</string>
     <string name="settings_not_set">Не задана</string>
     <string name="settings_theme">Тема</string>
     <string name="theme_system">Системная</string>
@@ -737,11 +750,9 @@
     <string name="language_system">Системный</string>
     <!-- Каждый язык назван на себе самом, в обоих файлах: тот, кто случайно попал не в тот язык, должен
          суметь найти дорогу назад. -->
-    <string name="language_russian">Русский</string>
-    <string name="language_english">English</string>
     <!-- Symbols label currency choices; their stored names remain ISO codes. -->
     <string name="settings_currency_change">Сменить</string>
-    <string name="settings_currency_change_confirm">Суммы не пересчитываются по курсу. Цены, платежи и отчёты получат обозначение «%1$s». Сами числа останутся прежними.</string>
+    <string name="settings_currency_change_confirm">Суммы не пересчитываются по курсу. Ставки, платежи и отчёты получат обозначение «%1$s». Сами числа останутся прежними.</string>
     <string name="minutes_short">%1$d&#160;мин</string>
     <string name="hours_one">1&#160;ч</string>
     <string name="hours_one_and_half">1,5&#160;ч</string>
@@ -772,7 +783,7 @@
     -->
     <string name="onboarding_locale_title">Основное</string>
     <string name="onboarding_locale_desc">Уже выбрано за вас. Изменить можно сейчас или позже в настройках.</string>
-    <string name="onboarding_lesson_length_desc">Подставляется в новые занятия. Цены — за час, поэтому занятие оплачивается по его длительности.</string>
+    <string name="onboarding_lesson_length_desc">Подставляется в новые занятия. Ставки — за час, поэтому занятие оплачивается по его длительности.</string>
     <string name="onboarding_locale_currency_desc">Валютой только подписываются суммы — ничего не пересчитывается.</string>
     <string name="onboarding_subjects_title">Предметы</string>
     <string name="onboarding_subjects_desc">Отметьте, что вы преподаёте, или добавьте свой предмет. Их можно изменить позже.</string>
@@ -789,7 +800,7 @@
     <string name="onboarding_subject_removed">Предмет удалён</string>
     <string name="onboarding_subject_remove_failed">Не удалось удалить предмет</string>
     <string name="onboarding_student_title">Первый ученик</string>
-    <string name="onboarding_student_desc">Только имя и цена. Телефон, email и заметку можно добавить позже в карточке ученика.</string>
+    <string name="onboarding_student_desc">Только имя и ставка. Телефон, email и заметку можно добавить позже в профиле ученика.</string>
     <string name="onboarding_continue">Далее</string>
     <string name="onboarding_finish">Готово</string>
 
@@ -823,6 +834,7 @@
     -->
     <string name="reminder_channel_name">Напоминания о занятиях</string>
     <string name="reminder_channel_desc">Уведомления перед началом занятия</string>
+    <string name="notification_locked_text">Разблокируйте, чтобы посмотреть</string>
     <string name="reminder_title">Скоро занятие</string>
     <!--
       The expanded reminder's second line. %1$s: the current homework attached to this lesson. An hour
@@ -854,14 +866,14 @@
     <string name="debts_channel_desc">Еженедельная сводка: кто сколько должен</string>
     <string name="debts_title">Долги</string>
 
-    <string name="upkeep_channel_name">Автозавершение</string>
-    <string name="upkeep_channel_desc">Отчёт о занятиях, завершённых автоматически</string>
+    <string name="upkeep_channel_name">Занятия отмечены проведёнными</string>
+    <string name="upkeep_channel_desc">Отчёт о занятиях, отмеченных проведёнными автоматически</string>
     <!--
       The one thing the app announces about something it did on its own initiative. Completing a lesson
       bills it, so a background pass had been recognising income in total silence; a pass the tutor asked
       for reports through the screen they are standing in front of.
     -->
-    <string name="upkeep_completed_title">Занятия завершены автоматически</string>
+    <string name="upkeep_completed_title">Занятия отмечены проведёнными автоматически</string>
 
     <!-- A students or groups card's lesson line: %1$s a time, or a date -->
     <string name="people_next_today">Сегодня %1$s</string>
@@ -875,10 +887,10 @@
     <string name="settings_pick_page">Выберите раздел</string>
 
     <plurals name="students_count">
-        <item quantity="one">%1$d ученик</item>
-        <item quantity="few">%1$d ученика</item>
-        <item quantity="many">%1$d учеников</item>
-        <item quantity="other">%1$d ученика</item>
+        <item quantity="one">%1$d\u00A0ученик</item>
+        <item quantity="few">%1$d\u00A0ученика</item>
+        <item quantity="many">%1$d\u00A0учеников</item>
+        <item quantity="other">%1$d\u00A0ученика</item>
     </plurals>
 
     <!-- Reports -->
@@ -891,15 +903,15 @@
       better than last month". %1$s is a signed percentage, %2$s the period being compared with.
     -->
     <string name="reports_vs_previous">%1$s к периоду «%2$s»</string>
-    <string name="reports_vs_previous_from_zero">За период «%1$s» дохода не было</string>
+    <string name="reports_vs_previous_from_zero">Нет данных за «%1$s» для сравнения</string>
     <!-- The same, while the period is still going: its days so far against as many of the previous one's. -->
     <string name="reports_vs_previous_to_date">%1$s к тем же дням периода «%2$s»</string>
-    <string name="reports_vs_previous_from_zero_to_date">За те же дни периода «%1$s» дохода не было</string>
+    <string name="reports_vs_previous_from_zero_to_date">Нет данных за те же дни «%1$s» для сравнения</string>
     <string name="reports_percent_signed_up">+%1$d&#160;%%</string>
     <string name="reports_percent_signed_down">−%1$d&#160;%%</string>
     <string name="reports_percent_signed_same">0&#160;%%</string>
     <!-- Debts are the most action-shaped list in the app; each row opens the person who owes. -->
-    <string name="reports_open_student">Открыть карточку</string>
+    <string name="reports_open_student">Открыть профиль</string>
     <!-- CSV, because a backup is for restoring and a spreadsheet is for the tax office. -->
     <string name="reports_export">Выгрузить в CSV</string>
     <string name="reports_export_filename">klas-report.csv</string>
@@ -967,7 +979,7 @@
       the one moment students' contact details leave it, in clear text, to storage of the tutor's
       choosing — a cloud folder included.
     -->
-    <string name="backup_export_desc">Сохранить данные о занятиях в файл. Настройки приложения останутся на телефоне. В файле — имена, телефоны и почта учеников, без шифрования.</string>
+    <string name="backup_export_desc">Сохранить данные о занятиях в файл. Валюта и настройки занятий сохранятся вместе с данными; напоминания, синхронизация с календарём и еженедельная копия останутся на этом телефоне. В файле — имена, телефоны и почта учеников. Файл шифруется, только если задать пароль.</string>
     <!--
       The backup screen leads with when the last copy was made. Two states, and the second is the one
       worth having: an app that has never been backed up should say so plainly.
@@ -979,9 +991,64 @@
     <string name="backup_import">Импортировать данные</string>
     <string name="backup_import_desc">Восстановить данные из файла</string>
     <string name="backup_import_confirm">Импорт заменит все текущие данные. Продолжить?</string>
-    <string name="backup_export_success">Данные сохранены</string>
+    <string name="backup_export_success">Резервная копия сохранена</string>
     <string name="backup_import_success">Данные восстановлены</string>
     <string name="backup_importing">Восстанавливаем данные…</string>
+    <string name="backup_restore_holds">В копии от %1$s: %2$s.</string>
+    <string name="backup_restore_holds_undated">В копии: %1$s.</string>
+    <plurals name="backup_groups_count">
+        <item quantity="one">%1$d группа</item>
+        <item quantity="few">%1$d группы</item>
+        <item quantity="many">%1$d групп</item>
+        <item quantity="other">%1$d группы</item>
+    </plurals>
+    <plurals name="backup_payments_count">
+        <item quantity="one">%1$d оплата</item>
+        <item quantity="few">%1$d оплаты</item>
+        <item quantity="many">%1$d оплат</item>
+        <item quantity="other">%1$d оплаты</item>
+    </plurals>
+    <plurals name="backup_homework_count">
+        <item quantity="one">%1$d домашнее задание</item>
+        <item quantity="few">%1$d домашних задания</item>
+        <item quantity="many">%1$d домашних заданий</item>
+        <item quantity="other">%1$d домашнего задания</item>
+    </plurals>
+    <string name="backup_undo_restore">Отменить последний импорт</string>
+    <string name="backup_undo_restore_desc">Вернуть данные, которые были на телефоне %1$s</string>
+    <string name="backup_undo_restore_confirm">Вернуть данные, которые были до последнего импорта? Всё, что есть сейчас, включая добавленное после импорта, будет заменено.</string>
+    <string name="backup_undo_restore_action">Вернуть</string>
+    <string name="backup_restore_undone">Данные до импорта возвращены</string>
+    <string name="backup_stale_detail">Больше двух недель назад. Всё, что добавлено после, есть только на этом телефоне.</string>
+    <string name="backup_weekly_header">Еженедельная копия</string>
+    <string name="backup_weekly_off">Сохранять копию каждую неделю</string>
+    <string name="backup_weekly_off_desc">Выберите папку на телефоне или в облаке.</string>
+    <plurals name="backup_weekly_keeps">
+        <item quantity="one">Klas хранит там %1$d последнюю копию.</item>
+        <item quantity="few">Klas хранит там %1$d последние копии.</item>
+        <item quantity="many">Klas хранит там %1$d последних копий.</item>
+        <item quantity="other">Klas хранит там %1$d последней копии.</item>
+    </plurals>
+    <string name="backup_weekly_on">Копия каждую неделю — в папку «%1$s»</string>
+    <string name="backup_weekly_on_unnamed">Копия каждую неделю — в выбранную папку</string>
+    <string name="backup_weekly_change">Нажмите, чтобы выбрать другую папку.</string>
+    <string name="backup_weekly_failed">Не удалось сохранить еженедельную копию</string>
+    <string name="backup_weekly_failed_desc">У Klas больше нет доступа к папке. Выберите её снова.</string>
+    <string name="backup_weekly_stop">Отключить еженедельные копии</string>
+    <string name="backup_weekly_saved">Первая еженедельная копия сохранена</string>
+    <string name="backup_error_password_needed">Эта копия защищена паролем</string>
+    <string name="backup_error_wrong_password">Неверный пароль</string>
+    <string name="backup_export_password_title">Защитить паролем?</string>
+    <string name="backup_export_password_desc">Необязательно. Без пароля любой, у кого есть файл, увидит имена и контакты учеников.</string>
+    <string name="backup_password">Пароль</string>
+    <string name="backup_password_repeat">Повторите пароль</string>
+    <string name="backup_password_mismatch">Пароли не совпадают</string>
+    <string name="backup_password_warning">Если забудете пароль, открыть эту копию будет нельзя. Klas не сможет его восстановить.</string>
+    <string name="backup_export_save">Сохранить</string>
+    <string name="backup_export_save_plain">Сохранить без пароля</string>
+    <string name="backup_unlock_title">Копия защищена</string>
+    <string name="backup_unlock_desc">Введите пароль, с которым она была сохранена.</string>
+    <string name="backup_unlock">Открыть</string>
     <!--
       One message per BackupFailure. A single «Не удалось» told the tutor to check a file that may
       have been perfectly fine — a copy from a newer build needs an app update, not another look.
@@ -996,35 +1063,33 @@
     -->
     <string name="homework_label">Домашнее задание</string>
     <string name="homework_add">Новое задание</string>
-    <string name="homework_assignee_label">Кому</string>
+    <string name="homework_assignee_label">Кому задано</string>
     <string name="homework_text_label">Задание</string>
     <!-- Under the text of a new one. %1$s: when the lesson it will be attached to starts. -->
     <string name="homework_attached_to">К занятию %1$s</string>
     <string name="homework_attached_none">Занятие не назначено — задание прикрепится к ближайшему</string>
     <!-- The tab's two sides. The count is added to the first only when there is one. -->
     <string name="homework_side_current">Текущие</string>
-    <string name="homework_side_archive">Архив</string>
+    <string name="homework_side_archive">Сделанные</string>
     <!-- %1$s: the side's name, %2$d: how many are on it -->
     <string name="homework_side_count">%1$s · %2$d</string>
     <!-- The line under whose it is. %1$s: when the lesson it is attached to starts. -->
-    <string name="homework_due">На %1$s</string>
+    <string name="homework_lesson_at">Занятие %1$s</string>
     <!-- %1$s: the time of today's lesson it is attached to -->
-    <string name="homework_due_today">На сегодня, %1$s</string>
-    <!-- %1$s: when the lesson it was attached to started — that lesson is past and it is still not done -->
-    <string name="homework_overdue">Просрочено · %1$s</string>
+    <string name="homework_lesson_today">Занятие сегодня, %1$s</string>
     <string name="homework_unbooked">Занятие не назначено</string>
     <!-- In the archive. %1$s: the date it was set -->
     <string name="homework_set_on">Задано %1$s</string>
     <!-- What the swipe promises, behind the row: into the archive, or back out of it. -->
     <string name="homework_done">Сделано</string>
     <string name="homework_restore">Вернуть</string>
-    <string name="homework_done_message">Задание в архиве</string>
+    <string name="homework_done_message">Задание сделано</string>
     <string name="homework_restored_message">Задание снова в текущих</string>
     <string name="homework_deleted">Задание удалено</string>
     <string name="homework_empty_current">Текущих заданий нет</string>
     <string name="homework_empty_current_detail">Задайте домашнее задание ученику или группе — оно прикрепится к их следующему занятию.</string>
-    <string name="homework_empty_archive">Архив пуст</string>
-    <string name="homework_empty_archive_detail">Здесь будут сделанные задания. Смахните задание вправо, чтобы отметить его сделанным.</string>
+    <string name="homework_empty_archive">Сделанных заданий пока нет</string>
+    <string name="homework_empty_archive_detail">Здесь будут сделанные задания. Нажмите кружок у задания или смахните его вправо, чтобы отметить его сделанным.</string>
     <string name="homework_need_student">Сначала добавьте ученика</string>
     <!-- The tab's filter: one student (with their groups') or one group. -->
     <string name="homework_filter">Показать одного ученика или группу</string>
@@ -1047,18 +1112,23 @@
     <string name="diagnostics_clear">Очистить</string>
     <string name="diagnostics_clear_confirm">Удалить сохранённые отчёты о сбоях?</string>
     <string name="diagnostics_filename">klas-crash-log.txt</string>
-    <string name="diagnostics_export_success">Отчёт сохранён</string>
+    <string name="diagnostics_export_success">Журнал сбоев сохранён</string>
     <string name="diagnostics_error">Не удалось сохранить файл</string>
     <string name="diagnostics_test_crash">Вызвать тестовый сбой</string>
-    <string name="class_book">Записать занятие</string>
-    <string name="class_open_student">Карточка ученика</string>
+    <string name="class_book">Записать</string>
+    <string name="class_open_student">Открыть профиль</string>
     <string name="class_open_group">Карточка группы</string>
     <string name="payment_choose_student">От кого оплата?</string>
-    <string name="subject_set_price">Указать цену предмета</string>
-    <string name="group_member_set_price">Указать цену</string>
+    <string name="subject_set_price">Указать ставку</string>
+    <string name="group_member_set_price">Указать ставку</string>
     <string name="subject_add">Добавить предмет</string>
-    <string name="group_price_setup_hint">Чтобы добавить этих учеников, укажите их цену предмета. Групповые занятия оплачиваются по цене группы.</string>
+    <string name="group_price_setup_hint">Чтобы добавить этих учеников, укажите их ставку по предмету. Групповые занятия оплачиваются по ставке группы.</string>
     <string name="class_completed_message">Занятие проведено</string>
+    <string name="class_cancelled_message">Занятие отменено</string>
+    <string name="class_replanned_message">Занятие снова в плане</string>
+    <string name="class_moved_message">Занятие перенесено</string>
+    <string name="class_attendance_message">Отметка изменена</string>
+    <string name="class_undo_changed">Занятие уже изменилось, поэтому ничего не вернули.</string>
     <string name="class_correct_planned">Вернуть в план</string>
     <string name="class_correct_planned_confirm">Вернуть занятие в запланированные и убрать начисления за него? Отметки о пропусках сохранятся.</string>
     <string name="class_correction_changed">Занятие изменилось. Откройте его снова, чтобы исправить статус.</string>
@@ -1068,6 +1138,7 @@
     <!-- Home-screen widgets: the names and descriptions the launcher's widget picker shows. -->
     <string name="widget_today_name">Занятия сегодня</string>
     <string name="widget_today_description">Сегодняшние занятия, отмечаются проведёнными одним касанием</string>
+    <string name="widget_today_locked">Разблокируйте, чтобы увидеть занятия на сегодня</string>
     <string name="widget_today_empty">Сегодня занятий нет</string>
     <string name="widget_quick_actions_name">Быстрые действия Klas</string>
     <string name="widget_quick_actions_description">Записать занятие, добавить ученика, открыть сегодня, задания и долги</string>
@@ -1080,4 +1151,252 @@
         <item>Иван Петров</item>
         <item>Физика</item>
     </string-array>
+    <string name="settings_privacy_title">Конфиденциальность</string>
+    <string name="settings_section_lock_screen">Экран блокировки</string>
+    <string name="settings_section_this_app">Приложение</string>
+    <string name="privacy_lock_screen_details">Подробности в уведомлениях</string>
+    <string name="privacy_lock_screen_details_desc">Показывать имена и суммы в уведомлениях на заблокированном телефоне</string>
+    <string name="privacy_lock_screen_widgets">Занятия в виджете на экране блокировки</string>
+    <string name="privacy_lock_screen_widgets_desc">Показывать занятия на сегодня, если виджет «Сегодня» стоит на экране блокировки</string>
+    <string name="privacy_app_lock">Блокировка приложения</string>
+    <string name="privacy_app_lock_desc">Запрашивать отпечаток, лицо или блокировку экрана при открытии</string>
+    <string name="privacy_app_lock_unavailable">Сначала установите блокировку экрана на телефоне</string>
+    <string name="privacy_relock">Блокировать снова через</string>
+    <string name="privacy_relock_immediately">Сразу</string>
+    <string name="privacy_hide_recents">Скрывать в недавних</string>
+    <string name="privacy_hide_recents_desc">Пустое превью в списке открытых приложений</string>
+    <string name="privacy_hide_recents_desc_screenshots">Пустое превью в списке открытых приложений. Скриншоты тоже запрещены</string>
+    <string name="privacy_hide_recents_locked">Блокировка приложения уже скрывает превью</string>
+    <string name="privacy_summary_private">Без подробностей на экране блокировки</string>
+    <string name="privacy_summary_details">Подробности на экране блокировки</string>
+    <string name="privacy_summary_locked">Блокировка приложения включена</string>
+    <string name="app_lock_prompt_title">Разблокируйте %1$s</string>
+    <string name="app_lock_locked">%1$s заблокирован</string>
+    <string name="app_lock_unlock">Разблокировать</string>
+    <string name="reports_best_month">Лучший месяц: %1$s</string>
+    <string name="reports_best_year">Лучший год: %1$s</string>
+    <string name="nav_today">Сегодня</string>
+    <string name="today_now">Сейчас</string>
+    <string name="today_next">Далее</string>
+    <string name="today_to_mark">Прошли и не отмечены</string>
+    <string name="today_mark_all">Отметить все проведёнными</string>
+    <string name="today_mark_one">Отметить «%1$s», %2$s, проведённым</string>
+    <string name="today_lessons">Занятия сегодня</string>
+    <string name="today_no_lessons">Сегодня занятий нет</string>
+    <string name="today_owed">Вам должны</string>
+    <string name="today_homework">Задания к сдаче</string>
+    <string name="today_backup_old">Последняя копия: %1$s</string>
+    <string name="today_backup_never">Копий ещё не было</string>
+    <string name="today_backup_detail">Данные есть только на этом телефоне.</string>
+    <string name="today_backup_action">Сохранить копию</string>
+    <plurals name="today_marked">
+        <item quantity="one">Отмечено проведённым: %1$d занятие</item>
+        <item quantity="few">Отмечено проведёнными: %1$d занятия</item>
+        <item quantity="many">Отмечено проведёнными: %1$d занятий</item>
+        <item quantity="other">Отмечено проведёнными: %1$d занятия</item>
+    </plurals>
+    <string name="settings_subjects_none">Предметов пока нет</string>
+    <string name="settings_backup_never">Ни разу · настройте еженедельную</string>
+    <string name="settings_backup_last">Последняя %1$s · настройте еженедельную</string>
+    <string name="schedule_pick_date">Выбрать дату</string>
+    <string name="payment_method_cash">Наличные</string>
+    <string name="payment_method_card">Карта</string>
+    <string name="payment_method_transfer">Перевод</string>
+    <string name="reports_received">Получено</string>
+    <string name="reports_received_hint">Оплаты, внесённые за период</string>
+    <string name="reports_received_total">Внесено</string>
+    <string name="payment_method_none">Не указано</string>
+    <string name="payment_fill_balance">Весь долг · %1$s</string>
+    <string name="payment_fill_lesson">Одно занятие · %1$s</string>
+    <string name="share_with">Отправить через</string>
+    <string name="student_send_reminder">Напомнить об оплате</string>
+    <string name="reminder_text">Здравствуйте, %1$s! Напоминаю, что за занятия к оплате %2$s. Спасибо!</string>
+    <string name="statement_title">%1$s: занятия и оплаты</string>
+    <string name="statement_lesson">Занятие, %1$s</string>
+    <string name="statement_payment">Оплата</string>
+    <string name="statement_line">%1$s · %2$s · %3$s · баланс %4$s</string>
+    <string name="statement_owed">К оплате: %1$s</string>
+    <string name="statement_credit">Оплачено вперёд: %1$s</string>
+    <string name="statement_settled">Оплачено полностью</string>
+    <string name="groups_sort_next">По ближайшему занятию</string>
+    <string name="form_gap_name">имя</string>
+    <string name="form_gap_subject">предмет</string>
+    <string name="form_gap_price">ставка</string>
+    <string name="form_gap_members">участники</string>
+    <string name="filter_more">Фильтр</string>
+    <string name="filter_all">Все</string>
+    <plurals name="batch_selected">
+        <item quantity="one">Выбрано: %1$d</item>
+        <item quantity="few">Выбрано: %1$d</item>
+        <item quantity="many">Выбрано: %1$d</item>
+        <item quantity="other">Выбрано: %1$d</item>
+    </plurals>
+    <plurals name="batch_cancelled">
+        <item quantity="one">%1$d занятие отменено</item>
+        <item quantity="few">%1$d занятия отменены</item>
+        <item quantity="many">%1$d занятий отменено</item>
+        <item quantity="other">%1$d занятия отменено</item>
+    </plurals>
+    <plurals name="batch_changed_since">
+        <item quantity="one">%1$d занятие изменилось с тех пор и осталось как есть.</item>
+        <item quantity="few">%1$d занятия изменились с тех пор и остались как есть.</item>
+        <item quantity="many">%1$d занятий изменились с тех пор и остались как есть.</item>
+        <item quantity="other">%1$d занятия изменились с тех пор и остались как есть.</item>
+    </plurals>
+    <string name="batch_select">Выбрать</string>
+    <string name="batch_mark_taught">Отметить проведёнными</string>
+    <string name="batch_cancel">Отменить занятия</string>
+    <string name="batch_none_marked">Отметить проведёнными можно только запланированные занятия</string>
+    <string name="batch_none_cancelled">Эти занятия уже отменены</string>
+    <string name="batch_none_replanned">Вернуть в план можно только отменённые занятия</string>
+    <plurals name="batch_replanned">
+        <item quantity="one">%1$d занятие снова в плане</item>
+        <item quantity="few">%1$d занятия снова в плане</item>
+        <item quantity="many">%1$d занятий снова в плане</item>
+        <item quantity="other">%1$d занятия снова в плане</item>
+    </plurals>
+    <plurals name="batch_replan_clashed">
+        <item quantity="one">%1$d занятие осталось отменённым: время занято</item>
+        <item quantity="few">%1$d занятия остались отменёнными: время занято</item>
+        <item quantity="many">%1$d занятий остались отменёнными: время занято</item>
+        <item quantity="other">%1$d занятия остались отменёнными: время занято</item>
+    </plurals>
+    <plurals name="homework_batch_done">
+        <item quantity="one">Сделано: %1$d</item>
+        <item quantity="few">Сделано: %1$d</item>
+        <item quantity="many">Сделано: %1$d</item>
+        <item quantity="other">Сделано: %1$d</item>
+    </plurals>
+    <string name="homework_batch_mark_done">Отметить выполненными</string>
+    <string name="homework_section_past">Прошедшие занятия</string>
+    <string name="homework_section_today">Сегодняшние занятия</string>
+    <string name="homework_section_next_7_days">Занятия в ближайшие 7 дней</string>
+    <string name="homework_section_later">Занятия позже</string>
+    <string name="rate_since_was">с %1$s · было %2$s</string>
+    <string name="lesson_month_earned">заработано %1$s</string>
+    <plurals name="lesson_count">
+        <item quantity="one">%1$d занятие</item>
+        <item quantity="few">%1$d занятия</item>
+        <item quantity="many">%1$d занятий</item>
+        <item quantity="other">%1$d занятия</item>
+    </plurals>
+    <string name="group_member_present">Был на %1$d из %2$d</string>
+    <string name="group_member_no_lessons">Занятий ещё не было</string>
+    <string name="price_per_hour_per_student">%1$s/\u2060час с ученика</string>
+    <string name="reports_earned">Заработано</string>
+    <string name="reports_export_menu">Экспорт</string>
+    <string name="reports_filter">Фильтр отчёта</string>
+    <string name="reports_filter_all">Все ученики и предметы</string>
+    <string name="onboarding_subject_field_hint">Введите название и нажмите Ввод</string>
+    <string name="reports_share_ledger">Отправить журнал</string>
+    <string name="reports_export_ledger">Сохранить журнал в CSV</string>
+    <string name="reports_ledger_filename">klas-ledger.csv</string>
+    <string name="reports_ledger_day">Дата</string>
+    <string name="reports_ledger_entry">Запись</string>
+    <string name="reports_ledger_student">Ученик</string>
+    <string name="reports_ledger_detail">Предмет или способ</string>
+    <string name="reports_ledger_lesson">Занятие</string>
+    <string name="reports_ledger_payment">Оплата</string>
+    <string name="schedule_cancel_day">Отменить день</string>
+    <string name="schedule_open_day">Открыть день</string>
+    <string name="class_book_next">Записать следующее такое же</string>
+    <string name="class_cancel_lesson">Отменить занятие</string>
+    <string name="class_taught_after_replan">Сначала верните отменённое занятие в запланированные.</string>
+    <string name="class_section_details">Детали</string>
+    <string name="class_day_free_list">свободно %1$s</string>
+    <string name="class_day_free_from">с %1$s</string>
+    <string name="class_day_full">свободного времени нет</string>
+    <string name="class_step_earlier_to">Раньше, на %1$s</string>
+    <string name="class_step_later_to">Позже, на %1$s</string>
+    <string name="class_step_first_free">− или + ставит %1$s — первое свободное время</string>
+    <string name="fab_new_student">Новый ученик</string>
+    <string name="fab_new_group">Новая группа</string>
+    <string name="today_next_in">Далее · через %1$s</string>
+    <string name="today_open">Открыть</string>
+    <string name="today_last_paid">Последняя оплата %1$s</string>
+    <string name="today_never_paid">Оплат ещё не было</string>
+    <string name="today_recent_marks">Отмечено вне приложения</string>
+    <string name="today_marked_at">Проведено · отмечено в %1$s</string>
+    <plurals name="today_members">
+        <item quantity="one">%1$d участник</item>
+        <item quantity="few">%1$d участника</item>
+        <item quantity="many">%1$d участников</item>
+        <item quantity="other">%1$d участника</item>
+    </plurals>
+    <string name="people_owes">Должны · %1$d</string>
+    <string name="people_archived">Архив</string>
+    <string name="people_all_subjects">Все предметы</string>
+    <string name="people_filter">Фильтр и порядок</string>
+    <string name="people_show">Показать</string>
+    <string name="people_subject">Предмет</string>
+    <string name="people_order">Порядок</string>
+    <string name="settings_backup_weekly">Еженедельно · последняя %1$s</string>
+    <string name="settings_backup_weekly_none">Еженедельно · пока ни одной</string>
+    <string name="settings_backup_failed">Еженедельная копия не записалась</string>
+    <string name="settings_diagnostics_crash">Есть отчёт о сбое</string>
+    <plurals name="settings_subjects_count">
+        <item quantity="one">%1$d предмет</item>
+        <item quantity="few">%1$d предмета</item>
+        <item quantity="many">%1$d предметов</item>
+        <item quantity="other">%1$d предмета</item>
+    </plurals>
+    <string name="subject_unused">Пока не используется</string>
+    <plurals name="subject_groups_count">
+        <item quantity="one">%1$d группа</item>
+        <item quantity="few">%1$d группы</item>
+        <item quantity="many">%1$d групп</item>
+        <item quantity="other">%1$d группы</item>
+    </plurals>
+    <!-- The widget's tick, read aloud. %1$s: who the lesson is with, %2$s: when it starts. -->
+    <string name="widget_mark_lesson">Отметить проведённым: %1$s, %2$s</string>
+    <string name="widget_lesson_taught">%1$s, %2$s: проведено</string>
+    <string name="batch_clear">Снять выбор</string>
+    <string name="onboarding_ready_title">Всё готово</string>
+    <string name="onboarding_ready_body">Ученик %1$s добавлен. Запишите первое занятие сейчас или позже — с экрана «Сегодня».</string>
+    <string name="onboarding_book_first">Записать первое занятие</string>
+    <string name="onboarding_not_now">Не сейчас</string>
+    <string name="reports_share_pdf">Отправить отчёт в PDF</string>
+    <string name="reports_export_pdf">Сохранить отчёт в PDF</string>
+    <string name="reports_pdf_filename">klas-report.pdf</string>
+    <string name="statement_send_title">Отправить выписку</string>
+    <string name="statement_as_message">Сообщением</string>
+    <string name="statement_as_pdf">Файлом PDF</string>
+    <string name="statement_balance_after">Баланс после: %1$s</string>
+    <string name="statement_filename">Выписка — %1$s.pdf</string>
+    <string name="money_range" translatable="false">%1$s–%2$s</string>
+    <string name="tip_got_it">Понятно</string>
+    <string name="tip_schedule_date">Нажмите на дату, чтобы перейти к любому дню.</string>
+    <string name="tip_lesson_swipe">Смахните занятие, чтобы отметить его проведённым. Нажмите на него — для оплаты, задания или переноса.</string>
+    <string name="tip_lesson_swipe_reader">«Отметить проведённым» — среди действий занятия. Нажмите на него — для оплаты, задания или переноса.</string>
+    <string name="tip_lesson_pick">Удерживайте занятие, чтобы выбрать несколько и отметить или отменить их вместе.</string>
+    <string name="tip_homework_swipe">Смахните задание, когда оно сделано. Удерживайте, чтобы выбрать несколько.</string>
+    <string name="tip_homework_swipe_reader">«Сделано» — среди действий задания. Удерживайте, чтобы выбрать несколько.</string>
+    <string name="first_steps_title">Первые шаги</string>
+    <string name="first_steps_all_set">Всё готово</string>
+    <string name="first_steps_count">%1$d из %2$d</string>
+    <string name="first_steps_hide">Скрыть</string>
+    <string name="first_steps_close">Закрыть</string>
+    <string name="first_steps_hidden">Первые шаги скрыты. Их можно вернуть в настройках.</string>
+    <string name="first_step_done">Сделано</string>
+    <string name="first_step_to_do">Ещё не сделано</string>
+    <string name="first_step_book">Запишите первое занятие</string>
+    <string name="first_step_book_hint">Выберите день и время</string>
+    <string name="first_step_mark">Отметьте занятие проведённым</string>
+    <string name="first_step_mark_hint">В расписании, когда оно закончится</string>
+    <string name="first_step_payment">Запишите оплату</string>
+    <string name="first_step_payment_hint">Сколько и как заплатил ученик</string>
+    <string name="first_step_homework">Задайте задание</string>
+    <string name="first_step_homework_hint">Что сделать к следующему занятию</string>
+    <string name="first_step_reminders">Включите напоминания о занятиях</string>
+    <string name="first_step_reminders_hint">Уведомление перед каждым занятием</string>
+    <string name="phone_setup_title">Настройте этот телефон</string>
+    <string name="phone_setup_done">Телефон настроен</string>
+    <string name="phone_setup_hidden">Настройка телефона скрыта</string>
+    <string name="phone_step_reminders_hint">Разрешите уведомления на этом телефоне</string>
+    <string name="phone_step_calendar">Включите синхронизацию с календарём</string>
+    <string name="phone_step_calendar_hint">Выберите календарь на этом телефоне</string>
+    <string name="phone_step_weekly_hint">Выберите папку на этом телефоне</string>
+    <string name="settings_tips_again">Показать подсказки снова</string>
+    <string name="settings_tips_again_summary">Первые шаги на «Сегодня» и жесты</string>
+    <string name="settings_tips_shown_again">Подсказки появятся снова</string>
 </resources>

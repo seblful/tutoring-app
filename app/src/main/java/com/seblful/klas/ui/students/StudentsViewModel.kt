@@ -35,6 +35,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.update
 import kotlin.time.Instant
 
 /**
@@ -91,6 +92,20 @@ class StudentsViewModel @Inject constructor(
     private val _sort = MutableStateFlow(StudentSort.NAME)
     val sort: StateFlow<StudentSort> = _sort.asStateFlow()
 
+    private val _owesOnly = MutableStateFlow(false)
+
+    /** Whether only those who owe are listed — the «Owes · N» chip. */
+    val owesOnly: StateFlow<Boolean> = _owesOnly.asStateFlow()
+
+    /** How many active students owe — the N on that chip. */
+    val owing: StateFlow<Int> =
+        combine(students.observeActive(), balances.observe()) { active, sums ->
+            active.count { sums.balanceOf(it.id).balance.minor > 0 }
+        }
+            .derive(this, computation, 0)
+
+    fun toggleOwes() = _owesOnly.update { !it }
+
     private class Facts(val subjects: Map<Long, List<String>>, val lessons: Map<Long, NearestLessons>, val now: Instant)
 
     /**
@@ -116,8 +131,10 @@ class StudentsViewModel @Inject constructor(
         _showArchived.flatMapLatest { archived ->
             val source = if (archived) students.observeAll() else students.observeActive()
             // SQLite sums the balances, so neither a keystroke nor a write re-reads every class ever taught.
-            combine(source, balances.observe(), facts, _query, _sort) { studentList, sums, known, query, sort ->
+            val asked = combine(_query, _owesOnly, ::Pair)
+            combine(source, balances.observe(), facts, asked, _sort) { studentList, sums, known, (query, owes), sort ->
                 PeopleSearch.filter(studentList, query) { it.name }
+                    .filter { !owes || sums.balanceOf(it.id).balance.minor > 0 }
                     .map { student ->
                         StudentRow(
                             student = student,

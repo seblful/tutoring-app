@@ -1,6 +1,7 @@
 package com.seblful.klas.domain.reports
 
 import com.seblful.klas.domain.model.Money
+import com.seblful.klas.domain.model.PaymentMethod
 import kotlinx.datetime.number
 
 /**
@@ -52,6 +53,12 @@ object ReportCsv {
         return "klas-report-$suffix.csv"
     }
 
+    /** What a printed report is called: [fileName]'s period, `klas-report-2026-06.pdf`. */
+    fun pdfFileName(period: ReportPeriod): String = fileName(period).removeSuffix(".csv") + ".pdf"
+
+    /** What a shared ledger is called: [fileName]'s period, `klas-ledger-2026-06.csv`. */
+    fun ledgerFileName(period: ReportPeriod): String = fileName(period).replace("klas-report", "klas-ledger")
+
     /**
      * How a spreadsheet in one language expects the file punctuated — the decimal separator, and the field
      * delimiter that must go with it.
@@ -92,6 +99,9 @@ object ReportCsv {
         val byStudent: String,
         val debts: String,
         val outstanding: String,
+        /** «Получено» — the [Reports.Received] section; [methods] names its rows, null for "not said". */
+        val received: String,
+        val methods: Map<PaymentMethod?, String>,
     )
 
     /**
@@ -106,6 +116,16 @@ object ReportCsv {
      */
     fun linesFor(report: Reports.Report, headings: Headings): List<Line> = buildList {
         add(Line(headings.total, headings.period, report.totalIncome))
+        // Money in beside money earned — its own section, as on screen (D6), and only when there was any.
+        val received = report.received
+        if (!received.total.isZero) {
+            add(Line(headings.received, headings.period, received.total))
+            if (received.showsMethods) {
+                received.byMethod.forEach {
+                    add(Line(headings.received, headings.methods[it.method].orEmpty(), it.amount))
+                }
+            }
+        }
         fun section(title: String, lines: List<Reports.Line>) {
             lines.forEach { add(Line(title, it.label, it.amount)) }
         }
@@ -117,6 +137,34 @@ object ReportCsv {
             section(headings.debts, report.debts)
         }
     }
+
+    /** The ledger's words, already localized: what a lesson row and a payment row are, and each method's name. */
+    data class LedgerWords(val lesson: String, val payment: String, val methods: Map<PaymentMethod?, String>)
+
+    /**
+     * The ledger: every taught lesson and every payment in the report's period, one row each, by day — what
+     * an accountant reconciles, where the summary ([build]) is what a tutor reads. The day is ISO
+     * (`2026-06-14`), which every spreadsheet sorts and reads as a date whatever its language.
+     *
+     * @param header the five column names — day, entry, student, subject or method, amount — localized.
+     */
+    fun buildLedger(header: List<String>, report: Reports.Report, words: LedgerWords, dialect: Dialect): String =
+        buildString {
+            append(BOM)
+            append(header.joinToString(dialect.delimiter.toString()) { escape(it, dialect) })
+            append(NEWLINE)
+            report.ledger.forEach { entry ->
+                val fields = listOf(
+                    entry.day.toString(),
+                    if (entry.payment) words.payment else words.lesson,
+                    entry.student,
+                    if (entry.payment) words.methods[entry.method].orEmpty() else entry.subject.orEmpty(),
+                    amountText(entry.amount, dialect),
+                )
+                append(fields.joinToString(dialect.delimiter.toString()) { escape(it, dialect) })
+                append(NEWLINE)
+            }
+        }
 
     private const val NEWLINE = "\r\n"
 
