@@ -30,6 +30,7 @@ import com.seblful.klas.format.daySummaryText
 import com.seblful.klas.format.formatDate
 import com.seblful.klas.format.toLocalDate
 import com.seblful.klas.queries.homework.HomeworkRow
+import com.seblful.klas.ui.common.FabClearance
 import com.seblful.klas.ui.common.KlasScreen
 import com.seblful.klas.ui.common.ListSkeleton
 import com.seblful.klas.ui.common.LocalCurrency
@@ -148,7 +149,9 @@ internal fun TodayContent(
         modifier
             .verticalScroll(scroll)
             .padding(horizontal = Spacing.gutter)
-            .padding(bottom = Spacing.gutter)
+            // Under «Book», like every list with an add button: at the gutter alone the last homework row ended
+            // beneath it.
+            .padding(bottom = FabClearance)
             .padding(bottomInset),
         verticalArrangement = Arrangement.spacedBy(Spacing.itemGap),
     ) {

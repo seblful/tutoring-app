@@ -382,7 +382,8 @@
     <string name="price_edit_title">Change the rate</string>
     <string name="price_label">Rate per hour</string>
     <string name="price_per_lesson_hint">%1$s for a %2$s lesson</string>
-    <string name="price_per_hour">%1$s/h</string>
+    <!-- The word joiner after the slash keeps the unit on its line: a range broke as «20 $–25 $/», then «h». -->
+    <string name="price_per_hour">%1$s/\u2060h</string>
 
     <!-- Payments -->
     <string name="add_payment">Add a payment</string>
@@ -1049,7 +1050,8 @@
     <string name="today_lessons">Today\'s lessons</string>
     <string name="today_no_lessons">No lessons today</string>
     <string name="today_owed">Owed to you</string>
-    <string name="today_homework">Homework for today\'s lessons</string>
+    <!-- Due at today's lessons and still open from past ones — not only today's, which the old title said. -->
+    <string name="today_homework">Homework due</string>
     <string name="today_backup_old">Last backup %1$s</string>
     <string name="today_backup_never">No backup yet</string>
     <string name="today_backup_detail">Your data is on this phone only.</string>
@@ -1131,7 +1133,7 @@
     </plurals>
     <string name="group_member_present">Present %1$d of %2$d</string>
     <string name="group_member_no_lessons">No lessons yet</string>
-    <string name="price_per_hour_per_student">%1$s/h per student</string>
+    <string name="price_per_hour_per_student">%1$s/\u2060h per student</string>
     <string name="reports_earned">Earned</string>
     <string name="reports_export_menu">Export</string>
     <string name="reports_filter">Filter the report</string>

@@ -72,7 +72,8 @@ internal fun PeopleCard(
                     color = MaterialTheme.colorScheme.let {
                         if (selected) it.onSecondaryContainer else it.onSurfaceVariant
                     },
-                    maxLines = 1,
+                    // Two: on one, a group's member count — the end of its line — was what got cut.
+                    maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
             }

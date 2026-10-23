@@ -13,6 +13,7 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import com.seblful.klas.R
+import com.seblful.klas.domain.lesson.LessonPhase
 import com.seblful.klas.domain.model.Attendance
 import com.seblful.klas.domain.model.Balance
 import com.seblful.klas.ui.common.ArchivedBadge
@@ -21,13 +22,14 @@ import com.seblful.klas.ui.common.BadgeLine
 import com.seblful.klas.ui.common.OpensScreenMark
 import com.seblful.klas.ui.common.StatusBadge
 import com.seblful.klas.ui.common.TrailingAmount
-import com.seblful.klas.ui.common.classStatusColor
-import com.seblful.klas.ui.common.classStatusLabel
 import com.seblful.klas.ui.common.dateTimeText
 import com.seblful.klas.ui.common.insetRowPress
+import com.seblful.klas.ui.common.lessonBadgeColor
+import com.seblful.klas.ui.common.lessonBadgeLabel
 import com.seblful.klas.ui.common.text
 import com.seblful.klas.ui.students.balanceColor
 import com.seblful.klas.ui.students.balanceDescription
+import kotlin.time.Instant
 
 /*
  * The rows a group's lessons and members are listed in — the same on its card, inside its section cards, and
@@ -38,15 +40,17 @@ import com.seblful.klas.ui.students.balanceDescription
 @Composable
 internal fun GroupLessonItem(
     row: GroupLessonRow,
+    now: Instant,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     colors: ListItemColors = ListItemDefaults.colors(),
 ) {
     val status = row.session.status
+    val phase = LessonPhase.of(row.session, now)
     ListItem(
         headlineContent = { Text(row.session.start.dateTimeText()) },
         supportingContent = {
-            BadgeLine(badge = { StatusBadge(classStatusLabel(status), classStatusColor(status)) }) {
+            BadgeLine(badge = { StatusBadge(lessonBadgeLabel(status, phase), lessonBadgeColor(status, phase)) }) {
                 // Said as "who came" only for a lesson that happened: until then everybody is expected, and a
                 // count of that is just the roster. See [Attendance].
                 Text(

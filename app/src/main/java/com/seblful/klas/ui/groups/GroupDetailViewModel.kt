@@ -243,6 +243,12 @@ class GroupDetailViewModel @AssistedInject constructor(
     }.derive(this, computation, null)
 
     /**
+     * This minute, for the lessons listed here: one over and unmarked reads «Не отмечено», as on the schedule,
+     * not «Запланировано». See `lessonBadgeLabel`.
+     */
+    val minute: StateFlow<Instant> = clock.minutes().derive(this, computation, clock.now())
+
+    /**
      * Retires the group, or brings it back. Writes straight through — there is no form here to leave
      * unsaved, which is half the reason this belongs on the card rather than on one. Archiving is said
      * with an Undo, as a student's is.

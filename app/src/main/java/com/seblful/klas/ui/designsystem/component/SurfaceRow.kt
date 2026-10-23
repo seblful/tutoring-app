@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.DividerDefaults
@@ -35,6 +36,8 @@ import com.seblful.klas.ui.common.rightClickAsLongPress
  *   [SliceHeader].
  * @param dimmed for a row whose content no longer counts — a cancelled lesson — as [ContentCard]'s.
  * @param onLongClick picks the row (R7), named for TalkBack by [onLongClickLabel]; a right click does the same.
+ * @param contentPadding none for content that brings its own, as a [KlasRow] does — both put its text a gutter
+ *   further in than every other card's.
  */
 @Composable
 fun SurfaceRow(
@@ -47,6 +50,7 @@ fun SurfaceRow(
     dimmed: Boolean = false,
     onLongClick: (() -> Unit)? = null,
     onLongClickLabel: String? = null,
+    contentPadding: PaddingValues = PaddingValues(horizontal = Spacing.gutter, vertical = RowInsetY),
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val shape = position.shapeOf(MaterialTheme.shapes.medium)
@@ -72,7 +76,7 @@ fun SurfaceRow(
                         drawLine(dividerColor, Offset(dividerInset.toPx(), y), Offset(size.width, y), stroke)
                     }
                 }
-                .padding(horizontal = Spacing.gutter, vertical = RowInsetY),
+                .padding(contentPadding),
             content = content,
         )
     }

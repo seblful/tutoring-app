@@ -57,7 +57,7 @@ class StudentFormBarTest {
 
         compose.onNode(hasText("Add student") and hasClickAction()).assertIsEnabled()
         compose.onNode(hasText("Sofia") and !hasSetTextAction()).assertExists()
-        compose.onNode(hasText("Maths 25", substring = true) and hasText("/h · In person", substring = true))
+        compose.onNode(hasText("Maths 25", substring = true) and hasText("h · In person", substring = true))
             .assertExists()
     }
 

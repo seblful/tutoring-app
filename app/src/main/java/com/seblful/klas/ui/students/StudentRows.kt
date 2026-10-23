@@ -15,6 +15,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import com.seblful.klas.R
+import com.seblful.klas.domain.lesson.LessonPhase
 import com.seblful.klas.domain.model.Payment
 import com.seblful.klas.domain.model.PaymentMethod
 import com.seblful.klas.format.bulletJoin
@@ -28,15 +29,16 @@ import com.seblful.klas.ui.common.OpensScreenMark
 import com.seblful.klas.ui.common.StatusBadge
 import com.seblful.klas.ui.common.TrailingAmount
 import com.seblful.klas.ui.common.archivedMessage
-import com.seblful.klas.ui.common.classStatusColor
-import com.seblful.klas.ui.common.classStatusLabel
 import com.seblful.klas.ui.common.dateTimeText
 import com.seblful.klas.ui.common.insetRowPress
+import com.seblful.klas.ui.common.lessonBadgeColor
+import com.seblful.klas.ui.common.lessonBadgeLabel
 import com.seblful.klas.ui.common.paymentMethodLabel
 import com.seblful.klas.ui.common.rateChangeLine
 import com.seblful.klas.ui.common.text
 import com.seblful.klas.ui.homework.HomeworkUndo
 import com.seblful.klas.ui.homework.homeworkUndo
+import kotlin.time.Instant
 
 /*
  * The rows a student's lessons, payments and subjects are listed in — the same on their card, inside its
@@ -50,6 +52,7 @@ import com.seblful.klas.ui.homework.homeworkUndo
 @Composable
 internal fun LessonRow(
     row: ClassRow,
+    now: Instant,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     colors: ListItemColors = ListItemDefaults.colors(),
@@ -66,7 +69,8 @@ internal fun LessonRow(
         },
         supportingContent = {
             val status = row.klass.status
-            BadgeLine(badge = { StatusBadge(classStatusLabel(status), classStatusColor(status)) }) {
+            val phase = LessonPhase.of(row.klass, now)
+            BadgeLine(badge = { StatusBadge(lessonBadgeLabel(status, phase), lessonBadgeColor(status, phase)) }) {
                 // The group's name for a group lesson, since *which* group is the useful half of "not
                 // individual" — a student in two groups is billed a different rate by each. An individual
                 // lesson says nothing here: «Индивидуальное» repeated the icon on every row.

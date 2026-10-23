@@ -317,7 +317,9 @@ private fun DueLine(row: HomeworkRow, prefix: String? = null, underSection: Bool
         style = MaterialTheme.typography.bodySmall,
         color = if (row.due == HomeworkRules.Due.OVERDUE) klasSemantics.overdue
         else MaterialTheme.colorScheme.onSurfaceVariant,
-        maxLines = 1,
+        // Two lines: beside the row's menu, a group's name and the lesson's date left no room on one, and
+        // the time — when it is due — was what got cut.
+        maxLines = 2,
         overflow = TextOverflow.Ellipsis,
     )
 }

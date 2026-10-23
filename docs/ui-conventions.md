@@ -65,7 +65,8 @@ Build screens from shared state and controls. Feature rules belong in the domain
 - Use `SegmentedPage` (tabs, no divider) for fixed views, `PageStepper` for successive pages; both
   page titles are ink. The schedule's page title is also its date picker (`PageNavigator`); «today» stays
   an icon beside it. A held tab tints a rounded shape around its label, not Material's full-cell ripple. Choices of a value use `SegmentedChoice`, settings-shaped `ChoiceRow` (segments
-  up to four, then a field), or shortlist chips with an escape hatch. A tab's filters sit behind the bar's
+  up to four, then a field), or shortlist chips with an escape hatch. On a tinted card the selected segment
+  is filled with `primary` — the default fill is that tint. A tab's filters sit behind the bar's
   funnel (`FilterMenuAction` for one choice, `FilterMenu` with `MenuHeading` parts for several), and what is
   in force shows as `ActiveFilters` chips that take it off — no row at all while nothing is. Menus draw options through `MenuOptions`: past 12 it adds a
   search and draws the first 30 matches, since a dropdown composes every item when it opens. Every menu,
@@ -100,7 +101,8 @@ Build screens from shared state and controls. Feature rules belong in the domain
   lead the member rows, a roster longer than eight can be searched, and the rate field's hint carries its
   last change.
 - People's students and groups are one surface with dividers (`SurfaceRow`, `SlicePosition`; D3), the
-  divider drawn over each row's edge so rows keep one height; lessons stay a card each. Each side has its
+  divider drawn over each row's edge so rows keep one height; lessons stay a card each. A `KlasRow` in a
+  `SurfaceRow` takes no `contentPadding` (Subjects): it brings its own inset. Each side has its
   own orders behind the bar's sort button, tinted when not the first: students by name or debt, groups by
   name or next lesson. The archive is last in every order. Groups narrow by subject once they are taught two.
 - A tab's filters never take a standing row (the owner's call: it cost the list too much room). The
@@ -306,7 +308,8 @@ Build screens from shared state and controls. Feature rules belong in the domain
   (`SurfaceRow`). A Week day with planned lessons offers «Cancel day» (one batch, one Undo); Month's chosen
   day offers «Open day» to the Day view; tapping a strip day scrolls to its section. Completion is
   an undoable green swipe; cancelled lessons recede with a red badge. An ended lesson nobody has marked
-  badges «Not marked» in grey (`LessonPhase.OVERDUE`), never «Planned»: unmarked lessons are unbilled. Book
+  badges «Not marked» in grey (`LessonPhase.OVERDUE`), never «Planned»: unmarked lessons are unbilled — on a
+  student's or group's card too (`lessonBadgeLabel`, read against the view model's `minute`). Book
   by duration, starting on the selected schedule day.
 - The booking form is cards in the order the tutor answers — Who, When, then a titled «Details» card of
   Length, Repeat (new bookings only), Rate and Place. The day line under the date writes out its lessons and

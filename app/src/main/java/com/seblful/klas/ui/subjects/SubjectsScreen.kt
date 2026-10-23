@@ -22,6 +22,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.seblful.klas.R
 import com.seblful.klas.format.bulletJoin
 import com.seblful.klas.ui.common.AddRow
+import com.seblful.klas.ui.common.AddRowInSection
 import com.seblful.klas.ui.common.EmptyState
 import com.seblful.klas.ui.common.KlasScreen
 import com.seblful.klas.ui.common.ListSkeleton
@@ -149,17 +150,22 @@ private fun SubjectRows(
                 position = SlicePosition.of(index, rows.size + 1),
                 onClick = { onOpen(row) },
                 modifier = animateInPlace(),
+                contentPadding = NoPadding,
             ) {
                 KlasRow(title = row.subject.name, supporting = usageLine(row), end = RowEnd.Opens)
             }
         }
         item(key = "add") {
-            SurfaceRow(position = SlicePosition.LAST, onClick = onAdd) {
-                AddRow(stringResource(R.string.subjects_add), onClick = onAdd)
+            SurfaceRow(position = SlicePosition.LAST, onClick = onAdd, contentPadding = AddPadding) {
+                AddRow(stringResource(R.string.subjects_add), onClick = onAdd, AddRowInSection)
             }
         }
     }
 }
+
+/** The rows bring their own inset, as a card's do; see [SurfaceRow]'s `contentPadding`. */
+private val NoPadding = PaddingValues()
+private val AddPadding = PaddingValues(vertical = Spacing.tight)
 
 /** «6 students · 1 group · 12–25 $/h», or that nothing uses it yet. */
 @Composable

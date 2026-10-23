@@ -1,5 +1,9 @@
 package com.seblful.klas.ui.today
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.height
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
@@ -11,8 +15,12 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipeUp
+import androidx.compose.ui.unit.dp
 import com.seblful.klas.domain.lesson.LessonPhase
 import com.seblful.klas.domain.model.ClassSession
 import com.seblful.klas.domain.model.LessonStatus
@@ -21,6 +29,7 @@ import com.seblful.klas.domain.model.TutoringClass
 import com.seblful.klas.domain.reports.Reports
 import com.seblful.klas.notifications.RecentMarks
 import com.seblful.klas.testutil.AppLocaleRule
+import com.seblful.klas.ui.common.FabClearance
 import com.seblful.klas.ui.theme.KlasTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -137,5 +146,24 @@ class TodayContentTest {
         compose.onNodeWithContentDescription("Undo").performClick()
 
         assertEquals(listOf("undo Olivia Brooks"), asked)
+    }
+
+    @Test
+    fun `the day's last row ends clear of the Book button, not under it`() {
+        val lessons = (1..8).map { row(it.toLong(), "Student $it", 8 + it, LessonPhase.UPCOMING) }
+        compose.setContent {
+            KlasTheme {
+                Box(Modifier.height(400.dp).testTag("screen")) {
+                    TodayContent(state = state(lessons), actions = TodayActions())
+                }
+            }
+        }
+
+        repeat(4) { compose.onNodeWithTag("screen").performTouchInput { swipeUp() } }
+
+        val last = compose.onNodeWithText("Student 8").getUnclippedBoundsInRoot()
+        val screen = compose.onNodeWithTag("screen").getUnclippedBoundsInRoot()
+        val gap = screen.bottom - last.bottom
+        assertTrue("the last row ends $gap above the bottom", gap >= FabClearance)
     }
 }

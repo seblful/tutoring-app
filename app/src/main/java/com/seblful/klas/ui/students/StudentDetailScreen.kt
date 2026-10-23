@@ -51,6 +51,7 @@ import com.seblful.klas.ui.homework.HomeworkSection
 import com.seblful.klas.ui.people.NextLessonCard
 import com.seblful.klas.ui.theme.KlasIcons
 import dev.zacsweers.metrox.viewmodel.assistedMetroViewModel
+import kotlin.time.Instant
 
 private data class StudentNavigation(
     val back: () -> Unit,
@@ -101,6 +102,8 @@ private fun StudentCard(
 ) {
     val state = overview.details
     val student = state.student
+    // A value here, not a delegate the list's builder reads — see docs/ui-conventions.md.
+    val now = viewModel.minute.collectAsStateWithLifecycle().value
 
     var addingSubject by remember { mutableStateOf(false) }
     var pricingSubjectId by remember { mutableStateOf<Long?>(null) }
@@ -238,6 +241,7 @@ private fun StudentCard(
             item(key = StudentDetailKeys.LESSONS, contentType = StudentDetailKeys.LESSONS) {
                 LessonsSection(
                     overview = overview,
+                    now = now,
                     onLessonClick = navigation.lesson,
                     onSeeAll = { navigation.seeAll(StudentSection.LESSONS) },
                     modifier = animateInPlace(cardModifier),
@@ -349,6 +353,7 @@ private fun StudentCard(
 @Composable
 private fun LessonsSection(
     overview: StudentOverview,
+    now: Instant,
     onLessonClick: (Long) -> Unit,
     onSeeAll: () -> Unit,
     modifier: Modifier = Modifier,
@@ -362,7 +367,7 @@ private fun LessonsSection(
     ) {
         if (all.isEmpty()) SectionNote(stringResource(R.string.student_lessons_empty))
         overview.lessons.forEach { row ->
-            LessonRow(row, onClick = { onLessonClick(row.klass.id) }, colors = sectionRowColors())
+            LessonRow(row, now, onClick = { onLessonClick(row.klass.id) }, colors = sectionRowColors())
         }
     }
 }

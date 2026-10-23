@@ -68,6 +68,7 @@ import com.seblful.klas.ui.people.NextLessonCard
 import com.seblful.klas.ui.theme.KlasIcons
 import com.seblful.klas.ui.theme.klasSemantics
 import dev.zacsweers.metrox.viewmodel.assistedMetroViewModel
+import kotlin.time.Instant
 
 private data class GroupNavigation(
     val back: () -> Unit,
@@ -122,6 +123,8 @@ private fun GroupCard(
 ) {
     val state = overview.details
     val group = state.group
+    // A value here, not a delegate the list's builder reads — see docs/ui-conventions.md.
+    val now = viewModel.minute.collectAsStateWithLifecycle().value
 
     var confirmingDelete by remember { mutableStateOf(false) }
     var confirmingArchive by remember { mutableStateOf(false) }
@@ -195,6 +198,7 @@ private fun GroupCard(
             item(key = GroupDetailKeys.LESSONS, contentType = GroupDetailKeys.LESSONS) {
                 LessonsSection(
                     overview = overview,
+                    now = now,
                     onLessonClick = navigation.lesson,
                     onSeeAll = { navigation.seeAll(GroupSection.LESSONS) },
                     modifier = animateInPlace(cardModifier),
@@ -351,6 +355,7 @@ internal fun EarnedCard(totals: Taught.Totals, modifier: Modifier = Modifier) {
 @Composable
 private fun LessonsSection(
     overview: GroupOverview,
+    now: Instant,
     onLessonClick: (Long) -> Unit,
     onSeeAll: () -> Unit,
     modifier: Modifier = Modifier,
@@ -364,7 +369,12 @@ private fun LessonsSection(
     ) {
         if (all.isEmpty()) SectionNote(stringResource(R.string.group_lessons_empty))
         overview.lessons.forEach { row ->
-            GroupLessonItem(row, onClick = { onLessonClick(row.session.first.id) }, colors = sectionRowColors())
+            GroupLessonItem(
+                row,
+                now,
+                onClick = { onLessonClick(row.session.first.id) },
+                colors = sectionRowColors(),
+            )
         }
     }
 }

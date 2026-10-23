@@ -50,6 +50,7 @@ import com.seblful.klas.ui.homework.homeworkItems
 import com.seblful.klas.ui.theme.KlasIcons
 import dev.zacsweers.metrox.viewmodel.assistedMetroViewModel
 import kotlinx.datetime.TimeZone
+import kotlin.time.Instant
 
 /** One of a student's lists in full — what «See all» under a section of their card opens. */
 @Composable
@@ -79,6 +80,8 @@ private fun StudentList(
     // Taken when the dialog opens — see `StudentDetailViewModel.homeworkChoice`.
     var addingHomework by remember { mutableStateOf<AssigneeChoice?>(null) }
     var openedHomework by remember { mutableStateOf<HomeworkRow?>(null) }
+    // A value here, not a delegate the list's builder reads — see docs/ui-conventions.md.
+    val now = viewModel.minute.collectAsStateWithLifecycle().value
 
     val messages = rememberMessages()
     ShowStudentMessages(viewModel, messages)
@@ -99,6 +102,7 @@ private fun StudentList(
                     state = state,
                     months = history.months,
                     filters = history.filters,
+                    now = now,
                     onLessonClick = onLessonClick,
                 )
                 StudentSection.PAYMENTS -> payments(
@@ -171,6 +175,7 @@ private fun LazyListScope.lessons(
     state: StudentDetails,
     months: List<LessonMonth>,
     filters: LessonHistoryFilters,
+    now: Instant,
     onLessonClick: (Long) -> Unit,
 ) {
     if (state.classes.isNotEmpty()) {
@@ -205,7 +210,7 @@ private fun LazyListScope.lessons(
             modifier = animateInPlace(Modifier.padding(horizontal = Spacing.gutter, vertical = Spacing.tight)),
         ) {
             month.rows.forEach { row ->
-                LessonRow(row, onClick = { onLessonClick(row.klass.id) }, colors = sectionRowColors())
+                LessonRow(row, now, onClick = { onLessonClick(row.klass.id) }, colors = sectionRowColors())
             }
         }
     }

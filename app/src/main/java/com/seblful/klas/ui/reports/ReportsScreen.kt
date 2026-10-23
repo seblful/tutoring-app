@@ -30,6 +30,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -543,6 +544,12 @@ internal fun IncomeCard(state: Reports.Report, showsReceived: Boolean = true) {
                 selected = view,
                 onSelect = { chosen = it },
                 modifier = Modifier.padding(vertical = Spacing.tight),
+                // Filled with the card's ink: the default selected fill is the hero's own tint, and which of the
+                // two the figure above is could not be told.
+                colors = SegmentedButtonDefaults.colors(
+                    activeContainerColor = MaterialTheme.colorScheme.primary,
+                    activeContentColor = MaterialTheme.colorScheme.onPrimary,
+                ),
             ) { stringResource(it.labelRes) }
         }
         when (view) {

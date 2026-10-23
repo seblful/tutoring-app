@@ -53,6 +53,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.LocalDate
+import kotlin.time.Instant
 
 /** The student's card. */
 class StudentDetailViewModel @AssistedInject constructor(
@@ -126,6 +127,12 @@ class StudentDetailViewModel @AssistedInject constructor(
     val overview: StateFlow<StudentOverview?> = combine(state, clock.minutes()) { loaded, now ->
         loaded.valueOrNull()?.let { StudentOverview.of(it, now, clock.zone) }
     }.derive(this, computation, null)
+
+    /**
+     * This minute, for the lessons listed here: one over and unmarked reads «Не отмечено», as on the schedule,
+     * not «Запланировано». See `lessonBadgeLabel`.
+     */
+    val minute: StateFlow<Instant> = clock.minutes().derive(this, computation, clock.now())
 
     /** Prints [sheet] — the statement — and hands it to another app as [filename], through the share sheet. */
     fun shareStatement(filename: String, subject: String, sheet: Sheet) {
