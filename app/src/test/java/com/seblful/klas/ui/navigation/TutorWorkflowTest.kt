@@ -235,7 +235,10 @@ class TutorWorkflowTest {
             }
             compose.onNodeWithContentDescription(text(R.string.action_edit)).performClick()
             waitFor(R.string.student_edit_title)
-            compose.onNode(hasText("Workflow student") and hasSetTextAction()).performTextReplacement("Workflow pupil")
+            // The field is its own node only once the form has come in; under load the title shows first.
+            val name = hasText("Workflow student") and hasSetTextAction()
+            compose.waitUntil(5_000) { compose.onAllNodes(name).fetchSemanticsNodes().isNotEmpty() }
+            compose.onNode(name).performTextReplacement("Workflow pupil")
             click(R.string.action_save)
             compose.waitUntil(5_000) {
                 runBlocking { graph.students.getById(studentId)?.name == "Workflow pupil" }
