@@ -65,8 +65,14 @@ const CAPTION_SIDES = {
   homework: "left", "settings-calendar": "right top", "today-dark": "left",
 };
 
+/**
+ * Each soundtrack made, by the timeline it was made for: a locale's wide and vertical films share one (its
+ * typing follows that locale's tagline), so it is synthesised and encoded once for both.
+ */
+const soundtracks = new Map();
+
 const options = parseArgs(process.argv.slice(2));
-const listing = JSON.parse(readFileSync(join(STORE, "listing.json"), "utf8"));
+const listing =JSON.parse(readFileSync(join(STORE, "listing.json"), "utf8"));
 const locales = options.locale ? [options.locale] : Object.keys(listing.locales);
 let browser, send;
 /** Whether frames are drawn on the GPU, until a page says this Chrome cannot (see [load]). */
@@ -257,7 +263,12 @@ async function film(locale, layout) {
     if (Math.abs(s.timestamp - (i * 1e6) / fps) > 1) fail(`${name}: the encoder reordered frames at ${i}`);
   });
 
-  const sound = await evaluate(send, `soundtrack(${JSON.stringify(info)}).then((buffer) => encoder.audio(buffer, 192000))`);
+  const timeline = JSON.stringify(info);
+  if (!soundtracks.has(timeline)) {
+    const made = evaluate(send, `soundtrack(${timeline}).then((buffer) => encoder.audio(buffer, 192000))`);
+    soundtracks.set(timeline, await made);
+  }
+  const sound = soundtracks.get(timeline);
   const file = mp4({
     video: {
       width, height, fps, avcC: Buffer.from(end.avcC, "base64"), color: end.color,
