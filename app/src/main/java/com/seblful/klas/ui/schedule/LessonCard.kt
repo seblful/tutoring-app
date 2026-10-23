@@ -205,10 +205,10 @@ private fun LessonSurface(
 }
 
 @Composable
-internal fun StatusLine(row: ScheduleRow, phase: LessonPhase, maxLines: Int = 1) {
+internal fun StatusLine(row: ScheduleRow, phase: LessonPhase, maxLines: Int = 1, rate: String? = null) {
     BadgeLine(badge = { SessionStatusBadge(row, phase) }, Modifier.padding(top = Spacing.tight)) {
         Text(
-            bulletJoin(row.subjectName, classModeLabel(row.klass.mode)),
+            bulletJoin(listOfNotNull(row.subjectName, classModeLabel(row.klass.mode), rate)),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = maxLines,

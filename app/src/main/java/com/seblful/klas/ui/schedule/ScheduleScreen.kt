@@ -91,6 +91,8 @@ fun ScheduleScreen(
     onAddClass: (LocalDate) -> Unit,
     onEditClass: (Long) -> Unit,
     onAddStudent: () -> Unit,
+    /** Books a lesson like the one with this class id, a week later. */
+    onBookLike: (Long) -> Unit = {},
     onOpenStudent: (Long) -> Unit = {},
     onOpenGroup: (Long) -> Unit = {},
     onSetStudentHomework: (Long) -> Unit = {},
@@ -561,6 +563,7 @@ fun ScheduleScreen(
             onHomeworkDone = viewModel::setHomeworkDone,
             onAttendance = viewModel::setAttendance,
             onEdit = { onEditClass(row.klass.id); sheetFor = null },
+            onBookNext = { closeSheet { onBookLike(row.klass.id) } },
             // **The same «done» the swipe gives**, because it is the same act. Marking a lesson taught by
             // dragging its row both buzzed and popped; doing it from this sheet only popped, so the app felt
             // different depending on which way the tutor reached the one thing that bills a lesson. The pop

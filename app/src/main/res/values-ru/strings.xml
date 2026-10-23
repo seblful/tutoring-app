@@ -309,7 +309,6 @@
     <string name="class_status_label">Статус</string>
     <string name="class_series_availability">Свободных дат: %1$d. Занятые даты будут пропущены.</string>
     <string name="class_attendance_label">Посещаемость</string>
-    <string name="class_attendance_hint">Посещаемость влияет на оплату после отметки «Проведено».</string>
     <string name="class_attendance_expected">Ожидается</string>
     <string name="class_attendance_present">Присутствовал</string>
     <string name="class_attendance_absent">Отсутствовал, без оплаты</string>
@@ -1284,4 +1283,7 @@
     <string name="reports_ledger_payment">Оплата</string>
     <string name="schedule_cancel_day">Отменить день</string>
     <string name="schedule_open_day">Открыть день</string>
+    <string name="class_book_next">Записать следующее такое же</string>
+    <string name="class_cancel_lesson">Отменить занятие</string>
+    <string name="class_taught_after_replan">Сначала верните отменённое занятие в запланированные.</string>
 </resources>

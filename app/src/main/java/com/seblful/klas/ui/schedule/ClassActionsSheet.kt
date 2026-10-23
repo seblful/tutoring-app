@@ -1,6 +1,7 @@
 package com.seblful.klas.ui.schedule
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -48,19 +49,23 @@ import com.seblful.klas.ui.common.Avatar
 import com.seblful.klas.ui.common.DatePickerModal
 import com.seblful.klas.ui.common.LessonKindIcon
 import com.seblful.klas.ui.common.MinTouchTarget
+import com.seblful.klas.ui.common.OpensScreenMark
 import com.seblful.klas.ui.common.Reveal
 import com.seblful.klas.ui.common.SectionTitle
-import com.seblful.klas.ui.common.SegmentedChoice
 import com.seblful.klas.ui.common.SheetHandle
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.TimePickerModal
 import com.seblful.klas.ui.common.classStatusLabel
+import com.seblful.klas.ui.common.durationLabel
 import com.seblful.klas.ui.common.insetRowPress
 import com.seblful.klas.ui.common.outsetRowPress
 import com.seblful.klas.ui.common.rememberToggleFeedback
+import com.seblful.klas.ui.common.text
 import com.seblful.klas.ui.common.timeRangeText
 import com.seblful.klas.ui.common.timeText
+import com.seblful.klas.ui.designsystem.component.ButtonKind
 import com.seblful.klas.ui.designsystem.component.ChoiceDialog
+import com.seblful.klas.ui.designsystem.component.KlasButton
 import com.seblful.klas.ui.designsystem.component.KlasDivider
 import com.seblful.klas.ui.designsystem.component.KlasSheet
 import com.seblful.klas.ui.theme.KlasIcons
@@ -70,6 +75,12 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import kotlin.time.Instant
 
+/**
+ * The lesson sheet (ActionSheet): which lesson, then what is done to it most — marked taught, rescheduled,
+ * edited — then who came, then where it leads, then the rarer changes of status, and Delete last. Status is
+ * acted on, not chosen from segments: «Taught» is the main button; «Cancel lesson» and «Return to planned»
+ * are rows, each with the guarded Undo its message offers (B2), and a change that cannot apply says why.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun ClassActionsSheet(
@@ -88,8 +99,8 @@ internal fun ClassActionsSheet(
     onRecordPayment: () -> Unit = {},
     onOpenProfile: () -> Unit = {},
     onCorrectCompletion: () -> Unit = {},
+    onBookNext: () -> Unit = {},
 ) {
-    val klass = row.klass
     val scope = rememberCoroutineScope()
     // No `dragHandle`: Material wraps whatever is passed there in a clickable, tooltipped box of its own,
     // so even a plain pill lit grey when held. The pill is the sheet's first row instead — see
@@ -100,66 +111,28 @@ internal fun ClassActionsSheet(
                 Modifier.align(Alignment.CenterHorizontally),
                 onDismiss = { scope.launch { sheetState.hide() }.invokeOnCompletion { onDismiss() } },
             )
-            // Header: which lesson these actions apply to — laid out as the card that was tapped is, the
-            // icon beside the name and the status line under both, not the icon centred on the two lines.
-            Column(Modifier.fillMaxWidth().padding(horizontal = SheetGutter, vertical = Spacing.tight)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    LessonKindIcon(LessonKind.of(klass), Modifier.padding(end = Spacing.inline))
-                    Text(row.title, style = MaterialTheme.typography.titleMedium)
-                }
-                // The day and the hours in full: opened from the week, a reminder or Today, «16:00» alone
-                // did not say which day's lesson this is.
-                Text(
-                    bulletJoin(klass.start.toLocalDate().formatDay(), klass.start.timeRangeText(klass.durationMinutes)),
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.padding(top = Spacing.tight),
-                )
-                // The lesson card's own second line — status first — so the sheet opens on the
-                // row that was tapped, in the same order, rather than a rearrangement of it.
-                StatusLine(row, phase, maxLines = Int.MAX_VALUE)
-            }
-
-            // The lesson's state, as a state: every status it can be in, with the current one shown
-            // selected. Offering only the transitions (as a list of actions did) meant the sheet never
-            // said what the lesson *is* — the tutor had to infer it from which verbs were absent.
-            StatusSelector(row = row, onStatus = onStatus)
-            if (row.session.status == LessonStatus.COMPLETED) {
-                SheetAction(
-                    stringResource(R.string.class_correct_planned),
-                    KlasIcons.Filled.Undo,
-                    onCorrectCompletion,
-                )
-            }
-
+            SheetHeader(row, phase)
+            FrequentActions(row, onTaught = { onStatus(LessonStatus.COMPLETED) }, onMove = onMove, onEdit = onEdit)
             LessonAttendance(row, onAttendance)
-
             // What was set for this lesson, **with its ticks on the sheet**: the start of a lesson is when
             // the tutor asks for it, and this is the screen they are on. Read once the sheet is open, so it
             // grows in rather than lengthening the sheet in one frame.
             Reveal(homework.isNotEmpty()) { AttachedHomework(homework, onHomeworkDone) }
-
             KlasDivider(Modifier.padding(vertical = Spacing.inline))
             SheetAction(stringResource(R.string.homework_add), KlasIcons.Outlined.Assignment, onSetHomework)
             SheetAction(stringResource(R.string.add_payment), KlasIcons.Outlined.Payments, onRecordPayment)
+            // One ordinary lesson a week later, prefilled — safe, because it writes nothing until booked.
+            SheetAction(stringResource(R.string.class_book_next), KlasIcons.Outlined.CalendarMonth, onBookNext)
             SheetAction(
                 stringResource(if (row.isGroup) R.string.class_open_group else R.string.class_open_student),
                 if (row.isGroup) KlasIcons.Outlined.Group else KlasIcons.Outlined.Person,
                 onOpenProfile,
+                opens = true,
             )
-
             KlasDivider(Modifier.padding(vertical = Spacing.inline))
-
-            // Editing details (student/subject/price) is allowed in any status; saving a completed
-            // class re-bills it so its recognized income tracks the edit (see ClassRules.rebill).
-            // A group lesson edits as a whole — every member's class moves and re-bills together.
-            SheetAction(stringResource(R.string.action_edit), KlasIcons.Outlined.Edit, onClick = onEdit)
-            // Move (reschedule) is offered for any status: moving a lesson to the future re-plans it,
-            // moving it to the past just corrects its recorded time. A group lesson moves as one.
-            SheetAction(stringResource(R.string.class_move), KlasIcons.Outlined.EditCalendar, onClick = onMove)
-            // Delete is offered for any status. Deleting a completed class removes its recognized
-            // income (the confirm dialog warns about this); the repository deletes the calendar
-            // event and refreshes reminders regardless of status.
-            KlasDivider(Modifier.padding(vertical = Spacing.inline))
+            StatusRows(row, onStatus, onCorrectCompletion)
+            // Delete is offered for any status. Deleting a taught lesson removes what it earned (the confirm
+            // warns of it); the repository deletes the calendar event and refreshes reminders regardless.
             SheetAction(
                 stringResource(R.string.action_delete),
                 KlasIcons.Outlined.Delete,
@@ -167,6 +140,99 @@ internal fun ClassActionsSheet(
                 destructive = true,
             )
         }
+    }
+}
+
+/**
+ * Which lesson: the day and its hours in full first — opened from the week, a reminder or Today, «16:00»
+ * alone did not say which day — then who, then the card's own status line with the rate.
+ */
+@Composable
+private fun SheetHeader(row: ScheduleRow, phase: LessonPhase) {
+    val klass = row.klass
+    Column(Modifier.fillMaxWidth().padding(horizontal = SheetGutter, vertical = Spacing.tight)) {
+        Text(
+            bulletJoin(
+                klass.start.toLocalDate().formatDay(),
+                klass.start.timeRangeText(klass.durationMinutes),
+                durationLabel(klass.durationMinutes),
+            ),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = Spacing.tight)) {
+            if (row.isGroup) LessonKindIcon(LessonKind.GROUP, Modifier.padding(end = Spacing.inline))
+            Text(row.title, style = MaterialTheme.typography.titleMedium)
+        }
+        val rate = stringResource(R.string.price_per_hour, klass.price.text())
+        StatusLine(row, phase, maxLines = Int.MAX_VALUE, rate = rate)
+    }
+}
+
+/**
+ * The three things done to a lesson most, as buttons: «Taught» filled (R3), «Reschedule» and «Edit» tonal.
+ * A taught lesson's button stays, ticked and spent; a cancelled one's says why it cannot be marked yet.
+ */
+@Composable
+private fun FrequentActions(row: ScheduleRow, onTaught: () -> Unit, onMove: () -> Unit, onEdit: () -> Unit) {
+    val status = row.session.status
+    val taught = status == LessonStatus.COMPLETED
+    Column(Modifier.padding(horizontal = SheetGutter, vertical = Spacing.inline)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.inline)) {
+            KlasButton(
+                onClick = onTaught,
+                enabled = !taught && LessonStatus.COMPLETED in row.statusChoices,
+                withIcon = true,
+            ) {
+                Icon(
+                    if (taught) KlasIcons.Filled.CheckCircle else KlasIcons.Outlined.CheckCircle,
+                    contentDescription = null,
+                    modifier = Modifier.padding(end = Spacing.tight),
+                )
+                Text(classStatusLabel(LessonStatus.COMPLETED))
+            }
+            // Moving to the future re-plans it; to the past only corrects when it happened. A group moves as one.
+            KlasButton(onClick = onMove, kind = ButtonKind.Tonal) { Text(stringResource(R.string.class_move)) }
+            // Editing is allowed in any status; saving a taught lesson re-bills it (see ClassRules.rebill).
+            KlasButton(onClick = onEdit, kind = ButtonKind.Tonal) { Text(stringResource(R.string.action_edit)) }
+        }
+        if (status == LessonStatus.CANCELLED) {
+            Text(
+                stringResource(R.string.class_taught_after_replan),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = Spacing.tight),
+            )
+        }
+    }
+}
+
+/**
+ * The rarer changes of status, as rows: a planned or taught lesson can be cancelled; a taught one returns to
+ * planned through the documented correction (its confirm, then Undo); a cancelled one returns to planned.
+ */
+@Composable
+private fun StatusRows(row: ScheduleRow, onStatus: (LessonStatus) -> Unit, onCorrectCompletion: () -> Unit) {
+    val status = row.session.status
+    val allowed = row.statusChoices
+    when (status) {
+        LessonStatus.COMPLETED ->
+            SheetAction(stringResource(R.string.class_correct_planned), KlasIcons.Filled.Undo, onCorrectCompletion)
+        LessonStatus.CANCELLED -> if (LessonStatus.SCHEDULED in allowed) {
+            SheetAction(
+                stringResource(R.string.class_correct_planned),
+                KlasIcons.Filled.Undo,
+                onClick = { onStatus(LessonStatus.SCHEDULED) },
+            )
+        }
+        LessonStatus.SCHEDULED -> Unit
+    }
+    if (status != LessonStatus.CANCELLED && LessonStatus.CANCELLED in allowed) {
+        SheetAction(
+            stringResource(R.string.class_cancel_lesson),
+            KlasIcons.Outlined.EventBusy,
+            onClick = { onStatus(LessonStatus.CANCELLED) },
+        )
     }
 }
 
@@ -238,28 +304,6 @@ private fun AttachedHomework(items: List<SheetHomework>, onDone: (Homework, Bool
 
 private const val SheetHomeworkLines = 4
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun StatusSelector(row: ScheduleRow, onStatus: (LessonStatus) -> Unit) {
-    val current = row.session.status
-    val allowed = row.statusChoices
-    Column(Modifier.padding(horizontal = SheetGutter, vertical = Spacing.inline)) {
-        SectionTitle(
-            stringResource(R.string.class_status_label),
-            modifier = Modifier.padding(bottom = Spacing.inline),
-        )
-        SegmentedChoice(
-            options = LessonStatus.entries,
-            selected = current,
-            onSelect = onStatus,
-            // Which statuses this lesson may move to is `SessionRules.sessionTransitions`', arriving as
-            // `row.statusChoices` — the same rule the swipe is offered from.
-            enabled = { status -> status in allowed },
-            label = { status -> classStatusLabel(status) },
-        )
-    }
-}
-
 internal val SheetGutter = 24.dp
 
 @Composable
@@ -268,11 +312,14 @@ private fun SheetAction(
     icon: ImageVector,
     onClick: () -> Unit,
     destructive: Boolean = false,
+    opens: Boolean = false,
 ) {
     val color = if (destructive) klasSemantics.destructive else MaterialTheme.colorScheme.onSurface
     ListItem(
         headlineContent = { Text(label) },
         leadingContent = { Icon(icon, contentDescription = null) },
+        // A chevron only where the row goes to another screen (R6).
+        trailingContent = if (opens) ({ OpensScreenMark() }) else null,
         colors = ListItemDefaults.colors(
             containerColor = Color.Transparent,
             headlineColor = color,

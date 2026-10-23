@@ -258,7 +258,6 @@
     <string name="class_status_label">Status</string>
     <string name="class_series_availability">Free dates: %1$d. Taken dates will be skipped.</string>
     <string name="class_attendance_label">Attendance</string>
-    <string name="class_attendance_hint">Attendance changes billing when the lesson is marked taught.</string>
     <string name="class_attendance_expected">Expected</string>
     <string name="class_attendance_present">Present</string>
     <string name="class_attendance_absent">Absent, no charge</string>
@@ -1135,4 +1134,7 @@
     <string name="reports_ledger_payment">Payment</string>
     <string name="schedule_cancel_day">Cancel day</string>
     <string name="schedule_open_day">Open day</string>
+    <string name="class_book_next">Book the next one like this</string>
+    <string name="class_cancel_lesson">Cancel lesson</string>
+    <string name="class_taught_after_replan">Cancelled lessons go back to planned first.</string>
 </resources>

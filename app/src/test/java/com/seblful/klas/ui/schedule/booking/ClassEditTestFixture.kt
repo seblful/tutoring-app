@@ -30,10 +30,17 @@ abstract class ClassEditTestFixture {
         groupId: Long = 0L,
         day: LocalDate? = null,
         studentId: Long = 0L,
+        like: Long = 0L,
     ) = mainRule.own(
         ClassEditViewModel(
             savedStateHandle = SavedStateHandle(
-                mapOf("id" to id, "group" to groupId, "day" to day?.toString(), "student" to studentId),
+                mapOf(
+                    "id" to id,
+                    "group" to groupId,
+                    "day" to day?.toString(),
+                    "student" to studentId,
+                    "like" to like,
+                ),
             ),
             classes = env.classRepo,
             studentsRepo = env.studentRepo,

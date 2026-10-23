@@ -145,6 +145,7 @@ class KlasGraph(
             arrival = scheduleArrival(id),
             onAddClass = { day -> go(Routes.classEdit(0, day = day)) },
             onEditClass = { go(Routes.classEdit(it)) },
+            onBookLike = { go(Routes.classEdit(0, like = it)) },
             // The way out of "nothing can be booked yet": the schedule's empty state offers the missing step
             // rather than only naming it.
             onAddStudent = { go(Routes.StudentAdd) },

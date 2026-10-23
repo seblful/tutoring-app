@@ -23,6 +23,7 @@ import com.seblful.klas.domain.model.Group
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Student
 import com.seblful.klas.domain.model.Subject
+import com.seblful.klas.domain.schedule.CalendarLayout
 import com.seblful.klas.domain.schedule.DayBounds
 import com.seblful.klas.domain.schedule.DayTimeline
 import com.seblful.klas.domain.schedule.Scheduling
@@ -61,6 +62,7 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
@@ -101,6 +103,9 @@ class ClassEditViewModel @AssistedInject constructor(
     private val preselectedStudentId: Long = savedStateHandle["student"] ?: 0L
 
     private val openedOnDay: LocalDate? = savedStateHandle.get<String>("day")?.let(LocalDate::parse)
+
+    /** A lesson this booking copies a week later — who, subject, time, length, rate and place. */
+    private val likeClassId: Long = savedStateHandle["like"] ?: 0L
 
     val isNew: Boolean = classId == 0L
 
@@ -379,6 +384,8 @@ class ClassEditViewModel @AssistedInject constructor(
             // Not the tutor's work, so neither marks the form unsaved — see [BookingIntent.isEdit].
             change(BookingIntent.ChooseTarget(ClassTarget.GROUP).asSetup())
             change(BookingIntent.ChooseGroup(preselectedGroupId).asSetup())
+        } else if (likeClassId != 0L) {
+            viewModelScope.launch { copyALessonAWeekOn(likeClassId) }
         } else if (preselectedStudentId != 0L) {
             viewModelScope.launch {
                 studentsRepo.getById(preselectedStudentId)?.let {
@@ -396,7 +403,7 @@ class ClassEditViewModel @AssistedInject constructor(
         }
         // Auto-select the only student there is (a new class, before any choice). With several
         // students, the user picks — we don't guess.
-        if (isNew && preselectedStudentId == 0L) {
+        if (isNew && preselectedStudentId == 0L && likeClassId == 0L) {
             viewModelScope.launch {
                 // Initial convenience only. Setup detours return the created student's ID explicitly.
                 val only = studentsRepo.observeActive().first().singleOrNull() ?: return@launch
@@ -415,9 +422,23 @@ class ClassEditViewModel @AssistedInject constructor(
             return
         }
         session.value = loaded
+        change(BookingIntent.Load(formOf(loaded, loaded.first.start.toLocalDateTime(zone).date)))
+    }
+
+    /**
+     * A new booking of [classId]'s lesson **a week later** — one ordinary lesson, written only when booked.
+     * A lesson gone since leaves the form as a plain new booking.
+     */
+    private suspend fun copyALessonAWeekOn(classId: Long) {
+        val like = classes.getSessionFor(classId) ?: return
+        val weekOn = like.first.start.toLocalDateTime(zone).date.plus(DatePeriod(days = CalendarLayout.DAYS_IN_WEEK))
+        change(BookingIntent.Load(formOf(like, weekOn)).asSetup())
+    }
+
+    /** [loaded] as the form shows it, on [date]. */
+    private suspend fun formOf(loaded: ClassSession, date: LocalDate): ClassForm {
         val c = loaded.first
-        val local = c.start.toLocalDateTime(zone)
-        val from = local.time
+        val from = c.start.toLocalDateTime(zone).time
         // The session's own group, taken once. `isGroup` *is* this being non-null, so branching on it
         // directly lets the roster lookup below use it without an assertion.
         val group = loaded.groupId
@@ -426,7 +447,7 @@ class ClassEditViewModel @AssistedInject constructor(
             studentId = c.studentId.takeIf { group == null },
             groupId = c.groupId,
             subjectId = c.subjectId,
-            date = local.date,
+            date = date,
             timeFrom = from,
             // Straight across: the row keeps a length and so does the form. Reconstructing an end time
             // here is what made a lesson «Перенести» had put at 23:00 open as an error.
@@ -445,7 +466,7 @@ class ClassEditViewModel @AssistedInject constructor(
                 emptySet()
             },
         )
-        change(BookingIntent.Load(loadedForm))
+        return loadedForm
     }
 
     private suspend fun groupRate(groupId: Long?): Money? =

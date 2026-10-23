@@ -4,6 +4,7 @@ import android.content.Intent
 import android.net.Uri
 import android.view.KeyEvent
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isSelectable
@@ -122,7 +123,7 @@ class TutorWorkflowTest {
             compose.onNode(hasText(text(R.string.nav_schedule)) and isSelectable()).performClick()
             waitForText("Workflow student")
             compose.onNodeWithText("Workflow student").performClick()
-            compose.onNode(hasText(text(R.string.class_status_completed)) and isSelectable()).performClick()
+            compose.onNode(hasText(text(R.string.class_status_completed)) and hasClickAction()).performClick()
             waitFor(R.string.class_completed_message)
             click(R.string.action_undo)
             compose.waitUntil(5_000) {

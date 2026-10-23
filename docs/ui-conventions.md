@@ -121,8 +121,14 @@ Build screens from shared state and controls. Feature rules belong in the domain
   (tabular, widest-time width, measured once per list by `rememberColumnTimeWidth`), the end under the
   start in a quieter style, so back-to-back lessons and gaps read without a time grid (D4). Ranges are
   `timeRangeText`. A kind icon prefixes a group lesson's name only — the row that differs, and lists its
-  members — and the lines below start on its edge, not hung under the name. The lesson sheet's header repeats the card's layout, then names the day and the
-  hours in full, since it also opens from the week, a reminder and Today.
+  members — and the lines below start on its edge, not hung under the name.
+- The lesson sheet (`ClassActionsSheet`) opens on the day, hours and length (it also opens from the week, a
+  reminder and Today), then who, then the status line with the rate. Then what is done most: «Taught»
+  filled, «Reschedule» and «Edit» tonal; a taught lesson's tick stays spent, a cancelled one's says why it
+  cannot be marked yet. Status is acted on, never chosen from segments: «Cancel lesson» and «Return to
+  planned» are rows near Delete, each with its guarded Undo. Attendance is a value row per class
+  (`LessonAttendance`), then homework, «Set homework», «Add a payment», «Book the next one like this» (a
+  prefilled booking a week on, `ClassEdit.like`) and «Open profile ›».
 - Forms have one field style: tapped fields (`PickerField`) draw the outlined text field's own decoration,
   so labels float alike and fields space alike. Ticks in a form sit on its edge, not centred in 48 dp.
 

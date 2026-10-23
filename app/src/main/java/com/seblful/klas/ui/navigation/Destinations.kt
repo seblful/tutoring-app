@@ -112,14 +112,21 @@ object Routes {
      * [student] preselects an individual. Profile entry uses the same conflict-checked form as Schedule.
      */
     @Serializable
-    data class ClassEdit(val id: Long, val group: Long = 0, val day: String? = null, val student: Long = 0) : Route
+    data class ClassEdit(
+        val id: Long,
+        val group: Long = 0,
+        val day: String? = null,
+        val student: Long = 0,
+        /** A lesson to book again a week later — the sheet's «Book the next one like this». */
+        val like: Long = 0,
+    ) : Route
 
     /**
      * [ClassEdit] with its day as a date. A string in the route because navigation carries a string with
      * no help, where a `LocalDate` would need its own `NavType` on every graph and test that declares it.
      */
-    fun classEdit(id: Long, groupId: Long = 0, day: LocalDate? = null, studentId: Long = 0) =
-        ClassEdit(id, groupId, day?.toString(), studentId)
+    fun classEdit(id: Long, groupId: Long = 0, day: LocalDate? = null, studentId: Long = 0, like: Long = 0) =
+        ClassEdit(id, groupId, day?.toString(), studentId, like)
 }
 
 /**
