@@ -201,6 +201,7 @@ class FormFactorScreenshotTest {
 
     private fun settle() {
         compose.mainClock.advanceTimeBy(SETTLE_MS)
+        finishRipples()
         compose.waitForIdle()
     }
 
