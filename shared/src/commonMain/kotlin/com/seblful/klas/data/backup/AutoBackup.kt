@@ -2,7 +2,6 @@ package com.seblful.klas.data.backup
 
 import com.seblful.klas.data.settings.SettingsRepository
 import com.seblful.klas.domain.time.WallClock
-import com.seblful.klas.domain.time.today
 import com.seblful.klas.runCatchingCancellable
 import dev.zacsweers.metro.Inject
 import kotlin.time.Duration.Companion.days
@@ -28,7 +27,7 @@ interface BackupFolder {
  */
 @Inject
 class AutoBackup(
-    private val backup: BackupManager,
+    private val exports: BackupExports,
     private val settings: SettingsRepository,
     private val folders: BackupFolder,
     private val clock: WallClock,
@@ -46,20 +45,7 @@ class AutoBackup(
     }
 
     private suspend fun save(folder: String): Outcome {
-        val now = clock.now()
-        val saved = runCatchingCancellable {
-            folders.write(folder, fileName(clock.today().toString()), backup.exportJson(now))
-        }
-        settings.update {
-            // The folder may have been changed or turned off while the copy was being written.
-            if (it.autoBackupFolder != folder) {
-                it
-            } else if (saved.isSuccess) {
-                it.copy(lastExportAt = now, autoBackupFailed = false)
-            } else {
-                it.copy(autoBackupFailed = true)
-            }
-        }
+        val saved = runCatchingCancellable { exports.toFolder(folder) }
         if (saved.isFailure) return Outcome.FAILED
         // Pruning is tidying: a copy that could not be deleted does not make this one less saved.
         runCatchingCancellable { prune(folder) }

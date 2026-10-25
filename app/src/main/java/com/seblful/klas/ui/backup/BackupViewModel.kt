@@ -1,18 +1,15 @@
 package com.seblful.klas.ui.backup
 
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import com.seblful.klas.data.backup.AutoBackup
-import com.seblful.klas.data.backup.BackupCipher
+import com.seblful.klas.data.backup.BackupExports
 import com.seblful.klas.data.backup.BackupFailure
-import com.seblful.klas.data.backup.BackupManager
 import com.seblful.klas.data.settings.SettingsRepository
 import com.seblful.klas.di.ApplicationScope
 import com.seblful.klas.domain.time.WallClock
 import com.seblful.klas.domain.time.today
 import com.seblful.klas.runCatchingCancellable
 import com.seblful.klas.storage.DocumentRef
-import com.seblful.klas.storage.DocumentStore
 import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.common.state.UiEvents
 import com.seblful.klas.ui.common.state.hold
@@ -48,10 +45,8 @@ sealed interface BackupResult {
 @ViewModelKey
 @ContributesIntoMap(AppScope::class, binding = binding<ViewModel>())
 class BackupViewModel @Inject constructor(
-    private val backup: BackupManager,
-    private val cipher: BackupCipher,
-    private val documents: DocumentStore,
-    private val settings: SettingsRepository,
+    private val exports: BackupExports,
+    settings: SettingsRepository,
     @param:ApplicationScope private val appScope: CoroutineScope,
     private val clock: WallClock,
 ) : ViewModel() {
@@ -72,18 +67,10 @@ class BackupViewModel @Inject constructor(
      * that order, and only if it did.
      */
     fun export(ref: DocumentRef, password: String? = null) {
-        viewModelScope.launch {
-            val written = runCatchingCancellable {
-                val json = backup.exportJson(clock.now())
-                documents.write(ref, password?.let { cipher.seal(json, it) } ?: json)
-            }
-            if (written.isSuccess) recordExport()
+        appScope.launch {
+            val written = runCatchingCancellable { exports.toDocument(ref, password) }
             events.send(written.fold({ BackupResult.ExportOk }, { BackupResult.Failed(BackupFailure.of(it)) }))
         }
-    }
-
-    private fun recordExport() {
-        appScope.launch { settings.update { it.copy(lastExportAt = clock.now()) } }
     }
 
     /**

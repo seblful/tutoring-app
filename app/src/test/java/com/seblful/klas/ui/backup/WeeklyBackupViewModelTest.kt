@@ -6,6 +6,7 @@ import com.seblful.klas.testutil.FakeBackupFolder
 import com.seblful.klas.testutil.FakeFolderGrants
 import com.seblful.klas.testutil.MainDispatcherRule
 import com.seblful.klas.testutil.TestEnv
+import com.seblful.klas.testutil.backupExports
 import com.seblful.klas.testutil.current
 import com.seblful.klas.ui.backup.WeeklyBackupViewModel.Event
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -35,7 +36,7 @@ class WeeklyBackupViewModelTest {
     private fun vm() = mainRule.own(
         WeeklyBackupViewModel(
             settings = env.settingsRepo,
-            autoBackup = AutoBackup(env.backupManager, env.settingsRepo, folders, env.clock),
+            autoBackup = AutoBackup(env.backupExports(folders = folders), env.settingsRepo, folders, env.clock),
             grants = grants,
             appScope = mainRule.appScope,
         ),

@@ -1,8 +1,10 @@
 package com.seblful.klas.data.backup
 
 import com.seblful.klas.data.backup.AutoBackup.Outcome
+import com.seblful.klas.storage.DocumentRef
 import com.seblful.klas.testutil.FakeBackupFolder
 import com.seblful.klas.testutil.TestEnv
+import com.seblful.klas.testutil.backupExports
 import kotlinx.coroutines.test.runTest
 import kotlin.test.AfterTest
 import kotlin.test.Test
@@ -22,7 +24,8 @@ class AutoBackupTest {
     }
     val env = TestEnv()
     private val folders = FakeBackupFolder()
-    private val auto = AutoBackup(env.backupManager, env.settingsRepo, folders, env.clock)
+    private val exports = env.backupExports(folders = folders)
+    private val auto = AutoBackup(exports, env.settingsRepo, folders, env.clock)
 
     private suspend fun pick(folder: String = FOLDER) = env.settingsRepo.update { it.copy(autoBackupFolder = folder) }
 
@@ -44,14 +47,16 @@ class AutoBackupTest {
         assertEquals(Outcome.SAVED, auto.runIfDue())
 
         assertEquals(listOf("klas-auto-backup-2026-06-01.json"), saved())
-        assertTrue(folders.files.getValue(FOLDER).values.single().contains("Аня"))
+        val file = folders.files.getValue(FOLDER).values.single()
+        assertTrue(file.contains("Аня"))
+        assertEquals(env.clock.now(), env.backupManager.preview(file).exportedAt)
         assertEquals(env.clock.now(), env.settingsRepo.get().lastExportAt)
     }
 
     @Test
     fun `a week passes between copies, and a manual export counts as the week's`() = runTest {
         pick()
-        env.settingsRepo.update { it.copy(lastExportAt = env.clock.now()) }
+        exports.toDocument(DocumentRef("manual-backup"))
 
         advance(6.days)
         assertEquals(Outcome.NOT_DUE, auto.runIfDue())
@@ -96,17 +101,13 @@ class AutoBackupTest {
     fun `a failure in a folder since replaced does not flag the new one`() = runTest {
         pick("old")
         folders.revoked += "old"
-        val racing = AutoBackup(
-            env.backupManager,
-            env.settingsRepo,
-            object : BackupFolder by folders {
-                override suspend fun write(folder: String, name: String, text: String) {
-                    env.settingsRepo.update { it.copy(autoBackupFolder = FOLDER) }
-                    folders.write(folder, name, text)
-                }
-            },
-            env.clock,
-        )
+        val changing = object : BackupFolder by folders {
+            override suspend fun write(folder: String, name: String, text: String) {
+                env.settingsRepo.update { it.copy(autoBackupFolder = FOLDER) }
+                folders.write(folder, name, text)
+            }
+        }
+        val racing = AutoBackup(env.backupExports(folders = changing), env.settingsRepo, changing, env.clock)
 
         assertEquals(Outcome.FAILED, racing.runIfDue())
 
