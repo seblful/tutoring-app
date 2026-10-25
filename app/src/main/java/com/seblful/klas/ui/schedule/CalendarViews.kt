@@ -35,10 +35,12 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.seblful.klas.R
 import com.seblful.klas.domain.schedule.CalendarLayout
 import com.seblful.klas.format.formatDay
+import com.seblful.klas.format.narrowName
 import com.seblful.klas.format.shortName
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.bleed
@@ -149,14 +151,17 @@ fun WeekStrip(
 
 @Composable
 private fun WeekdayHeader(week: List<LocalDate>) {
+    val narrow = LocalDensity.current.fontScale >= 1.5f
     Row(Modifier.fillMaxWidth()) {
         week.forEach { date ->
             Text(
-                text = date.dayOfWeek.shortName(),
+                text = if (narrow) date.dayOfWeek.narrowName() else date.dayOfWeek.shortName(),
                 modifier = Modifier.weight(1f),
                 textAlign = TextAlign.Center,
                 style = MaterialTheme.typography.labelMedium,
                 color = weekdayColor(MaterialTheme.colorScheme, date.dayOfWeek),
+                maxLines = 1,
+                overflow = TextOverflow.Clip,
             )
         }
     }

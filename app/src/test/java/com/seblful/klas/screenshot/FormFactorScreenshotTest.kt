@@ -5,6 +5,7 @@ import androidx.compose.ui.test.filter
 import androidx.compose.ui.test.filterToOne
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isSelectable
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
@@ -191,7 +192,8 @@ class FormFactorScreenshotTest {
 
     // A tab is reached the way the tutor reaches it, so on a phone it is only there while a tab is showing.
     private fun tab(@StringRes label: Int) {
-        compose.onAllNodesWithText(string(label)).filterToOne(isSelectable()).performClick()
+        compose.onAllNodes((hasText(string(label)) or hasContentDescription(string(label))) and isSelectable())
+            .onFirst().performClick()
         settle()
     }
 

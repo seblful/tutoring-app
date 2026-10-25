@@ -185,7 +185,8 @@ class ScreenTourScreenshotTest {
     }
 
     private fun tab(@StringRes label: Int) {
-        compose.onAllNodesWithText(string(label)).filterToOne(isSelectable()).performClick()
+        compose.onAllNodes((hasText(string(label)) or hasContentDescription(string(label))) and isSelectable())
+            .onFirst().performClick()
         settle()
     }
 

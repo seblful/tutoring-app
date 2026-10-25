@@ -41,6 +41,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.takeOrElse
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.state.map
@@ -126,7 +127,7 @@ fun <T> ChoiceRow(
 ) {
     // Remembered: a new list each pass would keep the control below from ever skipping.
     val values = remember(options) { options.map { it.first } }
-    if (!fitsInSegments(options.size)) {
+    if (!fitsInSegments(options.size) || LocalDensity.current.fontScale >= 1.5f) {
         // A field, whose own label and supporting slot carry the two lines the segmented version draws
         // above itself — «everything that qualifies a field goes in that field's `supportingText`».
         Column(Modifier.fillMaxWidth().padding(horizontal = Spacing.gutter, vertical = Spacing.inline)) {
@@ -182,7 +183,7 @@ fun SegmentLabel(text: String) {
  * @param fallbackSize the ceiling when the inherited style leaves the size unspecified.
  */
 @Composable
-fun OneLineLabel(text: String, floor: Dp, fallbackSize: TextUnit) {
+fun OneLineLabel(text: String, floor: TextUnit, fallbackSize: TextUnit) {
     Text(
         text = text,
         maxLines = 1,
@@ -190,13 +191,13 @@ fun OneLineLabel(text: String, floor: Dp, fallbackSize: TextUnit) {
         // word rather than add a line.
         overflow = TextOverflow.Ellipsis,
         autoSize = TextAutoSize.StepBased(
-            minFontSize = with(LocalDensity.current) { floor.toSp() },
+            minFontSize = floor,
             maxFontSize = LocalTextStyle.current.fontSize.takeOrElse { fallbackSize },
         ),
     )
 }
 
-private val MinSegmentLabelSize = 10.dp
+private val MinSegmentLabelSize = 10.sp
 
 /**
  * A screen whose body is **one of a fixed few views**, picked by tabs pinned under the bar — «Люди»'s

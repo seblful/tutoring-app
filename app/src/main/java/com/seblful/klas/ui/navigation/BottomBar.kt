@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
@@ -27,6 +28,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ProvideTextStyle
 import androidx.compose.material3.ShortNavigationBarItemDefaults
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteItem
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
@@ -45,11 +47,18 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.hideFromAccessibility
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.seblful.klas.ui.common.HoldToName
 import com.seblful.klas.ui.common.LocalTabBarClearance
+import com.seblful.klas.ui.common.MinTouchTarget
 import com.seblful.klas.ui.common.OneLineLabel
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.theme.KlasMotion
@@ -130,39 +139,57 @@ private fun FloatingTabItems(
     onSelect: (TopDestination) -> Unit,
 ) {
     val colors = ShortNavigationBarItemDefaults.colors()
+    val largeText = LocalDensity.current.fontScale >= LargeNavigationText
     val index = tabs.indexOf(selected)
     val position by animateFloatAsState(
         index.coerceAtLeast(0).toFloat(),
         animationSpec = KlasMotion.defaultSpatial(),
         label = "tab indicator",
     )
-    Row(
-        Modifier
-            .selectableGroup()
-            .padding(horizontal = BarPadding)
-            // One pill under the row, read at draw time: the spring moves it without recomposing a tab.
-            .drawBehind {
-                if (index < 0) return@drawBehind
-                val slot = size.width / tabs.size
-                val width = IndicatorWidth.toPx()
-                val start = position * slot + (slot - width) / 2
-                val x = if (layoutDirection == LayoutDirection.Rtl) size.width - start - width else start
-                drawRoundRect(
-                    color = colors.selectedIndicatorColor,
-                    topLeft = Offset(x, ItemPadding.toPx()),
-                    size = Size(width, IndicatorHeight.toPx()),
-                    cornerRadius = CornerRadius(IndicatorHeight.toPx() / 2),
+    Column {
+        Row(
+            Modifier
+                .selectableGroup()
+                .padding(horizontal = BarPadding)
+                // One pill under the row, read at draw time: the spring moves it without recomposing a tab.
+                .drawBehind {
+                    if (index < 0) return@drawBehind
+                    val slot = size.width / tabs.size
+                    val width = IndicatorWidth.toPx()
+                    val start = position * slot + (slot - width) / 2
+                    val x = if (layoutDirection == LayoutDirection.Rtl) size.width - start - width else start
+                    drawRoundRect(
+                        color = colors.selectedIndicatorColor,
+                        topLeft = Offset(x, ItemPadding.toPx()),
+                        size = Size(width, IndicatorHeight.toPx()),
+                        cornerRadius = CornerRadius(IndicatorHeight.toPx() / 2),
+                    )
+                },
+        ) {
+            tabs.forEach { dest ->
+                val isSelected = dest == selected
+                FloatingTab(
+                    dest = dest,
+                    selected = isSelected,
+                    iconColor = if (isSelected) colors.selectedIconColor else colors.unselectedIconColor,
+                    labelColor = if (isSelected) colors.selectedTextColor else colors.unselectedTextColor,
+                    onClick = { onSelect(dest) },
+                    showLabel = !largeText,
                 )
-            },
-    ) {
-        tabs.forEach { dest ->
-            val isSelected = dest == selected
-            FloatingTab(
-                dest = dest,
-                selected = isSelected,
-                iconColor = if (isSelected) colors.selectedIconColor else colors.unselectedIconColor,
-                labelColor = if (isSelected) colors.selectedTextColor else colors.unselectedTextColor,
-                onClick = { onSelect(dest) },
+            }
+        }
+        if (largeText && selected != null) {
+            Text(
+                stringResource(selected.labelRes),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = Spacing.gutter, vertical = Spacing.tight)
+                    .semantics { hideFromAccessibility() },
+                style = MaterialTheme.typography.labelMedium,
+                color = colors.selectedTextColor,
+                textAlign = TextAlign.Center,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
             )
         }
     }
@@ -175,15 +202,19 @@ private fun RowScope.FloatingTab(
     iconColor: Color,
     labelColor: Color,
     onClick: () -> Unit,
+    showLabel: Boolean,
 ) {
+    val name = stringResource(dest.labelRes)
     val interaction = remember { MutableInteractionSource() }
     val icon by animateColorAsState(iconColor, KlasMotion.defaultEffects(), label = "tab icon")
     val label by animateColorAsState(labelColor, KlasMotion.defaultEffects(), label = "tab label")
     Column(
         Modifier
             .weight(1f)
+            .heightIn(min = MinTouchTarget)
             // The ripple is the indicator's shape, as Material's own items draw it, not the whole cell.
             .selectable(selected, interaction, indication = null, role = Role.Tab, onClick = onClick)
+            .then(if (showLabel) Modifier else Modifier.semantics { contentDescription = name })
             .padding(vertical = ItemPadding),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(IconToLabel),
@@ -197,7 +228,7 @@ private fun RowScope.FloatingTab(
         ) {
             CompositionLocalProvider(LocalContentColor provides icon) { TabIcon(dest, selected) }
         }
-        CompositionLocalProvider(LocalContentColor provides label) {
+        if (showLabel) CompositionLocalProvider(LocalContentColor provides label) {
             ProvideTextStyle(MaterialTheme.typography.labelMedium) { TabLabel(dest) }
         }
     }
@@ -224,7 +255,8 @@ private fun TabLabel(dest: TopDestination) {
     )
 }
 
-private val MinLabelSize = 9.dp
+private val MinLabelSize = 9.sp
+private const val LargeNavigationText = 1.3f
 
 /** Between the pill and the navigation bar's inset — or the window's foot, where there is none. */
 private val BarGap = 8.dp

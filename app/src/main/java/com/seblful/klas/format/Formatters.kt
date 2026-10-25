@@ -165,6 +165,8 @@ fun formatMonth(month: YearMonth): String =
 /** Short weekday name for a calendar header, e.g. "пн" / "Mon". */
 fun DayOfWeek.shortName(): String = toJavaDayOfWeek().getDisplayName(TextStyle.SHORT_STANDALONE, formats.locale)
 
+fun DayOfWeek.narrowName(): String = toJavaDayOfWeek().getDisplayName(TextStyle.NARROW_STANDALONE, formats.locale)
+
 /** [shortName] starting a phrase: «Чт 16:00», not «чт 16:00». */
 fun DayOfWeek.shortDisplayName(): String = shortName().capitalizedForDisplay()
 
