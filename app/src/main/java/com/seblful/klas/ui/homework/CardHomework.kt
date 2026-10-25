@@ -1,10 +1,12 @@
 package com.seblful.klas.ui.homework
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.saveable.rememberSerializable
 import androidx.compose.runtime.setValue
 import com.seblful.klas.domain.model.Assignee
 import com.seblful.klas.domain.model.Homework
@@ -37,52 +39,40 @@ class CardHomeworkActions(
 /** One card's screen-local dialog and swipe interaction. */
 class CardHomework internal constructor(
     private val actions: CardHomeworkActions,
+    private val savedDialog: MutableState<HomeworkDialogDraft>,
     private val undo: () -> HomeworkUndo,
 ) {
-    sealed interface Dialog {
-        data class Adding(val choice: AssigneeChoice) : Dialog
-        data class Editing(val row: HomeworkRow) : Dialog
-    }
-
-    var dialog: Dialog? by mutableStateOf(null)
+    var dialog: HomeworkDialogDraft by savedDialog
         private set
 
     fun add() {
-        dialog = actions.choice()?.let { Dialog.Adding(it) }
+        dialog = actions.choice()?.let { HomeworkDialogDraft.adding(listOf(it)) } ?: HomeworkDialogDraft()
     }
 
     fun open(row: HomeworkRow) {
-        dialog = Dialog.Editing(row)
+        val own = AssigneeChoice(row.homework.assignee, row.title, row.lessonAt)
+        dialog = HomeworkDialogDraft.editing(row.homework, listOf(own))
     }
 
     fun dismiss() {
-        dialog = null
+        dialog = HomeworkDialogDraft()
     }
 
     fun swiped(item: Homework, done: Boolean) = undo().swiped(item, done)
 
     @Composable
     fun Dialogs() {
-        when (val shown = dialog) {
-            is Dialog.Adding -> HomeworkDialog(
-                choices = listOf(shown.choice),
-                onSave = { _, text -> actions.give(text) },
-                onDismiss = ::dismiss,
-                canChangeAssignee = false,
-            )
-            is Dialog.Editing -> {
-                val row = shown.row
-                HomeworkDialog(
-                    choices = listOf(AssigneeChoice(row.homework.assignee, row.title, row.lessonAt)),
-                    editing = row.homework,
-                    canChangeAssignee = false,
-                    onSave = { _, text -> actions.edit(row.homework, text) },
-                    onDelete = { undo().deleted(row.homework) },
-                    onDismiss = ::dismiss,
-                )
-            }
-            null -> Unit
-        }
+        val shown = dialog
+        if (!shown.open) return
+        val original = shown.original?.homework()
+        HomeworkDialog(
+            choices = shown.choices.map { it.choice() },
+            editing = original,
+            canChangeAssignee = false,
+            onSave = { _, text -> if (original == null) actions.give(text) else actions.edit(original, text) },
+            onDelete = original?.let { { undo().deleted(it) } },
+            onDismiss = ::dismiss,
+        )
     }
 }
 
@@ -96,5 +86,6 @@ fun rememberCardHomework(actions: CardHomeworkActions, messages: Messages): Card
         restore = actions::restore,
     )
     val currentUndo by rememberUpdatedState(undo)
-    return remember(actions) { CardHomework(actions) { currentUndo } }
+    val dialog = rememberSerializable { mutableStateOf(HomeworkDialogDraft()) }
+    return remember(actions, dialog) { CardHomework(actions, dialog) { currentUndo } }
 }

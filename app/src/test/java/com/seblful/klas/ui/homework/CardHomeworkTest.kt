@@ -55,7 +55,7 @@ class CardHomeworkTest {
         compose.waitForIdle()
 
         assertSame(original, interaction)
-        assertEquals(CardHomework.Dialog.Adding(choice), interaction.dialog)
+        assertEquals(HomeworkDialogDraft.adding(listOf(choice)), interaction.dialog)
     }
 
     private val failures = UiEvents<Unit>()
@@ -75,17 +75,18 @@ class CardHomeworkTest {
         compose.setContent { interaction = rememberCardHomework(actions, messages) }
 
         compose.runOnIdle { interaction.add() }
-        assertEquals(CardHomework.Dialog.Adding(choice!!), interaction.dialog)
+        assertEquals(HomeworkDialogDraft.adding(listOf(choice!!)), interaction.dialog)
         compose.runOnIdle { interaction.open(row) }
-        assertEquals(CardHomework.Dialog.Editing(row), interaction.dialog)
+        val own = AssigneeChoice(row.homework.assignee, row.title, row.lessonAt)
+        assertEquals(HomeworkDialogDraft.editing(row.homework, listOf(own)), interaction.dialog)
         compose.runOnIdle { interaction.dismiss() }
-        assertNull(interaction.dialog)
+        assertEquals(HomeworkDialogDraft(), interaction.dialog)
 
         choice = choice!!.copy(name = "Anna", nextLessonAt = env.clock.now() + 1.days)
         compose.runOnIdle { interaction.add() }
-        assertEquals(CardHomework.Dialog.Adding(choice!!), interaction.dialog)
+        assertEquals(HomeworkDialogDraft.adding(listOf(choice!!)), interaction.dialog)
         compose.runOnIdle { interaction.dismiss() }
-        assertNull(interaction.dialog)
+        assertEquals(HomeworkDialogDraft(), interaction.dialog)
     }
 
     @Test
@@ -97,7 +98,7 @@ class CardHomeworkTest {
 
         compose.runOnIdle { interaction.add() }
 
-        assertNull(interaction.dialog)
+        assertEquals(HomeworkDialogDraft(), interaction.dialog)
     }
 
     @Test

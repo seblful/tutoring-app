@@ -380,17 +380,19 @@ fun HomeworkDialog(
     canChangeAssignee: Boolean = true,
     onDelete: (() -> Unit)? = null,
 ) {
-    var selected by remember {
+    var selectedKey by rememberSaveable {
         mutableStateOf(
-            choices.firstOrNull { it.assignee == editing?.assignee }
-                ?: choices.first().takeIf { !canChangeAssignee },
+            (
+                choices.firstOrNull { it.assignee == editing?.assignee }
+                    ?: choices.first().takeIf { !canChangeAssignee }
+                )?.assignee?.editorKey(),
         )
     }
     var text by rememberSaveable { mutableStateOf(editing?.text.orEmpty()) }
     // Only a correction opens in the text. A new one opens on nothing: who it is for comes first, and the
     // keyboard it used to raise asked for the homework before that and covered the dialog doing it.
     val focus = if (editing != null) rememberRevealedFocus() else null
-    val chosen = selected
+    val chosen = choices.firstOrNull { it.assignee.editorKey() == selectedKey }
     FormDialog(
         title = stringResource(if (editing == null) R.string.homework_add else R.string.homework_label),
         confirm = DialogAction(
@@ -412,10 +414,10 @@ fun HomeworkDialog(
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.itemGap)) {
             ChoiceField<AssigneeChoice?>(
                 label = stringResource(R.string.homework_assignee_label),
-                selected = selected,
+                selected = chosen,
                 options = choices,
                 optionLabel = { it?.name.orEmpty() },
-                onSelect = { selected = it },
+                onSelect = { selectedKey = it?.assignee?.editorKey() },
                 enabled = canChangeAssignee,
             )
             OutlinedTextField(
@@ -424,7 +426,7 @@ fun HomeworkDialog(
                 label = { Text(stringResource(R.string.homework_text_label)) },
                 keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
                 minLines = HomeworkDialogLines,
-                supportingText = selected?.takeIf {
+                supportingText = chosen?.takeIf {
                     editing == null || it.assignee != editing.assignee
                 }?.let { choice -> { Text(attachedText(choice)) } },
                 modifier = Modifier

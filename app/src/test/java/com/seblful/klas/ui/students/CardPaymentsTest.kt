@@ -5,6 +5,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertTextContains
+import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -42,6 +43,30 @@ class CardPaymentsTest : StudentDetailTestFixture() {
 
     @get:Rule(order = 3)
     val language = AppLocaleRule.english()
+
+    @Test
+    fun `the parent payment interaction restores the open dialog and typed amount`() = runTest(mainRule.dispatcher) {
+        val student = seedStudent()
+        val vm = vm(student)
+        observing(vm.state)
+        runCurrent()
+        lateinit var interaction: CardPayments
+        val messages = Messages(SnackbarHostState(), backgroundScope, "Undo")
+        val restoration = StateRestorationTester(compose)
+        restoration.setContent {
+            KlasTheme {
+                interaction = rememberCardPayments(vm, messages)
+                interaction.Dialogs()
+            }
+        }
+        compose.runOnIdle { interaction.add() }
+        compose.onNodeWithText("Amount").performTextReplacement("42.75")
+
+        restoration.emulateSavedInstanceStateRestore()
+
+        compose.onNodeWithText("Amount").assertTextContains("42.75")
+        assertTrue(interaction.dialog is CardPayments.Dialog.Adding)
+    }
 
     @Test
     fun `Add takes fresh opening defaults and replaces Edit`() = runTest(mainRule.dispatcher) {

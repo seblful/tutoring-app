@@ -18,6 +18,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.saveable.rememberSerializable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -82,8 +83,7 @@ fun HomeworkScreen(
     // Current homework picked by a long-press: while any is, the bar is theirs.
     val picked by viewModel.batch.selected.collectAsStateWithLifecycle()
     // The dialog's choices are taken when it opens — see `HomeworkViewModel.choices`.
-    var adding by remember { mutableStateOf<List<AssigneeChoice>?>(null) }
-    var opened by remember { mutableStateOf<Opened?>(null) }
+    var editor by rememberSerializable { mutableStateOf(HomeworkDialogDraft()) }
     val scope = rememberCoroutineScope()
 
     val messages = rememberMessages()
@@ -102,13 +102,14 @@ fun HomeworkScreen(
     fun add() {
         // Before the tab has loaded there is no answer yet, and the tap waits for the list like any other.
         val choices = viewModel.choices() ?: return
-        if (choices.isEmpty()) messages.show(needStudent, addStudentLabel, onAddStudent) else adding = choices
+        if (choices.isEmpty()) messages.show(needStudent, addStudentLabel, onAddStudent) else editor =
+            HomeworkDialogDraft.adding(choices)
     }
 
     val loaded = (state as? Loadable.Ready)?.value
     val (screenTip, tip) = rememberHomeworkTip(
         current = loaded?.lists?.current?.takeIf { side == HomeworkSide.CURRENT && picked.isEmpty() },
-        dialogOpen = listOf(adding, opened).any { it != null },
+        dialogOpen = editor.open,
     )
     KlasScreen(
         title = stringResource(R.string.nav_homework),
@@ -153,7 +154,12 @@ fun HomeworkScreen(
                             viewModel.batch.toggle(it.homework.id)
                         },
                         onAdd = ::add,
-                        onOpen = { row -> scope.launch { opened = Opened(row, viewModel.choicesFor(row)) } },
+                        onOpen = { row ->
+                            scope.launch {
+                                editor =
+                                    HomeworkDialogDraft.editing(row.homework, viewModel.choicesFor(row))
+                            }
+                        },
                         bottomInset = bottomInset,
                         tip = tip,
                         onSwiped = { screenTip.done(Tip.HOMEWORK_SWIPE) },
@@ -163,20 +169,18 @@ fun HomeworkScreen(
         }
     }
 
-    adding?.let { choices ->
+    if (editor.open) {
+        val original = editor.original?.homework()
         HomeworkDialog(
-            choices = choices,
-            onSave = viewModel::give,
-            onDismiss = { adding = null },
-        )
-    }
-    opened?.let { (row, choices) ->
-        HomeworkDialog(
-            choices = choices,
-            editing = row.homework,
-            onSave = { assignee, text -> viewModel.edit(row.homework, assignee, text) },
-            onDelete = { undo.deleted(row.homework) },
-            onDismiss = { opened = null },
+            choices = editor.choices.map { it.choice() },
+            editing = original,
+            onSave = { assignee, text ->
+                if (original ==
+                    null
+                ) viewModel.give(assignee, text) else viewModel.edit(original, assignee, text)
+            },
+            onDelete = original?.let { { undo.deleted(it) } },
+            onDismiss = { editor = HomeworkDialogDraft() },
         )
     }
 }
@@ -214,8 +218,6 @@ private fun HomeworkFilterAction(loaded: HomeworkState, onSelect: (Assignee?) ->
         },
     )
 }
-
-private data class Opened(val row: HomeworkRow, val choices: List<AssigneeChoice>)
 
 @Composable
 private fun sideLabel(side: HomeworkSide, lists: HomeworkLists?): String {

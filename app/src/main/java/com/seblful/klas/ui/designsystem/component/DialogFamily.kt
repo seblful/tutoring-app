@@ -2,9 +2,13 @@
 
 package com.seblful.klas.ui.designsystem.component
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.window.DialogProperties
 import com.seblful.klas.R
@@ -27,7 +31,7 @@ fun FormDialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(dismissOnClickOutside = false),
         title = { Text(title) },
-        text = content,
+        text = { Box(Modifier.verticalScroll(rememberScrollState())) { content() } },
         confirmButton = { ActionButton(confirm) },
         dismissButton = {
             extra?.let { ActionButton(it) }

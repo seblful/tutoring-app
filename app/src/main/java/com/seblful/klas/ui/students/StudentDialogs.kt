@@ -102,7 +102,7 @@ internal fun PaymentDialog(
     val field = MoneyField(text, MoneyField.Kind.PAYMENT)
     var date by rememberSaveable { mutableStateOf(initialDate) }
     var method by rememberSaveable { mutableStateOf(initialMethod) }
-    var picking by remember { mutableStateOf(false) }
+    var picking by rememberSaveable { mutableStateOf(false) }
     // A new payment opens to be typed into, as every other «Новый …» dialog does — the date is already
     // today. A correction does not: what is wrong with it may be the date.
     val focus = if (initialAmount == null) rememberRevealedFocus() else null
