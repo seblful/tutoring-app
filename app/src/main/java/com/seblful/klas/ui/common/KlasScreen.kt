@@ -53,6 +53,7 @@ import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onPlaced
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Density
@@ -60,6 +61,10 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.offset
+import androidx.compose.ui.unit.sp
+import androidx.navigationevent.NavigationEventInfo
+import androidx.navigationevent.compose.NavigationBackHandler
+import androidx.navigationevent.compose.rememberNavigationEventState
 import com.seblful.klas.R
 import com.seblful.klas.ui.theme.KlasIcons
 import com.seblful.klas.ui.theme.KlasMotion
@@ -111,6 +116,18 @@ fun KlasScreen(
     // The search box, or null when there is none or it is shut — one value rather than a flag plus a
     // nullable, so the two cannot be tested separately and disagree.
     val openSearch = search?.takeIf { searching }
+    val focus = LocalFocusManager.current
+    val closeSearch = {
+        searching = false
+        openSearch?.onClose?.invoke()
+        focus.clearFocus()
+    }
+    NavigationBackHandler(
+        state = rememberNavigationEventState(NavigationEventInfo.None),
+        isBackEnabled = openSearch != null && picking == null,
+        onBackCompleted = closeSearch,
+    )
+    val avoidsKeyboard = imeAware || openSearch != null
     // `/` on a hardware keyboard opens this search while the screen is on show.
     val searchKey = LocalSearchKey.current
     if (search != null && searchKey != null) {
@@ -168,9 +185,8 @@ fun KlasScreen(
                 // every edit form's title on a 360 dp phone, and the noun is the half that says which
                 // form this is. The ceiling is the bar's own style, so a title that fits is never enlarged.
                 autoSize = TextAutoSize.StepBased(
-                    // In dp, like the tab labels' floor: the font scale is already in the size it starts
-                    // from, and scaling the floor too left no room to shrink at 1.3×.
-                    minFontSize = with(LocalDensity.current) { MinTitleSize.toSp() },
+                    // A scaled floor preserves the accessibility font preference.
+                    minFontSize = MinTitleSize,
                     maxFontSize = LocalTextStyle.current.fontSize,
                 ),
                 overflow = TextOverflow.Ellipsis,
@@ -195,7 +211,7 @@ fun KlasScreen(
             NamedIconButton(
                 KlasIcons.Filled.Close,
                 stringResource(R.string.search_close),
-                onClick = { searching = false; openSearch.onClose() },
+                onClick = closeSearch,
             )
         } else {
             if (search != null) {
@@ -243,6 +259,8 @@ fun KlasScreen(
         BarPaint(readBarColor, frame).takeIf { titleSize == TitleSize.Compact }
     }
 
+    // The rail carries the add button, and a pick or an open search takes the screen's attention.
+    val addButtonShown = rail == null && picking == null && openSearch == null
     Scaffold(
         modifier = modifier
             .onPlaced { frame.coordinates = it }
@@ -293,7 +311,7 @@ fun KlasScreen(
             }
         },
         floatingActionButton = {
-            if (rail == null && floatingActionButton != null && picking == null) {
+            if (floatingActionButton != null && addButtonShown) {
                 Box(Modifier.besideColumn(maxContentWidth, medium)) { floatingActionButton() }
             }
         },
@@ -303,8 +321,8 @@ fun KlasScreen(
         val density = LocalDensity.current
         val ime = WindowInsets.ime
         val aboveBottom = remember(insets) { AboveBottom(insets) }
-        val bottomInset = remember(insets, imeAware, density) {
-            BottomInset(insets, keyboard = ime.takeIf { imeAware }, density)
+        val bottomInset = remember(insets, avoidsKeyboard, density) {
+            BottomInset(insets, keyboard = ime.takeIf { avoidsKeyboard }, density)
         }
         CompositionLocalProvider(
             LocalBarPaint provides headerPaint,
@@ -317,7 +335,7 @@ fun KlasScreen(
                     // the IME padding below reaches the keyboard's top rather than a bar's height short of it.
                     .consumeWindowInsets(aboveBottom)
                     // Before the cap and before whatever scroll the body adds. See [imeAware].
-                    .then(if (imeAware) Modifier.imePadding() else Modifier)
+                    .then(if (avoidsKeyboard) Modifier.imePadding() else Modifier)
                     // The bottom is the body's now (`bottomInset`); nothing under it pads by it again.
                     .consumeWindowInsets(insets)
                     .windowMargins(medium)
@@ -478,4 +496,4 @@ private const val LargeTitleLines = 2
  */
 private val LargeTitleBarHeight = 128.dp
 
-private val MinTitleSize = 18.dp
+private val MinTitleSize = 18.sp

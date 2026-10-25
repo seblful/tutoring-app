@@ -1,5 +1,6 @@
 package com.seblful.klas.ui.common
 
+import androidx.activity.ComponentActivity
 import androidx.compose.material3.Text
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.semantics.LiveRegionMode
@@ -7,7 +8,7 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -26,7 +27,7 @@ import org.robolectric.annotation.Config
 @Config(qualifiers = "en-rUS")
 class KlasScreenTest {
     @get:Rule
-    val compose = createComposeRule()
+    val compose = createAndroidComposeRule<ComponentActivity>()
 
     @get:Rule
     val language = AppLocaleRule.english()
@@ -92,6 +93,24 @@ class KlasScreenTest {
         }
 
         compose.runOnIdle { assertFalse(key.press()) }
+    }
+
+    @Test
+    fun `system Back closes search and clears its filter before leaving the screen`() {
+        var closed = 0
+        compose.setContent {
+            KlasTheme {
+                KlasScreen("People", search = ScreenSearch("Ann", "Find", {}, onClose = { closed++ })) { _, _ -> }
+            }
+        }
+        compose.onNodeWithContentDescription("Search").performClick()
+        compose.onNodeWithContentDescription("Close search").assertExists()
+        compose.runOnIdle { compose.activity.onBackPressedDispatcher.onBackPressed() }
+        compose.waitForIdle()
+        compose.onNodeWithText("People").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Close search").assertDoesNotExist()
+        assertEquals(1, closed)
+        assertFalse(compose.activity.isFinishing)
     }
 
     @Test
