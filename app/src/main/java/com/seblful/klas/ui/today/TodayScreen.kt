@@ -26,6 +26,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.seblful.klas.R
 import com.seblful.klas.domain.guide.FirstStep
 import com.seblful.klas.domain.guide.PhoneStep
+import com.seblful.klas.domain.lesson.CompletionTiming
 import com.seblful.klas.domain.lesson.LessonPhase
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.format.bulletJoin
@@ -312,7 +313,8 @@ private fun DayLessons(state: TodayState, actions: TodayActions) {
                     doneWord = taught,
                     onDone = { actions.markTaught(row) },
                     onOpen = open,
-                    enabled = row.phase != LessonPhase.UPCOMING,
+                    enabled = row.session.status == LessonStatus.COMPLETED ||
+                        CompletionTiming.STARTED.allows(row.phase),
                 ),
                 end = RowEnd.Opens,
             )

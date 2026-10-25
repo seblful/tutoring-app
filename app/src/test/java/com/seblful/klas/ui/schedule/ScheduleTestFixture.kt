@@ -34,7 +34,7 @@ abstract class ScheduleTestFixture {
         mainRule.own(
             ScheduleViewModel(
                 env.classRepo, env.studentRepo, env.subjectRepo, env.groupRepo, env.homeworkRepo,
-                env.lessonChanges, mainRule.appScope,
+                env.lessonChanges, env.lessonCompletions, mainRule.appScope,
                 mainRule.dispatcher, clock, weekStart,
             ),
         )

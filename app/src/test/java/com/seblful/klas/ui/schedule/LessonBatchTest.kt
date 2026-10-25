@@ -25,7 +25,7 @@ class LessonBatchTest {
     @get:Rule(order = 0)
     val env = TestEnv()
 
-    private val batch get() = LessonBatch(env.classRepo, env.lessonChanges, mainRule.appScope)
+    private val batch get() = LessonBatch(env.classRepo, env.lessonChanges, env.lessonCompletions, mainRule.appScope)
 
     /** Three lessons this morning, already over on the test clock (15:00 in Minsk). */
     private suspend fun morning(): List<Long> {

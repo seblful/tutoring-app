@@ -7,6 +7,7 @@ import com.seblful.klas.domain.lesson.SessionEdit
 import com.seblful.klas.domain.model.ClassMode
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
+import com.seblful.klas.lessons.LessonCompletions
 import com.seblful.klas.testutil.TestEnv
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.async
@@ -108,6 +109,19 @@ class StaleSessionWriteTest {
     private suspend fun seed(): Pair<Long, Long> {
         val subject = env.fixtures.subject()
         return subject to env.fixtures.pricedStudent(subjectId = subject, rate = rate)
+    }
+
+    @Test
+    fun `completion ignores a lesson cancelled before its write transaction`() = runTest {
+        val (subject, student) = seed()
+        val id = env.fixtures.lesson(subject, listOf(student), start).single()
+        val written = interleave({ LessonCompletions(it, env.clock).complete(listOf(id)) }) {
+            env.fixtures.setStatus(id, LessonStatus.CANCELLED)
+        }
+
+        assertTrue(written.isEmpty())
+        assertEquals(LessonStatus.CANCELLED, env.classRepo.getById(id)!!.status)
+        assertEquals(Money.ZERO, env.classRepo.getById(id)!!.charge)
     }
 
     private suspend fun <T> interleave(

@@ -564,11 +564,28 @@ class ClassRepository @Inject constructor(
         }
     }
 
+    /** Eligibility and whole-lesson writes share the transaction, including for stale external actions. */
+    internal suspend fun complete(
+        classIds: Collection<Long>,
+        eligible: (ClassSession) -> Boolean,
+    ): List<ClassSession> {
+        if (classIds.isEmpty()) return emptyList()
+        return write {
+            val completed = classIds.mapNotNull { getSessionFor(it) }.distinctBy { it.lessonId }
+                .filter { LessonStatus.COMPLETED in SessionRules.sessionTransitions(it) && eligible(it) }
+                .map { session ->
+                    val rows = statusRows(session, LessonStatus.COMPLETED).value.written()
+                    ClassSession(session.groupId, rows)
+                }
+            Committed(completed, mirror = completed.flatMap { it.classes }, changed = completed.isNotEmpty())
+        }
+    }
+
     /**
      * Corrects a completion without the cancel/re-plan detour. Undo supplies [unchanged] so a receipt
      * cannot undo later edits. Calendar IDs are mirrors and do not count as edits to the lesson.
      */
-    suspend fun correctCompletion(session: ClassSession, unchanged: ClassSession? = null): Boolean = write {
+    internal suspend fun correctCompletion(session: ClassSession, unchanged: ClassSession? = null): Boolean = write {
         val current = current(session) ?: return@write Committed(false, changed = false)
         val matches = unchanged == null || current.classes.map { it.copy(calendarEventId = null) } ==
             unchanged.classes.map { it.copy(calendarEventId = null) }

@@ -8,6 +8,7 @@ import com.seblful.klas.domain.model.ClassSession
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.lessons.LessonChange
 import com.seblful.klas.lessons.LessonChanges
+import com.seblful.klas.lessons.LessonCompletions
 import com.seblful.klas.ui.common.state.UiEvents
 import com.seblful.klas.ui.common.state.write
 import kotlinx.coroutines.CoroutineScope
@@ -29,6 +30,7 @@ import kotlinx.coroutines.flow.update
 class LessonBatch(
     private val classes: ClassRepository,
     lessonChanges: LessonChanges,
+    private val completions: LessonCompletions,
     private val scope: CoroutineScope,
 ) {
 
@@ -66,13 +68,14 @@ class LessonBatch(
         _selected.value = emptySet()
     }
 
-    fun markTaught() = act(_selected.value, Action.MARK_TAUGHT, sheetAllows(LessonStatus.COMPLETED)) { sessions ->
-        val marked = sessions.mapNotNull { session ->
-            (classes.setStatus(session, LessonStatus.COMPLETED) as? LessonWrite.Written)?.value
-                ?.takeIf { it.isNotEmpty() }
-                ?.let { ClassSession(session.groupId, it) }
+    fun markTaught() {
+        val ids = _selected.value
+        clear()
+        scope.write(done, Done.Failed) {
+            val marked = completions.complete(ids)
+            if (marked.isEmpty()) done.send(Done.Untouched(Action.MARK_TAUGHT))
+            else done.send(Done.Marked(marked))
         }
-        if (marked.isNotEmpty()) done.send(Done.Marked(marked))
     }
 
     /** Cancels the picked lessons, taught ones too, as each one's sheet would. */
@@ -104,7 +107,7 @@ class LessonBatch(
     /** Takes [batch] back, each lesson only if nothing about it has changed since. */
     fun undo(batch: Done) = scope.write(done, Done.Failed) {
         val kept = when (batch) {
-            is Done.Marked -> batch.sessions.count { !classes.correctCompletion(it, unchanged = it) }
+            is Done.Marked -> completions.undoAll(batch.sessions)
             is Done.Cancelled -> changes.undoAll(batch.changes).count { it != UndoResult.Restored }
             is Done.Replanned -> changes.undoAll(batch.changes).count { it != UndoResult.Restored }
             else -> 0

@@ -19,6 +19,7 @@ internal fun TodayEvents(viewModel: TodayViewModel, messages: Messages) {
                     resources.getQuantityString(R.plurals.today_marked, event.sessions.size, event.sessions.size),
                 ) { viewModel.undo(event) }
                 TodayViewModel.Event.UndoChanged -> messages.show(resources.getString(R.string.class_undo_changed))
+                TodayViewModel.Event.ActionFailed -> messages.show(resources.getString(R.string.action_failed))
                 TodayViewModel.Event.FirstStepsHidden ->
                     messages.undoable(resources.getString(R.string.first_steps_hidden)) { viewModel.showFirstSteps() }
                 is TodayViewModel.Event.PhoneSetupHidden ->

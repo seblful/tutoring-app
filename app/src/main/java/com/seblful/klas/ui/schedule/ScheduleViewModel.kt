@@ -36,6 +36,7 @@ import com.seblful.klas.format.minutes
 import com.seblful.klas.format.zones
 import com.seblful.klas.lessons.LessonChange
 import com.seblful.klas.lessons.LessonChanges
+import com.seblful.klas.lessons.LessonCompletions
 import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.common.state.UiEvents
 import com.seblful.klas.ui.common.state.derive
@@ -95,6 +96,7 @@ class ScheduleViewModel @Inject constructor(
     private val groups: GroupRepository,
     private val homework: HomeworkRepository,
     lessonChanges: LessonChanges,
+    private val lessonCompletions: LessonCompletions,
     @param:ApplicationScope private val appScope: CoroutineScope,
     @param:Computation private val computation: CoroutineDispatcher,
     private val clock: WallClock,
@@ -201,7 +203,7 @@ class ScheduleViewModel @Inject constructor(
     val undoables = UiEvents<Undoable>()
 
     /** Lessons picked by a long-press, marked taught or cancelled together — see [LessonBatch]. */
-    val batch = LessonBatch(classes, lessonChanges, appScope)
+    val batch = LessonBatch(classes, lessonChanges, lessonCompletions, appScope)
 
     private val changes = lessonChanges.inScope(appScope) { events.send(Event.ACTION_FAILED) }
 
@@ -489,18 +491,21 @@ class ScheduleViewModel @Inject constructor(
 
     private fun complete(session: ClassSession) {
         write {
-            val changed = classes.setStatus(session, LessonStatus.COMPLETED)
-            if (changed is LessonWrite.Written && changed.value.isNotEmpty()) {
-                completions.send(ClassSession(session.groupId, changed.value))
+            lessonCompletions.complete(session.first.id)?.let { completions.send(it) }
+        }
+    }
+
+    fun correctCompletion(session: ClassSession) {
+        write {
+            if (!lessonCompletions.correct(session)) {
+                events.send(Event.CORRECTION_CHANGED)
             }
         }
     }
 
-    fun correctCompletion(session: ClassSession, undo: Boolean = false) {
+    fun undoCompletion(completed: ClassSession) {
         write {
-            if (!classes.correctCompletion(session, unchanged = session.takeIf { undo })) {
-                events.send(Event.CORRECTION_CHANGED)
-            }
+            if (!lessonCompletions.undo(completed)) events.send(Event.CORRECTION_CHANGED)
         }
     }
 

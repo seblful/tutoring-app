@@ -1,11 +1,7 @@
 package com.seblful.klas.notifications
 
-import com.seblful.klas.data.lessons.ClassRepository
-import com.seblful.klas.data.lessons.LessonWrite
-import com.seblful.klas.domain.lesson.SessionRules
-import com.seblful.klas.domain.model.ClassSession
-import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.time.WallClock
+import com.seblful.klas.lessons.LessonCompletions
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
@@ -23,7 +19,7 @@ import dev.zacsweers.metro.SingleIn
  */
 @SingleIn(AppScope::class)
 class ReminderActions @Inject constructor(
-    private val classes: ClassRepository,
+    private val completions: LessonCompletions,
     private val notifier: Notifier,
     private val marks: RecentMarks,
     private val clock: WallClock,
@@ -33,9 +29,9 @@ class ReminderActions @Inject constructor(
      *
      * **The lesson, not the class.** A group reminder names the group and is one notification, so its
      * «Проведено» has to settle the room the same way the schedule's swipe does: one status, and every
-     * still-expected member carried to present and billed ([ClassRepository.setStatus]).
+     * still-expected member carried to present and billed ([LessonCompletions.complete]).
      *
-     * **Legality is asked the same way the sheet asks it** ([SessionRules.sessionTransitions]), so the
+     * **Legality is checked inside the completion transaction**, so the
      * button can never do what the app's own menu would refuse. It matters here more than on screen,
      * because a notification is a stale view of the lesson by construction: it can sit in the tray for
      * hours while the lesson is cancelled, deleted, or already completed by hand, and the tutor tapping
@@ -47,15 +43,7 @@ class ReminderActions @Inject constructor(
      * read would otherwise leave the reminder there, still offering a tap that had already been made.
      */
     suspend fun complete(classId: Long): Boolean = try {
-        val session = classes.getSessionFor(classId)
-        when {
-            session == null -> false
-            LessonStatus.COMPLETED !in SessionRules.sessionTransitions(session) -> false
-            else -> (classes.setStatus(session, LessonStatus.COMPLETED) as? LessonWrite.Written)?.value
-                ?.takeIf { it.isNotEmpty() }
-                // Kept for Today's Undo: neither the widget nor a notification can offer one where it is tapped.
-                ?.let { marks.record(ClassSession(session.groupId, it), clock.now()) } != null
-        }
+        completions.complete(classId)?.let { marks.record(it, clock.now()) } != null
     } finally {
         notifier.cancelClassReminder(classId)
     }

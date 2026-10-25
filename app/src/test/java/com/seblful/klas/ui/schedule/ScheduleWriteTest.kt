@@ -42,7 +42,7 @@ class ScheduleWriteTest : ScheduleTestFixture() {
         advanceUntilIdle()
         val receipt = vm.completions.stream.first()
         assertEquals(LessonStatus.COMPLETED, receipt.status)
-        vm.correctCompletion(receipt, undo = true)
+        vm.undoCompletion(receipt)
         advanceUntilIdle()
         val corrected = env.classRepo.getById(id)!!
         assertEquals(LessonStatus.SCHEDULED, corrected.status)
@@ -175,7 +175,7 @@ class ScheduleWriteTest : ScheduleTestFixture() {
         val vm = mainRule.own(
             ScheduleViewModel(
                 env.classRepo, env.studentRepo, env.subjectRepo, env.groupRepo, env.homeworkRepo,
-                env.lessonChanges, mainRule.appScope,
+                env.lessonChanges, env.lessonCompletions, mainRule.appScope,
                 mainRule.dispatcher, env.clock,
             ),
         )
@@ -202,7 +202,7 @@ class ScheduleWriteTest : ScheduleTestFixture() {
         val vm = mainRule.own(
             ScheduleViewModel(
                 env.classRepo, env.studentRepo, env.subjectRepo, env.groupRepo, env.homeworkRepo,
-                env.lessonChanges, mainRule.appScope,
+                env.lessonChanges, env.lessonCompletions, mainRule.appScope,
                 mainRule.dispatcher, env.clock,
             ),
         )
