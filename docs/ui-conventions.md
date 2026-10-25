@@ -26,8 +26,9 @@ Build screens from shared state and controls. Feature rules belong in the domain
 - A change that can be reversed is said with Undo instead of confirmed first: lesson status, moves and
   attendance, archiving, payment edits and deletions, homework, deleting an unused subject — each through
   `Messages.undoable`, one call and one wording. Undo is
-  guarded — it applies only while the thing is as the change left it, and says so when it is not. The
-  calendar settles after `UndoWindow` (`settleAfterUndoWindow`). Confirms stay where the docs require them
+  guarded — it applies only while the thing is as the change left it, and says so when it is not. The shared
+  `LessonChanges` workflow owns the calendar's undo window; bind it to the application scope
+  and the screen's failure event once with `inScope`. Confirms stay where the docs require them
   (deleting a taught lesson, forms that drop members) or where nothing can be undone (restore a backup).
 - Rotation/resizing is handled in place by `MainActivity.configChanges`; dialog text still uses
   `rememberSaveable`. Save a `MoneyTextField`'s text and derive `MoneyField` from it.

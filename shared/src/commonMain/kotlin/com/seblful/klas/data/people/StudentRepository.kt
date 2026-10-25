@@ -64,10 +64,9 @@ class StudentRepository @Inject constructor(
 
     /**
      * Archives [student] undoably: their planned lessons are called off as by [setArchived], and the
-     * receipts returned take them back through [unarchive]. The caller settles the receipts
-     * ([ClassRepository.settleAll]) once the undo window closes.
+     * receipts returned take them back through [unarchive]. LessonChanges owns their settlement.
      */
-    suspend fun archive(student: Student): List<SessionReceipt> {
+    internal suspend fun archive(student: Student): List<SessionReceipt> {
         val cancelled = classes.cancelScheduledForUndoable(student.id)
         dao.upsert(student.copy(archived = true).toEntity())
         return cancelled
@@ -77,7 +76,7 @@ class StudentRepository @Inject constructor(
      * Takes [archive] back: the student is active again, and each lesson it called off is restored while
      * it is unchanged since and its hour free. Returns how many could not be.
      */
-    suspend fun unarchive(studentId: Long, cancelled: List<SessionReceipt>): Int {
+    internal suspend fun unarchive(studentId: Long, cancelled: List<SessionReceipt>): Int {
         // The stored row, not the caller's copy, so an edit made in the window survives.
         dao.getById(studentId)?.let { dao.upsert(it.copy(archived = false)) }
         return classes.undoAll(cancelled).count { it != UndoResult.Restored }

@@ -44,18 +44,18 @@ internal fun BatchMessages(batch: LessonBatch, messages: Messages) {
                     resources.getQuantityString(R.plurals.today_marked, done.sessions.size, done.sessions.size),
                 ) { batch.undo(done) }
                 is LessonBatch.Done.Cancelled -> messages.undoable(
-                    resources.getQuantityString(R.plurals.batch_cancelled, done.receipts.size, done.receipts.size),
+                    resources.getQuantityString(R.plurals.batch_cancelled, done.changes.size, done.changes.size),
                 ) { batch.undo(done) }
                 is LessonBatch.Done.Replanned -> {
                     val clashed =
                         resources.getQuantityString(R.plurals.batch_replan_clashed, done.clashed, done.clashed)
-                    if (done.receipts.isEmpty()) {
+                    if (done.changes.isEmpty()) {
                         messages.show(clashed)
                     } else {
                         val back = resources.getQuantityString(
                             R.plurals.batch_replanned,
-                            done.receipts.size,
-                            done.receipts.size,
+                            done.changes.size,
+                            done.changes.size,
                         )
                         messages.undoable(if (done.clashed > 0) "$back · $clashed" else back) { batch.undo(done) }
                     }

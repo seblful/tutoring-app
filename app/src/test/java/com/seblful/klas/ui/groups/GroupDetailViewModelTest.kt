@@ -52,6 +52,7 @@ class GroupDetailViewModelTest {
             classes = env.classRepo,
             homework = env.homeworkRepo,
             balances = env.balanceRepo,
+            lessonChanges = env.lessonChanges,
             appScope = mainRule.appScope,
             computation = mainRule.dispatcher,
             clock = env.clock,
@@ -250,7 +251,7 @@ class GroupDetailViewModelTest {
         runCurrent()
 
         val archived = events.single() as GroupDetailViewModel.Event.Archived
-        assertEquals(2, archived.cancelled.size)
+        assertEquals(2, archived.archive.cancelledLessons)
         assertEquals(0, vm.state.current.plannedLessons)
 
         vm.undoArchive(archived)

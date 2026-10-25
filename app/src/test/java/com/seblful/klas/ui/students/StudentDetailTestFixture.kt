@@ -33,7 +33,7 @@ abstract class StudentDetailTestFixture {
         StudentDetailViewModel(
             savedStateHandle = SavedStateHandle(mapOf("id" to id)),
             students = env.studentRepo,
-            classes = env.classRepo,
+            lessonChanges = env.lessonChanges,
             details = StudentDetailsQuery(
                 env.studentRepo, env.subjectRepo, env.enrollmentRepo, env.classRepo, env.groupRepo,
                 env.homeworkRepo, env.paymentRepo, env.rateHistoryRepo, env.clock,

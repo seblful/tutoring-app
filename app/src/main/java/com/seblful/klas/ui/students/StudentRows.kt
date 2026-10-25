@@ -207,7 +207,7 @@ internal fun Messages.showStudentEvent(
         StudentDetailViewModel.Event.RemoveBlockedHasClasses ->
             show(resources.getString(R.string.student_subject_remove_blocked))
         is StudentDetailViewModel.Event.Archived ->
-            undoable(resources.archivedMessage(event.cancelled.size)) { viewModel.undoArchive(event) }
+            undoable(resources.archivedMessage(event.archive.cancelledLessons)) { viewModel.undoArchive(event) }
         is StudentDetailViewModel.Event.ArchiveUndoKept ->
             show(resources.getQuantityString(R.plurals.archive_undo_kept, event.count, event.count))
         is StudentDetailViewModel.Event.PaymentCorrected ->

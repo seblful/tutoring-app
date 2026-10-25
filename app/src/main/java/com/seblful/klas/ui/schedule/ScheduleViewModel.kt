@@ -5,7 +5,6 @@ import androidx.lifecycle.viewModelScope
 import com.seblful.klas.data.homework.HomeworkRepository
 import com.seblful.klas.data.lessons.ClassRepository
 import com.seblful.klas.data.lessons.LessonWrite
-import com.seblful.klas.data.lessons.SessionReceipt
 import com.seblful.klas.data.lessons.UndoResult
 import com.seblful.klas.data.people.GroupRepository
 import com.seblful.klas.data.people.StudentRepository
@@ -35,6 +34,8 @@ import com.seblful.klas.domain.time.today
 import com.seblful.klas.format.days
 import com.seblful.klas.format.minutes
 import com.seblful.klas.format.zones
+import com.seblful.klas.lessons.LessonChange
+import com.seblful.klas.lessons.LessonChanges
 import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.common.state.UiEvents
 import com.seblful.klas.ui.common.state.derive
@@ -42,7 +43,6 @@ import com.seblful.klas.ui.common.state.hold
 import com.seblful.klas.ui.common.state.map
 import com.seblful.klas.ui.common.state.ready
 import com.seblful.klas.ui.common.state.readyOrLoadingAfter
-import com.seblful.klas.ui.common.state.settleAfterUndoWindow
 import com.seblful.klas.ui.common.state.shared
 import com.seblful.klas.ui.common.state.valueOrNull
 import com.seblful.klas.ui.common.state.write
@@ -94,6 +94,7 @@ class ScheduleViewModel @Inject constructor(
     private val subjects: SubjectRepository,
     private val groups: GroupRepository,
     private val homework: HomeworkRepository,
+    lessonChanges: LessonChanges,
     @param:ApplicationScope private val appScope: CoroutineScope,
     @param:Computation private val computation: CoroutineDispatcher,
     private val clock: WallClock,
@@ -191,7 +192,7 @@ class ScheduleViewModel @Inject constructor(
     }
 
     /** A change from the sheet the tutor can take back from its message — see [undo]. */
-    data class Undoable(val change: Change, val receipt: SessionReceipt) {
+    data class Undoable(val change: Change, val undo: LessonChange) {
         enum class Change { CANCELLED, REPLANNED, MOVED, ATTENDANCE }
     }
 
@@ -200,7 +201,9 @@ class ScheduleViewModel @Inject constructor(
     val undoables = UiEvents<Undoable>()
 
     /** Lessons picked by a long-press, marked taught or cancelled together — see [LessonBatch]. */
-    val batch = LessonBatch(classes, appScope)
+    val batch = LessonBatch(classes, lessonChanges, appScope)
+
+    private val changes = lessonChanges.inScope(appScope) { events.send(Event.ACTION_FAILED) }
 
     private val homeworkActions = HomeworkActions(homework, appScope, events, Event.ACTION_FAILED)
 
@@ -472,7 +475,7 @@ class ScheduleViewModel @Inject constructor(
     fun setStatus(session: ClassSession, status: LessonStatus) {
         if (status == LessonStatus.COMPLETED) return complete(session)
         write {
-            when (val changed = classes.setStatusUndoable(session, status)) {
+            when (val changed = changes.setStatus(session, status)) {
                 is LessonWrite.HourTaken -> reportHourTaken(changed.clash)
                 is LessonWrite.Written -> offerUndo(
                     changed.value,
@@ -503,7 +506,7 @@ class ScheduleViewModel @Inject constructor(
 
     fun setAttendance(klass: TutoringClass, attended: Attended) {
         write {
-            when (val marked = classes.setAttendanceUndoable(klass, attended)) {
+            when (val marked = changes.setAttendance(klass, attended)) {
                 is LessonWrite.Written -> offerUndo(marked.value, Undoable.Change.ATTENDANCE)
                 LessonWrite.Gone -> events.send(Event.LESSON_GONE)
                 is LessonWrite.HourTaken -> Unit
@@ -520,7 +523,7 @@ class ScheduleViewModel @Inject constructor(
     fun moveTo(session: ClassSession, day: LocalDate, at: LocalTime) {
         val newStart = day.atTime(at).toInstant(zone)
         write {
-            when (val moved = classes.moveUndoable(session, newStart, now = clock.now())) {
+            when (val moved = changes.move(session, newStart, now = clock.now())) {
                 is LessonWrite.HourTaken -> reportHourTaken(moved.clash)
                 is LessonWrite.Written -> offerUndo(moved.value, Undoable.Change.MOVED)
                 LessonWrite.Gone -> Unit
@@ -534,7 +537,7 @@ class ScheduleViewModel @Inject constructor(
      */
     fun undo(change: Undoable) {
         write {
-            when (val undone = classes.undo(change.receipt)) {
+            when (val undone = changes.undo(change.undo)) {
                 UndoResult.Restored -> Unit
                 UndoResult.ChangedSince -> events.send(Event.UNDO_CHANGED)
                 is UndoResult.HourTaken -> reportHourTaken(undone.clash)
@@ -543,10 +546,9 @@ class ScheduleViewModel @Inject constructor(
         }
     }
 
-    private suspend fun offerUndo(receipt: SessionReceipt?, change: Undoable.Change) {
-        receipt ?: return
-        undoables.send(Undoable(change, receipt))
-        appScope.settleAfterUndoWindow(events, Event.ACTION_FAILED) { classes.settle(receipt) }
+    private fun offerUndo(undo: LessonChange?, change: Undoable.Change) {
+        undo ?: return
+        undoables.send(Undoable(change, undo))
     }
 
     private suspend fun reportHourTaken(clash: ClassSession) {

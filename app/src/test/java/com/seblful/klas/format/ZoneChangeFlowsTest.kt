@@ -61,7 +61,7 @@ class ZoneChangeFlowsTest {
             val id = env.fixtures.lesson(subject, listOf(student), instant).single()
             val vm = main.own(
                 ScheduleViewModel(
-                    env.classRepo, env.studentRepo, env.subjectRepo, env.groupRepo, env.homeworkRepo,
+                    env.classRepo, env.studentRepo, env.subjectRepo, env.groupRepo, env.homeworkRepo, env.lessonChanges,
                     main.appScope, main.dispatcher, clock,
                 ),
             )

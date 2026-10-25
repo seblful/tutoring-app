@@ -37,13 +37,15 @@ class BatchActionsTest {
     @get:Rule(order = 3)
     val language = AppLocaleRule.english()
 
+    private val batch get() = LessonBatch(env.classRepo, env.lessonChanges, mainRule.appScope)
+
     @Test
     fun `the bar's cancel is drawn red, and marking taught is not`() {
         var red = Color.Unspecified
         compose.setContent {
             KlasTheme {
                 red = klasSemantics.destructive
-                Row { BatchActions(LessonBatch(env.classRepo, mainRule.appScope), allCancelled = false) }
+                Row { BatchActions(batch, allCancelled = false) }
             }
         }
 
@@ -54,7 +56,7 @@ class BatchActionsTest {
     @Test
     fun `with every lesson picked cancelled, the bar offers to return them to the plan, and only that`() {
         compose.setContent {
-            KlasTheme { Row { BatchActions(LessonBatch(env.classRepo, mainRule.appScope), allCancelled = true) } }
+            KlasTheme { Row { BatchActions(batch, allCancelled = true) } }
         }
 
         compose.onNodeWithContentDescription("Return to planned").assertExists()

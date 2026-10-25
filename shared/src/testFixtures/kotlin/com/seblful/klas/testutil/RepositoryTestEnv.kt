@@ -18,6 +18,7 @@ import com.seblful.klas.data.people.StudentRepository
 import com.seblful.klas.data.people.SubjectRepository
 import com.seblful.klas.data.settings.GuideRepository
 import com.seblful.klas.data.settings.SettingsRepository
+import com.seblful.klas.lessons.LessonChanges
 import com.seblful.klas.maintenance.Maintenance
 import com.seblful.klas.notifications.DueDigest
 import com.seblful.klas.notifications.Notifier
@@ -90,6 +91,8 @@ open class RepositoryTestEnv(
     val enrollmentRepo = EnrollmentRepository(studentDao, priceDao, classRepo, rateHistoryRepo, transactor)
 
     val studentRepo = StudentRepository(studentDao, classRepo, calendarMirror)
+
+    val lessonChanges = LessonChanges(classRepo, studentRepo, groupRepo)
 
     val homeworkRepo = HomeworkRepository(homeworkDao, classRepo, clock, calendarMirror)
 
