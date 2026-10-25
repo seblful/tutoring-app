@@ -1,0 +1,91 @@
+package com.seblful.klas.ui.students
+
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.res.stringResource
+import com.seblful.klas.R
+import com.seblful.klas.domain.billing.PaymentSuggestions
+import com.seblful.klas.domain.model.Payment
+import com.seblful.klas.domain.model.PaymentMethod
+import com.seblful.klas.format.toLocalDate
+import com.seblful.klas.ui.common.Messages
+import kotlinx.datetime.LocalDate
+
+internal data class PaymentDefaults(
+    val day: LocalDate,
+    val method: PaymentMethod?,
+    val suggestions: PaymentSuggestions,
+)
+
+/** One screen's payment interaction, shared by the student's overview and full payment list. */
+internal class CardPayments(
+    private val viewModel: StudentDetailViewModel,
+    private val deleteWithUndo: (Payment) -> Unit,
+) {
+    sealed interface Dialog {
+        data class Adding(val defaults: PaymentDefaults) : Dialog
+        data class Editing(val payment: Payment) : Dialog
+    }
+
+    var dialog: Dialog? by mutableStateOf(null)
+        private set
+
+    fun add() {
+        dialog = viewModel.paymentDefaults()?.let { Dialog.Adding(it) }
+    }
+
+    fun open(payment: Payment) {
+        dialog = Dialog.Editing(payment)
+    }
+
+    fun dismiss() {
+        dialog = null
+    }
+
+    @Composable
+    fun Dialogs() {
+        val shown = dialog ?: return
+        key(shown) {
+            when (shown) {
+                is Dialog.Adding -> PaymentDialog(
+                    title = stringResource(R.string.payment_add_title),
+                    initialAmount = null,
+                    initialDate = shown.defaults.day,
+                    initialMethod = shown.defaults.method,
+                    suggestions = shown.defaults.suggestions,
+                    onConfirm = viewModel::addPayment,
+                    onDismiss = ::dismiss,
+                )
+                is Dialog.Editing -> {
+                    val payment = shown.payment
+                    PaymentDialog(
+                        title = stringResource(R.string.payment_edit_title),
+                        initialAmount = payment.amount,
+                        initialDate = payment.date.toLocalDate(),
+                        initialMethod = payment.method,
+                        onConfirm = { amount, day, method -> viewModel.editPayment(payment, amount, day, method) },
+                        onDelete = { deleteWithUndo(payment) },
+                        onDismiss = ::dismiss,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+internal fun rememberCardPayments(viewModel: StudentDetailViewModel, messages: Messages): CardPayments {
+    val currentMessages by rememberUpdatedState(messages)
+    val deleted by rememberUpdatedState(stringResource(R.string.payment_deleted))
+    return remember(viewModel) {
+        CardPayments(viewModel) { payment ->
+            viewModel.deletePayment(payment)
+            currentMessages.undoable(deleted) { viewModel.restorePayment(payment) }
+        }
+    }
+}

@@ -138,49 +138,6 @@ internal fun SubjectRow(
     )
 }
 
-/** Adding a payment, or correcting [editing]; nothing while neither is asked for. */
-@Composable
-internal fun PaymentDialogs(
-    viewModel: StudentDetailViewModel,
-    adding: Boolean,
-    editing: Payment?,
-    onDelete: (Payment) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    if (adding) {
-        PaymentDialog(
-            title = stringResource(R.string.payment_add_title),
-            initialAmount = null,
-            initialDate = viewModel.paymentDay(),
-            initialMethod = viewModel.lastPaymentMethod(),
-            suggestions = viewModel.paymentSuggestions(),
-            onConfirm = viewModel::addPayment,
-            onDismiss = onDismiss,
-        )
-    }
-    editing?.let { payment ->
-        PaymentDialog(
-            title = stringResource(R.string.payment_edit_title),
-            initialAmount = payment.amount,
-            initialDate = payment.date.toLocalDate(),
-            initialMethod = payment.method,
-            onConfirm = { amount, date, method -> viewModel.editPayment(payment, amount, date, method) },
-            onDelete = { onDelete(payment) },
-            onDismiss = onDismiss,
-        )
-    }
-}
-
-/** Deletes a payment and offers it back, in [messages]. */
-@Composable
-internal fun paymentDeleteWithUndo(viewModel: StudentDetailViewModel, messages: Messages): (Payment) -> Unit {
-    val deleted = stringResource(R.string.payment_deleted)
-    return { payment ->
-        viewModel.deletePayment(payment)
-        messages.undoable(deleted) { viewModel.restorePayment(payment) }
-    }
-}
-
 /**
  * Says [event] in [this] — the card's words on every page of it, Undo included. The card says
  * [StudentDetailViewModel.Event.RemoveBlockedHasClasses] itself first, with the way to the lessons only it

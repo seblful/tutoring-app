@@ -75,16 +75,14 @@ private fun StudentList(
     onLessonClick: (Long) -> Unit,
 ) {
     val history = rememberLessonHistory(state)
-    var addingPayment by remember { mutableStateOf(false) }
-    var editingPayment by remember { mutableStateOf<Payment?>(null) }
     // A value here, not a delegate the list's builder reads — see docs/ui-conventions.md.
     val now = viewModel.minute.collectAsStateWithLifecycle().value
 
     val messages = rememberMessages()
     val homework = rememberCardHomework(viewModel.cardHomework, messages)
+    val cardPayments = rememberCardPayments(viewModel, messages)
 
     ShowStudentMessages(viewModel, messages)
-    val deletePayment = paymentDeleteWithUndo(viewModel, messages)
 
     KlasScreen(
         title = stringResource(section.titleRes),
@@ -105,8 +103,8 @@ private fun StudentList(
                 )
                 StudentSection.PAYMENTS -> payments(
                     payments = state.payments,
-                    onAdd = { addingPayment = true },
-                    onEdit = { editingPayment = it },
+                    onAdd = cardPayments::add,
+                    onEdit = cardPayments::open,
                 )
                 StudentSection.HOMEWORK -> homeworkItems(
                     owner = state.student?.let { Assignee.Student(it.id) },
@@ -120,13 +118,7 @@ private fun StudentList(
         }
     }
 
-    PaymentDialogs(
-        viewModel = viewModel,
-        adding = addingPayment,
-        editing = editingPayment,
-        onDelete = deletePayment,
-        onDismiss = { addingPayment = false; editingPayment = null },
-    )
+    cardPayments.Dialogs()
     homework.Dialogs()
 }
 

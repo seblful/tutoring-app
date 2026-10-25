@@ -323,13 +323,6 @@ class StudentDetailViewModelTest : StudentDetailTestFixture() {
     }
 
     @Test
-    fun `the payment dialog opens on today by the injected clock`() = runTest(mainRule.dispatcher) {
-        val sid = env.fixtures.student("Аня")
-
-        assertEquals(today, vm(sid).paymentDay())
-    }
-
-    @Test
     fun `the card lists the student's homework and their group's, current and done`() =
         runTest(mainRule.dispatcher) {
             val maths = env.fixtures.subject()

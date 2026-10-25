@@ -11,7 +11,6 @@ import com.seblful.klas.data.people.EnrollmentRepository
 import com.seblful.klas.data.people.StudentRepository
 import com.seblful.klas.di.ApplicationScope
 import com.seblful.klas.di.Computation
-import com.seblful.klas.domain.billing.PaymentSuggestions
 import com.seblful.klas.domain.model.Assignee
 import com.seblful.klas.domain.model.ClassMode
 import com.seblful.klas.domain.model.Money
@@ -205,15 +204,11 @@ class StudentDetailViewModel @AssistedInject constructor(
         write { payments.record(studentId, amount, day, method) }
     }
 
-    /** The one-tap amounts a new payment offers — see [PaymentSuggestions]. */
-    fun paymentSuggestions(): PaymentSuggestions =
-        state.value.valueOrNull()?.paymentSuggestions ?: PaymentSuggestions.NONE
-
-    /** How they paid last — what a new payment is offered as. */
-    fun lastPaymentMethod(): PaymentMethod? = state.value.valueOrNull()?.lastPaymentMethod
-
-    /** The day the payment dialog opens on — off the same clock that will stamp the save. */
-    fun paymentDay(): LocalDate = payments.today()
+    /** One opening snapshot; unavailable until this student's card has loaded. */
+    internal fun paymentDefaults(): PaymentDefaults? {
+        val loaded = state.value.valueOrNull()?.takeIf { it.student != null } ?: return null
+        return PaymentDefaults(payments.today(), loaded.lastPaymentMethod, loaded.paymentSuggestions)
+    }
 
     /** Corrects a payment already recorded, keeping its id, and offers the correction back. */
     fun editPayment(payment: Payment, amount: Money, day: LocalDate, method: PaymentMethod? = payment.method) {

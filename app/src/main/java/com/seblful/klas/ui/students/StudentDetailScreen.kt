@@ -107,13 +107,12 @@ private fun StudentCard(
 
     val messages = rememberMessages()
     val homework = rememberCardHomework(viewModel.cardHomework, messages)
+    val cardPayments = rememberCardPayments(viewModel, messages)
 
     var addingSubject by remember { mutableStateOf(false) }
     var pricingSubjectId by remember { mutableStateOf<Long?>(null) }
     // Asked first: taking a subject off a student forgets its price and the log of its past prices.
     var removingSubjectId by rememberSaveable { mutableStateOf<Long?>(null) }
-    var addingPayment by remember { mutableStateOf(false) }
-    var editingPayment by remember { mutableStateOf<Payment?>(null) }
     var confirmingArchive by remember { mutableStateOf(false) }
     var taskHandled by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(student?.id, initialTask) {
@@ -121,7 +120,7 @@ private fun StudentCard(
         // Each task's dialog opens over the overview, which shows the section it adds to.
         when (initialTask) {
             StudentTask.HOMEWORK -> homework.add()
-            StudentTask.PAYMENT -> addingPayment = true
+            StudentTask.PAYMENT -> cardPayments.add()
             StudentTask.SUBJECT -> addingSubject = true
         }
         taskHandled = true
@@ -155,8 +154,6 @@ private fun StudentCard(
             }
         }
     }
-
-    val deletePayment = paymentDeleteWithUndo(viewModel, messages)
 
     // A student's name is what this screen is *about*, so it gets the large title Material designed for
     // exactly that — collapsing into an ordinary bar as the list scrolls. [TitleSize.Large] is that, and the
@@ -231,7 +228,7 @@ private fun StudentCard(
             item(key = StudentDetailKeys.BALANCE, contentType = StudentDetailKeys.BALANCE) {
                 BalanceCard(
                     state,
-                    onAddPayment = { addingPayment = true },
+                    onAddPayment = cardPayments::add,
                     onStatement = { choosingStatement = true },
                     modifier = animateInPlace(cardModifier),
                 )
@@ -260,7 +257,7 @@ private fun StudentCard(
             item(key = StudentDetailKeys.PAYMENTS, contentType = StudentDetailKeys.PAYMENTS) {
                 PaymentsSection(
                     payments = state.payments,
-                    onEdit = { editingPayment = it },
+                    onEdit = cardPayments::open,
                     onSeeAll = { navigation.seeAll(StudentSection.PAYMENTS) },
                     modifier = animateInPlace(cardModifier),
                 )
@@ -305,13 +302,7 @@ private fun StudentCard(
             )
         }
     }
-    PaymentDialogs(
-        viewModel = viewModel,
-        adding = addingPayment,
-        editing = editingPayment,
-        onDelete = deletePayment,
-        onDismiss = { addingPayment = false; editingPayment = null },
-    )
+    cardPayments.Dialogs()
     homework.Dialogs()
     val confirm = state.archiveIntent as? ArchiveIntent.Confirm
     if (confirmingArchive && confirm != null) {
