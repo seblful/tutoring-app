@@ -10,7 +10,6 @@ import com.seblful.klas.data.lessons.ClassRepository
 import com.seblful.klas.data.lessons.LessonWrite
 import com.seblful.klas.data.people.GroupRepository
 import com.seblful.klas.data.people.StudentRepository
-import com.seblful.klas.data.people.SubjectRepository
 import com.seblful.klas.data.settings.GuideRepository
 import com.seblful.klas.data.settings.SettingsRepository
 import com.seblful.klas.di.ApplicationScope
@@ -20,13 +19,11 @@ import com.seblful.klas.domain.guide.PhoneSetup
 import com.seblful.klas.domain.guide.PhoneStep
 import com.seblful.klas.domain.homework.HomeworkRules
 import com.seblful.klas.domain.lesson.LessonPhase
-import com.seblful.klas.domain.lesson.SessionRules
 import com.seblful.klas.domain.model.ClassSession
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.people.Captions
 import com.seblful.klas.domain.reports.Reports
-import com.seblful.klas.domain.schedule.DayBounds
 import com.seblful.klas.domain.schedule.DaySummary
 import com.seblful.klas.domain.time.WallClock
 import com.seblful.klas.format.days
@@ -35,6 +32,7 @@ import com.seblful.klas.notifications.NotificationPermission
 import com.seblful.klas.notifications.RecentMarks
 import com.seblful.klas.queries.homework.HomeworkLists
 import com.seblful.klas.queries.homework.HomeworkRow
+import com.seblful.klas.queries.lessons.TodayLessonsQuery
 import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.common.state.UiEvents
 import com.seblful.klas.ui.common.state.derive
@@ -118,7 +116,7 @@ data class FirstStepsCard(val steps: FirstSteps, val student: Long?)
 class TodayViewModel @Inject constructor(
     private val classes: ClassRepository,
     students: StudentRepository,
-    subjects: SubjectRepository,
+    todayLessons: TodayLessonsQuery,
     groups: GroupRepository,
     balances: BalanceRepository,
     homework: HomeworkRepository,
@@ -149,26 +147,19 @@ class TodayViewModel @Inject constructor(
     val events = UiEvents<Event>()
 
     private val captions: Flow<Captions> =
-        combine(students.observeAll(), subjects.observeAll(), groups.observeAll()) { s, sub, g ->
-            Captions.of(s, sub, g)
+        combine(students.observeAll(), groups.observeAll()) { people, groupList ->
+            Captions.of(people, emptyList(), groupList)
         }
-
-    private val todaysSessions: Flow<List<ClassSession>> = clock.days().flatMapLatest { day ->
-        val bounds = DayBounds.of(day, clock.zone)
-        classes.observeBetween(bounds.start, bounds.end).map { dayClasses ->
-            SessionRules.sessions(dayClasses).filter { it.status != LessonStatus.CANCELLED }
-        }
-    }
 
     private val lessons: Flow<List<TodayLessonRow>> =
-        combine(todaysSessions, captions, clock.minutes()) { sessions, names, now ->
-            sessions.sortedBy { it.start }.map { session ->
+        combine(todayLessons.observe(), clock.minutes()) { lessons, now ->
+            lessons.map { lesson ->
                 TodayLessonRow(
-                    session = session,
-                    who = names.titleOf(session),
-                    subject = names.subjectOf(session),
-                    phase = LessonPhase.of(session, now),
-                    minutesAway = (session.start - now).inWholeMinutes,
+                    session = lesson.session,
+                    who = lesson.who,
+                    subject = lesson.subject,
+                    phase = LessonPhase.of(lesson.session, now),
+                    minutesAway = (lesson.session.start - now).inWholeMinutes,
                 )
             }
         }

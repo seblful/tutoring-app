@@ -8,6 +8,7 @@ import com.seblful.klas.domain.model.Assignee
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.notifications.RecentMarks
+import com.seblful.klas.queries.lessons.TodayLessonsQuery
 import com.seblful.klas.testutil.FakeNotificationPermission
 import com.seblful.klas.testutil.MainDispatcherRule
 import com.seblful.klas.testutil.TestEnv
@@ -55,7 +56,9 @@ class TodayViewModelTest {
         TodayViewModel(
             classes = env.classRepo,
             students = env.studentRepo,
-            subjects = env.subjectRepo,
+            todayLessons = TodayLessonsQuery(
+                env.classRepo, env.studentRepo, env.subjectRepo, env.groupRepo, env.clock,
+            ),
             groups = env.groupRepo,
             balances = env.balanceRepo,
             homework = env.homeworkRepo,

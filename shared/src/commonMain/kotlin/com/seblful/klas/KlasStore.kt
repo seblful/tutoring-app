@@ -20,6 +20,7 @@ import com.seblful.klas.domain.time.WallClock
 import com.seblful.klas.lessons.LessonChanges
 import com.seblful.klas.maintenance.Maintenance
 import com.seblful.klas.notifications.Notifier
+import com.seblful.klas.queries.lessons.TodayLessonsQuery
 import com.seblful.klas.queries.reports.ReportsQuery
 import com.seblful.klas.queries.students.StudentDetailsQuery
 import com.seblful.klas.settings.DevicePreferences
@@ -46,6 +47,7 @@ interface KlasStore {
     val backup: BackupManager
     val restore: BackupRestore
     val maintenance: Maintenance
+    val todayLessons: TodayLessonsQuery
     val studentDetails: StudentDetailsQuery
     val reports: ReportsQuery
 }
