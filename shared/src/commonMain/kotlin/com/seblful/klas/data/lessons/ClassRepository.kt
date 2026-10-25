@@ -100,12 +100,6 @@ class ClassRepository @Inject constructor(
     fun observeForGroup(groupId: Long): Flow<List<TutoringClass>> =
         dao.observeForGroup(groupId).map { list -> list.map { it.toDomain() } }
 
-    /** [who]'s classes starting after [after] — a group's every member's. */
-    fun observeOf(who: Assignee, after: Instant): Flow<List<TutoringClass>> = when (who) {
-        is Assignee.Student -> dao.observeForStudentAfter(who.studentId, after.toEpochMilliseconds())
-        is Assignee.Group -> dao.observeForGroupAfter(who.groupId, after.toEpochMilliseconds())
-    }.map { list -> list.map { it.toDomain() } }
-
     /** Each student's nearest lessons at [now], keyed by student; one with no lessons has no entry. */
     fun observeStudentSpans(now: Instant): Flow<Map<Long, NearestLessons>> =
         lessons.observeStudentSpans(now.toEpochMilliseconds()).map { it.toNearest() }

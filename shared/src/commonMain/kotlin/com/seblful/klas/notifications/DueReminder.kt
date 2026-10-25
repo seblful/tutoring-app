@@ -1,6 +1,5 @@
 package com.seblful.klas.notifications
 
-import com.seblful.klas.data.homework.HomeworkRepository
 import com.seblful.klas.data.lessons.ClassRepository
 import com.seblful.klas.data.people.GroupRepository
 import com.seblful.klas.data.people.StudentRepository
@@ -8,6 +7,7 @@ import com.seblful.klas.data.people.SubjectRepository
 import com.seblful.klas.data.settings.SettingsRepository
 import com.seblful.klas.domain.reminders.Reminders
 import com.seblful.klas.domain.time.WallClock
+import com.seblful.klas.queries.homework.HomeworkQuery
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
@@ -30,7 +30,7 @@ class DueReminder @Inject constructor(
     students: StudentRepository,
     subjects: SubjectRepository,
     groups: GroupRepository,
-    private val homework: HomeworkRepository,
+    private val homework: HomeworkQuery,
     private val notifier: Notifier,
     private val settings: SettingsRepository,
     private val clock: WallClock,

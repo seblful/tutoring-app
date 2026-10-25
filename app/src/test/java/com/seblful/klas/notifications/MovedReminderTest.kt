@@ -17,7 +17,7 @@ class MovedReminderTest {
     val env = TestEnv()
 
     private fun due() = DueReminder(
-        env.classRepo, env.studentRepo, env.subjectRepo, env.groupRepo, env.homeworkRepo,
+        env.classRepo, env.studentRepo, env.subjectRepo, env.groupRepo, env.homeworkQuery,
         env.notifier, env.settingsRepo, env.clock,
     )
 

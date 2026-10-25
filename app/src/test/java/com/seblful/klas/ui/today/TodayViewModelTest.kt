@@ -61,7 +61,7 @@ class TodayViewModelTest {
             ),
             groups = env.groupRepo,
             balances = env.balanceRepo,
-            homework = env.homeworkRepo,
+            homework = env.homeworkQuery,
             settings = env.settingsRepo,
             payments = env.paymentRepo,
             guide = env.guideRepo,

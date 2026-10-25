@@ -22,6 +22,7 @@ import com.seblful.klas.lessons.LessonCompletions
 import com.seblful.klas.maintenance.Maintenance
 import com.seblful.klas.notifications.Notifier
 import com.seblful.klas.queries.groups.GroupDetailsQuery
+import com.seblful.klas.queries.homework.HomeworkQuery
 import com.seblful.klas.queries.lessons.TodayLessonsQuery
 import com.seblful.klas.queries.reports.ReportsQuery
 import com.seblful.klas.queries.students.StudentDetailsQuery
@@ -45,6 +46,7 @@ interface KlasStore {
     val payments: PaymentRepository
     val rateHistory: RateHistoryRepository
     val homework: HomeworkRepository
+    val homeworkQuery: HomeworkQuery
     val settings: SettingsRepository
     val settingsWorkflow: SettingsWorkflow
     val backup: BackupManager

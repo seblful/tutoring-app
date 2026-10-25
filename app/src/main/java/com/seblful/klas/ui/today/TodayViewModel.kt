@@ -5,7 +5,6 @@ import com.seblful.klas.data.backup.AutoBackup
 import com.seblful.klas.data.billing.BalanceRepository
 import com.seblful.klas.data.billing.PaymentRepository
 import com.seblful.klas.data.billing.balanceOf
-import com.seblful.klas.data.homework.HomeworkRepository
 import com.seblful.klas.data.people.GroupRepository
 import com.seblful.klas.data.people.StudentRepository
 import com.seblful.klas.data.settings.GuideRepository
@@ -15,7 +14,6 @@ import com.seblful.klas.di.Computation
 import com.seblful.klas.domain.guide.FirstSteps
 import com.seblful.klas.domain.guide.PhoneSetup
 import com.seblful.klas.domain.guide.PhoneStep
-import com.seblful.klas.domain.homework.HomeworkRules
 import com.seblful.klas.domain.lesson.CompletionTiming
 import com.seblful.klas.domain.lesson.LessonPhase
 import com.seblful.klas.domain.model.ClassSession
@@ -25,12 +23,11 @@ import com.seblful.klas.domain.people.Captions
 import com.seblful.klas.domain.reports.Reports
 import com.seblful.klas.domain.schedule.DaySummary
 import com.seblful.klas.domain.time.WallClock
-import com.seblful.klas.format.days
 import com.seblful.klas.format.minutes
 import com.seblful.klas.lessons.LessonCompletions
 import com.seblful.klas.notifications.NotificationPermission
 import com.seblful.klas.notifications.RecentMarks
-import com.seblful.klas.queries.homework.HomeworkLists
+import com.seblful.klas.queries.homework.HomeworkQuery
 import com.seblful.klas.queries.homework.HomeworkRow
 import com.seblful.klas.queries.lessons.TodayLessonsQuery
 import com.seblful.klas.ui.common.state.Loadable
@@ -56,7 +53,6 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
-import kotlin.time.Duration.Companion.days
 import kotlin.time.Instant
 
 /**
@@ -120,7 +116,7 @@ class TodayViewModel @Inject constructor(
     todayLessons: TodayLessonsQuery,
     groups: GroupRepository,
     balances: BalanceRepository,
-    homework: HomeworkRepository,
+    homework: HomeworkQuery,
     settings: SettingsRepository,
     payments: PaymentRepository,
     private val guide: GuideRepository,
@@ -194,17 +190,7 @@ class TodayViewModel @Inject constructor(
 
     /** Current homework whose lesson is today, or has passed with it still open. */
     private val homeworkDue: Flow<List<HomeworkRow>> =
-        combine(
-            homework.observeWithLessons(since = clock.now() - HOMEWORK_LOOKBACK),
-            students.observeAll(),
-            groups.observeAll(),
-            clock.days(),
-        ) { withLessons, studentList, groupList, today ->
-            val names = Captions.of(studentList, emptyList(), groupList)
-            val taught = HomeworkRules.taught(withLessons.homework, studentList, groupList)
-            HomeworkLists.of(taught, withLessons.classes, names, today, clock.zone).current
-                .filter { it.due == HomeworkRules.Due.TODAY || it.due == HomeworkRules.Due.OVERDUE }
-        }
+        homework.observeDue()
 
     /**
      * When the last backup was, and whether it is old enough to say so. Never said before there is anyone to
@@ -340,10 +326,5 @@ class TodayViewModel @Inject constructor(
             val kept = completions.undoAll(marked.sessions)
             if (kept > 0) events.send(Event.UndoChanged)
         }
-    }
-
-    private companion object {
-        /** Far enough back that homework from a lesson missed last week still shows as overdue. */
-        val HOMEWORK_LOOKBACK = 14.days
     }
 }

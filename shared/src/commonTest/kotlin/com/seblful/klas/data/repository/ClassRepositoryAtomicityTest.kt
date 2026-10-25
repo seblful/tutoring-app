@@ -220,7 +220,7 @@ class ClassRepositoryAtomicityTest {
         }
         val mirror = CalendarMirror(
             env.classDao, env.attendanceDao, env.studentDao, env.subjectDao, env.groupDao, spying,
-            env.settingsRepo, env.homeworkDao, env.transactor, env.clock,
+            env.settingsRepo, env.homeworkQuery, env.transactor, env.clock,
         )
         val repo = ClassRepository(
             env.classDao, env.lessonDao, env.attendanceDao, mirror, env.reminders, env.transactor,

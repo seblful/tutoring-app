@@ -1,6 +1,5 @@
 package com.seblful.klas.calendar
 
-import com.seblful.klas.data.homework.HomeworkDao
 import com.seblful.klas.data.lessons.AttendanceDao
 import com.seblful.klas.data.lessons.ClassDao
 import com.seblful.klas.data.local.Transactor
@@ -11,13 +10,12 @@ import com.seblful.klas.data.people.SubjectDao
 import com.seblful.klas.data.settings.AppSettings
 import com.seblful.klas.data.settings.SettingsRepository
 import com.seblful.klas.data.toDomain
-import com.seblful.klas.domain.homework.HomeworkRules
-import com.seblful.klas.domain.homework.takes
 import com.seblful.klas.domain.lesson.CalendarSyncPolicy
 import com.seblful.klas.domain.model.Assignee
 import com.seblful.klas.domain.model.TutoringClass
 import com.seblful.klas.domain.schedule.Scheduling
 import com.seblful.klas.domain.time.WallClock
+import com.seblful.klas.queries.homework.HomeworkQuery
 import com.seblful.klas.runCatchingCancellable
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.Inject
@@ -37,7 +35,7 @@ class CalendarMirror @Inject constructor(
     private val groupDao: GroupDao,
     private val calendarSync: CalendarSync,
     private val settings: SettingsRepository,
-    private val homeworkDao: HomeworkDao,
+    private val homeworkQuery: HomeworkQuery,
     private val transactor: Transactor,
     private val clock: WallClock,
 ) {
@@ -54,40 +52,17 @@ class CalendarMirror @Inject constructor(
         changed: List<TutoringClass> = emptyList(),
     ) {
         if (!settings.calendarSyncEnabled) return
-        // Only the homework of whoever these lessons are for can be described on them or moved by them,
-        // and only those assignees' lessons decide where it is attached.
-        val homework = homeworkDao.getCurrent().map { it.toDomain() }
-            .filter { hw -> (classes + changed).any { hw.assignee.takes(it) } }
-        val lessonsOf = homework.groupBy { it.assignee }
-            .mapValues { (who, theirs) -> classesOf(who, after = theirs.minOf { it.givenAt }) }
-        val attached = homework.groupBy { HomeworkRules.attachedTo(it, lessonsOf.getValue(it.assignee))?.lessonId }
-        // Moving, cancelling or deleting a lesson can move homework between it and the first unchanged lesson
-        // after the homework was given; the changed lessons themselves are mirrored already.
-        val mirroredIds = classes.mapTo(mutableSetOf()) { it.id }
-        val changedIds = changed.mapTo(mutableSetOf()) { it.id }
-        val related = homework.filter { hw -> changed.any { hw.assignee.takes(it) } }
-            .flatMap { hw ->
-                val theirs = lessonsOf.getValue(hw.assignee)
-                val next = HomeworkRules.nextLesson(hw.assignee, hw.givenAt, theirs.filter { it.id !in changedIds })
-                theirs.filter { next != null && it.lessonId == next.lessonId && hw.assignee.takes(it) }
-            }
-            .filter { it.calendarEventId != null && it.id !in mirroredIds }
-            .distinctBy { it.id }
+        val homework = homeworkQuery.forCalendar(classes, changed)
         val pass = Pass(settings)
         try {
-            (classes + related).forEach {
-                pass.mirrorOne(it, CalendarEvent.description(it, attached[it.lessonId].orEmpty()))
+            (classes + homework.related).forEach {
+                pass.mirrorOne(it, CalendarEvent.description(it, homework.attached[it.lessonId].orEmpty()))
             }
         } finally {
             // Events already created keep their ids even when the pass stops early.
             withContext(NonCancellable) { pass.flush() }
         }
     }
-
-    private suspend fun classesOf(who: Assignee, after: Instant): List<TutoringClass> = when (who) {
-        is Assignee.Student -> classDao.forStudentAfter(who.studentId, after.toEpochMilliseconds())
-        is Assignee.Group -> classDao.forGroupAfter(who.groupId, after.toEpochMilliseconds())
-    }.map { it.toDomain() }
 
     /**
      * Re-mirrors every class. Run after the tutor turns calendar sync on, to backfill events for
@@ -172,11 +147,7 @@ class CalendarMirror @Inject constructor(
      * the event it has just left. It is on each owner's first lesson after [givenAt], and nowhere else.
      */
     suspend fun refreshHomework(assignees: Set<Assignee>, givenAt: Instant) = refresh {
-        assignees.flatMap { who ->
-            val theirs = classesOf(who, after = givenAt)
-            val next = HomeworkRules.nextLesson(who, givenAt, theirs) ?: return@flatMap emptyList()
-            theirs.filter { it.lessonId == next.lessonId && it.calendarEventId != null && who.takes(it) }
-        }.distinctBy { it.id }
+        homeworkQuery.refreshTargets(assignees, givenAt)
     }
 
     private suspend fun refresh(read: suspend () -> List<TutoringClass>) {

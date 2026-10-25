@@ -37,6 +37,7 @@ import com.seblful.klas.format.zones
 import com.seblful.klas.lessons.LessonChange
 import com.seblful.klas.lessons.LessonChanges
 import com.seblful.klas.lessons.LessonCompletions
+import com.seblful.klas.queries.homework.HomeworkQuery
 import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.common.state.UiEvents
 import com.seblful.klas.ui.common.state.derive
@@ -94,7 +95,8 @@ class ScheduleViewModel @Inject constructor(
     private val students: StudentRepository,
     private val subjects: SubjectRepository,
     private val groups: GroupRepository,
-    private val homework: HomeworkRepository,
+    homework: HomeworkRepository,
+    private val homeworkQuery: HomeworkQuery,
     lessonChanges: LessonChanges,
     private val lessonCompletions: LessonCompletions,
     @param:ApplicationScope private val appScope: CoroutineScope,
@@ -579,7 +581,7 @@ class ScheduleViewModel @Inject constructor(
      */
     fun homeworkAt(session: ClassSession): Flow<List<SheetHomework>> =
         combine(
-            homework.observeAttachedTo(session),
+            homeworkQuery.observeAttachedTo(session),
             everyone,
             groups.observeAll(),
         ) { attached, studentList, groupList ->

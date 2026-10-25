@@ -47,7 +47,7 @@ class GroupDetailViewModelTest {
             groups = env.groupRepo,
             details = GroupDetailsQuery(
                 env.groupRepo, env.studentRepo, env.subjectRepo, env.classRepo,
-                env.homeworkRepo, env.balanceRepo, env.clock,
+                env.homeworkQuery, env.balanceRepo,
             ),
             homework = env.homeworkRepo,
             lessonChanges = env.lessonChanges,

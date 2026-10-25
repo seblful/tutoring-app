@@ -2,7 +2,6 @@ package com.seblful.klas.queries.groups
 
 import com.seblful.klas.data.billing.BalanceRepository
 import com.seblful.klas.data.billing.balanceOf
-import com.seblful.klas.data.homework.HomeworkRepository
 import com.seblful.klas.data.lessons.ClassRepository
 import com.seblful.klas.data.people.GroupRepository
 import com.seblful.klas.data.people.StudentRepository
@@ -11,12 +10,8 @@ import com.seblful.klas.domain.billing.Billing
 import com.seblful.klas.domain.lesson.SessionRules
 import com.seblful.klas.domain.model.Attended
 import com.seblful.klas.domain.model.LessonStatus
-import com.seblful.klas.domain.model.TutoringClass
-import com.seblful.klas.domain.people.Captions
 import com.seblful.klas.domain.reports.Taught
-import com.seblful.klas.domain.time.WallClock
-import com.seblful.klas.format.days
-import com.seblful.klas.queries.homework.HomeworkLists
+import com.seblful.klas.queries.homework.HomeworkQuery
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
@@ -30,12 +25,9 @@ class GroupDetailsQuery @Inject constructor(
     private val students: StudentRepository,
     private val subjects: SubjectRepository,
     private val classes: ClassRepository,
-    private val homework: HomeworkRepository,
+    private val homework: HomeworkQuery,
     private val balances: BalanceRepository,
-    private val clock: WallClock,
 ) {
-    private data class Base(val details: GroupDetails, val classes: List<TutoringClass>)
-
     fun observe(groupId: Long): Flow<GroupDetails> {
         val base = combine(
             groups.observeById(groupId),
@@ -50,7 +42,7 @@ class GroupDetailsQuery @Inject constructor(
             val sessions = SessionRules.sessions(groupClasses).reversed()
             val taughtByStudent = groupClasses.filter { it.status == LessonStatus.COMPLETED }.groupBy { it.studentId }
             val roster = memberIds.toSet()
-            val card = GroupDetails(
+            GroupDetails(
                 group = group,
                 subjectName = group?.subjectId?.let { id -> allSubjects.firstOrNull { it.id == id }?.name },
                 // The sessions already collapsed above, rather than collapsing the same classes again.
@@ -73,23 +65,16 @@ class GroupDetailsQuery @Inject constructor(
                     )
                 },
             )
-            Base(card, groupClasses)
         }
 
         return combine(
             base,
             homework.observeForGroup(groupId),
             balances.observe(),
-            clock.days(),
-        ) { base, homeworkList, sums, today ->
-            val captions = Captions.of(
-                students = emptyList(),
-                subjects = emptyList(),
-                groups = listOfNotNull(base.details.group),
-            )
-            base.details.copy(
-                homework = HomeworkLists.of(homeworkList, base.classes, captions, today, clock.zone),
-                members = base.details.members.map { it.copy(balance = sums.balanceOf(it.student.id).state) },
+        ) { base, homework, sums ->
+            base.copy(
+                homework = homework,
+                members = base.members.map { it.copy(balance = sums.balanceOf(it.student.id).state) },
             )
         }
     }
