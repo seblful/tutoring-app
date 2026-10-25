@@ -177,7 +177,7 @@ class HomeworkCalendarTest {
         assertTrue("Анна" in env.calendar.calls.last { it.klass.id == lesson }.title)
         assertEquals("Exercise 12", description(lesson))
 
-        env.subjectRepo.upsert(env.subjectRepo.getById(subject)!!.copy(name = "Геометрия"))
+        env.subjectRepo.save(env.subjectRepo.getById(subject)!!.copy(name = "Геометрия"))
         assertTrue("Геометрия" in env.calendar.calls.last { it.klass.id == lesson }.title)
         assertEquals("Exercise 12", description(lesson))
     }

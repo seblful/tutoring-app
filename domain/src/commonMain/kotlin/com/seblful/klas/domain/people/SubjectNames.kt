@@ -8,7 +8,7 @@ import com.seblful.klas.domain.model.Subject
  * Two «Математика» cannot be told apart anywhere they are offered — the ticks on a student, the booking
  * form's picker, a group's subject — so a name is one subject, whatever its case and the spaces around it.
  * Nothing in the table enforces that (a unique index would be a migration, and a restored backup may
- * already hold a pair); the places a subject is named check here instead.
+ * already hold a pair); the subject repository applies this rule inside its write transaction.
  */
 object SubjectNames {
 

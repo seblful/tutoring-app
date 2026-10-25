@@ -62,7 +62,7 @@ abstract class ClassEditTestFixture {
         mode: ClassMode = ClassMode.IN_PERSON,
     ): Pair<Long, Long> {
         val studentId = env.fixtures.student(name = studentName, defaultMode = mode)
-        val subjectId = env.fixtures.subject(name = subjectName)
+        val subjectId = env.subjectRepo.createOrReuse(subjectName)
         env.enrollmentRepo.enroll(studentId, subjectId, price)
         return studentId to subjectId
     }

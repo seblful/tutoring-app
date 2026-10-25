@@ -115,6 +115,8 @@ mirrors and [database and backup](database-and-backup.md) for persistence contra
 - Students are archive-only. Subjects are deletable only without lessons, groups or enrolled students;
   names are unique ignoring case (`SubjectNames`). Foreign keys protect lesson, attendance and payment
   history with `ON DELETE RESTRICT`.
+- `SubjectRepository` resolves names and writes in one transaction. Inline student setup and the pilot
+  reuse an existing subject; explicit creation and rename refuse a taken name and return its identity.
 - In-person/remote mode defaults from the student, is overridable per lesson and becomes calendar location.
 - `price_history` logs student/group rate changes; saving an unchanged rate adds nothing.
 

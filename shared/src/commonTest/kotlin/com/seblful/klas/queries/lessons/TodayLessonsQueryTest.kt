@@ -82,7 +82,7 @@ class TodayLessonsQueryTest {
         runCurrent()
 
         store.students.upsert(Student(id = ann, name = "Anna"))
-        store.subjects.upsert(Subject(id = subject, name = "Geometry"))
+        store.subjects.save(Subject(id = subject, name = "Geometry"))
         store.groups.save(store.groups.getById(group)!!.copy(name = "Geometry group"), setOf(ann, bob))
         runCurrent()
 

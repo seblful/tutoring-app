@@ -4,6 +4,7 @@ import com.seblful.klas.data.lessons.AttendanceEntity
 import com.seblful.klas.data.lessons.ClassRepository
 import com.seblful.klas.data.lessons.LessonEntity
 import com.seblful.klas.data.local.upsertedId
+import com.seblful.klas.data.people.SubjectRepository
 import com.seblful.klas.domain.model.Assignee
 import com.seblful.klas.domain.model.Attended
 import com.seblful.klas.domain.model.ClassMode
@@ -39,8 +40,12 @@ class Fixtures(private val env: RepositoryTestEnv) {
             env.studentRepo.setArchived(env.studentRepo.getById(id)!!, archived = true)
         }
 
-    suspend fun subject(name: String = "Алгебра", id: Long = 0): Long =
-        env.subjectRepo.upsert(Subject(id, name))
+    suspend fun subject(name: String = "Алгебра", id: Long = 0): Long = when (
+        val saved = env.subjectRepo.save(Subject(id, name))
+    ) {
+        is SubjectRepository.Save.Saved -> saved.id
+        is SubjectRepository.Save.NameTaken -> error("Subject name already taken: $name")
+    }
 
     /**
      * A student priced for a subject — which is the only kind that can be booked for it, since a

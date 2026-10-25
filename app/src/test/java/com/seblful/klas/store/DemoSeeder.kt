@@ -89,7 +89,7 @@ internal class DemoSeeder @Inject constructor(
     }
 
     private suspend fun enroll(tutor: DemoTutor): Roster {
-        val subjectIds = DemoSubject.entries.associateWith { subjects.upsert(Subject(name = tutor.subjects[it])) }
+        val subjectIds = DemoSubject.entries.associateWith { subjects.createOrReuse(tutor.subjects[it]) }
         val studentIds = tutor.students.associate { s ->
             s.name to enrollment.createStudent(
                 Student(name = s.name, phone = s.phone, email = s.email, defaultMode = s.mode),

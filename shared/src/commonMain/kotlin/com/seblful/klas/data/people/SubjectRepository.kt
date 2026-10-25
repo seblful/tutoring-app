@@ -33,28 +33,43 @@ class SubjectRepository @Inject constructor(
 
     suspend fun getById(id: Long): Subject? = dao.getById(id)?.toDomain()
 
-    /** Saves [subject] and refreshes the event titles carrying its name (see [StudentRepository.upsert]). */
-    suspend fun upsert(subject: Subject): Long {
-        val before = dao.getById(subject.id)
-        val saved = upsertedId(dao.upsert(subject.toEntity()), subject.id)
-        if (before != null && before.name != subject.toEntity().name) calendar.refreshForSubject(saved)
-        return saved
+    sealed interface Save {
+        data class Saved(val id: Long) : Save
+        data class NameTaken(val existing: Subject) : Save
     }
 
-    /**
-     * Saves [subject] unless another subject already has its name ([SubjectNames.sameAs]); false when
-     * refused. Two «Математика» cannot be told apart anywhere they are offered.
-     */
-    suspend fun saveUnlessTaken(subject: Subject): Boolean {
-        val before = dao.getById(subject.id)
-        val saved = transactor.transaction {
-            val all = dao.getAll().map { it.toDomain() }
-            if (SubjectNames.sameAs(subject.name, all, exceptId = subject.id) != null) null
-            else upsertedId(dao.upsert(subject.toEntity()), subject.id)
-        } ?: return false
-        if (before != null && before.name != subject.toEntity().name) calendar.refreshForSubject(saved)
-        return true
+    /** Resolves a typed name atomically, preserving an existing subject's spelling and identity. */
+    suspend fun createOrReuse(name: String): Long {
+        val subject = normalized(Subject(name = name))
+        return transactor.transaction {
+            matching(subject)?.id ?: upsertedId(dao.upsert(subject.toEntity()), subject.id)
+        }
     }
+
+    /** Saves or renames a subject without taking another's name; rename mirror work stays internal. */
+    suspend fun save(subject: Subject): Save {
+        val named = normalized(subject)
+        val (result, renamed) = transactor.transaction {
+            val taken = matching(named)
+            if (taken != null) return@transaction Save.NameTaken(taken) to false
+            val before = dao.getById(named.id)
+            val id = upsertedId(dao.upsert(named.toEntity()), named.id)
+            Save.Saved(id) to (before != null && before.name != named.name)
+        }
+        if (result is Save.Saved && renamed) calendar.refreshForSubject(result.id)
+        return result
+    }
+
+    private fun normalized(subject: Subject): Subject = subject.copy(name = subject.name.trim()).also {
+        require(it.name.isNotEmpty()) { "Enter a subject name." }
+    }
+
+    private suspend fun matching(subject: Subject): Subject? = SubjectNames.sameAs(
+        subject.name,
+        // Legacy imports can contain duplicate names; resolve consistently without rewriting them.
+        dao.getAll().sortedBy { it.id }.map { it.toDomain() },
+        exceptId = subject.id,
+    )
 
     /** Why a subject could not be deleted — the two things that can reference one. */
     sealed interface Delete {

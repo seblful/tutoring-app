@@ -31,7 +31,7 @@ class MaintenanceTest {
     private fun maintenance() = env.maintenance
 
     private suspend fun seedClass(start: Instant, status: LessonStatus = LessonStatus.SCHEDULED): Long {
-        val subjectId = env.fixtures.subject("Математика")
+        val subjectId = env.subjectRepo.createOrReuse("Математика")
         val studentId = env.fixtures.pricedStudent(subjectId = subjectId, rate = Money.ofMajor(30))
         return env.fixtures.lesson(subjectId = subjectId, students = listOf(studentId), start = start)
             .single()

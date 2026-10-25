@@ -5,7 +5,6 @@ import com.seblful.klas.data.lessons.LessonWrite
 import com.seblful.klas.domain.model.ClassMode
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Student
-import com.seblful.klas.domain.model.Subject
 import kotlinx.coroutines.flow.first
 import kotlin.time.Instant
 
@@ -29,8 +28,7 @@ class PilotWorkflow(private val store: KlasStore) {
     suspend fun addStudent(name: String): PilotSnapshot {
         val trimmed = name.trim()
         require(trimmed.isNotEmpty()) { "Enter a student name." }
-        val subject = store.subjects.observeAll().first().firstOrNull { it.name == SUBJECT }
-            ?.id ?: store.subjects.upsert(Subject(name = SUBJECT))
+        val subject = store.subjects.createOrReuse(SUBJECT)
         store.enrollment.createStudent(Student(name = trimmed), mapOf(subject to RATE))
         return load()
     }

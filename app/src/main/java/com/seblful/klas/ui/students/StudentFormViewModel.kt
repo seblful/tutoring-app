@@ -13,7 +13,6 @@ import com.seblful.klas.domain.model.ClassMode
 import com.seblful.klas.domain.model.Student
 import com.seblful.klas.domain.model.Subject
 import com.seblful.klas.domain.people.Phone
-import com.seblful.klas.domain.people.SubjectNames
 import com.seblful.klas.format.MoneyField
 import com.seblful.klas.ui.common.FormGap
 import com.seblful.klas.ui.common.LeavableForm
@@ -235,16 +234,9 @@ class StudentFormViewModel @Inject constructor(
         val trimmed = name.trim()
         if (trimmed.isEmpty()) return
         guessing = false
-        // A subject already called that is the one meant: ticked, not made a second time.
-        state.value.allSubjects.valueOrNull()
-            ?.let { SubjectNames.sameAs(trimmed, it) }
-            ?.let { existing ->
-                if (existing.id !in form.value.subjectPrices) toggleSubject(existing.id, on = true)
-                return
-            }
         viewModelScope.launch {
-            appScope.writeAwaited { subjectsRepo.upsert(Subject(name = trimmed)) }
-                .onSuccess { id -> toggleSubject(id, on = true) }
+            appScope.writeAwaited { subjectsRepo.createOrReuse(trimmed) }
+                .onSuccess { id -> if (id !in form.value.subjectPrices) toggleSubject(id, on = true) }
                 .onFailure { events.send(Event.SAVE_FAILED) }
         }
     }

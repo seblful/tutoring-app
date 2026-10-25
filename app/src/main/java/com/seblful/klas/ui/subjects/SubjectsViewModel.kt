@@ -88,8 +88,8 @@ class SubjectsViewModel @Inject constructor(
     fun save(id: Long, name: String) {
         val trimmed = name.trim()
         if (trimmed.isEmpty()) return
-        write(onWritten = { saved -> if (!saved) events.send(Event.NAME_TAKEN) }) {
-            repository.saveUnlessTaken(Subject(id = id, name = trimmed))
+        write(onWritten = { saved -> if (saved is SubjectRepository.Save.NameTaken) events.send(Event.NAME_TAKEN) }) {
+            repository.save(Subject(id = id, name = trimmed))
         }
     }
 
@@ -111,8 +111,10 @@ class SubjectsViewModel @Inject constructor(
      * referenced could be deleted. Refused as [Event.NAME_TAKEN] if its name was given to another since.
      */
     fun restore(subject: Subject) {
-        write(onWritten = { restored -> if (!restored) events.send(Event.NAME_TAKEN) }) {
-            repository.saveUnlessTaken(subject)
+        write(onWritten = { restored ->
+            if (restored is SubjectRepository.Save.NameTaken) events.send(Event.NAME_TAKEN)
+        }) {
+            repository.save(subject)
         }
     }
 
