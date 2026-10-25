@@ -7,6 +7,7 @@ import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Student
 import com.seblful.klas.format.MoneyField
 import kotlinx.datetime.LocalTime
+import kotlinx.serialization.Serializable
 import kotlin.time.Duration.Companion.minutes
 
 /**
@@ -131,6 +132,7 @@ data class Applied(val form: BookingForm, val lookups: List<Lookup> = emptyList(
  * Loading a lesson, pre-selecting the group the form was opened from, filling in the only student or
  * the only subject: none of those is the tutor's work, so none may make the form look unsaved.
  */
+@Serializable
 data class BookingForm(
     val form: ClassForm = ClassForm(),
     val touched: Boolean = false,

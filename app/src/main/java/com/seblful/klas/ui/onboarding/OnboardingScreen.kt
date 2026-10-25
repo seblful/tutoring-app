@@ -95,6 +95,7 @@ import com.seblful.klas.ui.students.StudentFormContent
 import com.seblful.klas.ui.students.StudentFormViewModel
 import com.seblful.klas.ui.students.studentBar
 import com.seblful.klas.ui.theme.KlasIcons
+import dev.zacsweers.metrox.viewmodel.assistedMetroViewModel
 import dev.zacsweers.metrox.viewmodel.metroViewModel
 
 private enum class Step(val number: Int) {
@@ -166,7 +167,7 @@ fun OnboardingScreen(
     val removeFailedMsg = stringResource(R.string.onboarding_subject_remove_failed)
     val nameTakenMsg = stringResource(R.string.subject_name_taken)
     val saveFailedMsg = stringResource(R.string.save_failed)
-    val studentVm: StudentFormViewModel = metroViewModel()
+    val studentVm: StudentFormViewModel = assistedMetroViewModel()
     ShowMessagesFor(studentVm.events, messages) { saveFailedMsg }
     ShowMessagesFor(viewModel.events, messages) { event ->
         when (event) {

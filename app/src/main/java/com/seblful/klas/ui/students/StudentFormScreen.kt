@@ -67,7 +67,7 @@ import com.seblful.klas.ui.designsystem.template.FormScreen
 import com.seblful.klas.ui.subjects.SubjectNameDialog
 import com.seblful.klas.ui.theme.KlasMotion
 import com.seblful.klas.ui.theme.klasSemantics
-import dev.zacsweers.metrox.viewmodel.metroViewModel
+import dev.zacsweers.metrox.viewmodel.assistedMetroViewModel
 
 /**
  * A student, new or — given [studentId] — being corrected: one form (D5), with their subjects and rates, saved
@@ -77,7 +77,7 @@ import dev.zacsweers.metrox.viewmodel.metroViewModel
 @Composable
 fun StudentFormScreen(
     onBack: () -> Unit,
-    viewModel: StudentFormViewModel = metroViewModel(),
+    viewModel: StudentFormViewModel = assistedMetroViewModel(),
     initialSubjectId: Long? = null,
     onCreated: ((Long) -> Unit)? = null,
     studentId: Long? = null,

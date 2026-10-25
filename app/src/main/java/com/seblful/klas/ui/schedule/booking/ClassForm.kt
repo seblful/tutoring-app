@@ -17,6 +17,7 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atTime
 import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
+import kotlinx.serialization.Serializable
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.Instant
 
@@ -34,6 +35,7 @@ data class SubjectKey(val target: ClassTarget, val studentId: Long?, val groupId
  * The class-booking form. A new booking uses the schedule's selected day when opened from there;
  * otherwise the date starts empty. The start is chosen on the day's timeline.
  */
+@Serializable
 data class ClassForm(
     val target: ClassTarget = ClassTarget.STUDENT,
     val studentId: Long? = null,

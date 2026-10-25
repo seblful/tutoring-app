@@ -27,6 +27,7 @@ class DeletedSubjectSelectionTest {
         val kept = env.fixtures.subject("Physics")
         val vm = main.own(
             StudentFormViewModel(
+                androidx.lifecycle.SavedStateHandle(),
                 env.subjectRepo, env.enrollmentRepo, env.studentRepo, env.settingsRepo, main.appScope,
                 main.dispatcher,
             ),

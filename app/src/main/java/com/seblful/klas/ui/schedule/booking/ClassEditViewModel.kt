@@ -38,6 +38,7 @@ import com.seblful.klas.ui.common.state.UiEvents
 import com.seblful.klas.ui.common.state.derive
 import com.seblful.klas.ui.common.state.hold
 import com.seblful.klas.ui.common.state.ready
+import com.seblful.klas.ui.common.state.savedDraft
 import com.seblful.klas.ui.common.state.shared
 import com.seblful.klas.ui.common.state.valueOrNull
 import com.seblful.klas.ui.common.state.writeAwaited
@@ -116,7 +117,7 @@ class ClassEditViewModel @AssistedInject constructor(
 
     private val saving = MutableStateFlow(false)
 
-    private val filled = MutableStateFlow(isNew)
+    private val filled = savedStateHandle.savedDraft("booking.ready", isNew)
 
     private val _gone = MutableStateFlow(false)
 
@@ -127,7 +128,10 @@ class ClassEditViewModel @AssistedInject constructor(
      */
     val gone: StateFlow<Boolean> = _gone.asStateFlow()
 
-    private val booking = MutableStateFlow(BookingForm(form = ClassForm(date = openedOnDay.takeIf { isNew })))
+    private val restoredDraft = savedStateHandle.contains("booking.form") && filled.value
+    private val booking = savedStateHandle.savedDraft(
+        "booking.form", BookingForm(form = ClassForm(date = openedOnDay.takeIf { isNew })),
+    )
 
     private val form: Flow<ClassForm> = booking.map { it.form }
 
@@ -386,13 +390,13 @@ class ClassEditViewModel @AssistedInject constructor(
                 loadExisting()
                 filled.value = true
             }
-        } else if (preselectedGroupId != 0L) {
+        } else if (!restoredDraft && preselectedGroupId != 0L) {
             // Not the tutor's work, so neither marks the form unsaved — see [BookingIntent.isEdit].
             change(BookingIntent.ChooseTarget(ClassTarget.GROUP).asSetup())
             change(BookingIntent.ChooseGroup(preselectedGroupId).asSetup())
-        } else if (likeClassId != 0L) {
+        } else if (!restoredDraft && likeClassId != 0L) {
             viewModelScope.launch { copyALessonAWeekOn(likeClassId) }
-        } else if (preselectedStudentId != 0L) {
+        } else if (!restoredDraft && preselectedStudentId != 0L) {
             viewModelScope.launch {
                 studentsRepo.getById(preselectedStudentId)?.let {
                     change(BookingIntent.ChooseStudent(it.id, it).asSetup())
@@ -409,7 +413,8 @@ class ClassEditViewModel @AssistedInject constructor(
         }
         // Auto-select the only student there is (a new class, before any choice). With several
         // students, the user picks — we don't guess.
-        if (isNew && preselectedStudentId == 0L && likeClassId == 0L) {
+        val untouchedNew = isNew && !restoredDraft
+        if (untouchedNew && preselectedStudentId == 0L && likeClassId == 0L) {
             viewModelScope.launch {
                 // Initial convenience only. Setup detours return the created student's ID explicitly.
                 val only = studentsRepo.observeActive().first().singleOrNull() ?: return@launch
@@ -428,7 +433,7 @@ class ClassEditViewModel @AssistedInject constructor(
             return
         }
         session.value = loaded
-        change(BookingIntent.Load(formOf(loaded, loaded.first.start.toLocalDateTime(zone).date)))
+        if (!restoredDraft) change(BookingIntent.Load(formOf(loaded, loaded.first.start.toLocalDateTime(zone).date)))
     }
 
     /**

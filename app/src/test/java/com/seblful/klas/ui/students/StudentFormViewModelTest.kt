@@ -33,6 +33,7 @@ class StudentFormViewModelTest {
 
     private fun vm() = mainRule.own(
         StudentFormViewModel(
+            androidx.lifecycle.SavedStateHandle(),
             env.subjectRepo,
             env.enrollmentRepo,
             env.studentRepo,

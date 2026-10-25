@@ -33,6 +33,7 @@ class StudentSaveLifecycleTest {
         val subject = env.fixtures.subject("Maths")
         val vm = main.own(
             StudentFormViewModel(
+                androidx.lifecycle.SavedStateHandle(),
                 env.subjectRepo, env.enrollmentRepo, env.studentRepo, env.settingsRepo, main.appScope,
                 main.dispatcher,
             ),

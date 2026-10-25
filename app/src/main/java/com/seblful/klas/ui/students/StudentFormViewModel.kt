@@ -1,7 +1,10 @@
 package com.seblful.klas.ui.students
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.CreationExtras
 import com.seblful.klas.data.people.EnrollmentRepository
 import com.seblful.klas.data.people.StudentRepository
 import com.seblful.klas.data.people.SubjectRepository
@@ -19,13 +22,16 @@ import com.seblful.klas.ui.common.LeavableForm
 import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.common.state.UiEvents
 import com.seblful.klas.ui.common.state.derive
+import com.seblful.klas.ui.common.state.savedDraft
 import com.seblful.klas.ui.common.state.valueOrNull
 import com.seblful.klas.ui.common.state.writeAwaited
 import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.Assisted
+import dev.zacsweers.metro.AssistedFactory
+import dev.zacsweers.metro.AssistedInject
 import dev.zacsweers.metro.ContributesIntoMap
-import dev.zacsweers.metro.Inject
-import dev.zacsweers.metro.binding
-import dev.zacsweers.metrox.viewmodel.ViewModelKey
+import dev.zacsweers.metrox.viewmodel.ViewModelAssistedFactory
+import dev.zacsweers.metrox.viewmodel.ViewModelAssistedFactoryKey
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -34,6 +40,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import kotlinx.serialization.Serializable
 
 /**
  * Backs the student form, for a new student and — opened on one with [edit] — for correcting them: one form
@@ -41,9 +48,8 @@ import kotlinx.coroutines.launch
  * subject *and* a valid rate for each — a class can only be booked for a priced subject, so a student with
  * none would be unusable. This is enforced here ([UiState.canSave]) and by the screen.
  */
-@ViewModelKey
-@ContributesIntoMap(AppScope::class, binding = binding<ViewModel>())
-class StudentFormViewModel @Inject constructor(
+class StudentFormViewModel @AssistedInject constructor(
+    @Assisted savedStateHandle: SavedStateHandle,
     private val subjectsRepo: SubjectRepository,
     private val enrollment: EnrollmentRepository,
     private val students: StudentRepository,
@@ -52,6 +58,16 @@ class StudentFormViewModel @Inject constructor(
     @param:Computation private val computation: CoroutineDispatcher,
 ) : ViewModel() {
 
+    @AssistedFactory
+    @ViewModelAssistedFactoryKey(StudentFormViewModel::class)
+    @ContributesIntoMap(AppScope::class)
+    fun interface Factory : ViewModelAssistedFactory {
+        override fun create(extras: CreationExtras): StudentFormViewModel = create(extras.createSavedStateHandle())
+
+        fun create(@Assisted savedStateHandle: SavedStateHandle): StudentFormViewModel
+    }
+
+    @Serializable
     data class Form(
         val name: String = "",
         /** Empty until the screen offers the dialling code ([offerDiallingCode]). */
@@ -63,8 +79,10 @@ class StudentFormViewModel @Inject constructor(
         val subjectPrices: Map<Long, MoneyField> = emptyMap(),
     )
 
-    private val form = MutableStateFlow(Form())
-    private val pristine = MutableStateFlow(Form())
+    private val restoredDraft = savedStateHandle.contains("student.form")
+    private val editingId = savedStateHandle.savedDraft("student.editing", 0L)
+    private val form = savedStateHandle.savedDraft("student.form", Form())
+    private val pristine = savedStateHandle.savedDraft("student.pristine", Form())
 
     /** Whom the form is for: somebody new, or a student being corrected ([edit]). */
     sealed interface Opened {
@@ -138,7 +156,7 @@ class StudentFormViewModel @Inject constructor(
      * Whether the ticked subjects are still the form's guess ([guessSubject]) — until one is suggested,
      * ticked or added, after which no change to the list second-guesses them.
      */
-    private var guessing = true
+    private var guessing = !restoredDraft
 
     init {
         viewModelScope.launch { subjectsRepo.observeAll().collect(::guessSubject) }
@@ -170,6 +188,7 @@ class StudentFormViewModel @Inject constructor(
      */
     fun offerDiallingCode(prefill: String) {
         diallingCode = prefill
+        if (restoredDraft) return
         if (Phone.stored(form.value.phone).isEmpty()) form.value = form.value.copy(phone = prefill)
         if (Phone.stored(pristine.value.phone).isEmpty()) pristine.value = pristine.value.copy(phone = prefill)
     }
@@ -187,7 +206,7 @@ class StudentFormViewModel @Inject constructor(
         viewModelScope.launch {
             val student = students.getById(studentId) ?: return@launch
             val rates = enrollment.observePricesFor(studentId).first()
-            form.value = Form(
+            val loaded = Form(
                 name = student.name,
                 phone = Phone.stored(student.phone).ifEmpty { diallingCode },
                 email = student.email,
@@ -195,7 +214,11 @@ class StudentFormViewModel @Inject constructor(
                 mode = student.defaultMode,
                 subjectPrices = rates.associate { it.subjectId to MoneyField.of(it.amount) },
             )
-            pristine.value = form.value
+            if (!restoredDraft || editingId.value != studentId) {
+                form.value = loaded
+                pristine.value = loaded
+            }
+            editingId.value = studentId
             opened.value = Opened.Existing(student, enrollment.subjectsWithLessons(studentId))
         }
     }

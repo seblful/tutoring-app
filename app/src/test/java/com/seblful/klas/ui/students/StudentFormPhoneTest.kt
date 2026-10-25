@@ -35,6 +35,7 @@ class StudentFormPhoneTest {
     @Test
     fun `the phone opens on the dialling code of the chosen currency and follows a change of it`() {
         val vm = StudentFormViewModel(
+            androidx.lifecycle.SavedStateHandle(),
             env.subjectRepo,
             env.enrollmentRepo,
             env.studentRepo,

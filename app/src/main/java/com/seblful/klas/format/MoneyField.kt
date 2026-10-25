@@ -1,6 +1,7 @@
 package com.seblful.klas.format
 
 import com.seblful.klas.domain.model.Money
+import kotlinx.serialization.Serializable
 
 /**
  * A money text field: what the tutor has typed, and every answer a form or a screen needs about it.
@@ -14,6 +15,7 @@ import com.seblful.klas.domain.model.Money
  * parses as one major unit, but the tutor may still be typing the fraction. Its spelling must
  * survive recomposition because re-formatting it mid-typing moves the cursor.
  */
+@Serializable
 data class MoneyField(
     val text: String = "",
     val kind: Kind = Kind.RATE,

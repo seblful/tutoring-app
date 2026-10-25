@@ -26,6 +26,7 @@ import com.seblful.klas.ui.common.LeavableForm
 import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.common.state.UiEvents
 import com.seblful.klas.ui.common.state.derive
+import com.seblful.klas.ui.common.state.savedDraft
 import com.seblful.klas.ui.common.state.valueOrNull
 import com.seblful.klas.ui.common.state.writeAwaited
 import dev.zacsweers.metro.AppScope
@@ -47,6 +48,7 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import kotlinx.serialization.Serializable
 
 /** Creating or editing a group: its **subject**, name, note, hourly rate, default lesson mode and roster. */
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -77,6 +79,7 @@ class GroupFormViewModel @AssistedInject constructor(
 
     val isNew: Boolean = groupId == 0L
 
+    @Serializable
     data class Form(
         val name: String = "",
         val note: String = "",
@@ -165,12 +168,12 @@ class GroupFormViewModel @AssistedInject constructor(
 
     val events = UiEvents<Event>()
 
-    private val form = MutableStateFlow(Form())
+    private val filled = savedStateHandle.savedDraft("group.ready", isNew)
+    private val restoredDraft = savedStateHandle.contains("group.form") && filled.value
+    private val form = savedStateHandle.savedDraft("group.form", Form())
     private val archived = MutableStateFlow(false)
 
-    private val pristine = MutableStateFlow(Form())
-
-    private val filled = MutableStateFlow(isNew)
+    private val pristine = savedStateHandle.savedDraft("group.pristine", Form())
 
     private val pricedForSubject: Flow<Set<Long>?> = form
         .map { it.subjectId }
@@ -218,7 +221,7 @@ class GroupFormViewModel @AssistedInject constructor(
             viewModelScope.launch {
                 groups.getById(groupId)?.let { group ->
                     archived.value = group.archived
-                    form.value = Form(
+                    val loaded = Form(
                         name = group.name,
                         note = group.note,
                         price = MoneyField.of(group.price),
@@ -226,13 +229,16 @@ class GroupFormViewModel @AssistedInject constructor(
                         mode = group.defaultMode,
                         memberIds = groups.getMemberIds(groupId).toSet(),
                     )
-                    pristine.value = form.value
+                    if (!restoredDraft) {
+                        form.value = loaded
+                        pristine.value = loaded
+                    }
                 }
                 // Outside the `let`, so a group that is no longer there still opens: it is an empty form
                 // rather than a screen waiting on a skeleton for a row that will never arrive.
                 filled.value = true
             }
-        } else {
+        } else if (!restoredDraft) {
             // Pre-fill the tutor's usual group rate, when they have set one — and only into an
             // untouched field, so an amount already typed is never clobbered by a setting that
             // arrives a moment later (prefilledWith's rule).

@@ -36,6 +36,7 @@ class StudentFormBarTest {
     val env = TestEnv()
 
     private fun vm() = StudentFormViewModel(
+        androidx.lifecycle.SavedStateHandle(),
         env.subjectRepo,
         env.enrollmentRepo,
         env.studentRepo,
