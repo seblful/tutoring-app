@@ -15,20 +15,8 @@ import com.seblful.klas.notifications.TrayNavigation
 import com.seblful.klas.ui.schedule.ScheduleTarget
 
 @Composable
-internal fun OpensWhatTheTrayNames(
-    navigator: KlasNavigator,
-    onSchedule: (ScheduleTarget) -> Unit,
-    onDebts: () -> Unit,
-) {
+internal fun OpensWhatTheTrayNames(navigator: KlasNavigator) {
     val activity = LocalActivity.current as? ComponentActivity
-
-    // The schedule tab, and then the day or the lesson the entry is about. Restoring the tab's saved state
-    // alone would land the tutor on whatever day they were last browsing, which for a notification saying
-    // «3 занятия не отмечены» would show a week with none of them in it.
-    fun toSchedule(target: ScheduleTarget) {
-        navigator.openTabFromTray(TopDestination.SCHEDULE)
-        onSchedule(target)
-    }
 
     val open: (Intent) -> Unit = { intent ->
         val destination = TrayNavigation.destinationFor(
@@ -39,7 +27,7 @@ internal fun OpensWhatTheTrayNames(
             fromHistory = intent.flags and Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY != 0,
             link = intent.dataString,
         )
-        navigator.arrive(destination, ::toSchedule, onDebts)
+        navigator.arrive(destination)
     }
 
     var launchIntentHandled by rememberSaveable { mutableStateOf(false) }
@@ -57,11 +45,7 @@ internal fun OpensWhatTheTrayNames(
 }
 
 /** Puts the tutor where [destination] asks — nowhere for null, which is the launcher's own intent. */
-private fun KlasNavigator.arrive(
-    destination: TrayNavigation.Destination?,
-    toSchedule: (ScheduleTarget) -> Unit,
-    onDebts: () -> Unit,
-) {
+private fun KlasNavigator.arrive(destination: TrayNavigation.Destination?) {
     val tab = destination?.let(::tabOf)
     if (tab != null) {
         // A tab is all it asks for. Today's day is Today's tab — what is on, what is left to mark — rather
@@ -71,13 +55,11 @@ private fun KlasNavigator.arrive(
     }
     when (destination) {
         is TrayNavigation.Destination.Lesson -> openLessonForm(destination.classId)
-        is TrayNavigation.Destination.LessonOnSchedule -> toSchedule(ScheduleTarget.Lesson(destination.classId))
+        is TrayNavigation.Destination.LessonOnSchedule ->
+            arrivals.openSchedule(ScheduleTarget.Lesson(destination.classId))
         // A form interrupted by a notification stays underneath, just as with Reschedule.
-        TrayNavigation.Destination.Debts -> {
-            openTabFromTray(TopDestination.REPORTS)
-            onDebts()
-        }
-        is TrayNavigation.Destination.Day -> toSchedule(ScheduleTarget.Day(destination.date))
+        TrayNavigation.Destination.Debts -> arrivals.openDebts()
+        is TrayNavigation.Destination.Day -> arrivals.openSchedule(ScheduleTarget.Day(destination.date))
         TrayNavigation.Destination.NewLesson -> openOnTop(Routes.classEdit(0))
         TrayNavigation.Destination.NewStudent -> openOnTop(Routes.StudentAdd)
         TrayNavigation.Destination.Settings -> openOnTop(Routes.Settings)

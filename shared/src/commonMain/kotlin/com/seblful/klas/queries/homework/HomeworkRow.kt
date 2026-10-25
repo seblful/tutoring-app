@@ -70,7 +70,7 @@ data class HomeworkLists(val current: List<HomeworkRow>, val archive: List<Homew
          * — the whole of turning stored homework into what the tab and both cards draw, so the three cannot
          * attach or caption it differently.
          *
-         * @param today from the view model's `Clock.days()`, never read here: a card left open overnight has
+         * @param today from the query's `WallClock.days()`, never read here: a card left open overnight has
          * to see tomorrow's homework become today's.
          */
         fun of(

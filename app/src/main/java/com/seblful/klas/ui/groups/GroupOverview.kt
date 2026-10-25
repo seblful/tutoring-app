@@ -1,22 +1,24 @@
 package com.seblful.klas.ui.groups
 
 import com.seblful.klas.R
+import com.seblful.klas.queries.groups.GroupDetails
+import com.seblful.klas.queries.groups.GroupLessonRow
 import com.seblful.klas.ui.people.NextLesson
 import kotlinx.datetime.TimeZone
 import kotlin.time.Instant
 
 /**
  * The group's card as of a minute: [details], with the lesson the tutor next teaches it and the few listed
- * under the lessons heading read off the same snapshot — see [GroupDetailState.nextLesson] and
- * [GroupDetailState.lessonPreview].
+ * under the lessons heading read off the same snapshot — see [GroupDetails.nextLesson] and
+ * [GroupDetails.lessonPreview].
  */
-data class GroupOverview(val details: GroupDetailState, val next: NextLesson?, val lessons: List<GroupLessonRow>) {
+data class GroupOverview(val details: GroupDetails, val next: NextLesson?, val lessons: List<GroupLessonRow>) {
 
     companion object {
         /** How many lessons the card lists before «See all». */
         const val LESSONS_SHOWN = 3
 
-        fun of(details: GroupDetailState, now: Instant, zone: TimeZone): GroupOverview = GroupOverview(
+        fun of(details: GroupDetails, now: Instant, zone: TimeZone): GroupOverview = GroupOverview(
             details = details,
             next = details.nextLesson(now)?.let { row ->
                 NextLesson.of(row.session.first, details.subjectName, groupName = null, now, zone)

@@ -2,7 +2,6 @@ package com.seblful.klas.queries.students
 
 import com.seblful.klas.data.billing.PaymentRepository
 import com.seblful.klas.data.billing.RateHistoryRepository
-import com.seblful.klas.data.homework.HomeworkRepository
 import com.seblful.klas.data.lessons.ClassRepository
 import com.seblful.klas.data.people.EnrollmentRepository
 import com.seblful.klas.data.people.GroupRepository
@@ -17,10 +16,7 @@ import com.seblful.klas.domain.model.TutoringClass
 import com.seblful.klas.domain.people.Captions
 import com.seblful.klas.domain.people.NameOrder
 import com.seblful.klas.domain.reports.Taught
-import com.seblful.klas.domain.time.WallClock
-import com.seblful.klas.domain.time.today
-import com.seblful.klas.format.days
-import com.seblful.klas.queries.homework.HomeworkLists
+import com.seblful.klas.queries.homework.HomeworkQuery
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
@@ -35,10 +31,9 @@ class StudentDetailsQuery @Inject constructor(
     private val enrollment: EnrollmentRepository,
     private val classes: ClassRepository,
     private val groups: GroupRepository,
-    private val homework: HomeworkRepository,
+    private val homework: HomeworkQuery,
     private val payments: PaymentRepository,
     private val rateHistory: RateHistoryRepository,
-    private val clock: WallClock,
 ) {
     fun observe(studentId: Long): Flow<StudentDetails> {
         val partial: Flow<Partial> = combine(
@@ -81,10 +76,8 @@ class StudentDetailsQuery @Inject constructor(
             partial,
             payments.observeForStudent(studentId),
             groups.observeAll(),
-            homework.observeForStudentWithLessons(studentId),
-            clock.days(),
-        ) { partial, paymentList, groupList, withLessons, today ->
-            // The one student is here only to title their homework; a lesson row never names them. See [Captions].
+            homework.observeForStudent(studentId),
+        ) { partial, paymentList, groupList, homework ->
             val captions = Captions.of(
                 students = listOfNotNull(partial.student),
                 subjects = partial.allSubjects,
@@ -101,9 +94,7 @@ class StudentDetailsQuery @Inject constructor(
                 },
                 payments = paymentList,
                 lessonKinds = LessonKind.tally(partial.classes),
-                // Attached by everybody's lessons, not theirs: a member left out of a group lesson has no class
-                // in it, and the group's homework is still that lesson's — see `observeForStudentWithLessons`.
-                homework = HomeworkLists.of(withLessons.homework, withLessons.classes, captions, today, clock.zone),
+                homework = homework,
             )
         }
     }

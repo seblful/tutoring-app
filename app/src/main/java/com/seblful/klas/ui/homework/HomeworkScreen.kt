@@ -33,6 +33,7 @@ import com.seblful.klas.queries.homework.AssigneeChoice
 import com.seblful.klas.queries.homework.HomeworkLists
 import com.seblful.klas.queries.homework.HomeworkRow
 import com.seblful.klas.queries.homework.HomeworkSection
+import com.seblful.klas.queries.homework.HomeworkState
 import com.seblful.klas.queries.homework.bySection
 import com.seblful.klas.ui.common.EmptyState
 import com.seblful.klas.ui.common.FabClearance

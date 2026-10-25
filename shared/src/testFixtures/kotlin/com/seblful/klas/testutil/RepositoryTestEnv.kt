@@ -18,9 +18,12 @@ import com.seblful.klas.data.people.StudentRepository
 import com.seblful.klas.data.people.SubjectRepository
 import com.seblful.klas.data.settings.GuideRepository
 import com.seblful.klas.data.settings.SettingsRepository
+import com.seblful.klas.lessons.LessonChanges
+import com.seblful.klas.lessons.LessonCompletions
 import com.seblful.klas.maintenance.Maintenance
 import com.seblful.klas.notifications.DueDigest
 import com.seblful.klas.notifications.Notifier
+import com.seblful.klas.queries.homework.HomeworkQuery
 import com.seblful.klas.settings.DevicePreferences
 
 /** Portable repository graph; the platform adapter owns the database lifetime. */
@@ -66,10 +69,11 @@ open class RepositoryTestEnv(
 
     val settingsRepo = SettingsRepository(settingsDao, preferences)
     val guideRepo = GuideRepository(settingsRepo, db.guideDao())
+    val homeworkQuery = HomeworkQuery(homeworkDao, classDao, studentDao, groupDao, clock)
     val calendarMirror =
         CalendarMirror(
-            classDao, attendanceDao, studentDao, subjectDao, groupDao, calendar, settingsRepo, homeworkDao, transactor,
-            clock,
+            classDao, attendanceDao, studentDao, subjectDao, groupDao, calendar, settingsRepo,
+            homeworkQuery, transactor, clock,
         )
 
     val rateHistoryRepo = RateHistoryRepository(rateHistoryDao, groupDao, priceDao, clock)
@@ -91,7 +95,10 @@ open class RepositoryTestEnv(
 
     val studentRepo = StudentRepository(studentDao, classRepo, calendarMirror)
 
-    val homeworkRepo = HomeworkRepository(homeworkDao, classRepo, clock, calendarMirror)
+    val lessonChanges = LessonChanges(classRepo, studentRepo, groupRepo)
+    val lessonCompletions = LessonCompletions(classRepo, clock)
+
+    val homeworkRepo = HomeworkRepository(homeworkDao, clock, calendarMirror)
 
     /**
      * The real backup manager and restore, on the same database — so an import is the real

@@ -20,6 +20,7 @@ import com.seblful.klas.domain.model.TutoringClass
 import com.seblful.klas.domain.reminders.ReminderScheduler
 import com.seblful.klas.domain.reminders.Reminders
 import com.seblful.klas.domain.time.WallClock
+import com.seblful.klas.queries.homework.HomeworkQuery
 import com.seblful.klas.settings.DevicePreferences
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDate
@@ -130,9 +131,12 @@ class CommonPersistenceTest {
             override suspend fun refresh(klass: TutoringClass, title: String, description: String) = Unit
             override suspend fun delete(eventId: String) = Unit
         }
+        private val homework = HomeworkQuery(
+            db.homeworkDao(), db.classDao(), db.studentDao(), db.groupDao(), WallClock.system(),
+        )
         private val mirror = CalendarMirror(
             db.classDao(), db.attendanceDao(), db.studentDao(), db.subjectDao(), db.groupDao(),
-            calendar, settings, db.homeworkDao(), transactor, WallClock.system(),
+            calendar, settings, homework, transactor, WallClock.system(),
         )
         private val classes = ClassRepository(
             db.classDao(), db.lessonDao(), db.attendanceDao(), mirror, reminders, transactor,

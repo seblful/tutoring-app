@@ -36,8 +36,6 @@ import com.seblful.klas.ui.common.lessonBadgeLabel
 import com.seblful.klas.ui.common.paymentMethodLabel
 import com.seblful.klas.ui.common.rateChangeLine
 import com.seblful.klas.ui.common.text
-import com.seblful.klas.ui.homework.HomeworkUndo
-import com.seblful.klas.ui.homework.homeworkUndo
 import kotlin.time.Instant
 
 /*
@@ -140,59 +138,6 @@ internal fun SubjectRow(
     )
 }
 
-/** Adding a payment, or correcting [editing]; nothing while neither is asked for. */
-@Composable
-internal fun PaymentDialogs(
-    viewModel: StudentDetailViewModel,
-    adding: Boolean,
-    editing: Payment?,
-    onDelete: (Payment) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    if (adding) {
-        PaymentDialog(
-            title = stringResource(R.string.payment_add_title),
-            initialAmount = null,
-            initialDate = viewModel.paymentDay(),
-            initialMethod = viewModel.lastPaymentMethod(),
-            suggestions = viewModel.paymentSuggestions(),
-            onConfirm = viewModel::addPayment,
-            onDismiss = onDismiss,
-        )
-    }
-    editing?.let { payment ->
-        PaymentDialog(
-            title = stringResource(R.string.payment_edit_title),
-            initialAmount = payment.amount,
-            initialDate = payment.date.toLocalDate(),
-            initialMethod = payment.method,
-            onConfirm = { amount, date, method -> viewModel.editPayment(payment, amount, date, method) },
-            onDelete = { onDelete(payment) },
-            onDismiss = onDismiss,
-        )
-    }
-}
-
-/** Their homework's swipes and deletions, each offered back in [messages]. */
-@Composable
-internal fun studentHomeworkUndo(viewModel: StudentDetailViewModel, messages: Messages): HomeworkUndo = homeworkUndo(
-    messages = messages,
-    setDone = viewModel::setHomeworkDone,
-    putBack = viewModel::putHomeworkBack,
-    delete = viewModel::deleteHomework,
-    restore = viewModel::restoreHomework,
-)
-
-/** Deletes a payment and offers it back, in [messages]. */
-@Composable
-internal fun paymentDeleteWithUndo(viewModel: StudentDetailViewModel, messages: Messages): (Payment) -> Unit {
-    val deleted = stringResource(R.string.payment_deleted)
-    return { payment ->
-        viewModel.deletePayment(payment)
-        messages.undoable(deleted) { viewModel.restorePayment(payment) }
-    }
-}
-
 /**
  * Says [event] in [this] — the card's words on every page of it, Undo included. The card says
  * [StudentDetailViewModel.Event.RemoveBlockedHasClasses] itself first, with the way to the lessons only it
@@ -207,7 +152,7 @@ internal fun Messages.showStudentEvent(
         StudentDetailViewModel.Event.RemoveBlockedHasClasses ->
             show(resources.getString(R.string.student_subject_remove_blocked))
         is StudentDetailViewModel.Event.Archived ->
-            undoable(resources.archivedMessage(event.cancelled.size)) { viewModel.undoArchive(event) }
+            undoable(resources.archivedMessage(event.archive.cancelledLessons)) { viewModel.undoArchive(event) }
         is StudentDetailViewModel.Event.ArchiveUndoKept ->
             show(resources.getQuantityString(R.plurals.archive_undo_kept, event.count, event.count))
         is StudentDetailViewModel.Event.PaymentCorrected ->

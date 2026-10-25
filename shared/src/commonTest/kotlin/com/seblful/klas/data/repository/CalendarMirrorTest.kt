@@ -68,7 +68,7 @@ class CalendarMirrorTest {
     fun `renaming a subject re-titles every event carrying its name`() = runTest {
         mirroredLesson()
 
-        env.subjectRepo.upsert(Subject(id = SUBJECT, name = "Геометрия"))
+        env.subjectRepo.save(Subject(id = SUBJECT, name = "Геометрия"))
 
         assertEquals("Аня — Геометрия", lastTitle)
     }

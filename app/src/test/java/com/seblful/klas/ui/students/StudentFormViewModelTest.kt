@@ -313,6 +313,22 @@ class StudentFormViewModelTest {
     }
 
     @Test
+    fun `reusing a selected subject keeps the price already typed`() = runTest(mainRule.dispatcher) {
+        val math = env.fixtures.subject("Math")
+        val vm = vm()
+        observing(vm.state)
+        advanceUntilIdle()
+        vm.setPriceText(math, "35")
+
+        vm.addSubject(" math ")
+        advanceUntilIdle()
+
+        assertEquals(setOf(math), vm.state.value.selectedSubjectIds)
+        assertEquals(Money.ofMajor(35), vm.state.value.form.subjectPrices.getValue(math).amount)
+        assertEquals(1, env.stored().subjects.size)
+    }
+
+    @Test
     fun `a phone left on its dialling code is saved as no phone`() = runTest(mainRule.dispatcher) {
         val mathId = env.fixtures.subject("Математика")
         val vm = vm()

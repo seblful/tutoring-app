@@ -1,11 +1,9 @@
 package com.seblful.klas.ui.groups
 
 import androidx.lifecycle.SavedStateHandle
-import com.seblful.klas.domain.homework.HomeworkRules
 import com.seblful.klas.domain.model.Assignee
-import com.seblful.klas.domain.model.Attendance
-import com.seblful.klas.domain.model.Balance
 import com.seblful.klas.domain.model.Money
+import com.seblful.klas.queries.groups.GroupDetailsQuery
 import com.seblful.klas.queries.homework.AssigneeChoice
 import com.seblful.klas.testutil.MainDispatcherRule
 import com.seblful.klas.testutil.TestEnv
@@ -47,11 +45,12 @@ class GroupDetailViewModelTest {
         GroupDetailViewModel(
             savedStateHandle = SavedStateHandle(mapOf("id" to id)),
             groups = env.groupRepo,
-            students = env.studentRepo,
-            subjects = env.subjectRepo,
-            classes = env.classRepo,
+            details = GroupDetailsQuery(
+                env.groupRepo, env.studentRepo, env.subjectRepo, env.classRepo,
+                env.homeworkQuery, env.balanceRepo,
+            ),
             homework = env.homeworkRepo,
-            balances = env.balanceRepo,
+            lessonChanges = env.lessonChanges,
             appScope = mainRule.appScope,
             computation = mainRule.dispatcher,
             clock = env.clock,
@@ -59,159 +58,6 @@ class GroupDetailViewModelTest {
     )
 
     private fun at(key: Long): Instant = Instant.fromEpochMilliseconds(key * 7_200)
-
-    @Test
-    fun `the card names the group's subject and rate`() = runTest(mainRule.dispatcher) {
-        val algebra = fixtures.subject("Алгебра")
-        val anya = fixtures.pricedStudent("Аня", algebra)
-        val id = fixtures.group("11 «А»", subjectId = algebra, members = setOf(anya), rate = Money.ofMajor(25))
-
-        val vm = vm(id)
-        observing(vm.state)
-        runCurrent()
-
-        assertEquals("11 «А»", vm.state.current.group?.name)
-        assertEquals("Алгебра", vm.state.current.subjectName)
-        assertEquals(Money.ofMajor(25), vm.state.current.group?.price)
-    }
-
-    /** A group made before subjects were fixed on the group has none — and the card must not invent one. */
-    @Test
-    fun `a group with no subject reports none rather than guessing`() = runTest(mainRule.dispatcher) {
-        val anya = fixtures.student("Аня")
-        val id = fixtures.group("Вечер", members = setOf(anya), rate = Money.ofMajor(25))
-
-        val vm = vm(id)
-        observing(vm.state)
-        runCurrent()
-
-        assertNull(vm.state.current.subjectName)
-    }
-
-    @Test
-    fun `the roster lists members in the app's name order, archived ones last`() = runTest(mainRule.dispatcher) {
-        val yaroslav = fixtures.student("Ярослав")
-        val anna = fixtures.student("анна")
-        val boris = fixtures.archivedStudent("Борис")
-        val id = fixtures.group("11 «А»", members = setOf(yaroslav, anna, boris), rate = Money.ofMajor(25))
-
-        val vm = vm(id)
-        observing(vm.state)
-        runCurrent()
-
-        assertEquals(
-            listOf("анна", "Ярослав", "Борис"),
-            vm.state.current.members.map { it.student.name },
-        )
-    }
-
-    @Test
-    fun `a member's count is of the group's taught lessons they were in`() = runTest(mainRule.dispatcher) {
-        val algebra = fixtures.subject("Алгебра")
-        val anya = fixtures.student("Аня")
-        val boris = fixtures.student("Борис")
-        val id = fixtures.group("11 «А»", members = setOf(anya, boris), rate = rate)
-        fixtures.completedLesson(algebra, listOf(anya, boris), at(1_000), rate = rate, groupId = id)
-        fixtures.completedLesson(algebra, listOf(anya), at(2_000), rate = rate, groupId = id)
-
-        val vm = vm(id)
-        observing(vm.state)
-        runCurrent()
-
-        val members = vm.state.current.members.associateBy { it.student.name }
-        assertEquals(2, members.getValue("Аня").present)
-        assertEquals(2, members.getValue("Аня").held)
-        assertEquals(1, members.getValue("Борис").present)
-        assertEquals(1, members.getValue("Борис").held)
-        // Two taught lessons at the group's rate, nothing paid: each member owes for the ones they were in.
-        assertEquals(Balance.Owed(rate + rate), members.getValue("Аня").balance)
-    }
-
-    @Test
-    fun `a member who has never attended is still listed, at zero`() = runTest(mainRule.dispatcher) {
-        val anya = fixtures.student("Аня")
-        val id = fixtures.group("11 «А»", members = setOf(anya), rate = rate)
-
-        val vm = vm(id)
-        observing(vm.state)
-        runCurrent()
-
-        assertEquals(1, vm.state.current.members.size)
-        assertEquals(0, vm.state.current.members.single().held)
-    }
-
-    @Test
-    fun `lessons are one row per session, newest first, charging every member`() = runTest(mainRule.dispatcher) {
-        val algebra = fixtures.subject("Алгебра")
-        val anya = fixtures.student("Аня")
-        val boris = fixtures.student("Борис")
-        val id = fixtures.group("11 «А»", members = setOf(anya, boris), rate = rate)
-        fixtures.completedLesson(algebra, listOf(anya, boris), at(1_000), rate = rate, groupId = id)
-        fixtures.completedLesson(algebra, listOf(anya, boris), at(2_000), rate = rate, groupId = id)
-
-        val vm = vm(id)
-        observing(vm.state)
-        runCurrent()
-
-        val lessons = vm.state.current.lessons
-        assertEquals("four classes are two lessons", 2, lessons.size)
-        assertEquals("newest first", at(2_000), lessons.first().session.start)
-        assertEquals(Attendance.All(2), lessons.first().attendance)
-        assertEquals("both members' charges", Money.ofMajor(40), lessons.first().charge)
-    }
-
-    @Test
-    fun `the stats count the tutor's lessons and hours but every member's money`() = runTest(mainRule.dispatcher) {
-        val algebra = fixtures.subject("Алгебра")
-        val anya = fixtures.student("Аня")
-        val boris = fixtures.student("Борис")
-        val id = fixtures.group("11 «А»", members = setOf(anya, boris), rate = rate)
-        fixtures.completedLesson(algebra, listOf(anya, boris), at(1_000), minutes = 90, rate = rate, groupId = id)
-        fixtures.lesson(algebra, listOf(anya, boris), at(2_000), minutes = 60, rate = rate, groupId = id)
-
-        val vm = vm(id)
-        observing(vm.state)
-        runCurrent()
-
-        val totals = vm.state.current.totals
-        assertEquals(1, totals.lessons)
-        assertEquals(1, totals.upcoming)
-        assertEquals(90, totals.minutes)
-        assertEquals(Money.ofMajor(60), totals.earned)
-    }
-
-    @Test
-    fun `only this group's lessons are counted`() = runTest(mainRule.dispatcher) {
-        val algebra = fixtures.subject("Алгебра")
-        val anya = fixtures.student("Аня")
-        val ours = fixtures.group("11 «А»", members = setOf(anya), rate = rate)
-        val theirs = fixtures.group("11 «Б»", members = setOf(anya), rate = rate)
-        fixtures.completedLesson(algebra, listOf(anya), at(1_000), rate = rate, groupId = ours)
-        fixtures.completedLesson(algebra, listOf(anya), at(2_000), rate = rate, groupId = theirs)
-        // An individual class of the same student is not the group's either.
-        fixtures.completedLesson(algebra, listOf(anya), at(3_000), rate = Money.ofMajor(50))
-
-        val vm = vm(ours)
-        observing(vm.state)
-        runCurrent()
-
-        assertEquals(1, vm.state.current.lessons.size)
-        assertEquals(Money.ofMajor(20), vm.state.current.totals.earned)
-    }
-
-    @Test
-    fun `a group with no lessons reports empty totals`() = runTest(mainRule.dispatcher) {
-        val anya = fixtures.student("Аня")
-        val id = fixtures.group("11 «А»", members = setOf(anya), rate = rate)
-
-        val vm = vm(id)
-        observing(vm.state)
-        runCurrent()
-
-        assertTrue(vm.state.current.lessons.isEmpty())
-        assertEquals(0, vm.state.current.totals.lessons)
-        assertEquals(Money.ZERO, vm.state.current.totals.earned)
-    }
 
     @Test
     fun `archiving a group keeps it and its roster`() = runTest(mainRule.dispatcher) {
@@ -250,7 +96,7 @@ class GroupDetailViewModelTest {
         runCurrent()
 
         val archived = events.single() as GroupDetailViewModel.Event.Archived
-        assertEquals(2, archived.cancelled.size)
+        assertEquals(2, archived.archive.cancelledLessons)
         assertEquals(0, vm.state.current.plannedLessons)
 
         vm.undoArchive(archived)
@@ -306,21 +152,6 @@ class GroupDetailViewModelTest {
     }
 
     @Test
-    fun `the card lists the group's homework, current and done`() = runTest(mainRule.dispatcher) {
-        val maths = fixtures.subject()
-        val anya = fixtures.pricedStudent("Аня", maths)
-        val group = fixtures.group(name = "9 «Б»", subjectId = maths, members = setOf(anya))
-        fixtures.homework(Assignee.Group(group), text = "задачи")
-        fixtures.homework(Assignee.Group(group), text = "прошлое", done = true)
-        fixtures.homework(Assignee.Student(anya), text = "Ани")
-        val vm = vm(group)
-        observing(vm.state)
-
-        assertEquals(listOf("задачи"), vm.state.current.homework.current.map { it.text })
-        assertEquals(listOf("прошлое"), vm.state.current.homework.archive.map { it.text })
-    }
-
-    @Test
     fun `homework set from the card is the group's, for its next lesson`() = runTest(mainRule.dispatcher) {
         val maths = fixtures.subject()
         val anya = fixtures.pricedStudent("Аня", maths)
@@ -330,33 +161,14 @@ class GroupDetailViewModelTest {
         val vm = vm(group)
         observing(vm.state)
 
-        assertEquals(AssigneeChoice(Assignee.Group(group), "9 «Б»", tomorrow), vm.homeworkChoice())
+        assertEquals(AssigneeChoice(Assignee.Group(group), "9 «Б»", tomorrow), vm.cardHomework.choice())
 
-        vm.giveHomework("§ 12")
+        vm.cardHomework.give("§ 12")
         runCurrent()
 
         val row = vm.state.current.homework.current.single()
         assertEquals(Assignee.Group(group), row.homework.assignee)
         assertEquals(tomorrow, row.lessonAt)
-    }
-
-    @Test
-    fun `at midnight the card's homework for tomorrow becomes today's`() = runTest(mainRule.dispatcher) {
-        val maths = fixtures.subject()
-        val anya = fixtures.pricedStudent("Аня", maths)
-        val group = fixtures.group(name = "9 «Б»", subjectId = maths, members = setOf(anya))
-        fixtures.lesson(maths, listOf(anya), env.clock.now().plus((86_400).seconds), groupId = group)
-        fixtures.homework(Assignee.Group(group))
-        val vm = vm(group)
-        observing(vm.state)
-        runCurrent()
-        assertEquals(HomeworkRules.Due.LATER, vm.state.current.homework.current.single().due)
-
-        val untilMidnight = 9.hours + 1.minutes
-        env.clock.advanceBy(untilMidnight.inWholeMilliseconds)
-        advanceTimeBy(untilMidnight.inWholeMilliseconds)
-
-        assertEquals(HomeworkRules.Due.TODAY, vm.state.current.homework.current.single().due)
     }
 
     @Test

@@ -23,12 +23,12 @@ class ReminderActionsTest {
 
     private val marks = RecentMarks()
     private val actions =
-        ReminderActions(classes = env.classRepo, notifier = notifier, marks = marks, clock = env.clock)
+        ReminderActions(completions = env.lessonCompletions, notifier = notifier, marks = marks, clock = env.clock)
 
     private val start: Instant = Instant.parse("2026-07-25T10:00:00Z")
 
     private suspend fun lesson(students: Int = 1, asGroup: Boolean = false): List<Long> {
-        val subject = env.fixtures.subject()
+        val subject = env.subjectRepo.createOrReuse("Алгебра")
         val people = (1..students).map { env.fixtures.student(name = "Ученик $it") }
         return env.fixtures.lesson(
             subjectId = subject,

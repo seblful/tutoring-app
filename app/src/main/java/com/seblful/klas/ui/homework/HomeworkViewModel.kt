@@ -2,24 +2,15 @@ package com.seblful.klas.ui.homework
 
 import androidx.lifecycle.ViewModel
 import com.seblful.klas.data.homework.HomeworkRepository
-import com.seblful.klas.data.lessons.ClassRepository
-import com.seblful.klas.data.people.GroupRepository
-import com.seblful.klas.data.people.StudentRepository
 import com.seblful.klas.di.ApplicationScope
 import com.seblful.klas.di.Computation
-import com.seblful.klas.domain.homework.HomeworkRules
 import com.seblful.klas.domain.model.Assignee
-import com.seblful.klas.domain.model.Group
 import com.seblful.klas.domain.model.Homework
-import com.seblful.klas.domain.model.Student
-import com.seblful.klas.domain.model.TutoringClass
-import com.seblful.klas.domain.people.Captions
-import com.seblful.klas.domain.people.NameOrder
 import com.seblful.klas.domain.time.WallClock
-import com.seblful.klas.format.days
 import com.seblful.klas.queries.homework.AssigneeChoice
-import com.seblful.klas.queries.homework.HomeworkLists
+import com.seblful.klas.queries.homework.HomeworkQuery
 import com.seblful.klas.queries.homework.HomeworkRow
+import com.seblful.klas.queries.homework.HomeworkState
 import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.common.state.UiEvents
 import com.seblful.klas.ui.common.state.derive
@@ -32,48 +23,18 @@ import dev.zacsweers.metro.binding
 import dev.zacsweers.metrox.viewmodel.ViewModelKey
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.combine
-import kotlin.time.Duration
-import kotlin.time.Duration.Companion.days
-import kotlin.time.Instant
-
-/**
- * What the «Задания» tab shows: its two lists, what it is narrowed to, and what the add dialog is built
- * from.
- *
- * @param lists narrowed to [filter] already, so the screen never filters anything itself.
- * @param filter whom the tab is narrowed to, or null for everybody — see [HomeworkRules.narrowedTo].
- * @param assignees everybody homework can be set for, active students then active groups in name order.
- * @param filterAssignees only those with current or archived homework, including students with group homework.
- */
-data class HomeworkState(
-    val lists: HomeworkLists,
-    val filter: Assignee?,
-    val assignees: List<Assignee>,
-    val filterAssignees: List<Assignee>,
-    val captions: Captions,
-    val classes: List<TutoringClass>,
-) {
-    /** The filter's name, for the chip that says it is on. */
-    val filterName: String? get() = filter?.let(captions::titleOf)
-}
 
 @ViewModelKey
 @ContributesIntoMap(AppScope::class, binding = binding<ViewModel>())
 class HomeworkViewModel @Inject constructor(
     homework: HomeworkRepository,
-    students: StudentRepository,
-    groups: GroupRepository,
+    private val query: HomeworkQuery,
     @param:ApplicationScope appScope: CoroutineScope,
     @Computation computation: CoroutineDispatcher,
     private val clock: WallClock,
-    private val classes: ClassRepository,
 ) : ViewModel() {
-
-    private val zone get() = clock.zone
 
     private val filter = MutableStateFlow<Assignee?>(null)
 
@@ -83,35 +44,12 @@ class HomeworkViewModel @Inject constructor(
         batch.clear()
     }
 
-    private data class People(val students: List<Student>, val groups: List<Group>, val rosters: Map<Long, List<Long>>)
-
-    private val people: Flow<People> =
-        combine(students.observeAll(), groups.observeAll(), groups.observeRosters(), ::People)
-
     /**
      * The tab — [Loadable] because «Текущих заданий нет» is an answer, and the frame before the query
      * returns is not one.
      */
     val state: StateFlow<Loadable<HomeworkState>> =
-        combine(
-            homework.observeWithLessons(since = clock.now().minus(PICKER_LOOKBACK)),
-            people,
-            filter,
-            clock.days(),
-        ) { withLessons, people, who, today ->
-            val captions = Captions.of(people.students, emptyList(), people.groups)
-            val taught = HomeworkRules.taught(withLessons.homework, people.students, people.groups)
-            val shown = who?.let { HomeworkRules.narrowedTo(taught, it, people.rosters) } ?: taught
-            val assignees = assigneesOf(people.students, people.groups)
-            HomeworkState(
-                lists = HomeworkLists.of(shown, withLessons.classes, captions, today, zone),
-                filter = who,
-                assignees = assignees,
-                filterAssignees = HomeworkRules.withHomework(taught, assignees, people.rosters),
-                captions = captions,
-                classes = withLessons.classes,
-            )
-        }
+        query.observe(filter)
             .ready()
             .derive(this, computation, Loadable.Loading)
 
@@ -121,30 +59,14 @@ class HomeworkViewModel @Inject constructor(
      * tab's cue to say so instead of opening an empty dialog; **null before the tab has loaded**, which is
      * not the same answer and must not read as "add a student first".
      */
-    fun choices(): List<AssigneeChoice>? {
-        val loaded = state.value.valueOrNull() ?: return null
-        val now = clock.now()
-        return HomeworkRules.byNearestLesson(loaded.assignees, loaded.classes, now).map { assignee ->
-            AssigneeChoice.of(assignee, loaded.captions.titleOf(assignee), loaded.classes, now)
-        }
-    }
+    fun choices(): List<AssigneeChoice>? = state.value.valueOrNull()?.choices(clock.now())
 
     /**
      * [choices] for correcting [row] — **always including whoever it is for now**, first if they are not
      * among the rest. Otherwise the dialog, which preselects the homework's own assignee from the list,
      * would fall back to somebody else and save the homework onto them.
      */
-    suspend fun choicesFor(row: HomeworkRow): List<AssigneeChoice> {
-        val loaded = state.value.valueOrNull()
-        // Reassignment keeps the original given time. A nearest-upcoming preview would promise a
-        // different lesson, and the tab's short lookback may omit the actual historical destination.
-        val lessons = classes.getBetween(row.homework.givenAt, Instant.fromEpochMilliseconds(Long.MAX_VALUE))
-        val all = loaded?.assignees.orEmpty().map { who ->
-            AssigneeChoice.of(who, loaded?.captions?.titleOf(who).orEmpty(), lessons, row.homework.givenAt)
-        }
-        return if (all.any { it.assignee == row.homework.assignee }) all
-        else listOf(AssigneeChoice(row.homework.assignee, row.title, row.lessonAt)) + all
-    }
+    suspend fun choicesFor(row: HomeworkRow): List<AssigneeChoice> = query.choicesFor(row)
 
     /** One-shot signals from an action that did not go through. */
     enum class Event {
@@ -171,17 +93,4 @@ class HomeworkViewModel @Inject constructor(
     fun delete(item: Homework) = actions.delete(item)
 
     fun restore(item: Homework) = actions.restore(item)
-
-    private companion object {
-        /**
-         * How far back lessons are read for the dialog's order — a fortnight, so the student taught
-         * yesterday still ranks above one not seen since spring.
-         */
-        val PICKER_LOOKBACK: Duration = 14.days
-
-        /** Active students, then active groups, each in name order — `byNearestLesson` keeps that for ties. */
-        fun assigneesOf(students: List<Student>, groups: List<Group>): List<Assignee> =
-            NameOrder.sorted(students.filterNot { it.archived }) { it.name }.map { Assignee.Student(it.id) } +
-                NameOrder.sorted(groups.filterNot { it.archived }) { it.name }.map { Assignee.Group(it.id) }
-    }
 }

@@ -71,14 +71,16 @@ class OnboardingViewModel @Inject constructor(
 
     /**
      * Adds a subject — unless one of that name is already there, which is refused as [Event.NAME_TAKEN]
-     * the way the subjects screen refuses it ([SubjectRepository.saveUnlessTaken]). A double tap on
+     * the way the subjects screen refuses it ([SubjectRepository.save]). A double tap on
      * «Добавить» was enough to make two «Математика».
      */
     fun addSubject(name: String) {
         val trimmed = name.trim()
         if (trimmed.isEmpty()) return
-        appScope.write(events, Event.WRITE_FAILED, onWritten = { added -> if (!added) events.send(Event.NAME_TAKEN) }) {
-            subjectsRepo.saveUnlessTaken(Subject(name = trimmed))
+        appScope.write(events, Event.WRITE_FAILED, onWritten = { result ->
+            if (result is SubjectRepository.Save.NameTaken) events.send(Event.NAME_TAKEN)
+        }) {
+            subjectsRepo.save(Subject(name = trimmed))
         }
     }
 

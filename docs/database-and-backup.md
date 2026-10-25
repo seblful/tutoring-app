@@ -91,3 +91,6 @@ Preserve on-device data and existing backup files when changing storage. Before 
   one fails the GCM tag and reads as `WrongPassword`, not as a broken file. A lost password is a lost
   backup, and the export dialog says so. Weekly copies are not sealed: that would mean storing the
   password on the phone they are meant to outlive.
+- `BackupExports` stamps each snapshot once and records that timestamp after writing the file, before
+  reporting success. Slower older exports cannot move history backwards. Manual exports run in the
+  application's scope so leaving Backup does not interrupt file writing or history recording.

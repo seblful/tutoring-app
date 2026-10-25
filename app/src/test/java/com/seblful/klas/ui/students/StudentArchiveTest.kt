@@ -165,7 +165,7 @@ class StudentArchiveTest : StudentDetailTestFixture() {
         runCurrent()
 
         val archived = events.single() as StudentDetailViewModel.Event.Archived
-        assertEquals(1, archived.cancelled.size)
+        assertEquals(1, archived.archive.cancelledLessons)
 
         vm.undoArchive(archived)
         runCurrent()
@@ -187,7 +187,8 @@ class StudentArchiveTest : StudentDetailTestFixture() {
         vm.setArchived(true)
         runCurrent()
 
-        assertEquals(listOf(StudentDetailViewModel.Event.Archived(cancelled = emptyList())), events)
+        val archived = events.single() as StudentDetailViewModel.Event.Archived
+        assertEquals(0, archived.archive.cancelledLessons)
         assertTrue(env.studentDao.getById(sid)!!.archived)
     }
 

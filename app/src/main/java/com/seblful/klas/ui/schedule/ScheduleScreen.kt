@@ -204,7 +204,7 @@ fun ScheduleScreen(
     val completedMsg = stringResource(R.string.class_completed_message)
     LaunchedEffect(viewModel, completedMsg) {
         viewModel.completions.stream.collect { completed ->
-            messages.undoable(completedMsg) { viewModel.correctCompletion(completed, undo = true) }
+            messages.undoable(completedMsg) { viewModel.undoCompletion(completed) }
         }
     }
     val undoableMsgs = UndoableChange.entries.associateWith { stringResource(it.message) }

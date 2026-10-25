@@ -7,7 +7,8 @@ The database drives both mirrors; neither writes changes back into Klas.
 - Opt-in, one-way through `CalendarContract`; the device's provider handles cloud sync. No Google
   Calendar REST API, Cloud project or OAuth flow is needed.
 - `ClassRepository.write` mirrors after commit; `CalendarMirror` owns backfill and withdrawal.
-- An undoable write holds its lesson's mirror until `settle` (the undo window closed, ~12 s) or `undo`,
+- An undoable write through `LessonChanges` holds its lesson's mirror until the workflow settles it
+  (the undo window closed, ~12 s) or the caller uses its undo handle,
   so an undone cancel never deletes and re-invites. The hold is in memory: a process killed inside the
   window leaves the event as it was until the lesson's next write.
 - Completed events are refreshed but never created/re-created (`CalendarSyncPolicy.Action.REFRESH`).
@@ -46,7 +47,8 @@ The database drives both mirrors; neither writes changes back into Klas.
   keep their alarms. `Reminders.shouldPost` re-checks state and lead time at delivery.
 - «Проведено» bills through a broadcast. «Перенести» opens the lesson form over the current screen;
   an existing form waits underneath. Both re-check current legality because notifications can be stale.
-- `TrayNavigation` opens the named destination above any pushed form, preserving its draft for Back.
+- `TabArrivals` opens targeted tabs and binds each request to its resulting entry in one operation.
+  `TrayNavigation` decodes system intents; the navigator preserves a pushed form's draft for Back.
   `Arrival` consumes each tap once, bound to that destination entry so an older tab cannot replay it:
 
   | Entry | Destination |

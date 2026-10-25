@@ -8,6 +8,7 @@ import com.seblful.klas.domain.model.Assignee
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.notifications.RecentMarks
+import com.seblful.klas.queries.lessons.TodayLessonsQuery
 import com.seblful.klas.testutil.FakeNotificationPermission
 import com.seblful.klas.testutil.MainDispatcherRule
 import com.seblful.klas.testutil.TestEnv
@@ -53,12 +54,14 @@ class TodayViewModelTest {
 
     private fun vm() = mainRule.own(
         TodayViewModel(
-            classes = env.classRepo,
+            completions = env.lessonCompletions,
             students = env.studentRepo,
-            subjects = env.subjectRepo,
+            todayLessons = TodayLessonsQuery(
+                env.classRepo, env.studentRepo, env.subjectRepo, env.groupRepo, env.clock,
+            ),
             groups = env.groupRepo,
             balances = env.balanceRepo,
-            homework = env.homeworkRepo,
+            homework = env.homeworkQuery,
             settings = env.settingsRepo,
             payments = env.paymentRepo,
             guide = env.guideRepo,
@@ -215,6 +218,22 @@ class TodayViewModelTest {
 
         assertEquals(TodayViewModel.Event.UndoChanged, vm.events.stream.first())
         assertEquals(LessonStatus.CANCELLED, env.classRepo.getSessionFor(row.session.first.id)!!.status)
+    }
+
+    @Test
+    fun `a failed completion reports failure and leaves the lesson planned`() = runTest(mainRule.dispatcher) {
+        day()
+        val vm = vm()
+        observing(vm.state)
+        runCurrent()
+        val row = vm.state.current.toMark.single()
+        env.transactor.failAt = env.transactor.count + 1
+
+        vm.markTaught(row)
+        runCurrent()
+
+        assertEquals(TodayViewModel.Event.ActionFailed, vm.events.stream.first())
+        assertEquals(LessonStatus.SCHEDULED, env.classRepo.getById(row.session.first.id)!!.status)
     }
 
     @Test

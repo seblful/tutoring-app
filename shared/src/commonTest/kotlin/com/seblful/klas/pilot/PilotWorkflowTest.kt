@@ -54,4 +54,15 @@ class PilotWorkflowTest {
         assertTrue(pilot.load().students.isEmpty())
         assertTrue(env.stored().subjects.isEmpty())
     }
+
+    @Test
+    fun aPilotStudentReusesTheSameSubjectRegardlessOfCaseAndWhitespace() = runTest {
+        val math = env.fixtures.subject(" math ")
+        val pilot = PilotWorkflow(env.store())
+
+        val student = pilot.addStudent("Ann").students.single()
+
+        assertEquals(1, env.stored().subjects.size)
+        assertEquals(math, env.stored().prices.single { it.studentId == student.id }.subjectId)
+    }
 }

@@ -40,6 +40,8 @@ class KlasNavigator internal constructor(
     /** Every screen that is shown or waiting with its tab — the ones whose state must not be dropped. */
     val live: List<Screen> get() = stack + setAside.values.flatten()
 
+    val arrivals = TabArrivals(this)
+
     fun navigate(route: Route) {
         stack += Screen(route)
     }

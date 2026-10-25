@@ -7,16 +7,12 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.CreationExtras
 import com.seblful.klas.data.billing.PaymentRepository
 import com.seblful.klas.data.homework.HomeworkRepository
-import com.seblful.klas.data.lessons.ClassRepository
-import com.seblful.klas.data.lessons.SessionReceipt
 import com.seblful.klas.data.people.EnrollmentRepository
 import com.seblful.klas.data.people.StudentRepository
 import com.seblful.klas.di.ApplicationScope
 import com.seblful.klas.di.Computation
-import com.seblful.klas.domain.billing.PaymentSuggestions
 import com.seblful.klas.domain.model.Assignee
 import com.seblful.klas.domain.model.ClassMode
-import com.seblful.klas.domain.model.Homework
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Payment
 import com.seblful.klas.domain.model.PaymentMethod
@@ -24,6 +20,8 @@ import com.seblful.klas.domain.model.Student
 import com.seblful.klas.domain.time.WallClock
 import com.seblful.klas.domain.time.today
 import com.seblful.klas.format.minutes
+import com.seblful.klas.lessons.ArchiveChange
+import com.seblful.klas.lessons.LessonChanges
 import com.seblful.klas.print.Sheet
 import com.seblful.klas.print.SheetPrinter
 import com.seblful.klas.queries.homework.AssigneeChoice
@@ -35,9 +33,9 @@ import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.common.state.UiEvents
 import com.seblful.klas.ui.common.state.derive
 import com.seblful.klas.ui.common.state.ready
-import com.seblful.klas.ui.common.state.settleAfterUndoWindow
 import com.seblful.klas.ui.common.state.valueOrNull
 import com.seblful.klas.ui.common.state.write
+import com.seblful.klas.ui.homework.CardHomeworkActions
 import com.seblful.klas.ui.homework.HomeworkActions
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.Assisted
@@ -59,7 +57,7 @@ import kotlin.time.Instant
 class StudentDetailViewModel @AssistedInject constructor(
     @Assisted savedStateHandle: SavedStateHandle,
     private val students: StudentRepository,
-    private val classes: ClassRepository,
+    lessonChanges: LessonChanges,
     details: StudentDetailsQuery,
     homework: HomeworkRepository,
     private val payments: PaymentRepository,
@@ -88,12 +86,12 @@ class StudentDetailViewModel @AssistedInject constructor(
         data object RemoveBlockedHasClasses : Event
 
         /**
-         * The card was archived, calling off the lessons in [cancelled] that were still planned. Shown
+         * The card was archived, calling off the lessons in [archive] that were still planned. Shown
          * with Undo ([undoArchive]): it changed the schedule, which is another screen. The count is the
          * write's own, not the card's — a lesson marked taught from the tray while the card was open made
          * the card's figure one too many.
          */
-        data class Archived(val cancelled: List<SessionReceipt>) : Event
+        data class Archived(val archive: ArchiveChange) : Event
 
         /** An archive was taken back, but [count] of its lessons stayed cancelled — changed, or their hour taken. */
         data class ArchiveUndoKept(val count: Int) : Event
@@ -113,7 +111,13 @@ class StudentDetailViewModel @AssistedInject constructor(
 
     val events = UiEvents<Event>()
 
-    private val homeworkActions = HomeworkActions(homework, appScope, events, Event.WriteFailed)
+    val cardHomework = CardHomeworkActions(
+        owner = Assignee.Student(studentId),
+        currentChoice = ::homeworkChoice,
+        writes = HomeworkActions(homework, appScope, events, Event.WriteFailed),
+    )
+
+    private val changes = lessonChanges.inScope(appScope) { events.send(Event.WriteFailed) }
 
     val state: StateFlow<Loadable<StudentDetails>> = details.observe(studentId)
         .ready()
@@ -149,24 +153,21 @@ class StudentDetailViewModel @AssistedInject constructor(
 
     /**
      * Archives or restores the student. Archiving also calls off their planned lessons — see
-     * [StudentRepository.archive] — and says how many with an Undo, since that is a change to the schedule
+     * [LessonChanges.Writer.archive] — and says how many with an Undo, since that is a change to the schedule
      * the tutor is making on purpose but from another screen.
      */
     fun setArchived(archived: Boolean) {
         val current = state.value.valueOrNull()?.student ?: return
         if (!archived) return write { students.setArchived(current, archived = false) }
         write(
-            onWritten = { cancelled: List<SessionReceipt> ->
-                events.send(Event.Archived(cancelled))
-                appScope.settleAfterUndoWindow(events, Event.WriteFailed) { classes.settleAll(cancelled) }
-            },
-        ) { students.archive(current) }
+            onWritten = { archive: ArchiveChange -> events.send(Event.Archived(archive)) },
+        ) { changes.archive(current) }
     }
 
-    /** Takes [archived] back — see [StudentRepository.unarchive]. */
+    /** Takes [archived] back — see [LessonChanges.Writer.undoArchive]. */
     fun undoArchive(archived: Event.Archived) {
         write(onWritten = { kept: Int -> if (kept > 0) events.send(Event.ArchiveUndoKept(kept)) }) {
-            students.unarchive(studentId, archived.cancelled)
+            changes.undoArchive(archived.archive)
         }
     }
 
@@ -203,15 +204,11 @@ class StudentDetailViewModel @AssistedInject constructor(
         write { payments.record(studentId, amount, day, method) }
     }
 
-    /** The one-tap amounts a new payment offers — see [PaymentSuggestions]. */
-    fun paymentSuggestions(): PaymentSuggestions =
-        state.value.valueOrNull()?.paymentSuggestions ?: PaymentSuggestions.NONE
-
-    /** How they paid last — what a new payment is offered as. */
-    fun lastPaymentMethod(): PaymentMethod? = state.value.valueOrNull()?.lastPaymentMethod
-
-    /** The day the payment dialog opens on — off the same clock that will stamp the save. */
-    fun paymentDay(): LocalDate = payments.today()
+    /** One opening snapshot; unavailable until this student's card has loaded. */
+    internal fun paymentDefaults(): PaymentDefaults? {
+        val loaded = state.value.valueOrNull()?.takeIf { it.student != null } ?: return null
+        return PaymentDefaults(payments.today(), loaded.lastPaymentMethod, loaded.paymentSuggestions)
+    }
 
     /** Corrects a payment already recorded, keeping its id, and offers the correction back. */
     fun editPayment(payment: Payment, amount: Money, day: LocalDate, method: PaymentMethod? = payment.method) {
@@ -244,39 +241,12 @@ class StudentDetailViewModel @AssistedInject constructor(
      * attached to. Taken when the dialog opens, since that lesson moves on as the day does. Null before the
      * card has loaded.
      */
-    fun homeworkChoice(): AssigneeChoice? {
+    private fun homeworkChoice(): AssigneeChoice? {
         val loaded = state.value.valueOrNull() ?: return null
-        val student = loaded.student ?: return null
-        return AssigneeChoice.of(
-            Assignee.Student(studentId), student.name, loaded.classes.map { it.klass }, clock.now(),
-        )
-    }
-
-    /** Sets homework for this student — attached to their next lesson from now. */
-    fun giveHomework(text: String) {
-        homeworkActions.give(Assignee.Student(studentId), text)
-    }
-
-    /** Corrects [item]'s text; who it is for is not changed from here (the card is one student's). */
-    fun editHomework(item: Homework, text: String) {
-        homeworkActions.edit(item, item.assignee, text)
-    }
-
-    fun setHomeworkDone(item: Homework, done: Boolean) {
-        homeworkActions.setDone(item, done)
-    }
-
-    /** Undoes a swipe, [item]'s done state back as it was — see `HomeworkRepository.putBack`. */
-    fun putHomeworkBack(item: Homework) {
-        homeworkActions.putBack(item)
-    }
-
-    fun deleteHomework(item: Homework) {
-        homeworkActions.delete(item)
-    }
-
-    /** Puts back a just-deleted piece of homework, for the undo — like [restorePayment]. */
-    fun restoreHomework(item: Homework) {
-        homeworkActions.restore(item)
+        return loaded.student?.let { student ->
+            AssigneeChoice.of(
+                Assignee.Student(studentId), student.name, loaded.classes.map { it.klass }, clock.now(),
+            )
+        }
     }
 }

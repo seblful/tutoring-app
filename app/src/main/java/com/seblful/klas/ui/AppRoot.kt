@@ -60,7 +60,6 @@ import com.seblful.klas.ui.common.ProvideClockFormat
 import com.seblful.klas.ui.common.ProvideLocalizedResources
 import com.seblful.klas.ui.common.RailAction
 import com.seblful.klas.ui.common.TabReselect
-import com.seblful.klas.ui.navigation.Arrival
 import com.seblful.klas.ui.navigation.FloatingTabBar
 import com.seblful.klas.ui.navigation.KlasGraph
 import com.seblful.klas.ui.navigation.KlasNavigator
@@ -78,7 +77,6 @@ import com.seblful.klas.ui.navigation.predictiveBackPop
 import com.seblful.klas.ui.navigation.rememberKlasNavigator
 import com.seblful.klas.ui.onboarding.FirstLesson
 import com.seblful.klas.ui.onboarding.OnboardingScreen
-import com.seblful.klas.ui.schedule.ScheduleTarget
 import com.seblful.klas.ui.theme.KlasTheme
 import dev.zacsweers.metrox.viewmodel.metroViewModel
 import kotlinx.coroutines.launch
@@ -196,7 +194,8 @@ private fun MainApp(firstLesson: FirstLesson) {
     // start at a tab.
     val selectedTab = owningTab(backStack)
 
-    val graph = rememberGraph(navigator)
+    OpensWhatTheTrayNames(navigator)
+    val graph = remember(navigator) { KlasGraph(navigator) }
     // Material's current components for the width: the short bar on a phone (a landscape one included), the
     // wide rail from medium width on. Where Material would draw its bar, the tabs float over the screens
     // instead (`FloatingTabBar`), and the suite draws nothing.
@@ -274,32 +273,6 @@ private fun MainApp(firstLesson: FirstLesson) {
             // After the `NavDisplay`, so it is drawn over the screens; it never moves them.
             if (floatingBar) FloatingTabs(onTab, selectedTab, onTabTap) { barClearance = it }
         }
-    }
-}
-
-/**
- * The app's screens, with the tray's arrivals wired in: the latest tray tap that asked a tab for something
- * more than itself — the schedule for a day or a lesson's sheet, the reports for their debts. See [Arrival],
- * and why each tap is its own instance. Each is bound to the screen it landed on, so a tab preserved below a
- * draft cannot replay the tap later.
- */
-@Composable
-private fun rememberGraph(navigator: KlasNavigator): KlasGraph {
-    var scheduleArrival by remember { mutableStateOf<Pair<Long, Arrival<ScheduleTarget>>?>(null) }
-    var debtsArrival by remember { mutableStateOf<Pair<Long, Arrival<Unit>>?>(null) }
-
-    val arriveAtSchedule: (ScheduleTarget) -> Unit = { target -> scheduleArrival = navigator.top.id to Arrival(target) }
-    val arriveAtDebts = { debtsArrival = navigator.top.id to Arrival(Unit) }
-    OpensWhatTheTrayNames(navigator, onSchedule = arriveAtSchedule, onDebts = arriveAtDebts)
-
-    return remember(navigator) {
-        KlasGraph(
-            navigator,
-            scheduleArrival = { id -> scheduleArrival?.takeIf { it.first == id }?.second },
-            debtsArrival = { id -> debtsArrival?.takeIf { it.first == id }?.second },
-            arriveAtSchedule = arriveAtSchedule,
-            arriveAtDebts = arriveAtDebts,
-        )
     }
 }
 

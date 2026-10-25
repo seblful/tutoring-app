@@ -47,7 +47,7 @@ class ColdRelaunchTest {
     private suspend fun seed() {
         cleanup()
         val token = UUID.randomUUID().toString()
-        val subject = store.subjects.upsert(Subject(name = "Relaunch $token"))
+        val subject = store.subjects.createOrReuse("Relaunch $token")
         assertTrue(ids.edit().putLong("subject", subject).putString("subjectName", "Relaunch $token").commit())
         val student = store.enrollment.createStudent(
             Student(name = "Persistence $token"), mapOf(subject to Money(3000)),

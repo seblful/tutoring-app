@@ -113,14 +113,14 @@ class GroupRepository @Inject constructor(
     }
 
     /** Archives [group] undoably — as [StudentRepository.archive], for [unarchive] to take back. */
-    suspend fun archive(group: Group): List<SessionReceipt> {
+    internal suspend fun archive(group: Group): List<SessionReceipt> {
         val cancelled = classes.cancelScheduledForGroupUndoable(group.id)
         dao.upsert(group.copy(archived = true).toEntity())
         return cancelled
     }
 
     /** Takes [archive] back — as [StudentRepository.unarchive]; returns how many lessons stayed cancelled. */
-    suspend fun unarchive(groupId: Long, cancelled: List<SessionReceipt>): Int {
+    internal suspend fun unarchive(groupId: Long, cancelled: List<SessionReceipt>): Int {
         dao.getById(groupId)?.let { dao.upsert(it.copy(archived = false)) }
         return classes.undoAll(cancelled).count { it != UndoResult.Restored }
     }

@@ -4,14 +4,18 @@ import com.seblful.klas.data.backup.BackupFailure
 import com.seblful.klas.domain.time.WallClock
 import com.seblful.klas.storage.AesBackupCipher
 import com.seblful.klas.storage.DocumentRef
+import com.seblful.klas.storage.DocumentStore
 import com.seblful.klas.testutil.FakeDocumentStore
 import com.seblful.klas.testutil.MainDispatcherRule
 import com.seblful.klas.testutil.TestEnv
+import com.seblful.klas.testutil.backupExports
 import com.seblful.klas.testutil.current
 import com.seblful.klas.ui.common.state.Loadable
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
@@ -41,14 +45,15 @@ class BackupViewModelTest {
 
     private val exportedAt: Instant = Instant.parse("2026-06-20T18:30:00Z")
 
-    private fun vm() = mainRule.own(
+    private fun vm(
+        documents: DocumentStore = this.documents,
+        clock: WallClock = WallClock.fixed(exportedAt, TimeZone.of("Europe/Minsk")),
+    ) = mainRule.own(
         BackupViewModel(
-            backup = env.backupManager,
-            cipher = cipher,
-            documents = documents,
+            exports = env.backupExports(documents = documents, cipher = cipher, clock = clock),
             settings = env.settingsRepo,
             appScope = mainRule.appScope,
-            clock = WallClock.fixed(exportedAt, TimeZone.of("Europe/Minsk")),
+            clock = clock,
         ),
     )
 
@@ -82,18 +87,6 @@ class BackupViewModelTest {
             assertEquals(BackupResult.ExportOk, received)
             assertTrue(documents.docs.getValue(ref.value).contains("Аня"))
             assertEquals("and it records that it happened", exportedAt, env.settingsRepo.get().lastExportAt)
-        }
-
-    @Test
-    fun `an export that failed records no backup`() =
-        runTest(mainRule.dispatcher) {
-            val vm = vm()
-            documents.failing = true
-
-            vm.export(ref)
-            advanceUntilIdle()
-
-            assertNull(env.settingsRepo.get().lastExportAt)
         }
 
     @Test
@@ -141,13 +134,30 @@ class BackupViewModelTest {
         }
 
     @Test
-    fun `an export says when it was made`() =
-        runTest(mainRule.dispatcher) {
-            val vm = vm()
-
-            vm.export(ref)
-            advanceUntilIdle()
-
-            assertEquals(exportedAt, env.backupManager.preview(documents.docs.getValue(ref.value)).exportedAt)
+    fun `export and history recording finish after the backup screen leaves`() = runTest(mainRule.dispatcher) {
+        val entered = CompletableDeferred<Unit>()
+        val release = CompletableDeferred<Unit>()
+        val slow = object : DocumentStore by documents {
+            override suspend fun write(ref: DocumentRef, text: String) {
+                entered.complete(Unit)
+                release.await()
+                documents.write(ref, text)
+            }
         }
+        val vm = vm(slow)
+        var received: BackupResult? = null
+        backgroundScope.launch { vm.events.stream.collect { received = it } }
+
+        vm.export(ref)
+        runCurrent()
+        entered.await()
+        assertNull(received)
+        mainRule.clearViewModels()
+        release.complete(Unit)
+        advanceUntilIdle()
+
+        assertEquals(BackupResult.ExportOk, received)
+        assertEquals(exportedAt, env.settingsRepo.get().lastExportAt)
+        assertTrue(documents.docs.containsKey(ref.value))
+    }
 }

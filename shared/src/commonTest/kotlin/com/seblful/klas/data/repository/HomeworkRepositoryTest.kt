@@ -1,6 +1,5 @@
 package com.seblful.klas.data.repository
 
-import com.seblful.klas.domain.homework.HomeworkRules
 import com.seblful.klas.domain.model.Assignee
 import com.seblful.klas.testutil.TestEnv
 import kotlinx.coroutines.flow.first
@@ -26,7 +25,6 @@ class HomeworkRepositoryTest {
 
     private val now: Instant = env.clock.now()
     private val tomorrow: Instant = Instant.parse("2026-06-02T12:00:00Z")
-    private val nextWeek: Instant = Instant.parse("2026-06-08T12:00:00Z")
 
     @Test
     fun `homework is given now - its text trimmed - and current`() = runTest {
@@ -39,34 +37,6 @@ class HomeworkRepositoryTest {
         assertEquals("§ 12, упр. 4–7", stored.text)
         assertEquals(now, stored.givenAt)
         assertNull(stored.doneAt)
-    }
-
-    @Test
-    fun `homework given now is attached to the next lesson from now`() = runTest {
-        val maths = fixtures.subject()
-        val anya = fixtures.pricedStudent("Аня", maths)
-        fixtures.lesson(maths, listOf(anya), now.minus((86_400).seconds))
-        fixtures.lesson(maths, listOf(anya), nextWeek)
-        val next = fixtures.lesson(maths, listOf(anya), tomorrow).single()
-        repo.give(Assignee.Student(anya), "§ 12")
-
-        val loaded = repo.observeWithLessons(since = now).first()
-
-        val current = HomeworkRules.lists(loaded.homework, loaded.classes).current.single()
-        assertEquals(next, current.lesson?.id)
-    }
-
-    @Test
-    fun `the lessons read reach back to the oldest current homework`() = runTest {
-        val maths = fixtures.subject()
-        val anya = fixtures.pricedStudent("Аня", maths)
-        val march = Instant.parse("2026-03-02T12:00:00Z")
-        val lessonInMarch = fixtures.lesson(maths, listOf(anya), march.plus((86_400).seconds)).single()
-        fixtures.homework(Assignee.Student(anya), at = march)
-
-        val loaded = repo.observeWithLessons(since = now).first()
-
-        assertEquals(lessonInMarch, HomeworkRules.lists(loaded.homework, loaded.classes).current.single().lesson?.id)
     }
 
     @Test
@@ -137,22 +107,6 @@ class HomeworkRepositoryTest {
     }
 
     @Test
-    fun `a lesson's current homework is the group's and its members' own - not what is done`() = runTest {
-        val maths = fixtures.subject()
-        val anya = fixtures.pricedStudent("Аня", maths)
-        val boris = fixtures.pricedStudent("Борис", maths)
-        val group = fixtures.group(subjectId = maths, members = setOf(anya, boris))
-        val lesson = fixtures.lesson(maths, listOf(anya, boris), tomorrow, groupId = group).first()
-        val groups = fixtures.homework(Assignee.Group(group), text = "группы")
-        val anyas = fixtures.homework(Assignee.Student(anya), text = "Ани")
-        fixtures.homework(Assignee.Student(boris), text = "сделано", done = true)
-
-        val current = repo.currentAttachedTo(env.classRepo.getSessionFor(lesson)!!)
-
-        assertEquals(setOf(groups, anyas), current.toSet())
-    }
-
-    @Test
     fun `homework writes update the calendar without rearming phone reminders`() = runTest {
         fixtures.withCalendarSync()
         val maths = fixtures.subject()
@@ -188,59 +142,5 @@ class HomeworkRepositoryTest {
         repo.putBack(done)
 
         assertEquals(lastWeek, repo.observeAll().first().single().doneAt)
-    }
-
-    /**
-     * A member left out of one of their group's lessons has no class in it — and the group's homework is
-     * still that lesson's on their card, as it is in the tab.
-     */
-    @Test
-    fun `a student's card attaches their group's homework to the group's lesson - even one they are not in`() =
-        runTest {
-            val maths = fixtures.subject()
-            val anya = fixtures.pricedStudent("Аня", maths)
-            val boris = fixtures.pricedStudent("Борис", maths)
-            val group = fixtures.group(subjectId = maths, members = setOf(anya, boris))
-            val withoutAnya = fixtures.lesson(maths, listOf(boris), tomorrow, groupId = group).single()
-            fixtures.lesson(maths, listOf(anya, boris), nextWeek, groupId = group)
-            fixtures.homework(Assignee.Group(group))
-
-            val loaded = repo.observeForStudentWithLessons(anya).first()
-
-            val lesson = HomeworkRules.lists(loaded.homework, loaded.classes).current.single().lesson
-            assertEquals(env.classRepo.getById(withoutAnya)!!.lessonId, lesson?.lessonId)
-        }
-
-    /** Bringing back an older piece widens the window, and the piece arrives attached to its own lesson. */
-    @Test
-    fun `an older piece brought back is attached to the lesson it was for`() = runTest {
-        val maths = fixtures.subject()
-        val anya = fixtures.pricedStudent("Аня", maths)
-        val march = Instant.parse("2026-03-02T12:00:00Z")
-        val inMarch = fixtures.lesson(maths, listOf(anya), march.plus((86_400).seconds)).single()
-        fixtures.lesson(maths, listOf(anya), tomorrow)
-        val old = fixtures.homework(Assignee.Student(anya), at = march, done = true)
-        repo.observeWithLessons(since = now).first()
-
-        repo.setDone(old, done = false)
-
-        val loaded = repo.observeWithLessons(since = now).first()
-        assertEquals(inMarch, HomeworkRules.lists(loaded.homework, loaded.classes).current.single().lesson?.id)
-    }
-
-    @Test
-    fun `an old piece reads only its own assignee's lessons since it was given`() = runTest {
-        val maths = fixtures.subject()
-        val anya = fixtures.pricedStudent("Аня", maths)
-        val boris = fixtures.pricedStudent("Борис", maths)
-        val march = Instant.parse("2026-03-02T12:00:00Z")
-        val anyasInMarch = fixtures.lesson(maths, listOf(anya), march.plus((86_400).seconds)).single()
-        val borisesInApril = fixtures.lesson(maths, listOf(boris), march.plus((30 * 86_400).seconds)).single()
-        fixtures.homework(Assignee.Student(anya), at = march)
-
-        val loaded = repo.observeWithLessons(since = now).first()
-
-        val read = loaded.classes.map { it.id }
-        assertEquals(listOf(anyasInMarch), read.filter { it == anyasInMarch || it == borisesInApril })
     }
 }

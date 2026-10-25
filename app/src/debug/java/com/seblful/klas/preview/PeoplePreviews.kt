@@ -11,13 +11,13 @@ import com.seblful.klas.domain.model.Payment
 import com.seblful.klas.domain.model.Student
 import com.seblful.klas.domain.model.TutoringClass
 import com.seblful.klas.domain.reports.Taught
+import com.seblful.klas.queries.groups.GroupLessonRow
 import com.seblful.klas.queries.students.StudentDetails
 import com.seblful.klas.ui.common.OverviewSection
 import com.seblful.klas.ui.common.sectionRowColors
 import com.seblful.klas.ui.groups.EarnedCard
 import com.seblful.klas.ui.groups.GroupCard
 import com.seblful.klas.ui.groups.GroupLessonItem
-import com.seblful.klas.ui.groups.GroupLessonRow
 import com.seblful.klas.ui.groups.GroupRow
 import com.seblful.klas.ui.people.LessonLine
 import com.seblful.klas.ui.people.NextLesson

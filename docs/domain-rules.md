@@ -56,6 +56,9 @@ mirrors and [database and backup](database-and-backup.md) for persistence contra
 - An explicit completion correction returns a taught lesson to Planned, voids charges and turns Present
   into Expected while preserving absences. Immediate Undo is guarded by its completion snapshot so later
   edits, cancellations or deletions cannot be overwritten.
+- Manual completion uses `LessonCompletions`: eligibility is checked inside the write transaction and a
+  group is completed once. Today offers started lessons and its mark-all covers only finished ones;
+  Schedule and external actions also allow early marks. A stale cancelled or deleted lesson is skipped.
 - Cancelling, re-planning, rescheduling and attendance marks are undone the same way: a
   `SessionReceipt` restores the lesson's prior snapshot, charges included, only while the lesson is
   still as the change left it (`ChangedSince`) and its hour is free if it needs one (`HourTaken`). There
@@ -112,6 +115,8 @@ mirrors and [database and backup](database-and-backup.md) for persistence contra
 - Students are archive-only. Subjects are deletable only without lessons, groups or enrolled students;
   names are unique ignoring case (`SubjectNames`). Foreign keys protect lesson, attendance and payment
   history with `ON DELETE RESTRICT`.
+- `SubjectRepository` resolves names and writes in one transaction. Inline student setup and the pilot
+  reuse an existing subject; explicit creation and rename refuse a taken name and return its identity.
 - In-person/remote mode defaults from the student, is overridable per lesson and becomes calendar location.
 - `price_history` logs student/group rate changes; saving an unchanged rate adds nothing.
 

@@ -33,6 +33,8 @@ import com.seblful.klas.domain.model.Assignee
 import com.seblful.klas.domain.reports.Taught
 import com.seblful.klas.format.bulletJoin
 import com.seblful.klas.format.formatHours
+import com.seblful.klas.queries.groups.GroupDetails
+import com.seblful.klas.queries.groups.GroupMemberRow
 import com.seblful.klas.queries.homework.AssigneeChoice
 import com.seblful.klas.queries.homework.HomeworkRow
 import com.seblful.klas.ui.common.AddRow
@@ -61,9 +63,8 @@ import com.seblful.klas.ui.common.plusInset
 import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.sectionRowColors
 import com.seblful.klas.ui.common.text
-import com.seblful.klas.ui.homework.CardHomeworkDialogs
 import com.seblful.klas.ui.homework.HomeworkSection
-import com.seblful.klas.ui.homework.homeworkUndo
+import com.seblful.klas.ui.homework.rememberCardHomework
 import com.seblful.klas.ui.people.NextLessonCard
 import com.seblful.klas.ui.theme.KlasIcons
 import com.seblful.klas.ui.theme.klasSemantics
@@ -126,16 +127,14 @@ private fun GroupCard(
     // A value here, not a delegate the list's builder reads — see docs/ui-conventions.md.
     val now = viewModel.minute.collectAsStateWithLifecycle().value
 
+    val messages = rememberMessages()
+    val homework = rememberCardHomework(viewModel.cardHomework, messages)
+
     var confirmingDelete by remember { mutableStateOf(false) }
     var confirmingArchive by remember { mutableStateOf(false) }
-    // Taken when the dialog opens — see `GroupDetailViewModel.homeworkChoice`.
-    var addingHomework by remember { mutableStateOf<AssigneeChoice?>(null) }
-    var openedHomework by remember { mutableStateOf<HomeworkRow?>(null) }
-    HomeworkEntry(initialHomework, group?.id) { addingHomework = viewModel.homeworkChoice() }
+    HomeworkEntry(initialHomework, group?.id) { homework.add() }
 
-    val messages = rememberMessages()
     ShowGroupMessages(viewModel, messages)
-    val homeworkUndo = groupHomeworkUndo(viewModel, messages)
 
     // The group's name is the subject of the screen, as a student's is on theirs — the same large,
     // collapsing title, so the two cards read as one pattern.
@@ -209,9 +208,9 @@ private fun GroupCard(
                     owner = group?.let { Assignee.Group(it.id) },
                     lists = state.homework,
                     messages = messages,
-                    onAdd = { addingHomework = viewModel.homeworkChoice() },
-                    onOpen = { openedHomework = it },
-                    onDone = homeworkUndo::swiped,
+                    onAdd = homework::add,
+                    onOpen = homework::open,
+                    onDone = homework::swiped,
                     onSeeAll = { navigation.seeAll(GroupSection.HOMEWORK) },
                     modifier = animateInPlace(cardModifier),
                 )
@@ -219,14 +218,7 @@ private fun GroupCard(
         }
     }
 
-    CardHomeworkDialogs(
-        adding = addingHomework,
-        opened = openedHomework,
-        onDismiss = { addingHomework = null; openedHomework = null },
-        onGive = viewModel::giveHomework,
-        onEdit = viewModel::editHomework,
-        undo = homeworkUndo,
-    )
+    homework.Dialogs()
 
     if (confirmingArchive) {
         val parts = listOf(
@@ -272,7 +264,9 @@ internal fun ShowGroupMessages(viewModel: GroupDetailViewModel, messages: Messag
                 GroupDetailViewModel.Event.DeleteBlockedHasLessons ->
                     messages.show(resources.getString(R.string.group_delete_blocked))
                 is GroupDetailViewModel.Event.Archived ->
-                    messages.undoable(resources.archivedMessage(event.cancelled.size)) { viewModel.undoArchive(event) }
+                    messages.undoable(resources.archivedMessage(event.archive.cancelledLessons)) {
+                        viewModel.undoArchive(event)
+                    }
                 is GroupDetailViewModel.Event.ArchiveUndoKept -> messages.show(
                     resources.getQuantityString(R.plurals.archive_undo_kept, event.count, event.count),
                 )
@@ -282,19 +276,9 @@ internal fun ShowGroupMessages(viewModel: GroupDetailViewModel, messages: Messag
     }
 }
 
-@Composable
-internal fun groupHomeworkUndo(viewModel: GroupDetailViewModel, messages: Messages) =
-    homeworkUndo(
-        messages = messages,
-        setDone = viewModel::setHomeworkDone,
-        putBack = viewModel::putHomeworkBack,
-        delete = viewModel::deleteHomework,
-        restore = viewModel::restoreHomework,
-    )
-
 /** Under the name, as the student's contact line is: what the group is taught, and for how much. */
 @Composable
-private fun GroupHeader(state: GroupDetailState, modifier: Modifier = Modifier) {
+private fun GroupHeader(state: GroupDetails, modifier: Modifier = Modifier) {
     val group = state.group ?: return
     Column(modifier.fillMaxWidth()) {
         Row(Modifier.heightIn(min = MinTouchTarget), verticalAlignment = Alignment.CenterVertically) {
@@ -406,7 +390,7 @@ private fun MembersSection(
 private fun GroupOverflowMenu(archived: Boolean, onArchive: () -> Unit, onDelete: (() -> Unit)?) {
     OverflowMenu { close ->
         ArchiveMenuItem(archived) { close(); onArchive() }
-        // Only while there is something it can do — see [GroupDetailState.canDelete].
+        // Only while there is something it can do — see [GroupDetails.canDelete].
         if (onDelete != null) {
             MenuItem(
                 text = {

@@ -13,6 +13,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.seblful.klas.R
 import com.seblful.klas.domain.model.Assignee
+import com.seblful.klas.queries.groups.GroupDetails
+import com.seblful.klas.queries.groups.GroupLessonRow
 import com.seblful.klas.queries.homework.AssigneeChoice
 import com.seblful.klas.queries.homework.HomeworkRow
 import com.seblful.klas.ui.common.EmptyState
@@ -23,8 +25,8 @@ import com.seblful.klas.ui.common.animateInPlace
 import com.seblful.klas.ui.common.plusInset
 import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.state.Loadable
-import com.seblful.klas.ui.homework.CardHomeworkDialogs
 import com.seblful.klas.ui.homework.homeworkItems
+import com.seblful.klas.ui.homework.rememberCardHomework
 import com.seblful.klas.ui.theme.KlasIcons
 import dev.zacsweers.metrox.viewmodel.assistedMetroViewModel
 import kotlin.time.Instant
@@ -45,21 +47,19 @@ fun GroupListScreen(
 
 @Composable
 private fun GroupList(
-    state: GroupDetailState,
+    state: GroupDetails,
     section: GroupSection,
     viewModel: GroupDetailViewModel,
     onBack: () -> Unit,
     onLessonClick: (Long) -> Unit,
 ) {
-    // Taken when the dialog opens — see `GroupDetailViewModel.homeworkChoice`.
-    var addingHomework by remember { mutableStateOf<AssigneeChoice?>(null) }
-    var openedHomework by remember { mutableStateOf<HomeworkRow?>(null) }
     // A value here, not a delegate the list's builder reads — see docs/ui-conventions.md.
     val now = viewModel.minute.collectAsStateWithLifecycle().value
 
     val messages = rememberMessages()
+    val homework = rememberCardHomework(viewModel.cardHomework, messages)
+
     ShowGroupMessages(viewModel, messages)
-    val homeworkUndo = groupHomeworkUndo(viewModel, messages)
 
     KlasScreen(
         title = stringResource(section.titleRes),
@@ -76,22 +76,15 @@ private fun GroupList(
                     owner = state.group?.let { Assignee.Group(it.id) },
                     lists = state.homework,
                     messages = messages,
-                    onAdd = { addingHomework = viewModel.homeworkChoice() },
-                    onOpen = { openedHomework = it },
-                    onDone = homeworkUndo::swiped,
+                    onAdd = homework::add,
+                    onOpen = homework::open,
+                    onDone = homework::swiped,
                 )
             }
         }
     }
 
-    CardHomeworkDialogs(
-        adding = addingHomework,
-        opened = openedHomework,
-        onDismiss = { addingHomework = null; openedHomework = null },
-        onGive = viewModel::giveHomework,
-        onEdit = viewModel::editHomework,
-        undo = homeworkUndo,
-    )
+    homework.Dialogs()
 }
 
 private fun LazyListScope.lessons(rows: List<GroupLessonRow>, now: Instant, onLessonClick: (Long) -> Unit) {

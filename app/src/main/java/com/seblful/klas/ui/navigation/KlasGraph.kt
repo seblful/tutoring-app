@@ -59,15 +59,7 @@ import dev.zacsweers.metrox.viewmodel.assistedMetroViewModel
  * tray tap that lands after the graph was built still reaches its tab. They are keyed by [Screen.id]. See
  * [Arrival].
  */
-class KlasGraph(
-    private val navigator: KlasNavigator,
-    private val scheduleArrival: (Long) -> Arrival<ScheduleTarget>?,
-    private val debtsArrival: (Long) -> Arrival<Unit>?,
-    /** Asks the schedule just opened for [ScheduleTarget], as a tray tap does — Today's rows lead there. */
-    private val arriveAtSchedule: (ScheduleTarget) -> Unit = {},
-    /** Asks the reports just opened for their debts. */
-    private val arriveAtDebts: () -> Unit = {},
-) {
+class KlasGraph(private val navigator: KlasNavigator) {
     fun entry(screen: Screen): NavEntry<Screen> =
         NavEntry(screen, contentKey = screen.id, metadata = screen.route.paneMetadata()) { Content(screen) }
 
@@ -85,7 +77,7 @@ class KlasGraph(
             Routes.Schedule -> Schedule(screen.id)
             Routes.Reports -> ReportsScreen(
                 onStudentClick = { go(Routes.StudentDetail(it)) },
-                debtsArrival(screen.id),
+                navigator.arrivals.forDebts(screen.id),
                 onSettings = settings,
             )
             Routes.People -> People()
@@ -130,14 +122,10 @@ class KlasGraph(
         TodayScreen(
             onSettings = settings,
             onOpenLesson = {
-                navigator.openTabFromTray(TopDestination.SCHEDULE)
-                arriveAtSchedule(ScheduleTarget.Lesson(it))
+                navigator.arrivals.openSchedule(ScheduleTarget.Lesson(it))
             },
             onBook = { go(Routes.classEdit(0)) },
-            onDebts = {
-                navigator.openTabFromTray(TopDestination.REPORTS)
-                arriveAtDebts()
-            },
+            onDebts = navigator.arrivals::openDebts,
             onHomework = { navigator.navigateToTab(TopDestination.HOMEWORK) },
             onBackup = { go(Routes.Backup) },
             onSchedule = { navigator.navigateToTab(TopDestination.SCHEDULE) },
@@ -153,7 +141,7 @@ class KlasGraph(
     @Composable
     private fun Schedule(id: Long) {
         ScheduleScreen(
-            arrival = scheduleArrival(id),
+            arrival = navigator.arrivals.forSchedule(id),
             onAddClass = { day -> go(Routes.classEdit(0, day = day)) },
             onEditClass = { go(Routes.classEdit(it)) },
             onBookLike = { go(Routes.classEdit(0, like = it)) },

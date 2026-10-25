@@ -61,7 +61,7 @@ class NavigationDoubleTapTest {
         )
         app.graph = graph
         graph.settings.update { it.copy(onboardingComplete = true, language = AppLanguage.ENGLISH) }
-        val subject = graph.subjects.upsert(Subject(name = "Maths"))
+        val subject = graph.subjects.createOrReuse("Maths")
         graph.enrollment.createStudent(Student(name = STUDENT), mapOf(subject to Money.ofMajor(30)))
     }
 

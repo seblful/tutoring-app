@@ -100,12 +100,6 @@ class ClassRepository @Inject constructor(
     fun observeForGroup(groupId: Long): Flow<List<TutoringClass>> =
         dao.observeForGroup(groupId).map { list -> list.map { it.toDomain() } }
 
-    /** [who]'s classes starting after [after] — a group's every member's. */
-    fun observeOf(who: Assignee, after: Instant): Flow<List<TutoringClass>> = when (who) {
-        is Assignee.Student -> dao.observeForStudentAfter(who.studentId, after.toEpochMilliseconds())
-        is Assignee.Group -> dao.observeForGroupAfter(who.groupId, after.toEpochMilliseconds())
-    }.map { list -> list.map { it.toDomain() } }
-
     /** Each student's nearest lessons at [now], keyed by student; one with no lessons has no entry. */
     fun observeStudentSpans(now: Instant): Flow<Map<Long, NearestLessons>> =
         lessons.observeStudentSpans(now.toEpochMilliseconds()).map { it.toNearest() }
@@ -278,28 +272,27 @@ class ClassRepository @Inject constructor(
     }
 
     /**
-     * The undo window closed without an undo: the calendar now mirrors the lesson as it stands. Callers
-     * run it from the application scope, so a screen closed inside the window still settles it.
+     * The workflow's undo window closed: mirror the lesson as it stands, releasing its hold once.
      */
-    suspend fun settle(receipt: SessionReceipt) {
+    internal suspend fun settle(receipt: SessionReceipt) {
         if (!release(receipt.lessonId)) return
         current(receipt.after)?.let { calendar.mirror(it.classes) }
     }
 
     /** [settle] for every lesson one action changed. */
-    suspend fun settleAll(receipts: List<SessionReceipt>) = receipts.forEach { settle(it) }
+    internal suspend fun settleAll(receipts: List<SessionReceipt>) = receipts.forEach { settle(it) }
 
     /**
      * Writes [SessionReceipt.before] back — status, time, attendance and charges together — while the
      * lesson is still [SessionReceipt.after], and its hour is free if it would hold one again.
      */
-    suspend fun undo(receipt: SessionReceipt): UndoResult = undoAll(listOf(receipt)).single()
+    internal suspend fun undo(receipt: SessionReceipt): UndoResult = undoAll(listOf(receipt)).single()
 
     /**
      * [undo] for every lesson one action changed, in one transaction. Each lesson is restored or refused
      * on its own, so one edited since does not keep the rest from coming back. Results are in order.
      */
-    suspend fun undoAll(receipts: List<SessionReceipt>): List<UndoResult> {
+    internal suspend fun undoAll(receipts: List<SessionReceipt>): List<UndoResult> {
         val results = write {
             val outcomes = receipts.map { restore(it) }
             val restored = outcomes.flatMap { it.second }
@@ -514,7 +507,11 @@ class ClassRepository @Inject constructor(
     }
 
     /** [move], undoably — see [SessionReceipt]. */
-    suspend fun moveUndoable(session: ClassSession, newStart: Instant, now: Instant): LessonWrite<SessionReceipt?> =
+    internal suspend fun moveUndoable(
+        session: ClassSession,
+        newStart: Instant,
+        now: Instant,
+    ): LessonWrite<SessionReceipt?> =
         undoable(session) { moveRows(it, newStart, now) }
 
     private suspend fun moveRows(
@@ -542,7 +539,7 @@ class ClassRepository @Inject constructor(
     }
 
     /** [setStatus], undoably — see [SessionReceipt]. A null receipt when the lesson was already [to]. */
-    suspend fun setStatusUndoable(session: ClassSession, to: LessonStatus): LessonWrite<SessionReceipt?> =
+    internal suspend fun setStatusUndoable(session: ClassSession, to: LessonStatus): LessonWrite<SessionReceipt?> =
         undoable(session) { statusRows(it, to) }
 
     private suspend fun statusRows(
@@ -561,11 +558,28 @@ class ClassRepository @Inject constructor(
         }
     }
 
+    /** Eligibility and whole-lesson writes share the transaction, including for stale external actions. */
+    internal suspend fun complete(
+        classIds: Collection<Long>,
+        eligible: (ClassSession) -> Boolean,
+    ): List<ClassSession> {
+        if (classIds.isEmpty()) return emptyList()
+        return write {
+            val completed = classIds.mapNotNull { getSessionFor(it) }.distinctBy { it.lessonId }
+                .filter { LessonStatus.COMPLETED in SessionRules.sessionTransitions(it) && eligible(it) }
+                .map { session ->
+                    val rows = statusRows(session, LessonStatus.COMPLETED).value.written()
+                    ClassSession(session.groupId, rows)
+                }
+            Committed(completed, mirror = completed.flatMap { it.classes }, changed = completed.isNotEmpty())
+        }
+    }
+
     /**
      * Corrects a completion without the cancel/re-plan detour. Undo supplies [unchanged] so a receipt
      * cannot undo later edits. Calendar IDs are mirrors and do not count as edits to the lesson.
      */
-    suspend fun correctCompletion(session: ClassSession, unchanged: ClassSession? = null): Boolean = write {
+    internal suspend fun correctCompletion(session: ClassSession, unchanged: ClassSession? = null): Boolean = write {
         val current = current(session) ?: return@write Committed(false, changed = false)
         val matches = unchanged == null || current.classes.map { it.copy(calendarEventId = null) } ==
             unchanged.classes.map { it.copy(calendarEventId = null) }
@@ -586,7 +600,7 @@ class ClassRepository @Inject constructor(
      * [setAttendance], undoably — see [SessionReceipt]. The receipt is the whole lesson's, since the lesson
      * is what an undo checks is unchanged; [LessonWrite.Gone] when the class was deleted underneath.
      */
-    suspend fun setAttendanceUndoable(klass: TutoringClass, attended: Attended): LessonWrite<SessionReceipt?> =
+    internal suspend fun setAttendanceUndoable(klass: TutoringClass, attended: Attended): LessonWrite<SessionReceipt?> =
         undoable(ClassSession(klass.groupId, listOf(klass))) { _ ->
             val written = attendanceRows(klass, attended)
             written.mapValue { if (it.isEmpty()) LessonWrite.Gone else LessonWrite.Written(it) }
@@ -644,7 +658,7 @@ class ClassRepository @Inject constructor(
     }
 
     /** [cancelScheduledFor], undoably: a receipt per lesson it changed — see [undoAll], [settleAll]. */
-    suspend fun cancelScheduledForUndoable(studentId: Long): List<SessionReceipt> {
+    internal suspend fun cancelScheduledForUndoable(studentId: Long): List<SessionReceipt> {
         if (dao.scheduledForStudent(studentId).isEmpty()) return emptyList()
         return undoableAll(
             touched = { dao.scheduledForStudent(studentId).map { it.lessonId }.distinct() },
@@ -679,7 +693,7 @@ class ClassRepository @Inject constructor(
     }
 
     /** [cancelScheduledForGroup], undoably: a receipt per lesson it called off — see [undoAll], [settleAll]. */
-    suspend fun cancelScheduledForGroupUndoable(groupId: Long): List<SessionReceipt> {
+    internal suspend fun cancelScheduledForGroupUndoable(groupId: Long): List<SessionReceipt> {
         if (dao.scheduledForGroup(groupId).isEmpty()) return emptyList()
         return undoableAll(
             touched = { dao.scheduledForGroup(groupId).map { it.lessonId }.distinct() },

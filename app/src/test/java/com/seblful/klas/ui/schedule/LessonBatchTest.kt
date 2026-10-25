@@ -25,7 +25,7 @@ class LessonBatchTest {
     @get:Rule(order = 0)
     val env = TestEnv()
 
-    private val batch get() = LessonBatch(env.classRepo, mainRule.appScope)
+    private val batch get() = LessonBatch(env.classRepo, env.lessonChanges, env.lessonCompletions, mainRule.appScope)
 
     /** Three lessons this morning, already over on the test clock (15:00 in Minsk). */
     private suspend fun morning(): List<Long> {
@@ -73,7 +73,7 @@ class LessonBatchTest {
             runCurrent()
             val cancelled = batch.done.stream.first() as LessonBatch.Done.Cancelled
 
-            assertEquals(2, cancelled.receipts.size)
+            assertEquals(2, cancelled.changes.size)
             assertEquals(
                 listOf(LessonStatus.CANCELLED, LessonStatus.CANCELLED, LessonStatus.COMPLETED),
                 listOf(status(a), status(b), status(c)),
@@ -139,7 +139,7 @@ class LessonBatchTest {
             runCurrent()
             val replanned = batch.done.stream.first() as LessonBatch.Done.Replanned
 
-            assertEquals(1, replanned.receipts.size)
+            assertEquals(1, replanned.changes.size)
             assertEquals(1, replanned.clashed)
             assertEquals(listOf(LessonStatus.SCHEDULED, LessonStatus.CANCELLED), listOf(status(a), status(b)))
 

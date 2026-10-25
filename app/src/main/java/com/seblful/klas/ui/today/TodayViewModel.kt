@@ -5,12 +5,8 @@ import com.seblful.klas.data.backup.AutoBackup
 import com.seblful.klas.data.billing.BalanceRepository
 import com.seblful.klas.data.billing.PaymentRepository
 import com.seblful.klas.data.billing.balanceOf
-import com.seblful.klas.data.homework.HomeworkRepository
-import com.seblful.klas.data.lessons.ClassRepository
-import com.seblful.klas.data.lessons.LessonWrite
 import com.seblful.klas.data.people.GroupRepository
 import com.seblful.klas.data.people.StudentRepository
-import com.seblful.klas.data.people.SubjectRepository
 import com.seblful.klas.data.settings.GuideRepository
 import com.seblful.klas.data.settings.SettingsRepository
 import com.seblful.klas.di.ApplicationScope
@@ -18,28 +14,28 @@ import com.seblful.klas.di.Computation
 import com.seblful.klas.domain.guide.FirstSteps
 import com.seblful.klas.domain.guide.PhoneSetup
 import com.seblful.klas.domain.guide.PhoneStep
-import com.seblful.klas.domain.homework.HomeworkRules
+import com.seblful.klas.domain.lesson.CompletionTiming
 import com.seblful.klas.domain.lesson.LessonPhase
-import com.seblful.klas.domain.lesson.SessionRules
 import com.seblful.klas.domain.model.ClassSession
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.people.Captions
 import com.seblful.klas.domain.reports.Reports
-import com.seblful.klas.domain.schedule.DayBounds
 import com.seblful.klas.domain.schedule.DaySummary
 import com.seblful.klas.domain.time.WallClock
-import com.seblful.klas.format.days
 import com.seblful.klas.format.minutes
+import com.seblful.klas.lessons.LessonCompletions
 import com.seblful.klas.notifications.NotificationPermission
 import com.seblful.klas.notifications.RecentMarks
-import com.seblful.klas.queries.homework.HomeworkLists
+import com.seblful.klas.queries.homework.HomeworkQuery
 import com.seblful.klas.queries.homework.HomeworkRow
+import com.seblful.klas.queries.lessons.TodayLessonsQuery
 import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.common.state.UiEvents
 import com.seblful.klas.ui.common.state.derive
 import com.seblful.klas.ui.common.state.ready
 import com.seblful.klas.ui.common.state.valueOrNull
+import com.seblful.klas.ui.common.state.write
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesIntoMap
 import dev.zacsweers.metro.Inject
@@ -57,7 +53,6 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
-import kotlin.time.Duration.Companion.days
 import kotlin.time.Instant
 
 /**
@@ -116,12 +111,12 @@ data class FirstStepsCard(val steps: FirstSteps, val student: Long?)
 @ViewModelKey
 @ContributesIntoMap(AppScope::class, binding = binding<ViewModel>())
 class TodayViewModel @Inject constructor(
-    private val classes: ClassRepository,
+    private val completions: LessonCompletions,
     students: StudentRepository,
-    subjects: SubjectRepository,
+    todayLessons: TodayLessonsQuery,
     groups: GroupRepository,
     balances: BalanceRepository,
-    homework: HomeworkRepository,
+    homework: HomeworkQuery,
     settings: SettingsRepository,
     payments: PaymentRepository,
     private val guide: GuideRepository,
@@ -139,6 +134,8 @@ class TodayViewModel @Inject constructor(
         /** An undo found a lesson changed since it was marked, and left it. */
         data object UndoChanged : Event
 
+        data object ActionFailed : Event
+
         /** The first-steps card was put away, for the snackbar's Undo. */
         data object FirstStepsHidden : Event
 
@@ -149,26 +146,19 @@ class TodayViewModel @Inject constructor(
     val events = UiEvents<Event>()
 
     private val captions: Flow<Captions> =
-        combine(students.observeAll(), subjects.observeAll(), groups.observeAll()) { s, sub, g ->
-            Captions.of(s, sub, g)
+        combine(students.observeAll(), groups.observeAll()) { people, groupList ->
+            Captions.of(people, emptyList(), groupList)
         }
-
-    private val todaysSessions: Flow<List<ClassSession>> = clock.days().flatMapLatest { day ->
-        val bounds = DayBounds.of(day, clock.zone)
-        classes.observeBetween(bounds.start, bounds.end).map { dayClasses ->
-            SessionRules.sessions(dayClasses).filter { it.status != LessonStatus.CANCELLED }
-        }
-    }
 
     private val lessons: Flow<List<TodayLessonRow>> =
-        combine(todaysSessions, captions, clock.minutes()) { sessions, names, now ->
-            sessions.sortedBy { it.start }.map { session ->
+        combine(todayLessons.observe(), clock.minutes()) { lessons, now ->
+            lessons.map { lesson ->
                 TodayLessonRow(
-                    session = session,
-                    who = names.titleOf(session),
-                    subject = names.subjectOf(session),
-                    phase = LessonPhase.of(session, now),
-                    minutesAway = (session.start - now).inWholeMinutes,
+                    session = lesson.session,
+                    who = lesson.who,
+                    subject = lesson.subject,
+                    phase = LessonPhase.of(lesson.session, now),
+                    minutesAway = (lesson.session.start - now).inWholeMinutes,
                 )
             }
         }
@@ -200,17 +190,7 @@ class TodayViewModel @Inject constructor(
 
     /** Current homework whose lesson is today, or has passed with it still open. */
     private val homeworkDue: Flow<List<HomeworkRow>> =
-        combine(
-            homework.observeWithLessons(since = clock.now() - HOMEWORK_LOOKBACK),
-            students.observeAll(),
-            groups.observeAll(),
-            clock.days(),
-        ) { withLessons, studentList, groupList, today ->
-            val names = Captions.of(studentList, emptyList(), groupList)
-            val taught = HomeworkRules.taught(withLessons.homework, studentList, groupList)
-            HomeworkLists.of(taught, withLessons.classes, names, today, clock.zone).current
-                .filter { it.due == HomeworkRules.Due.TODAY || it.due == HomeworkRules.Due.OVERDUE }
-        }
+        homework.observeDue()
 
     /**
      * When the last backup was, and whether it is old enough to say so. Never said before there is anyone to
@@ -287,7 +267,7 @@ class TodayViewModel @Inject constructor(
             .ready()
             .derive(this, computation, Loadable.Loading)
 
-    fun markTaught(row: TodayLessonRow) = mark(listOf(row.session))
+    fun markTaught(row: TodayLessonRow) = mark(listOf(row.session), CompletionTiming.STARTED)
 
     /** Asks the platform again: the tutor may have allowed notifications in system settings meanwhile. */
     fun refreshPermission() {
@@ -318,16 +298,15 @@ class TodayViewModel @Inject constructor(
     }
 
     /** Every lesson over and still unmarked, taught in one go — and taken back in one go. */
-    fun markAllTaught() = mark(state.value.valueOrNull()?.toMark.orEmpty().map { it.session })
+    fun markAllTaught() = mark(
+        state.value.valueOrNull()?.toMark.orEmpty().map { it.session },
+        CompletionTiming.FINISHED,
+    )
 
-    private fun mark(sessions: List<ClassSession>) {
+    private fun mark(sessions: List<ClassSession>, timing: CompletionTiming) {
         if (sessions.isEmpty()) return
-        appScope.launch {
-            val marked = sessions.mapNotNull { session ->
-                val written = classes.setStatus(session, LessonStatus.COMPLETED)
-                (written as? LessonWrite.Written)?.value?.takeIf { it.isNotEmpty() }
-                    ?.let { ClassSession(session.groupId, it) }
-            }
+        appScope.write(events, Event.ActionFailed) {
+            val marked = completions.complete(sessions.map { it.first.id }, timing)
             if (marked.isNotEmpty()) events.send(Event.Marked(marked))
         }
     }
@@ -335,22 +314,17 @@ class TodayViewModel @Inject constructor(
     /** Takes back a mark made outside the app, only if nothing about the lesson has changed since. */
     fun undo(recent: TodayMark) {
         recentMarks.forget(recent.mark.session)
-        appScope.launch {
+        appScope.write(events, Event.ActionFailed) {
             val session = recent.mark.session
-            if (!classes.correctCompletion(session, unchanged = session)) events.send(Event.UndoChanged)
+            if (!completions.undo(session)) events.send(Event.UndoChanged)
         }
     }
 
     /** Takes back [marked], each only if nothing about it has changed since. */
     fun undo(marked: Event.Marked) {
-        appScope.launch {
-            val kept = marked.sessions.count { !classes.correctCompletion(it, unchanged = it) }
+        appScope.write(events, Event.ActionFailed) {
+            val kept = completions.undoAll(marked.sessions)
             if (kept > 0) events.send(Event.UndoChanged)
         }
-    }
-
-    private companion object {
-        /** Far enough back that homework from a lesson missed last week still shows as overdue. */
-        val HOMEWORK_LOOKBACK = 14.days
     }
 }

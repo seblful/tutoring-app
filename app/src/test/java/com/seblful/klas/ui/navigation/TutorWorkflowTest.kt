@@ -94,7 +94,7 @@ class TutorWorkflowTest {
         )
         app.graph = graph
         graph.settings.update { it.copy(onboardingComplete = true, language = AppLanguage.ENGLISH) }
-        val subject = graph.subjects.upsert(Subject(name = "Maths"))
+        val subject = graph.subjects.createOrReuse("Maths")
         studentId =
             graph.enrollment.createStudent(Student(name = "Workflow student"), mapOf(subject to Money.ofMajor(30)))
         lessonId = graph.classes.book(
@@ -150,7 +150,7 @@ class TutorWorkflowTest {
 
     @Test
     fun `a student created from the group form returns through it to the original booking`() {
-        runBlocking { graph.subjects.upsert(Subject(name = "Science")) }
+        runBlocking { graph.subjects.createOrReuse("Science") }
         ActivityScenario.launch(MainActivity::class.java).use {
             waitForText("Workflow student")
             compose.onNodeWithContentDescription(text(R.string.class_book)).performClick()
