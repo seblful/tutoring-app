@@ -11,8 +11,12 @@ mirrors and [database and backup](database-and-backup.md) for persistence contra
   uses the phone's region. Decimal separators follow app language, not currency. Money input accepts
   dot, comma and Arabic decimal separators, plus Arabic-Indic, Eastern Arabic-Indic, Devanagari and
   full-width digits; changing language does not invalidate a prefilled amount.
-- A student's empty phone field opens on the dialling code of the currency's country (`Phone.prefill`;
-  none for EUR). A phone that is only a `+` code is saved as no phone.
+- A student's phone is kept exactly as typed or picked from the phone's contacts (the system picker, so no
+  contacts permission), with or without a country code; the field opens empty. A phone that is only a `+`
+  code is saved as no phone. `Phone.international` adds the currency's country code, and drops the trunk
+  `8`/`0`, only where an app needs the whole number. The card's call icon opens the dialler; its message
+  icon, and a tap on the phone, open Android's own chooser of SMS, Telegram and WhatsApp
+  (`ExternalTarget.Message`). EUR names no country, so a number without a code is only texted by SMS.
 - Each class books an editable hourly rate, initially the student's/group's. Later rate changes leave
   existing classes untouched. A new individual booking follows subject price suggestions until the
   tutor overrides the amount; changing subjects never replaces a typed or historical booked rate.

@@ -208,7 +208,8 @@
     <string name="student_edit_title">Редагувати студента</string>
     <string name="student_name_label">Ім\'я</string>
     <string name="student_phone_label">Контактний телефон</string>
-    <string name="student_phone_hint">Необов’язково · учня або батьків, для дзвінків і Telegram</string>
+    <string name="student_phone_hint">Необов’язково · учня або батьків, для дзвінків і повідомлень</string>
+    <string name="student_phone_pick">Вибрати з контактів</string>
     <string name="student_email_label">Електронна пошта</string>
     <string name="student_email_hint">Необов’язково · для запрошень до уроків, якщо вони ввімкнені в налаштуваннях</string>
     <string name="student_note_label">Нотатка</string>
@@ -296,8 +297,8 @@
     <string name="payment_undo_changed">Відтоді платіж змінився, тому нічого не було скасовано.</string>
     <string name="payment_date_label">Дата платежу</string>
     <string name="student_call">Телефонуйте</string>
+    <string name="student_message">Написати</string>
     <string name="student_write_email">Надіслати електронний лист</string>
-    <string name="student_write_telegram">Повідомлення в Telegram</string>
     <string name="student_contact_failed">Жодна програма на цьому телефоні не може цього зробити</string>
     <string name="subjects_title">Суб\'єкти</string>
     <string name="subjects_empty">Тем ще немає</string>

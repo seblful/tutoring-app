@@ -3,25 +3,18 @@ package com.seblful.klas.domain.people
 import com.seblful.klas.domain.model.Currency
 
 /**
- * A student's phone, as the forms offer it and as it is kept.
+ * A student's phone, kept exactly as typed or picked from the contacts — with or without a country code. The
+ * tutor's own country is known from the currency, so [international] adds its code only where an app needs the
+ * whole number (Telegram, WhatsApp); a number with a `+` code is used as it is.
  *
- * The field opens on the dialling code of the tutor's currency ([prefill]), so the tutor types only the
- * number. **A field left as it opened is no phone**, not the phone «+375»: saved as typed, it put a contact
- * row on the card that dialled a country and opened Telegram on `t.me/+375`. Both save paths (a new
- * student, an edited one) keep what [stored] returns, and the card reads a number through [contactOf],
- * which also hides a prefix-only phone an earlier build already saved.
+ * A phone that is only a dialling code is no phone: an earlier build saved the prefilled `+375` as typed,
+ * which put a contact row on the card that dialled a country. [stored] and [contactOf] still hide one.
  */
 object Phone {
 
     /**
-     * What an empty phone field starts with for a tutor paid in [currency]: its country's dialling code,
-     * or nothing for a currency no one country issues.
-     */
-    fun prefill(currency: Currency): String = callingCode(currency)?.let { "$it " }.orEmpty()
-
-    /**
      * The phone to keep for [typed]: trimmed, and empty when nothing past a dialling code was typed — any
-     * code, since the currency may have changed since the field opened.
+     * code, since an earlier build opened the field on one.
      */
     fun stored(typed: String): String {
         val trimmed = typed.trim()
@@ -32,8 +25,26 @@ object Phone {
     /** A kept phone to call or message, or null when there is no number to reach. */
     fun contactOf(phone: String): String? = stored(phone).ifEmpty { null }
 
-    /** What an edit dialog shows for a kept phone: the number, or the dialling code to type one after. */
-    fun editable(phone: String, currency: Currency): String = stored(phone).ifEmpty { prefill(currency) }
+    /**
+     * The whole number to hand to an app that needs it, as `+` and digits — or null when there is none to
+     * give: a number without a code, for a currency that names no country (the euro's twenty).
+     */
+    fun international(phone: String, currency: Currency): String? {
+        val kept = contactOf(phone) ?: return null
+        val digits = kept.filter(Char::isDigit)
+        return when {
+            digits.isEmpty() -> null
+            kept.startsWith("+") -> "+$digits"
+            kept.startsWith("00") -> "+${digits.drop(2)}"
+            else -> callingCode(currency)?.let { it + digits.withoutTrunk(it) }
+        }
+    }
+
+    /** A national number's leading trunk prefix (`8 029…`, `0 29…`) is dialled only inside the country. */
+    private fun String.withoutTrunk(code: String): String {
+        val prefix = (TRUNK_PREFIXES[code] ?: DEFAULT_TRUNK).firstOrNull { startsWith(it) } ?: return this
+        return drop(prefix.length)
+    }
 
     /** The ITU calling code of the country issuing [currency]; null for the euro's twenty countries. */
     fun callingCode(currency: Currency): String? = CALLING_CODES[currency]
@@ -68,6 +79,14 @@ object Phone {
         Currency.UAH to "+380",
         Currency.ZAR to "+27",
     )
+
+    /** Prefixes for a national number that is not the default `0`; the first that matches is dropped. */
+    private val TRUNK_PREFIXES = mapOf(
+        "+7" to listOf("8"),
+        "+375" to listOf("80", "0"),
+        "+1" to listOf("1"),
+    )
+    private val DEFAULT_TRUNK = listOf("0")
 
     /** Country calling codes are one to three digits; no reachable number is that short. */
     private const val MAX_CODE_DIGITS = 3

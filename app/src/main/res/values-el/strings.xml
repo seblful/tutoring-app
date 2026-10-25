@@ -196,7 +196,8 @@
     <string name="student_edit_title">Επεξεργασία μαθητή</string>
     <string name="student_name_label">Όνομα</string>
     <string name="student_phone_label">Τηλέφωνο επικοινωνίας</string>
-    <string name="student_phone_hint">Προαιρετικό · του μαθητή ή του γονέα, για κλήσεις και τηλεγράφημα</string>
+    <string name="student_phone_hint">Προαιρετικό · του μαθητή ή του γονέα, για κλήσεις και μηνύματα</string>
+    <string name="student_phone_pick">Επιλογή από τις επαφές</string>
     <string name="student_email_label">Email</string>
     <string name="student_email_hint">Προαιρετικό · για προσκλήσεις μαθημάτων, εάν είναι ενεργοποιημένες στις Ρυθμίσεις</string>
     <string name="student_note_label">Σημείωση</string>
@@ -276,8 +277,8 @@
     <string name="payment_undo_changed">Η πληρωμή άλλαξε έκτοτε, επομένως δεν αναιρέθηκε τίποτα.</string>
     <string name="payment_date_label">Ημερομηνία πληρωμής</string>
     <string name="student_call">Κλήση</string>
+    <string name="student_message">Μήνυμα</string>
     <string name="student_write_email">Στείλτε ένα email</string>
-    <string name="student_write_telegram">Μήνυμα στο Telegram</string>
     <string name="student_contact_failed">Καμία εφαρμογή σε αυτό το τηλέφωνο δεν μπορεί να το κάνει αυτό</string>
     <string name="subjects_title">Θέματα</string>
     <string name="subjects_empty">Δεν υπάρχουν ακόμη θέματα</string>

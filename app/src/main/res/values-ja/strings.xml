@@ -190,7 +190,8 @@
     <string name="student_edit_title">学生を編集する</string>
     <string name="student_name_label">名前</string>
     <string name="student_phone_label">連絡先電話番号</string>
-    <string name="student_phone_hint">オプション · 学生または保護者、通話および電報用</string>
+    <string name="student_phone_hint">任意 · 生徒または保護者の番号。通話とメッセージ用</string>
+    <string name="student_phone_pick">連絡先から選ぶ</string>
     <string name="student_email_label">電子メール</string>
     <string name="student_email_hint">オプション · レッスンへの招待（設定でオンになっている場合）</string>
     <string name="student_note_label">メモ</string>
@@ -266,8 +267,8 @@
     <string name="payment_undo_changed">その後支払いが変更されたため、何も取り消されませんでした。</string>
     <string name="payment_date_label">支払日</string>
     <string name="student_call">コール</string>
+    <string name="student_message">メッセージ</string>
     <string name="student_write_email">電子メールを送信する</string>
-    <string name="student_write_telegram">電報のメッセージ</string>
     <string name="student_contact_failed">この携帯電話にはそれを実行できるアプリはありません</string>
     <string name="subjects_title">被験者</string>
     <string name="subjects_empty">被験者はまだいません</string>

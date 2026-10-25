@@ -1,5 +1,7 @@
 package com.seblful.klas.ui.students
 
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -14,11 +16,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import com.seblful.klas.R
 import com.seblful.klas.domain.model.Student
 import com.seblful.klas.domain.people.Phone
 import com.seblful.klas.ui.common.ArchiveMenuItem
-import com.seblful.klas.ui.common.FactsLine
+import com.seblful.klas.ui.common.LocalCurrency
 import com.seblful.klas.ui.common.MenuItem
 import com.seblful.klas.ui.common.MinTouchTarget
 import com.seblful.klas.ui.common.OverflowMenu
@@ -28,30 +31,48 @@ import com.seblful.klas.ui.designsystem.component.KlasDivider
 import com.seblful.klas.ui.theme.KlasIcons
 
 /**
- * Under the name, as one line: how to reach them, then how they are taught — with the ways to reach them
- * beside it. Then the tutor's note, if any.
+ * Under the name, as two lines: how to reach them, then how they are taught — with the ways to reach them
+ * beside it. Then the tutor's note, if any. A tap on the phone, or on its message icon, asks Android which app
+ * should write to them (see `ExternalTarget.Message`): [onMessage] gets the kept phone and its whole number.
  */
 @Composable
 internal fun ContactBlock(
     student: Student,
     onCall: (String) -> Unit,
+    onMessage: (phone: String, international: String?) -> Unit,
     onEmail: (String) -> Unit,
-    onTelegram: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val phone = Phone.contactOf(student.phone)
+    val international = Phone.international(student.phone, LocalCurrency.current)
     val email = student.email.takeIf { it.isNotBlank() }
     Column(modifier) {
         Row(Modifier.fillMaxWidth().heightIn(min = MinTouchTarget), verticalAlignment = Alignment.CenterVertically) {
-            // The email stands in the line only for want of a phone; its button is there either way.
-            FactsLine(
-                listOf(phone ?: email.orEmpty(), classModeLabel(student.defaultMode)),
-                modifier = Modifier.weight(1f),
-            )
+            // The tap area is the box, so the line sits in its middle, level with the icon beside it.
+            Box(
+                Modifier
+                    .weight(1f)
+                    .then(
+                        if (phone == null) Modifier else {
+                            Modifier
+                                .heightIn(min = MinTouchTarget)
+                                .clickable(role = Role.Button) { onMessage(phone, international) }
+                        },
+                    ),
+                contentAlignment = Alignment.CenterStart,
+            ) {
+                Column {
+                    val style = MaterialTheme.typography.bodyMedium
+                    val color = MaterialTheme.colorScheme.onSurfaceVariant
+                    // The email stands in the line only for want of a phone; its button is there either way.
+                    (phone ?: email)?.let { Text(it, style = style, color = color) }
+                    Text(classModeLabel(student.defaultMode), style = style, color = color)
+                }
+            }
             if (phone != null) {
                 ContactAction(KlasIcons.Outlined.Call, stringResource(R.string.student_call)) { onCall(phone) }
-                ContactAction(KlasIcons.Outlined.Send, stringResource(R.string.student_write_telegram)) {
-                    onTelegram(phone)
+                ContactAction(KlasIcons.Outlined.Send, stringResource(R.string.student_message)) {
+                    onMessage(phone, international)
                 }
             }
             if (email != null) {
@@ -79,13 +100,14 @@ private fun ContactAction(icon: ImageVector, label: String, onClick: () -> Unit)
 internal fun StudentOverflowMenu(
     student: Student,
     onCall: (String) -> Unit,
-    onTelegram: (String) -> Unit,
+    onMessage: (phone: String, international: String?) -> Unit,
     onEmail: (String) -> Unit,
     onArchive: () -> Unit,
     /** A reminder of what is owed, offered while something is. */
     remind: (() -> Unit)? = null,
 ) {
     val phone = Phone.contactOf(student.phone)
+    val international = Phone.international(student.phone, LocalCurrency.current)
     OverflowMenu { close ->
         // Reaching the student from anywhere on the card: the contact line under the name is the first thing
         // to scroll away, and the bar is the one thing that stays.
@@ -96,9 +118,9 @@ internal fun StudentOverflowMenu(
                 onClick = { close(); onCall(phone) },
             )
             ContactMenuItem(
-                label = stringResource(R.string.student_write_telegram),
+                label = stringResource(R.string.student_message),
                 icon = KlasIcons.Outlined.Send,
-                onClick = { close(); onTelegram(phone) },
+                onClick = { close(); onMessage(phone, international) },
             )
         }
         if (student.email.isNotBlank()) {

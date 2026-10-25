@@ -208,7 +208,8 @@
     <string name="student_edit_title">Рэдагаваць студэнта</string>
     <string name="student_name_label">Імя</string>
     <string name="student_phone_label">Кантактны тэлефон</string>
-    <string name="student_phone_hint">Неабавязкова · студэнту або бацькам, для званкоў і Telegram</string>
+    <string name="student_phone_hint">Неабавязкова · студэнту або бацькам, для званкоў і паведамленняў</string>
+    <string name="student_phone_pick">Выбраць з кантактаў</string>
     <string name="student_email_label">Электронная пошта</string>
     <string name="student_email_hint">Неабавязкова · для запрашэнняў на ўрокі, калі яны ўключаны ў Наладах</string>
     <string name="student_note_label">Нататка</string>
@@ -296,8 +297,8 @@
     <string name="payment_undo_changed">З тых часоў аплата змянілася, таму нічога не было адменена.</string>
     <string name="payment_date_label">Дата плацяжу</string>
     <string name="student_call">Тэлефануйце</string>
+    <string name="student_message">Напісаць</string>
     <string name="student_write_email">Адправіць ліст</string>
-    <string name="student_write_telegram">Паведамленне ў Telegram</string>
     <string name="student_contact_failed">Ні адно прыкладанне на гэтым тэлефоне не можа гэтага зрабіць</string>
     <string name="subjects_title">Прадметы</string>
     <string name="subjects_empty">Тэм пакуль няма</string>

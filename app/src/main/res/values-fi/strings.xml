@@ -196,7 +196,8 @@
     <string name="student_edit_title">Muokkaa opiskelijaa</string>
     <string name="student_name_label">Nimi</string>
     <string name="student_phone_label">Yhteyspuhelin</string>
-    <string name="student_phone_hint">Valinnainen · opiskelijan tai vanhemman puheluita ja sähkeitä varten</string>
+    <string name="student_phone_hint">Valinnainen · opiskelijan tai vanhemman, puheluita ja viestejä varten</string>
+    <string name="student_phone_pick">Valitse yhteystiedoista</string>
     <string name="student_email_label">Sähköposti</string>
     <string name="student_email_hint">Valinnainen · oppituntikutsuille, jos ne ovat päällä asetuksissa</string>
     <string name="student_note_label">Muistiinpano</string>
@@ -276,8 +277,8 @@
     <string name="payment_undo_changed">Maksu muuttui sen jälkeen, joten mitään ei peruttu.</string>
     <string name="payment_date_label">Maksupäivä</string>
     <string name="student_call">Soita</string>
+    <string name="student_message">Kirjoita</string>
     <string name="student_write_email">Lähetä sähköpostia</string>
-    <string name="student_write_telegram">Viesti Telegramissa</string>
     <string name="student_contact_failed">Mikään tämän puhelimen sovellus ei pysty siihen</string>
     <string name="subjects_title">Aiheet</string>
     <string name="subjects_empty">Ei aiheita vielä</string>

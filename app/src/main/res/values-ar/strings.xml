@@ -220,7 +220,8 @@
     <string name="student_edit_title">تحرير الطالب</string>
     <string name="student_name_label">الاسم</string>
     <string name="student_phone_label">هاتف الاتصال</string>
-    <string name="student_phone_hint">اختياري · خاص بالطالب أو ولي الأمر للمكالمات والتيليجرام</string>
+    <string name="student_phone_hint">اختياري · خاص بالطالب أو ولي الأمر للمكالمات والرسائل</string>
+    <string name="student_phone_pick">اختيار من جهات الاتصال</string>
     <string name="student_email_label">البريد الإلكتروني</string>
     <string name="student_email_hint">اختياري · لدعوات الدرس، إذا كانت قيد التشغيل في الإعدادات</string>
     <string name="student_note_label">ملاحظة</string>
@@ -316,8 +317,8 @@
     <string name="payment_undo_changed">تغيرت الدفعة منذ ذلك الحين، لذلك لم يتم التراجع عن أي شيء.</string>
     <string name="payment_date_label">تاريخ الدفع</string>
     <string name="student_call">اتصل</string>
+    <string name="student_message">رسالة</string>
     <string name="student_write_email">إرسال بريد إلكتروني</string>
-    <string name="student_write_telegram">رسالة على التليجرام</string>
     <string name="student_contact_failed">لا يوجد تطبيق على هذا الهاتف يمكنه القيام بذلك</string>
     <string name="subjects_title">المواضيع</string>
     <string name="subjects_empty">لا توجد مواضيع بعد</string>

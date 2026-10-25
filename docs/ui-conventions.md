@@ -99,8 +99,8 @@ Build screens from shared state and controls. Feature rules belong in the domain
 - Follow `Spacing`; page sides use `gutter`. A row gets ripple room from card padding, keeping text
   aligned. Use top-level `ContentCard`, nested `ListItem`; top-level cards lead with a 40 dp `Avatar`
   or `IconAvatar`. Student and group cards are overviews (`OverviewSection.kt`): under the large title, one muted
-  facts line (`FactsLine`: one line when it fits, else a fact per line, never one broken) (a student's contact and lesson format with call/Telegram/email icons; a group's subject and
-  rate), the next lesson (`NextLessonCard`, `primaryContainer`, its «+» books), a headline card (the
+  facts line (`FactsLine`: one line when it fits, else a fact per line, never one broken) (a group's subject and
+  rate; a student's is two lines, the phone over the lesson format, beside a call icon, a message icon whose tap, like a tap on the phone, opens Android's chooser of messaging apps, and an email icon), the next lesson (`NextLessonCard`, `primaryContainer`, its «+» books), a headline card (the
   student's balance with its payment button; the group's earnings), then `OverviewSection`s with their
   latest few rows and «See all» to the full list (`StudentList`/`GroupList` routes, beside People like the
   card). Short lists — a student's subjects, a group's members — are shown in full.

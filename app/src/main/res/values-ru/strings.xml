@@ -357,7 +357,8 @@
     <string name="student_edit_title">Изменить ученика</string>
     <string name="student_name_label">Имя</string>
     <string name="student_phone_label">Телефон для связи</string>
-    <string name="student_phone_hint">Необязательно · ученика или родителя — для звонков и Telegram</string>
+    <string name="student_phone_hint">Необязательно · ученика или родителя — для звонков и сообщений</string>
+    <string name="student_phone_pick">Выбрать из контактов</string>
     <string name="student_email_label">Email</string>
     <string name="student_email_hint">Необязательно · для приглашений на занятия, если они включены в настройках</string>
     <string name="student_note_label">Заметка</string>
@@ -475,8 +476,8 @@
 
     <!-- Contacting a student. The next thing after "who owes me" is "message them". -->
     <string name="student_call">Позвонить</string>
+    <string name="student_message">Написать</string>
     <string name="student_write_email">Написать письмо</string>
-    <string name="student_write_telegram">Написать в Telegram</string>
     <string name="student_contact_failed">Нет приложения для этого действия</string>
 
     <!-- Subjects -->

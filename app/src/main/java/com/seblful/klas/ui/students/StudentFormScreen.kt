@@ -38,7 +38,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.seblful.klas.R
 import com.seblful.klas.domain.lesson.ClassRules
 import com.seblful.klas.domain.model.Subject
-import com.seblful.klas.domain.people.Phone
 import com.seblful.klas.format.MoneyField
 import com.seblful.klas.format.bulletJoin
 import com.seblful.klas.format.labelRes
@@ -126,9 +125,7 @@ fun StudentFormContent(
     contacts: Boolean = true,
 ) {
     val form = state.form
-    // The currency is the screen's to know (see `LocalCurrency`); onboarding may change it in the same flow.
-    val diallingCode = Phone.prefill(LocalCurrency.current)
-    LaunchedEffect(diallingCode) { viewModel.offerDiallingCode(diallingCode) }
+    val pickContact = rememberContactPicker(viewModel::pickContact)
     Column(
         modifier
             // Before the scroll, so the keyboard shrinks the viewport instead of covering the
@@ -147,6 +144,7 @@ fun StudentFormContent(
                 onName = { v -> viewModel.update { it.copy(name = v) } },
                 phone = form.phone,
                 onPhone = { v -> viewModel.update { it.copy(phone = v) } },
+                onPickContact = pickContact,
                 email = form.email,
                 onEmail = { v -> viewModel.update { it.copy(email = v) } },
                 note = form.note,

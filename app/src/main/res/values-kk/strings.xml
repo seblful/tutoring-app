@@ -196,7 +196,8 @@
     <string name="student_edit_title">Оқушыны өңдеу</string>
     <string name="student_name_label">Аты</string>
     <string name="student_phone_label">Байланыс телефоны</string>
-    <string name="student_phone_hint">Қосымша · қоңыраулар мен Telegram үшін студенттің немесе ата-ананың</string>
+    <string name="student_phone_hint">Міндетті емес · қоңыраулар мен хабарламалар үшін студенттің немесе ата-ананың</string>
+    <string name="student_phone_pick">Контактілерден таңдау</string>
     <string name="student_email_label">Электрондық пошта</string>
     <string name="student_email_hint">Қосымша · сабаққа шақырулар үшін, егер олар Параметрлерде қосулы болса</string>
     <string name="student_note_label">Ескертпе</string>
@@ -276,8 +277,8 @@
     <string name="payment_undo_changed">Содан бері төлем өзгерді, сондықтан ештеңе қайтарылмады.</string>
     <string name="payment_date_label">Төлем күні</string>
     <string name="student_call">Қоңырау шалу</string>
+    <string name="student_message">Жазу</string>
     <string name="student_write_email">Электрондық хат жіберу</string>
-    <string name="student_write_telegram">Telegram-дағы хабарлама</string>
     <string name="student_contact_failed">Бұл телефондағы ешбір қолданба мұны істей алмайды</string>
     <string name="subjects_title">Тақырыптар</string>
     <string name="subjects_empty">Әлі тақырыптар жоқ</string>

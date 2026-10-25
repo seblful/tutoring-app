@@ -5,8 +5,10 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.test.assertTextContains
+import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import com.seblful.klas.domain.model.Currency
 import com.seblful.klas.testutil.AppLocaleRule
@@ -33,7 +35,7 @@ class StudentFormPhoneTest {
     val env = TestEnv()
 
     @Test
-    fun `the phone opens on the dialling code of the chosen currency and follows a change of it`() {
+    fun `the phone opens empty whatever the currency, and offers the phone's contacts`() {
         val vm = StudentFormViewModel(
             androidx.lifecycle.SavedStateHandle(),
             env.subjectRepo,
@@ -43,7 +45,6 @@ class StudentFormPhoneTest {
             MainScope(),
             Dispatchers.Unconfined,
         )
-        // Onboarding embeds the form after the currency step, which can still be revisited.
         var currency by mutableStateOf(Currency.RUB)
         compose.setContent {
             CompositionLocalProvider(LocalCurrency provides currency) {
@@ -51,10 +52,11 @@ class StudentFormPhoneTest {
             }
         }
 
-        compose.onNodeWithText("Contact phone").assertTextContains("+7", substring = true)
+        compose.onNodeWithText("Contact phone").assert(hasText("+", substring = true).not())
+        compose.onNodeWithContentDescription("Choose from contacts").assertExists()
 
         currency = Currency.BYN
-        compose.onNodeWithText("Contact phone").assertTextContains("+375", substring = true)
-        assertFalse("the code alone is not the tutor's work", vm.state.value.isDirty)
+        compose.onNodeWithText("Contact phone").assert(hasText("+", substring = true).not())
+        assertFalse("an untouched phone is not the tutor's work", vm.state.value.isDirty)
     }
 }

@@ -297,7 +297,8 @@
     <string name="student_edit_title">Edit student</string>
     <string name="student_name_label">Name</string>
     <string name="student_phone_label">Contact phone</string>
-    <string name="student_phone_hint">Optional · the student\'s or a parent\'s, for calls and Telegram</string>
+    <string name="student_phone_hint">Optional · the student\'s or a parent\'s, for calls and messages</string>
+    <string name="student_phone_pick">Choose from contacts</string>
     <string name="student_email_label">Email</string>
     <string name="student_email_hint">Optional · for lesson invitations, if they are on in Settings</string>
     <string name="student_note_label">Note</string>
@@ -402,8 +403,8 @@
 
     <!-- Contacting a student. The next thing after "who owes me" is "message them". -->
     <string name="student_call">Call</string>
+    <string name="student_message">Message</string>
     <string name="student_write_email">Send an email</string>
-    <string name="student_write_telegram">Message on Telegram</string>
     <string name="student_contact_failed">No app on this phone can do that</string>
 
     <!-- Subjects -->

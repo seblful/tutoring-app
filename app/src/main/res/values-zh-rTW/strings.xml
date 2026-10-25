@@ -190,7 +190,8 @@
     <string name="student_edit_title">編輯學生</string>
     <string name="student_name_label">姓名</string>
     <string name="student_phone_label">聯絡電話</string>
-    <string name="student_phone_hint">可選·學生或家長的，用於電話和電報</string>
+    <string name="student_phone_hint">可選·學生或家長的，用於電話和訊息</string>
+    <string name="student_phone_pick">從聯絡人中選擇</string>
     <string name="student_email_label">電子郵件</string>
     <string name="student_email_hint">可選 · 對於課程邀請（如果在「設定」中開啟）</string>
     <string name="student_note_label">備註</string>
@@ -266,8 +267,8 @@
     <string name="payment_undo_changed">此後付款發生了變化，因此沒有任何操作被撤銷。</string>
     <string name="payment_date_label">付款日期</string>
     <string name="student_call">稱呼</string>
+    <string name="student_message">傳訊息</string>
     <string name="student_write_email">傳送電子郵件</string>
-    <string name="student_write_telegram">Telegram 訊息</string>
     <string name="student_contact_failed">此手機上沒有應用程式可以執行此操作</string>
     <string name="subjects_title">科目</string>
     <string name="subjects_empty">還沒有科目</string>

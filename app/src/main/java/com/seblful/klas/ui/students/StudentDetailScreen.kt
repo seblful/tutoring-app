@@ -158,6 +158,11 @@ private fun StudentCard(
     // A student's name is what this screen is *about*, so it gets the large title Material designed for
     // exactly that — collapsing into an ordinary bar as the list scrolls. [TitleSize.Large] is that, and the
     // scroll behaviour it needs, said once.
+    val messageTitle = stringResource(R.string.student_message)
+    val call = { phone: String -> externalApps.open(ExternalTarget.Dial(phone), noAppMsg) }
+    val message = { phone: String, international: String? ->
+        externalApps.open(ExternalTarget.Message(phone, international, messageTitle), noAppMsg)
+    }
     val shares = rememberAccountShares(state, externalApps, noAppMsg, viewModel::shareStatement)
     var choosingStatement by remember { mutableStateOf(false) }
     if (choosingStatement) StatementChoice(shares) { choosingStatement = false }
@@ -177,8 +182,8 @@ private fun StudentCard(
                     remind = shares.remind,
                     // The same launches the contact block makes, through the same guard: a tablet with no
                     // dialler must not crash the card.
-                    onCall = { phone -> externalApps.open(ExternalTarget.Dial(phone), noAppMsg) },
-                    onTelegram = { phone -> externalApps.open(ExternalTarget.Telegram(phone), noAppMsg) },
+                    onCall = call,
+                    onMessage = message,
                     onEmail = { email -> externalApps.open(ExternalTarget.Email(email), noAppMsg) },
                     // Whether archiving is worth asking about, and what the question would have to say, are
                     // both `state.archiveIntent`'s — see [ArchiveIntent].
@@ -205,9 +210,9 @@ private fun StudentCard(
                 student?.let {
                     ContactBlock(
                         student = it,
-                        onCall = { phone -> externalApps.open(ExternalTarget.Dial(phone), noAppMsg) },
+                        onCall = call,
+                        onMessage = message,
                         onEmail = { email -> externalApps.open(ExternalTarget.Email(email), noAppMsg) },
-                        onTelegram = { phone -> externalApps.open(ExternalTarget.Telegram(phone), noAppMsg) },
                         // The icons' own touch padding stands in for most of the gutter, so their glyphs line
                         // up with the cards' edge below.
                         modifier = Modifier.padding(start = Spacing.gutter, end = Spacing.tight),

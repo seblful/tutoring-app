@@ -27,11 +27,39 @@ class ExternalAppTest {
     }
 
     @Test
-    fun `Telegram is reached through t-me with the number in digits`() {
-        val intent = ExternalTarget.Telegram("+375 (29) 111-22-33").toIntent()
+    fun `messaging a number asks the system, with text messages as its base`() {
+        val chooser = ExternalTarget.Message("29 123-45-67", "+375291234567", "Message").toIntent()
+        val base = IntentCompat.getParcelableExtra(chooser, Intent.EXTRA_INTENT, Intent::class.java)!!
 
-        assertEquals(Intent.ACTION_VIEW, intent.action)
-        assertEquals("https://t.me/+375291112233", intent.dataString)
+        assertEquals(Intent.ACTION_CHOOSER, chooser.action)
+        assertEquals("Message", chooser.getCharSequenceExtra(Intent.EXTRA_TITLE).toString())
+        assertEquals(Intent.ACTION_SENDTO, base.action)
+        assertEquals("smsto:+375291234567", base.dataString)
+    }
+
+    @Test
+    fun `Telegram and WhatsApp join the chooser by their packages when the whole number is known`() {
+        val chooser = ExternalTarget.Message("29 123-45-67", "+375291234567", "Message").toIntent()
+        val extra = IntentCompat.getParcelableArrayExtra(chooser, Intent.EXTRA_INITIAL_INTENTS, Intent::class.java)!!
+
+        assertEquals(
+            listOf(
+                "org.telegram.messenger" to "https://t.me/+375291234567",
+                "com.whatsapp" to "https://wa.me/375291234567",
+                "com.whatsapp.w4b" to "https://wa.me/375291234567",
+            ),
+            extra.map { (it as Intent).let { intent -> intent.`package` to intent.dataString } },
+        )
+    }
+
+    @Test
+    fun `a number with no known country is only texted as typed`() {
+        val chooser = ExternalTarget.Message("29 123-45-67", null, "Message").toIntent()
+        val base = IntentCompat.getParcelableExtra(chooser, Intent.EXTRA_INTENT, Intent::class.java)!!
+        val extra = IntentCompat.getParcelableArrayExtra(chooser, Intent.EXTRA_INITIAL_INTENTS, Intent::class.java)
+
+        assertEquals("smsto:29123-45-67", base.dataString)
+        assertEquals(0, extra!!.size)
     }
 
     @Test

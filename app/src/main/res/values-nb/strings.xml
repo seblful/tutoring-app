@@ -196,7 +196,8 @@
     <string name="student_edit_title">Rediger elev</string>
     <string name="student_name_label">Navn</string>
     <string name="student_phone_label">Kontakttelefon</string>
-    <string name="student_phone_hint">Valgfritt · studentens eller en forelders, for samtaler og telegram</string>
+    <string name="student_phone_hint">Valgfritt · studentens eller en forelders, for samtaler og meldinger</string>
+    <string name="student_phone_pick">Velg fra kontakter</string>
     <string name="student_email_label">E-post</string>
     <string name="student_email_hint">Valgfritt · for leksjonsinvitasjoner, hvis de er på i Innstillinger</string>
     <string name="student_note_label">Notat</string>
@@ -276,8 +277,8 @@
     <string name="payment_undo_changed">Betalingen har endret seg siden, så ingenting ble angret.</string>
     <string name="payment_date_label">Betalingsdato</string>
     <string name="student_call">Ring</string>
+    <string name="student_message">Skriv</string>
     <string name="student_write_email">Send en e-post</string>
-    <string name="student_write_telegram">Melding på Telegram</string>
     <string name="student_contact_failed">Ingen app på denne telefonen kan gjøre det</string>
     <string name="subjects_title">Emner</string>
     <string name="subjects_empty">Ingen emner ennå</string>

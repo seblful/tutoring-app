@@ -196,7 +196,8 @@
     <string name="student_edit_title">Redigera elev</string>
     <string name="student_name_label">Namn</string>
     <string name="student_phone_label">Kontakttelefon</string>
-    <string name="student_phone_hint">Valfritt · elevens eller en förälders, för samtal och telegram</string>
+    <string name="student_phone_hint">Valfritt · elevens eller en förälders, för samtal och meddelanden</string>
+    <string name="student_phone_pick">Välj bland kontakter</string>
     <string name="student_email_label">E-post</string>
     <string name="student_email_hint">Valfritt · för lektionsinbjudningar, om de är på i Inställningar</string>
     <string name="student_note_label">Anteckning</string>
@@ -276,8 +277,8 @@
     <string name="payment_undo_changed">Betalningen har ändrats sedan dess, så ingenting ångrades.</string>
     <string name="payment_date_label">Betalningsdatum</string>
     <string name="student_call">Ring</string>
+    <string name="student_message">Skriv</string>
     <string name="student_write_email">Skicka ett e-postmeddelande</string>
-    <string name="student_write_telegram">Meddelande på Telegram</string>
     <string name="student_contact_failed">Ingen app på den här telefonen kan göra det</string>
     <string name="subjects_title">Ämnen</string>
     <string name="subjects_empty">Inga ämnen än</string>

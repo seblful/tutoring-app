@@ -196,7 +196,8 @@
     <string name="student_edit_title">Leerling bewerken</string>
     <string name="student_name_label">Naam</string>
     <string name="student_phone_label">Neem contact op met telefoon</string>
-    <string name="student_phone_hint">Optioneel · van de leerling of een ouder, voor oproepen en Telegram</string>
+    <string name="student_phone_hint">Optioneel · van de leerling of een ouder, voor oproepen en berichten</string>
+    <string name="student_phone_pick">Kies uit contacten</string>
     <string name="student_email_label">E-mail</string>
     <string name="student_email_hint">Optioneel · voor lesuitnodigingen, als deze zijn ingeschakeld in Instellingen</string>
     <string name="student_note_label">Notitie</string>
@@ -276,8 +277,8 @@
     <string name="payment_undo_changed">De betaling is sindsdien gewijzigd, dus er is niets ongedaan gemaakt.</string>
     <string name="payment_date_label">Betalingsdatum</string>
     <string name="student_call">Oproep</string>
+    <string name="student_message">Bericht</string>
     <string name="student_write_email">Stuur een e-mail</string>
-    <string name="student_write_telegram">Bericht op Telegram</string>
     <string name="student_contact_failed">Geen enkele app op deze telefoon kan dat</string>
     <string name="subjects_title">Onderwerpen</string>
     <string name="subjects_empty">Nog geen onderwerpen</string>

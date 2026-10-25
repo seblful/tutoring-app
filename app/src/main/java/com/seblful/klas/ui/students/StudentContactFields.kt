@@ -15,7 +15,9 @@ import androidx.compose.ui.text.input.KeyboardType
 import com.seblful.klas.R
 import com.seblful.klas.domain.model.ClassMode
 import com.seblful.klas.ui.common.ModeField
+import com.seblful.klas.ui.common.NamedIconButton
 import com.seblful.klas.ui.common.supportingTextOf
+import com.seblful.klas.ui.theme.KlasIcons
 
 /**
  * Who a student is and how to reach them — name, phone, email, note, and where they are usually taught —
@@ -27,6 +29,7 @@ fun StudentContactFields(
     onName: (String) -> Unit,
     phone: String,
     onPhone: (String) -> Unit,
+    onPickContact: () -> Unit,
     email: String,
     onEmail: (String) -> Unit,
     note: String,
@@ -43,6 +46,9 @@ fun StudentContactFields(
         label = { Text(stringResource(R.string.student_phone_label)) },
         supportingText = { Text(stringResource(R.string.student_phone_hint)) },
         singleLine = true,
+        trailingIcon = {
+            NamedIconButton(KlasIcons.Outlined.Person, stringResource(R.string.student_phone_pick), onPickContact)
+        },
         keyboardOptions = PhoneKeyboard,
         modifier = Modifier.fillMaxWidth(),
     )

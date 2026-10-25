@@ -202,7 +202,8 @@
     <string name="student_edit_title">Editar estudiante</string>
     <string name="student_name_label">Nombre</string>
     <string name="student_phone_label">Teléfono de contacto</string>
-    <string name="student_phone_hint">Opcional · del estudiante o de uno de los padres, para llamadas y Telegram</string>
+    <string name="student_phone_hint">Opcional · del estudiante o de uno de los padres, para llamadas y mensajes</string>
+    <string name="student_phone_pick">Elegir de los contactos</string>
     <string name="student_email_label">Correo electrónico</string>
     <string name="student_email_hint">Opcional · para invitaciones a lecciones, si están activadas en Configuración</string>
     <string name="student_note_label">Nota</string>
@@ -286,8 +287,8 @@
     <string name="payment_undo_changed">El pago cambió desde entonces, por lo que no se deshizo nada.</string>
     <string name="payment_date_label">Fecha de pago</string>
     <string name="student_call">Llamada</string>
+    <string name="student_message">Escribir</string>
     <string name="student_write_email">Enviar un correo electrónico</string>
-    <string name="student_write_telegram">Mensaje en Telegram</string>
     <string name="student_contact_failed">Ninguna aplicación en este teléfono puede hacer eso</string>
     <string name="subjects_title">Sujetos</string>
     <string name="subjects_empty">Aún no hay sujetos</string>

@@ -9,19 +9,6 @@ import kotlin.test.assertTrue
 class PhoneTest {
 
     @Test
-    fun `the field opens on the dialling code of the country issuing the currency`() {
-        assertEquals("+375 ", Phone.prefill(Currency.BYN))
-        assertEquals("+7 ", Phone.prefill(Currency.RUB))
-        assertEquals("+1 ", Phone.prefill(Currency.USD))
-        assertEquals("+44 ", Phone.prefill(Currency.GBP))
-    }
-
-    @Test
-    fun `the euro names no one country - its field opens empty`() {
-        assertEquals("", Phone.prefill(Currency.EUR))
-    }
-
-    @Test
     fun `every currency but the euro has a code of a plus and one to three digits`() {
         Currency.entries.filter { it != Currency.EUR }.forEach { currency ->
             val code = Phone.callingCode(currency)
@@ -30,23 +17,22 @@ class PhoneTest {
     }
 
     @Test
-    fun `a field left on any dialling code keeps no phone`() {
-        Currency.entries.forEach { assertEquals("", Phone.stored(Phone.prefill(it)), it.name) }
+    fun `the euro names no one country`() {
+        assertNull(Phone.callingCode(Currency.EUR))
+    }
+
+    @Test
+    fun `a field holding only a dialling code keeps no phone`() {
         assertEquals("", Phone.stored(" +375 "))
         assertEquals("", Phone.stored("+375"))
         assertEquals("", Phone.stored("+"))
+        assertEquals("", Phone.stored("   "))
     }
 
     @Test
     fun `a typed number is kept - trimmed`() {
         assertEquals("+375 29 123-45-67", Phone.stored("  +375 29 123-45-67 "))
-        assertEquals("+7 9161234567", Phone.stored("+7 9161234567"))
         assertEquals("8 029 1234567", Phone.stored("8 029 1234567"))
-    }
-
-    @Test
-    fun `an empty field stays empty`() {
-        assertEquals("", Phone.stored("   "))
     }
 
     @Test
@@ -57,9 +43,25 @@ class PhoneTest {
     }
 
     @Test
-    fun `an edit opens on the number - or on the dialling code of the currency when there is none`() {
-        assertEquals("+7 ", Phone.editable("", Currency.RUB))
-        assertEquals("+7 ", Phone.editable("+375", Currency.RUB))
-        assertEquals("+375 29 1234567", Phone.editable("+375 29 1234567", Currency.RUB))
+    fun `a number with a code is reached as it is`() {
+        assertEquals("+375291234567", Phone.international("+375 (29) 123-45-67", Currency.RUB))
+        assertEquals("+375291234567", Phone.international("00375 29 123-45-67", Currency.RUB))
+    }
+
+    @Test
+    fun `a national number takes the code of the tutor's country, without its trunk prefix`() {
+        assertEquals("+375291234567", Phone.international("29 123-45-67", Currency.BYN))
+        assertEquals("+375291234567", Phone.international("8 029 123-45-67", Currency.BYN))
+        assertEquals("+79161234567", Phone.international("8 916 123-45-67", Currency.RUB))
+        assertEquals("+447911123456", Phone.international("07911 123456", Currency.GBP))
+        assertEquals("+15551234567", Phone.international("555 123-4567", Currency.USD))
+    }
+
+    @Test
+    fun `no country to put on a national number means nothing to hand to a messenger`() {
+        assertNull(Phone.international("29 123-45-67", Currency.EUR))
+        assertEquals("+375291234567", Phone.international("+375 29 123-45-67", Currency.EUR))
+        assertNull(Phone.international("", Currency.BYN))
+        assertNull(Phone.international("+375", Currency.BYN))
     }
 }

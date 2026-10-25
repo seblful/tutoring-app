@@ -196,7 +196,8 @@
     <string name="student_edit_title">Öğrenciyi düzenle</string>
     <string name="student_name_label">Ad</string>
     <string name="student_phone_label">İletişim telefonu</string>
-    <string name="student_phone_hint">İsteğe bağlı · aramalar ve Telegram için öğrencinin veya velininki</string>
+    <string name="student_phone_hint">İsteğe bağlı · aramalar ve mesajlar için öğrencinin veya velininki</string>
+    <string name="student_phone_pick">Kişilerden seç</string>
     <string name="student_email_label">E-posta</string>
     <string name="student_email_hint">İsteğe bağlı · ders davetiyeleri için, eğer Ayarlar\'da açıksa</string>
     <string name="student_note_label">Not</string>
@@ -276,8 +277,8 @@
     <string name="payment_undo_changed">O zamandan beri ödeme değişti, dolayısıyla hiçbir şey geri alınmadı.</string>
     <string name="payment_date_label">Ödeme tarihi</string>
     <string name="student_call">Çağrı</string>
+    <string name="student_message">Mesaj gönder</string>
     <string name="student_write_email">Bir e-posta gönder</string>
-    <string name="student_write_telegram">Telegram\'da Mesaj</string>
     <string name="student_contact_failed">Bu telefondaki hiçbir uygulama bunu yapamaz</string>
     <string name="subjects_title">Konular</string>
     <string name="subjects_empty">Henüz konu yok</string>

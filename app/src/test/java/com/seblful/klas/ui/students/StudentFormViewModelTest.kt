@@ -95,22 +95,34 @@ class StudentFormViewModelTest {
     }
 
     @Test
-    fun `a student with no phone opens on the dialling code and keeps none when it is all that is left`() =
+    fun `a student with no phone, or only an old dialling code, opens with an empty clean field`() =
         runTest(mainRule.dispatcher) {
             val maths = env.fixtures.subject("Maths")
-            val id = env.enrollmentRepo.createStudent(Student(name = "Аня"), mapOf(maths to Money.ofMajor(30)))
+            val old = Student(name = "Аня", phone = "+375")
+            val id = env.enrollmentRepo.createStudent(old, mapOf(maths to Money.ofMajor(30)))
             val vm = vm()
             observing(vm.state)
 
-            vm.offerDiallingCode("+44 ")
             vm.edit(id)
             advanceUntilIdle()
-            assertEquals("+44 ", vm.state.value.form.phone)
+            assertEquals("", vm.state.value.form.phone)
             assertFalse(vm.state.value.isDirty)
+        }
 
-            vm.create {}
-            advanceUntilIdle()
-            assertEquals("", env.studentRepo.getById(id)?.phone)
+    @Test
+    fun `a picked contact fills the number as the contact has it, and a missing name`() =
+        runTest(mainRule.dispatcher) {
+            val vm = vm()
+            observing(vm.state)
+
+            vm.pickContact(" Мама Ани ", " +375 29 123-45-67 ")
+            assertEquals("+375 29 123-45-67", vm.state.value.form.phone)
+            assertEquals("Мама Ани", vm.state.value.form.name)
+            assertTrue(vm.state.value.isDirty)
+
+            vm.pickContact("Папа", "8 029 123-45-67")
+            assertEquals("no code is added or taken away", "8 029 123-45-67", vm.state.value.form.phone)
+            assertEquals("a typed name stays", "Мама Ани", vm.state.value.form.name)
         }
 
     @Test
@@ -131,41 +143,6 @@ class StudentFormViewModelTest {
         assertEquals("Created from group", env.studentRepo.getById(created)?.name)
         assertEquals(Money.ofMajor(30), env.enrollmentRepo.priceFor(created, subject)?.amount)
     }
-
-    @Test
-    fun `a setup detour carries its subject after the phone opened on its dialling code`() =
-        runTest(mainRule.dispatcher) {
-            val subject = env.fixtures.subject()
-            val vm = vm()
-            observing(vm.state)
-
-            vm.offerDiallingCode("+375 ")
-            vm.suggestSubject(subject)
-            advanceUntilIdle()
-
-            assertEquals(setOf(subject), vm.state.value.selectedSubjectIds)
-            assertEquals("+375 ", vm.state.value.form.phone)
-            assertFalse(vm.state.value.isDirty)
-        }
-
-    @Test
-    fun `the phone opens on the offered dialling code and follows a new one until a number is typed`() =
-        runTest(mainRule.dispatcher) {
-            val vm = vm()
-            observing(vm.state)
-
-            vm.offerDiallingCode("+375 ")
-            assertEquals("+375 ", vm.state.value.form.phone)
-
-            vm.offerDiallingCode("+7 ")
-            assertEquals("an untouched code follows the currency", "+7 ", vm.state.value.form.phone)
-            assertFalse(vm.state.value.isDirty)
-
-            vm.update { it.copy(phone = "+7 916 123-45-67") }
-            vm.offerDiallingCode("+44 ")
-            assertEquals("a typed number is the tutor's", "+7 916 123-45-67", vm.state.value.form.phone)
-            assertTrue(vm.state.value.isDirty)
-        }
 
     @Test
     fun `only the subject list waits to be read`() = runTest(mainRule.dispatcher) {
@@ -334,7 +311,7 @@ class StudentFormViewModelTest {
         val mathId = env.fixtures.subject("Математика")
         val vm = vm()
         observing(vm.state)
-        vm.offerDiallingCode("+7 ")
+        vm.update { it.copy(phone = "+7 ") }
 
         vm.update { it.copy(name = "Аня") }
         vm.toggleSubject(mathId, on = true)
@@ -352,9 +329,7 @@ class StudentFormViewModelTest {
         val vm = vm()
         observing(vm.state)
         advanceUntilIdle()
-        vm.offerDiallingCode("+375 ")
-
-        assertFalse("the prefilled phone prefix is not the tutor's work", vm.state.value.isDirty)
+        assertFalse("an opened form is clean", vm.state.value.isDirty)
 
         vm.update { it.copy(name = "Аня") }
         assertTrue(vm.state.value.isDirty)

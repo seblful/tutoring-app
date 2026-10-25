@@ -70,7 +70,6 @@ class StudentFormViewModel @AssistedInject constructor(
     @Serializable
     data class Form(
         val name: String = "",
-        /** Empty until the screen offers the dialling code ([offerDiallingCode]). */
         val phone: String = "",
         val email: String = "",
         val note: String = "",
@@ -182,18 +181,10 @@ class StudentFormViewModel @AssistedInject constructor(
         form.value = transform(form.value)
     }
 
-    /**
-     * Opens the phone on [prefill], the dialling code for the currency the screen is shown in
-     * ([Phone.prefill]). A typed number is kept; either way the code is not the tutor's work to lose.
-     */
-    fun offerDiallingCode(prefill: String) {
-        diallingCode = prefill
-        if (restoredDraft) return
-        if (Phone.stored(form.value.phone).isEmpty()) form.value = form.value.copy(phone = prefill)
-        if (Phone.stored(pristine.value.phone).isEmpty()) pristine.value = pristine.value.copy(phone = prefill)
+    /** Takes a contact the tutor picked: its number exactly as the contact has it, and its name where none was typed. */
+    fun pickContact(name: String, number: String) {
+        form.value = form.value.copy(phone = number.trim(), name = form.value.name.ifBlank { name.trim() })
     }
-
-    private var diallingCode = ""
 
     /**
      * Opens the form on [studentId] as stored: their fields, and their subjects at their current rates. Once:
@@ -208,7 +199,7 @@ class StudentFormViewModel @AssistedInject constructor(
             val rates = enrollment.observePricesFor(studentId).first()
             val loaded = Form(
                 name = student.name,
-                phone = Phone.stored(student.phone).ifEmpty { diallingCode },
+                phone = Phone.stored(student.phone),
                 email = student.email,
                 note = student.note,
                 mode = student.defaultMode,
