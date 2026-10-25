@@ -271,7 +271,7 @@
    * scrolled capture's tint as the list starts to move, as the app's does.
    */
   const report = (() => {
-    const { list: [l, t, r, b], d, seam, src } = F.scroll;
+    const { list: [l, t, r, b], d, seam, src, bar } = F.scroll;
     const g = LG, k = g.k, layer = layers.reports;
     const tinted = document.createElement("img");
     tinted.className = "app tinted";
@@ -311,7 +311,12 @@
       `font-size="${total.size}" letter-spacing="${total.spacing}" fill="${total.color}"></text>`;
     content.append(svg);
     view.append(content);
-    layer.append(tinted, view);
+    // The tab bar floats over the list's foot and stays put as the list moves under it: that band of the
+    // opening capture, from just above the bar's shadow down, held over the moving list.
+    const held = piece(F.shots.reports.src, 0, b - bar, bar);
+    Object.assign(held.style, { position: "absolute", left: `${l * k}px`, top: `${g.status + bar * k}px`,
+      width: `${(r - l) * k}px`, backgroundRepeat: "no-repeat" });
+    layer.append(tinted, view, held);
     return { tinted, content, svg, words: $("text", svg), amount, d, k };
   })();
 

@@ -15,6 +15,7 @@ import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.ComposeTimeoutException
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.SemanticsNodeInteraction
+import androidx.compose.ui.test.hasAnyChild
 import androidx.compose.ui.test.hasAnySibling
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasContentDescription
@@ -276,9 +277,10 @@ class StoreScreenshots {
         settle()
         val list = hasScrollAction()
         val total = hasAnySibling(hasText(label)) and hasText(tutor.currency.symbol, substring = true)
+        val bar = hasAnyChild(hasText(string(R.string.nav_reports)) and isSelectable())
         capture(
             "reports",
-            marks = mapOf("income" to hasText(label), "list" to list, "anchor" to hasText(byStudent)),
+            marks = mapOf("income" to hasText(label), "list" to list, "anchor" to hasText(byStudent), "bar" to bar),
             texts = mapOf("total" to total),
         )
         scrollToTop(byStudent)

@@ -432,14 +432,17 @@ function reportParts(raw, opened, scrolled) {
   const top = decode(readFileSync(join(raw, "reports.png")));
   const bottom = decode(readFileSync(join(raw, "film-reports-end.png")));
   const list = opened.marks.list;
+  // The floating tab bar covers the list's foot on both captures, still while the rows under it move, so
+  // they are joined above it: 12 dp over its row of tabs clears the pill's 4 dp padding and its shadow.
+  const bar = opened.marks.bar[1] - Math.round(12 * top.width / 412);
   const guess = opened.marks.anchor[1] - scrolled.marks.anchor[1];
-  const { d, seam } = joinScroll(top, bottom, list, guess);
+  const { d, seam } = joinScroll(top, bottom, [list[0], list[1], list[2], Math.min(list[3], bar)], guess);
   const total = opened.texts?.total ?? fail("No «total» text recorded on «reports»; take the captures again");
   const x = Math.round(total.left) - 12, y = Math.round((total.top + total.bottom) / 2);
   const at = (y * top.width + x) * top.channels;
   const background = `#${[0, 1, 2].map((k) => top.pixels[at + k].toString(16).padStart(2, "0")).join("")}`;
   return {
-    scroll: { list, d, seam, src: url(join(raw, "film-reports-end.png")) },
+    scroll: { list, d, seam, bar, src: url(join(raw, "film-reports-end.png")) },
     count: { ...total, background },
   };
 }

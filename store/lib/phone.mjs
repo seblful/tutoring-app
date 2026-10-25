@@ -88,10 +88,15 @@ export function appScreen(raw, shot, colors, clock) {
     </div>`;
 }
 
-/** The status bar every screen starts with: the clock, the camera's punch hole and the radio icons. */
+/**
+ * The status bar every screen starts with: the clock, the camera's punch hole and the radio icons. Its colour
+ * runs a little over the capture below, which starts in that colour: edge to edge, both edges were
+ * antialiased against the screen's black, and the seam blinked as the video's phone moved.
+ */
 export function statusBar(background, ink, clock) {
   return `
-      <div class="status" style="background:${background}; color:${ink}">
+      <div class="status" style="background:${background}; color:${ink};
+        box-shadow: 0 calc(var(--phone) * .003) 0 ${background}">
         <span class="clock">${text(clock)}</span>
         <span class="camera"></span>
         <span class="icons">${statusIcons(ink)}</span>

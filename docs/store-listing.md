@@ -72,6 +72,9 @@ node store/video.mjs --locale ru-RU --stills 6.2,7.5    # inspect specific momen
 node store/video.mjs --software                       # screenshot fallback; slower
 ```
 
+Release set: `--4k` on the GPU for YouTube (13 min for all four), and `--software` for the 1080p files
+(about ten times slower), where the GPU draws the app's type harsher than software does.
+
 Reuse the captures above; Node/Chrome suffice, with no ffmpeg or npm dependencies. Generated files in
 `store/build/video/` are uncommitted: H.264/AAC, 60 fps, 46 seconds.
 
@@ -81,10 +84,12 @@ screen, homework swiped and typed, calendar sync, and the dark theme ending on T
 
 | File | Dimensions | Use |
 |---|---|---|
-| `klas-<locale>.mp4` | 1920 × 1080 | Play/YouTube |
+| `klas-<locale>.mp4` | 1920 × 1080 | Sharing the file directly |
 | `klas-<locale>-vertical.mp4` | 1080 × 1920 | Shorts/Reels/stories |
+| `klas-<locale>-4k.mp4` (`--4k`) | 3840 × 2160 | YouTube, linked from Play |
 
-Play accepts a YouTube URL: upload the landscape file public/unlisted, disable ads, then paste its URL.
+Play accepts a YouTube URL: upload the 4K landscape file public/unlisted, disable ads, then paste its URL.
+YouTube streams a 4K upload at a higher bitrate at every size.
 
 The film draws frames by time, with scenes on the music's 2-second bars. Tall captions stay above the
 phone. Motion blur blends up to twelve exposures; `JUMPS` prevents blending across swipe releases.
@@ -95,7 +100,9 @@ Sound is deterministic synthesis in `sound.js`, with no sampled recordings.
 - **Capture workarounds:** homework typing is drawn from app strings because its dialog never idles under
   Robolectric. Swipe panels and post-swipe list positions come from actual intermediate captures. The
   widget's tick fades `widget-today-ticked` in over `widget-today`.
-  Reports join `reports`/`film-reports-end` at a matching row; count-up uses captured typography.
+  Reports join `reports`/`film-reports-end` at a matching row above the floating tab bar (`bar` mark).
+  The band from the bar's shadow down stays still while the list scrolls under it. Count-up uses
+  captured typography.
   Theme transition uses `film-theme`/`film-theme-dark`, then `today-dark`.
 - **Rendering:** `gpu.js` uses Chrome's experimental html-in-canvas (`CanvasDrawElement`), accumulates
   WebGL exposures and passes the canvas to WebCodecs. Unsupported Chrome or `--software` uses screenshots.
@@ -106,7 +113,9 @@ Sound is deterministic synthesis in `sound.js`, with no sampled recordings.
   under a level on average. `render.mjs --software` draws them without it.
 - **GPU constraints:** html-in-canvas uses page order, ignoring depth sorting: do not rely on
   `translateZ` for occlusion. Put the face after the edge; implement the final fade with `#fade`, since
-  the stage's own styles are ignored.
+  the stage's own styles are ignored. Don't butt two boxes edge to edge on the screen, such as the status bar
+  and a capture. Both edges are antialiased against what lies behind them, and as the phone moves the seam
+  blinks. Let one box's colour run over the other instead.
 
 ## When generation fails
 
