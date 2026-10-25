@@ -10,7 +10,6 @@ import com.seblful.klas.data.people.GroupRepository
 import com.seblful.klas.di.ApplicationScope
 import com.seblful.klas.di.Computation
 import com.seblful.klas.domain.model.Assignee
-import com.seblful.klas.domain.model.Homework
 import com.seblful.klas.domain.time.WallClock
 import com.seblful.klas.format.minutes
 import com.seblful.klas.lessons.ArchiveChange
@@ -25,6 +24,7 @@ import com.seblful.klas.ui.common.state.ready
 import com.seblful.klas.ui.common.state.valueOrNull
 import com.seblful.klas.ui.common.state.write
 import com.seblful.klas.ui.common.state.writeAwaited
+import com.seblful.klas.ui.homework.CardHomeworkActions
 import com.seblful.klas.ui.homework.HomeworkActions
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.Assisted
@@ -85,9 +85,13 @@ class GroupDetailViewModel @AssistedInject constructor(
 
     private val changes = lessonChanges.inScope(appScope) { events.send(Event.WriteFailed) }
 
-    private val homeworkActions = HomeworkActions<Event>(homework, appScope, events, Event.WriteFailed)
-
     val groupId: Long = checkNotNull(savedStateHandle["id"])
+
+    val cardHomework = CardHomeworkActions(
+        owner = Assignee.Group(groupId),
+        currentChoice = ::homeworkChoice,
+        writes = HomeworkActions(homework, appScope, events, Event.WriteFailed),
+    )
 
     val state: StateFlow<Loadable<GroupDetails>> = details.observe(groupId)
         .ready()
@@ -151,25 +155,11 @@ class GroupDetailViewModel @AssistedInject constructor(
      * Who homework set from this card is for — the group, **as of now**, with the lesson it would be
      * attached to. Taken when the dialog opens, as the student card's is. Null before the card has loaded.
      */
-    fun homeworkChoice(): AssigneeChoice? {
+    private fun homeworkChoice(): AssigneeChoice? {
         val loaded = state.value.valueOrNull() ?: return null
-        val group = loaded.group ?: return null
-        val classes = loaded.lessons.flatMap { it.session.classes }
-        return AssigneeChoice.of(Assignee.Group(groupId), group.name, classes, clock.now())
+        return loaded.group?.let { group ->
+            val classes = loaded.lessons.flatMap { it.session.classes }
+            AssigneeChoice.of(Assignee.Group(groupId), group.name, classes, clock.now())
+        }
     }
-
-    /** Sets homework for the whole group — attached to its next lesson from now. */
-    fun giveHomework(text: String) = homeworkActions.give(Assignee.Group(groupId), text)
-
-    /** Corrects [item]'s text; it stays the group's. */
-    fun editHomework(item: Homework, text: String) = homeworkActions.edit(item, item.assignee, text)
-
-    fun setHomeworkDone(item: Homework, done: Boolean) = homeworkActions.setDone(item, done)
-
-    /** Undoes a swipe, [item]'s done state back as it was — see `HomeworkRepository.putBack`. */
-    fun putHomeworkBack(item: Homework) = homeworkActions.putBack(item)
-
-    fun deleteHomework(item: Homework) = homeworkActions.delete(item)
-
-    fun restoreHomework(item: Homework) = homeworkActions.restore(item)
 }

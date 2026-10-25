@@ -360,9 +360,9 @@ class StudentDetailViewModelTest : StudentDetailTestFixture() {
         val vm = vm(anya)
         observing(vm.state)
 
-        assertEquals(AssigneeChoice(Assignee.Student(anya), "Аня", tomorrow), vm.homeworkChoice())
+        assertEquals(AssigneeChoice(Assignee.Student(anya), "Аня", tomorrow), vm.cardHomework.choice())
 
-        vm.giveHomework("§ 12")
+        vm.cardHomework.give("§ 12")
         runCurrent()
 
         val row = vm.state.current.homework.current.single()

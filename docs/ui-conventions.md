@@ -18,6 +18,8 @@ Build screens from shared state and controls. Feature rules belong in the domain
   delegate: read only inside the builder, an update a frame after the rows was sometimes never drawn. Events use
   `ShowMessagesFor`/`rememberMessages`. Save through
   `appScope.write(events, failure)` or awaited `writeAwaited`; homework shares `HomeworkActions`.
+  Student/group cards expose owner-bound `CardHomeworkActions`; each screen uses `rememberCardHomework`
+  for dialog state, fresh add choices and swipe undo.
 - Screens open other apps via `rememberExternalApps(messages)`/`ExternalTarget`, files via
   `rememberCreateDocument`/`rememberOpenDocument` returning `DocumentRef`. These report missing handlers
   in a snackbar. Only system-settings links and permission prompts carry Android `Intent`/`Uri` details.

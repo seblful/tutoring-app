@@ -36,8 +36,6 @@ import com.seblful.klas.ui.common.lessonBadgeLabel
 import com.seblful.klas.ui.common.paymentMethodLabel
 import com.seblful.klas.ui.common.rateChangeLine
 import com.seblful.klas.ui.common.text
-import com.seblful.klas.ui.homework.HomeworkUndo
-import com.seblful.klas.ui.homework.homeworkUndo
 import kotlin.time.Instant
 
 /*
@@ -172,16 +170,6 @@ internal fun PaymentDialogs(
         )
     }
 }
-
-/** Their homework's swipes and deletions, each offered back in [messages]. */
-@Composable
-internal fun studentHomeworkUndo(viewModel: StudentDetailViewModel, messages: Messages): HomeworkUndo = homeworkUndo(
-    messages = messages,
-    setDone = viewModel::setHomeworkDone,
-    putBack = viewModel::putHomeworkBack,
-    delete = viewModel::deleteHomework,
-    restore = viewModel::restoreHomework,
-)
 
 /** Deletes a payment and offers it back, in [messages]. */
 @Composable

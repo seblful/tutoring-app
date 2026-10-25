@@ -45,8 +45,8 @@ import com.seblful.klas.ui.common.sectionRowColors
 import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.common.text
 import com.seblful.klas.ui.designsystem.component.HeaderedCard
-import com.seblful.klas.ui.homework.CardHomeworkDialogs
 import com.seblful.klas.ui.homework.homeworkItems
+import com.seblful.klas.ui.homework.rememberCardHomework
 import com.seblful.klas.ui.theme.KlasIcons
 import dev.zacsweers.metrox.viewmodel.assistedMetroViewModel
 import kotlinx.datetime.TimeZone
@@ -77,15 +77,13 @@ private fun StudentList(
     val history = rememberLessonHistory(state)
     var addingPayment by remember { mutableStateOf(false) }
     var editingPayment by remember { mutableStateOf<Payment?>(null) }
-    // Taken when the dialog opens — see `StudentDetailViewModel.homeworkChoice`.
-    var addingHomework by remember { mutableStateOf<AssigneeChoice?>(null) }
-    var openedHomework by remember { mutableStateOf<HomeworkRow?>(null) }
     // A value here, not a delegate the list's builder reads — see docs/ui-conventions.md.
     val now = viewModel.minute.collectAsStateWithLifecycle().value
 
     val messages = rememberMessages()
+    val homework = rememberCardHomework(viewModel.cardHomework, messages)
+
     ShowStudentMessages(viewModel, messages)
-    val homeworkUndo = studentHomeworkUndo(viewModel, messages)
     val deletePayment = paymentDeleteWithUndo(viewModel, messages)
 
     KlasScreen(
@@ -114,9 +112,9 @@ private fun StudentList(
                     owner = state.student?.let { Assignee.Student(it.id) },
                     lists = state.homework,
                     messages = messages,
-                    onAdd = { addingHomework = viewModel.homeworkChoice() },
-                    onOpen = { openedHomework = it },
-                    onDone = homeworkUndo::swiped,
+                    onAdd = homework::add,
+                    onOpen = homework::open,
+                    onDone = homework::swiped,
                 )
             }
         }
@@ -129,14 +127,7 @@ private fun StudentList(
         onDelete = deletePayment,
         onDismiss = { addingPayment = false; editingPayment = null },
     )
-    CardHomeworkDialogs(
-        adding = addingHomework,
-        opened = openedHomework,
-        onDismiss = { addingHomework = null; openedHomework = null },
-        onGive = viewModel::giveHomework,
-        onEdit = viewModel::editHomework,
-        undo = homeworkUndo,
-    )
+    homework.Dialogs()
 }
 
 /** The card's events, in the card's words — a payment corrected on this page is offered back here. */

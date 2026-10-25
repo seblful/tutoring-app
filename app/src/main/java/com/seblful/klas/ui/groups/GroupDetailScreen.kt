@@ -63,9 +63,8 @@ import com.seblful.klas.ui.common.plusInset
 import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.sectionRowColors
 import com.seblful.klas.ui.common.text
-import com.seblful.klas.ui.homework.CardHomeworkDialogs
 import com.seblful.klas.ui.homework.HomeworkSection
-import com.seblful.klas.ui.homework.homeworkUndo
+import com.seblful.klas.ui.homework.rememberCardHomework
 import com.seblful.klas.ui.people.NextLessonCard
 import com.seblful.klas.ui.theme.KlasIcons
 import com.seblful.klas.ui.theme.klasSemantics
@@ -128,16 +127,14 @@ private fun GroupCard(
     // A value here, not a delegate the list's builder reads — see docs/ui-conventions.md.
     val now = viewModel.minute.collectAsStateWithLifecycle().value
 
+    val messages = rememberMessages()
+    val homework = rememberCardHomework(viewModel.cardHomework, messages)
+
     var confirmingDelete by remember { mutableStateOf(false) }
     var confirmingArchive by remember { mutableStateOf(false) }
-    // Taken when the dialog opens — see `GroupDetailViewModel.homeworkChoice`.
-    var addingHomework by remember { mutableStateOf<AssigneeChoice?>(null) }
-    var openedHomework by remember { mutableStateOf<HomeworkRow?>(null) }
-    HomeworkEntry(initialHomework, group?.id) { addingHomework = viewModel.homeworkChoice() }
+    HomeworkEntry(initialHomework, group?.id) { homework.add() }
 
-    val messages = rememberMessages()
     ShowGroupMessages(viewModel, messages)
-    val homeworkUndo = groupHomeworkUndo(viewModel, messages)
 
     // The group's name is the subject of the screen, as a student's is on theirs — the same large,
     // collapsing title, so the two cards read as one pattern.
@@ -211,9 +208,9 @@ private fun GroupCard(
                     owner = group?.let { Assignee.Group(it.id) },
                     lists = state.homework,
                     messages = messages,
-                    onAdd = { addingHomework = viewModel.homeworkChoice() },
-                    onOpen = { openedHomework = it },
-                    onDone = homeworkUndo::swiped,
+                    onAdd = homework::add,
+                    onOpen = homework::open,
+                    onDone = homework::swiped,
                     onSeeAll = { navigation.seeAll(GroupSection.HOMEWORK) },
                     modifier = animateInPlace(cardModifier),
                 )
@@ -221,14 +218,7 @@ private fun GroupCard(
         }
     }
 
-    CardHomeworkDialogs(
-        adding = addingHomework,
-        opened = openedHomework,
-        onDismiss = { addingHomework = null; openedHomework = null },
-        onGive = viewModel::giveHomework,
-        onEdit = viewModel::editHomework,
-        undo = homeworkUndo,
-    )
+    homework.Dialogs()
 
     if (confirmingArchive) {
         val parts = listOf(
@@ -285,16 +275,6 @@ internal fun ShowGroupMessages(viewModel: GroupDetailViewModel, messages: Messag
         }
     }
 }
-
-@Composable
-internal fun groupHomeworkUndo(viewModel: GroupDetailViewModel, messages: Messages) =
-    homeworkUndo(
-        messages = messages,
-        setDone = viewModel::setHomeworkDone,
-        putBack = viewModel::putHomeworkBack,
-        delete = viewModel::deleteHomework,
-        restore = viewModel::restoreHomework,
-    )
 
 /** Under the name, as the student's contact line is: what the group is taught, and for how much. */
 @Composable

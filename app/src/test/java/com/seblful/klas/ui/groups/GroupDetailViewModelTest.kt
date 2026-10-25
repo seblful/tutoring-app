@@ -161,9 +161,9 @@ class GroupDetailViewModelTest {
         val vm = vm(group)
         observing(vm.state)
 
-        assertEquals(AssigneeChoice(Assignee.Group(group), "9 «Б»", tomorrow), vm.homeworkChoice())
+        assertEquals(AssigneeChoice(Assignee.Group(group), "9 «Б»", tomorrow), vm.cardHomework.choice())
 
-        vm.giveHomework("§ 12")
+        vm.cardHomework.give("§ 12")
         runCurrent()
 
         val row = vm.state.current.homework.current.single()

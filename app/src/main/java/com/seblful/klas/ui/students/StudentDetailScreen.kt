@@ -46,8 +46,8 @@ import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.rememberRejectFeedback
 import com.seblful.klas.ui.common.sectionRowColors
 import com.seblful.klas.ui.common.text
-import com.seblful.klas.ui.homework.CardHomeworkDialogs
 import com.seblful.klas.ui.homework.HomeworkSection
+import com.seblful.klas.ui.homework.rememberCardHomework
 import com.seblful.klas.ui.people.NextLessonCard
 import com.seblful.klas.ui.theme.KlasIcons
 import dev.zacsweers.metrox.viewmodel.assistedMetroViewModel
@@ -105,6 +105,9 @@ private fun StudentCard(
     // A value here, not a delegate the list's builder reads — see docs/ui-conventions.md.
     val now = viewModel.minute.collectAsStateWithLifecycle().value
 
+    val messages = rememberMessages()
+    val homework = rememberCardHomework(viewModel.cardHomework, messages)
+
     var addingSubject by remember { mutableStateOf(false) }
     var pricingSubjectId by remember { mutableStateOf<Long?>(null) }
     // Asked first: taking a subject off a student forgets its price and the log of its past prices.
@@ -112,22 +115,18 @@ private fun StudentCard(
     var addingPayment by remember { mutableStateOf(false) }
     var editingPayment by remember { mutableStateOf<Payment?>(null) }
     var confirmingArchive by remember { mutableStateOf(false) }
-    // Taken when the dialog opens — see `StudentDetailViewModel.homeworkChoice`.
-    var addingHomework by remember { mutableStateOf<AssigneeChoice?>(null) }
-    var openedHomework by remember { mutableStateOf<HomeworkRow?>(null) }
     var taskHandled by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(student?.id, initialTask) {
         if (taskHandled || student == null || initialTask == null) return@LaunchedEffect
         // Each task's dialog opens over the overview, which shows the section it adds to.
         when (initialTask) {
-            StudentTask.HOMEWORK -> addingHomework = viewModel.homeworkChoice()
+            StudentTask.HOMEWORK -> homework.add()
             StudentTask.PAYMENT -> addingPayment = true
             StudentTask.SUBJECT -> addingSubject = true
         }
         taskHandled = true
     }
 
-    val messages = rememberMessages()
     val externalApps = rememberExternalApps(messages)
     val context = LocalContext.current
     val noAppMsg = stringResource(R.string.student_contact_failed)
@@ -157,7 +156,6 @@ private fun StudentCard(
         }
     }
 
-    val homeworkUndo = studentHomeworkUndo(viewModel, messages)
     val deletePayment = paymentDeleteWithUndo(viewModel, messages)
 
     // A student's name is what this screen is *about*, so it gets the large title Material designed for
@@ -252,9 +250,9 @@ private fun StudentCard(
                     owner = student?.let { Assignee.Student(it.id) },
                     lists = state.homework,
                     messages = messages,
-                    onAdd = { addingHomework = viewModel.homeworkChoice() },
-                    onOpen = { openedHomework = it },
-                    onDone = homeworkUndo::swiped,
+                    onAdd = homework::add,
+                    onOpen = homework::open,
+                    onDone = homework::swiped,
                     onSeeAll = { navigation.seeAll(StudentSection.HOMEWORK) },
                     modifier = animateInPlace(cardModifier),
                 )
@@ -314,14 +312,7 @@ private fun StudentCard(
         onDelete = deletePayment,
         onDismiss = { addingPayment = false; editingPayment = null },
     )
-    CardHomeworkDialogs(
-        adding = addingHomework,
-        opened = openedHomework,
-        onDismiss = { addingHomework = null; openedHomework = null },
-        onGive = viewModel::giveHomework,
-        onEdit = viewModel::editHomework,
-        undo = homeworkUndo,
-    )
+    homework.Dialogs()
     val confirm = state.archiveIntent as? ArchiveIntent.Confirm
     if (confirmingArchive && confirm != null) {
         // One string per part the intent named, so the question says exactly what archiving costs here.

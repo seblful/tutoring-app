@@ -14,7 +14,6 @@ import com.seblful.klas.di.Computation
 import com.seblful.klas.domain.billing.PaymentSuggestions
 import com.seblful.klas.domain.model.Assignee
 import com.seblful.klas.domain.model.ClassMode
-import com.seblful.klas.domain.model.Homework
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Payment
 import com.seblful.klas.domain.model.PaymentMethod
@@ -37,6 +36,7 @@ import com.seblful.klas.ui.common.state.derive
 import com.seblful.klas.ui.common.state.ready
 import com.seblful.klas.ui.common.state.valueOrNull
 import com.seblful.klas.ui.common.state.write
+import com.seblful.klas.ui.homework.CardHomeworkActions
 import com.seblful.klas.ui.homework.HomeworkActions
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.Assisted
@@ -112,9 +112,13 @@ class StudentDetailViewModel @AssistedInject constructor(
 
     val events = UiEvents<Event>()
 
-    private val changes = lessonChanges.inScope(appScope) { events.send(Event.WriteFailed) }
+    val cardHomework = CardHomeworkActions(
+        owner = Assignee.Student(studentId),
+        currentChoice = ::homeworkChoice,
+        writes = HomeworkActions(homework, appScope, events, Event.WriteFailed),
+    )
 
-    private val homeworkActions = HomeworkActions(homework, appScope, events, Event.WriteFailed)
+    private val changes = lessonChanges.inScope(appScope) { events.send(Event.WriteFailed) }
 
     val state: StateFlow<Loadable<StudentDetails>> = details.observe(studentId)
         .ready()
@@ -242,39 +246,12 @@ class StudentDetailViewModel @AssistedInject constructor(
      * attached to. Taken when the dialog opens, since that lesson moves on as the day does. Null before the
      * card has loaded.
      */
-    fun homeworkChoice(): AssigneeChoice? {
+    private fun homeworkChoice(): AssigneeChoice? {
         val loaded = state.value.valueOrNull() ?: return null
-        val student = loaded.student ?: return null
-        return AssigneeChoice.of(
-            Assignee.Student(studentId), student.name, loaded.classes.map { it.klass }, clock.now(),
-        )
-    }
-
-    /** Sets homework for this student — attached to their next lesson from now. */
-    fun giveHomework(text: String) {
-        homeworkActions.give(Assignee.Student(studentId), text)
-    }
-
-    /** Corrects [item]'s text; who it is for is not changed from here (the card is one student's). */
-    fun editHomework(item: Homework, text: String) {
-        homeworkActions.edit(item, item.assignee, text)
-    }
-
-    fun setHomeworkDone(item: Homework, done: Boolean) {
-        homeworkActions.setDone(item, done)
-    }
-
-    /** Undoes a swipe, [item]'s done state back as it was — see `HomeworkRepository.putBack`. */
-    fun putHomeworkBack(item: Homework) {
-        homeworkActions.putBack(item)
-    }
-
-    fun deleteHomework(item: Homework) {
-        homeworkActions.delete(item)
-    }
-
-    /** Puts back a just-deleted piece of homework, for the undo — like [restorePayment]. */
-    fun restoreHomework(item: Homework) {
-        homeworkActions.restore(item)
+        return loaded.student?.let { student ->
+            AssigneeChoice.of(
+                Assignee.Student(studentId), student.name, loaded.classes.map { it.klass }, clock.now(),
+            )
+        }
     }
 }

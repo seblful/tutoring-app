@@ -498,43 +498,6 @@ fun homeworkUndo(
     }
 }
 
-/**
- * A student's or a group's card's homework dialogs: giving a new piece to whoever the card is about, and
- * correcting or deleting one opened from its list.
- *
- * @param adding who a new piece is for, taken as the dialog opened — or null while none is being given.
- * @param opened the piece being corrected, or null.
- * @param onDismiss closes whichever is open.
- */
-@Composable
-fun CardHomeworkDialogs(
-    adding: AssigneeChoice?,
-    opened: HomeworkRow?,
-    onDismiss: () -> Unit,
-    onGive: (String) -> Unit,
-    onEdit: (Homework, String) -> Unit,
-    undo: HomeworkUndo,
-) {
-    adding?.let { choice ->
-        HomeworkDialog(
-            choices = listOf(choice),
-            onSave = { _, text -> onGive(text) },
-            onDismiss = onDismiss,
-            canChangeAssignee = false,
-        )
-    }
-    opened?.let { row ->
-        HomeworkDialog(
-            choices = listOf(AssigneeChoice(row.homework.assignee, row.title, row.lessonAt)),
-            editing = row.homework,
-            canChangeAssignee = false,
-            onSave = { _, text -> onEdit(row.homework, text) },
-            onDelete = { undo.deleted(row.homework) },
-            onDismiss = onDismiss,
-        )
-    }
-}
-
 @Composable
 private fun attachedText(choice: AssigneeChoice): String =
     choice.nextLessonAt?.let { stringResource(R.string.homework_attached_to, it.dateTimeText()) }
