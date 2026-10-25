@@ -12,12 +12,14 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.hapticfeedback.HapticFeedback
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeUp
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.seblful.klas.ui.theme.KlasTheme
 import org.junit.Assert.assertEquals
@@ -43,10 +45,13 @@ class SwipeToConfirmBoxTest {
 
     private var armedNow = false
 
-    private fun row() {
+    private fun row(direction: LayoutDirection = LayoutDirection.Ltr) {
         rule.setContent {
             KlasTheme {
-                CompositionLocalProvider(LocalHapticFeedback provides recorder) {
+                CompositionLocalProvider(
+                    LocalHapticFeedback provides recorder,
+                    LocalLayoutDirection provides direction,
+                ) {
                     SwipeToConfirmBox(
                         onConfirm = { confirmed++ },
                         reveal = { armed ->
@@ -96,6 +101,36 @@ class SwipeToConfirmBoxTest {
             moveTo(target)
         }
         rule.waitForIdle()
+    }
+
+    @Test
+    fun theRtlEndSwipeFollowsTheFingerLeftAndConfirms() {
+        row(LayoutDirection.Rtl)
+        val before = rule.onNodeWithText("занятие").fetchSemanticsNode().boundsInRoot.left
+        rule.onNodeWithTag(ROW).performTouchInput {
+            down(Offset(width * 0.85f, EDGE))
+            moveTo(Offset(width * 0.15f, EDGE), delayMillis = 300)
+        }
+        rule.waitForIdle()
+        val after = rule.onNodeWithText("занятие").fetchSemanticsNode().boundsInRoot.left
+        assertTrue("The row must follow the RTL drag left", after < before - 20f)
+        rule.onNodeWithTag(ROW).performTouchInput { up() }
+        rule.waitForIdle()
+        assertEquals(1, confirmed)
+    }
+
+    @Test
+    fun theRtlEndSwipeDoesNotClaimARightwardDrag() {
+        row(LayoutDirection.Rtl)
+        val before = rule.onNodeWithText("занятие").fetchSemanticsNode().boundsInRoot.left
+        rule.onNodeWithTag(ROW).performTouchInput {
+            down(Offset(width * 0.15f, EDGE))
+            moveTo(Offset(width * 0.85f, EDGE), delayMillis = 300)
+            up()
+        }
+        rule.waitForIdle()
+        assertEquals(before, rule.onNodeWithText("занятие").fetchSemanticsNode().boundsInRoot.left)
+        assertEquals(0, confirmed)
     }
 
     @Test

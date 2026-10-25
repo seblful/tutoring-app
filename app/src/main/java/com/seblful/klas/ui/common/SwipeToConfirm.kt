@@ -35,12 +35,14 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.seblful.klas.ui.designsystem.component.CoachMarkDefaults
 import com.seblful.klas.ui.theme.KlasMotion
@@ -69,6 +71,7 @@ fun SwipeToConfirmBox(
     peek: Boolean = false,
     content: @Composable () -> Unit,
 ) {
+    val direction = if (LocalLayoutDirection.current == LayoutDirection.Ltr) 1f else -1f
     // Read at the lift rather than captured once: `pointerInput(Unit)` keeps its first lambda, and a caller
     // whose action depends on the list the row is in hands over a new one when that changes.
     val confirm by rememberUpdatedState(onConfirm)
@@ -114,7 +117,7 @@ fun SwipeToConfirmBox(
     Box(
         modifier
             .onSizeChanged { width = it.width.toFloat() }
-            .pointerInput(toward) {
+            .pointerInput(toward, direction) {
                 // One flag, two ways of saying it: the pop is drawn from `armed`, the tick fires here as a drag
                 // crosses the mark — once per crossing, and silent on the way back, where nothing has happened
                 // to announce. From the drag itself, not a watcher on `armed`: every row on screen kept one.
@@ -128,16 +131,16 @@ fun SwipeToConfirmBox(
                     // Claimed only past the slop and only this way: unconsumed, the other way reaches the
                     // page's own detector, and once that consumes it this one gives the gesture up.
                     val start = awaitHorizontalTouchSlopOrCancellation(down.id) { change, overSlop ->
-                        if (toward.claims(overSlop)) {
+                        if (toward.claims(overSlop * direction)) {
                             change.consume()
-                            slide(overSlop)
+                            slide(overSlop * direction)
                         }
                     } ?: return@awaitEachGesture
                     // Taking hold during the spring home stops it there, so a second drag continues from
                     // where the row is rather than fighting an animation for the offset.
                     goingHome?.cancel()
                     val lifted = horizontalDrag(start.id) { change ->
-                        slide(change.positionChange().x)
+                        slide(change.positionChange().x * direction)
                         change.consume()
                     }
                     // A gesture the app never saw the end of is not a lift: the system took the pointer
@@ -160,7 +163,7 @@ fun SwipeToConfirmBox(
     }
 }
 
-/** Which way a [SwipeToConfirmBox] slides: [End] is left to right. */
+/** Which logical edge a [SwipeToConfirmBox] moves toward, following the reading direction. */
 enum class SwipeToward {
     End,
     Start,
