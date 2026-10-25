@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.ContextWrapper
 import android.content.res.Configuration
 import android.content.res.Resources
+import android.os.Build
 import android.os.LocaleList
 import com.seblful.klas.domain.model.AppLanguage
 import com.seblful.klas.domain.model.Currency
@@ -71,9 +72,11 @@ fun List<Locale>.toDevicePreferences(): DevicePreferences =
  * which currency to start on.
  */
 fun deviceLocales(): List<Locale> = buildList {
-    // The FORMAT category first: it is the one the platform documents its regional preferences under.
-    add(Locale.getDefault(Locale.Category.FORMAT))
-    add(Locale.getDefault())
+    // Per-app locales change the JVM default on Android 13+; only system resources still name the phone.
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+        add(Locale.getDefault(Locale.Category.FORMAT))
+        add(Locale.getDefault())
+    }
     val system = Resources.getSystem().configuration.locales
     for (index in 0 until system.size()) add(system[index])
 }
@@ -81,7 +84,7 @@ fun deviceLocales(): List<Locale> = buildList {
 private class LocalizedContext(base: Context, locale: Locale) : ContextWrapper(base) {
 
     private val localized: Resources = base.createConfigurationContext(
-        Configuration(base.resources.configuration).apply {
+        Configuration().apply {
             // Both: `setLocale` fills in the deprecated single-locale field some framework paths still
             // read, `setLocales` is what getQuantityString consults for its rule set.
             setLocale(locale)

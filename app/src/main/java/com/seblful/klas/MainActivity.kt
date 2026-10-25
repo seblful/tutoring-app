@@ -54,6 +54,7 @@ class MainActivity : FragmentActivity() {
         // `Theme.Klas.Starting` to that theme's `postSplashScreenTheme`.
         val splash = installSplashScreen()
         super.onCreate(savedInstanceState)
+        appGraph.appLanguages.start()
 
         /*
          * The splash stays up until the settings row has arrived, which is what makes the handover
@@ -100,6 +101,7 @@ class MainActivity : FragmentActivity() {
 
     override fun onStart() {
         super.onStart()
+        lifecycleScope.launch { appGraph.appLanguages.refresh() }
         rootViewModel.appLock.foregrounded(rootViewModel.settings.value?.privacy?.relockAfterMinutes, canUnlock())
     }
 

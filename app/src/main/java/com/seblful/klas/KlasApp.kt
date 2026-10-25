@@ -29,9 +29,11 @@ class KlasApp : Application(), Configuration.Provider, AppGraph.Holder {
         // Record crashes to a local file first, before any startup work can throw. The handler still
         // hands off to the platform default, so Google Play (Android Vitals) keeps reporting them.
         graph.crashLogger.install()
+        graph.appLanguages.start()
         // Off the main thread: WorkManager initializes on first use, and every cold start runs this —
         // including one a receiver or worker caused. Posting a notification creates the channels itself.
         graph.applicationScope.launch {
+            graph.appLanguages.refresh()
             graph.notifier.ensureChannels()
             graph.scheduler.ensurePeriodicMaintenance()
         }

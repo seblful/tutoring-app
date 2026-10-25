@@ -16,7 +16,8 @@ import java.util.Locale
 @Composable
 fun ProvideLocalizedResources(locale: Locale, content: @Composable () -> Unit) {
     val base = LocalContext.current
-    val localized = remember(base, locale) { base.inLanguage(locale) }
+    val configuration = LocalConfiguration.current
+    val localized = remember(base, locale, configuration) { base.inLanguage(locale) }
     val direction = if (localized.resources.configuration.layoutDirection == View.LAYOUT_DIRECTION_RTL) {
         LayoutDirection.Rtl
     } else {

@@ -6,6 +6,7 @@ import androidx.work.WorkerFactory
 import com.seblful.klas.KlasStore
 import com.seblful.klas.diagnostics.CrashLogger
 import com.seblful.klas.domain.reminders.ReminderScheduler
+import com.seblful.klas.format.AppLanguagePreferences
 import com.seblful.klas.notifications.Notifier
 import com.seblful.klas.notifications.ReminderActionReceiver
 import com.seblful.klas.notifications.ReminderReceiver
@@ -33,6 +34,7 @@ import kotlin.reflect.KClass
  * the manifest's receivers and the home-screen widgets.
  */
 interface AppGraph : ViewModelGraph {
+    val appLanguages: AppLanguagePreferences
     val notifier: Notifier
     val scheduler: ReminderScheduler
     val crashLogger: CrashLogger
