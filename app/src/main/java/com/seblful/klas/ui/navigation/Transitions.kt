@@ -3,6 +3,7 @@ package com.seblful.klas.ui.navigation
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.ContentTransform
 import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -26,6 +27,13 @@ fun <S> AnimatedContentTransitionScope<S>.fadeThrough(): ContentTransform =
         fadeIn(tween(InMillis, delayMillis = OutMillis, easing = KlasMotion.EmphasizedDecelerate)) +
             scaleIn(tween(InMillis, delayMillis = OutMillis, easing = KlasMotion.EmphasizedDecelerate), ArrivingScale)
         ) togetherWith fadeOut(tween(OutMillis, easing = KlasMotion.EmphasizedAccelerate))
+
+/** Chrome drawn over the screens — a phone's floating tabs — arriving on [fadeThrough]'s beat, with its screen. */
+fun chromeEnter(): EnterTransition =
+    fadeIn(tween(InMillis, delayMillis = OutMillis, easing = KlasMotion.EmphasizedDecelerate))
+
+/** That chrome leaving with the screen it belongs to, as [fadeThrough] takes it away. */
+fun chromeExit(): ExitTransition = fadeOut(tween(OutMillis, easing = KlasMotion.EmphasizedAccelerate))
 
 /**
  * Back as the gesture draws it — Material's in-app predictive back, as `Modifier.predictiveBack` draws a step

@@ -304,8 +304,11 @@ class TutorWorkflowTest {
             compose.waitUntil(10_000) {
                 compose.onAllNodesWithContentDescription(text(R.string.action_edit)).fetchSemanticsNodes().isNotEmpty()
             }
-            compose.onNode(hasText(text(R.string.nav_people)) and isSelectable()).assertIsSelected()
             compose.onAllNodesWithText("Workflow student").onFirst().assertExists()
+            // The profile is pushed, and the phone's tabs leave with the screen; Back finds it was People's.
+            Espresso.pressBack()
+            compose.waitForIdle()
+            compose.onNode(hasText(text(R.string.nav_people)) and isSelectable()).assertIsSelected()
         }
     }
 

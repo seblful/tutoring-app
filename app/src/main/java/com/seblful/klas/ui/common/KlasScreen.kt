@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.add
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.fillMaxSize
@@ -83,9 +84,9 @@ import com.seblful.klas.ui.theme.KlasMotion
  * @param content given the modifier for the screen's top-level scrollable — the top and side insets and the
  * cap applied — and the **bottom inset**, which the body owns: a list adds it to its `contentPadding`
  * (see [plusInset]) and a scrolling column pads by it *inside* its scroll, so rows pass under the system
- * navigation bar and the last one still clears it. A body that does not scroll pads by it. It reads as
- * nothing on a tab, where the tab bar has taken the inset, and on an [imeAware] form while the keyboard
- * covers it.
+ * navigation bar and the last one still clears it. A body that does not scroll pads by it. On a phone's tab
+ * it also holds the floating tab bar's [LocalTabBarClearance], which lifts the FAB and snackbars above the
+ * bar too. It reads as nothing on an [imeAware] form while the keyboard covers it.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -296,7 +297,8 @@ fun KlasScreen(
                 Box(Modifier.besideColumn(maxContentWidth, medium)) { floatingActionButton() }
             }
         },
-        contentWindowInsets = ContentInsets,
+        // Scaffold places the FAB and snackbars above these insets too, so the bar's room lifts them all.
+        contentWindowInsets = ContentInsets.add(WindowInsets(bottom = LocalTabBarClearance.current)),
     ) { insets ->
         val density = LocalDensity.current
         val ime = WindowInsets.ime

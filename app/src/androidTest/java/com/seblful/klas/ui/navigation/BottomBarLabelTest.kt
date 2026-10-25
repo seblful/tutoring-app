@@ -2,8 +2,6 @@ package com.seblful.klas.ui.navigation
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.width
-import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffold
-import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteType
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
@@ -112,13 +110,7 @@ class BottomBarLabelTest {
             ) {
                 KlasTheme {
                     Box(Modifier.width(width.value)) {
-                        NavigationSuiteScaffold(
-                            navigationItems = {
-                                KlasTabs(tabs = tabs, selected = TopDestination.SCHEDULE, onSelect = {})
-                            },
-                            navigationSuiteType = NavigationSuiteType.ShortNavigationBarCompact,
-                            content = {},
-                        )
+                        FloatingTabBar(tabs = tabs, selected = TopDestination.SCHEDULE, onSelect = {}, onClearance = {})
                     }
                 }
             }

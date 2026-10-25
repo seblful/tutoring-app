@@ -1,11 +1,13 @@
 package com.seblful.klas.ui
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.defaultMinSize
@@ -35,6 +37,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
@@ -51,12 +54,14 @@ import com.seblful.klas.domain.model.ThemeChoice
 import com.seblful.klas.lock.AppLockGate
 import com.seblful.klas.ui.common.LocalCurrency
 import com.seblful.klas.ui.common.LocalRailAction
+import com.seblful.klas.ui.common.LocalTabBarClearance
 import com.seblful.klas.ui.common.LocalTabReselect
 import com.seblful.klas.ui.common.ProvideClockFormat
 import com.seblful.klas.ui.common.ProvideLocalizedResources
 import com.seblful.klas.ui.common.RailAction
 import com.seblful.klas.ui.common.TabReselect
 import com.seblful.klas.ui.navigation.Arrival
+import com.seblful.klas.ui.navigation.FloatingTabBar
 import com.seblful.klas.ui.navigation.KlasGraph
 import com.seblful.klas.ui.navigation.KlasNavigator
 import com.seblful.klas.ui.navigation.KlasTabs
@@ -64,6 +69,8 @@ import com.seblful.klas.ui.navigation.OpensWhatTheTrayNames
 import com.seblful.klas.ui.navigation.Routes
 import com.seblful.klas.ui.navigation.Screen
 import com.seblful.klas.ui.navigation.TopDestination
+import com.seblful.klas.ui.navigation.chromeEnter
+import com.seblful.klas.ui.navigation.chromeExit
 import com.seblful.klas.ui.navigation.fadeThrough
 import com.seblful.klas.ui.navigation.listBesideDetail
 import com.seblful.klas.ui.navigation.owningTab
@@ -189,40 +196,25 @@ private fun MainApp(firstLesson: FirstLesson) {
     // start at a tab.
     val selectedTab = owningTab(backStack)
 
-    /**
-     * The latest tray tap that asked a tab for something more than itself — the schedule for a day or a
-     * lesson's sheet, the reports for their debts. See [Arrival], and why each tap is its own instance.
-     * Bound to the screen it landed on, so a tab preserved below a draft cannot replay the tap later.
-     */
-    var scheduleArrival by remember { mutableStateOf<Pair<Long, Arrival<ScheduleTarget>>?>(null) }
-    var debtsArrival by remember { mutableStateOf<Pair<Long, Arrival<Unit>>?>(null) }
-
-    val arriveAtSchedule: (ScheduleTarget) -> Unit = { target -> scheduleArrival = navigator.top.id to Arrival(target) }
-    val arriveAtDebts = { debtsArrival = navigator.top.id to Arrival(Unit) }
-    OpensWhatTheTrayNames(navigator, onSchedule = arriveAtSchedule, onDebts = arriveAtDebts)
-
-    val graph = remember(navigator) {
-        KlasGraph(
-            navigator,
-            scheduleArrival = { id -> scheduleArrival?.takeIf { it.first == id }?.second },
-            debtsArrival = { id -> debtsArrival?.takeIf { it.first == id }?.second },
-            arriveAtSchedule = arriveAtSchedule,
-            arriveAtDebts = arriveAtDebts,
-        )
-    }
+    val graph = rememberGraph(navigator)
     // Material's current components for the width: the short bar on a phone (a landscape one included), the
-    // wide rail from medium width on.
+    // wide rail from medium width on. Where Material would draw its bar, the tabs float over the screens
+    // instead (`FloatingTabBar`), and the suite draws nothing.
     val suiteType = NavigationSuiteScaffoldDefaults.navigationSuiteType(currentWindowAdaptiveInfoV2())
     val railLayout by rememberUpdatedState(suiteType in RailTypes)
-    // Beside a tab the rail carries the tab's add button in its header; a bar leaves it to the screen. Whether
-    // a screen is a tab's is the entry's own fact, asked once: a tab fading out under a pushed form keeps its
-    // button in the rail, and a pushed screen fading out over a tab never offers one.
+    val floatingBar = suiteType in BarTypes
+    var barClearance by remember { mutableStateOf(EstimatedBarClearance) }
+    val tabClearance by rememberUpdatedState(if (floatingBar) barClearance else 0.dp)
+    // Beside a tab the rail carries the tab's add button in its header; a floating bar leaves it to the
+    // screen, which keeps clear of the bar instead. Whether a screen is a tab's is the entry's own fact, asked
+    // once: a tab fading out under a pushed form keeps its button in the rail, and a pushed screen fading out
+    // over a tab never offers one.
     val railAction = remember { RailAction() }
-    val railOffer = rememberRailOffer(navigator, railAction) { railLayout }
+    val tabChrome = rememberTabChrome(navigator, railAction, { railLayout }, { tabClearance })
 
     // Decorated over every live screen, not only the shown ones: a tab's screens set aside while another
     // tab shows keep their view models and saved state, as `NavHost`'s saved tabs did.
-    val entries = rememberEntries(navigator, graph, railOffer)
+    val entries = rememberEntries(navigator, graph, tabChrome)
 
     // **The chrome leaves with the screen, not ahead of it.** Whether the tabs apply is settled the
     // instant `navigate` is called, but the screen they belong to takes the length of a fade to go
@@ -240,6 +232,9 @@ private fun MainApp(firstLesson: FirstLesson) {
     //
     // It also leaves the suite's type to be *only* about the window's width — bar on a phone, rail once
     // there is room — which is the question it was always meant to answer.
+    //
+    // The phone's floating bar is past all this: laid over the screens, its going reflows nothing, so it
+    // simply fades on the screen change's own beat (`chromeEnter`/`chromeExit`). The state below is the rail's.
     val shiftInset = with(LocalDensity.current) { PredictiveShiftInset.roundToPx() }
     // Starting as it should be: a pushed screen restored after the process died does not flash the tabs.
     val chrome = rememberNavigationSuiteScaffoldState(
@@ -260,21 +255,69 @@ private fun MainApp(firstLesson: FirstLesson) {
         // tabs apply — unless the card shares the window with the People list. Still one call site,
         // because a second would be a second composable identity and would rebuild the `NavDisplay`.
         state = chrome,
-        navigationSuiteType = suiteType,
+        navigationSuiteType = if (floatingBar) NavigationSuiteType.None else suiteType,
         // Always a button's height, so the tabs below stay put between a tab with one and a tab without.
         primaryActionContent = { if (railLayout) RailHeader(railAction) },
     ) {
-        CompositionLocalProvider(LocalTabReselect provides reselect) {
-            NavDisplay(
-                entries = entries,
-                modifier = Modifier.fillMaxSize(),
-                sceneStrategies = listOf(listDetail, SinglePaneSceneStrategy()),
-                transitionSpec = { fadeThrough() },
-                popTransitionSpec = { fadeThrough() },
-                predictivePopTransitionSpec = { edge -> predictiveBackPop(edge, shiftInset) },
-                onBack = navigator::goBack,
-            )
+        Box(Modifier.fillMaxSize()) {
+            CompositionLocalProvider(LocalTabReselect provides reselect) {
+                NavDisplay(
+                    entries = entries,
+                    modifier = Modifier.fillMaxSize(),
+                    sceneStrategies = listOf(listDetail, SinglePaneSceneStrategy()),
+                    transitionSpec = { fadeThrough() },
+                    popTransitionSpec = { fadeThrough() },
+                    predictivePopTransitionSpec = { edge -> predictiveBackPop(edge, shiftInset) },
+                    onBack = navigator::goBack,
+                )
+            }
+            // After the `NavDisplay`, so it is drawn over the screens; it never moves them.
+            if (floatingBar) FloatingTabs(onTab, selectedTab, onTabTap) { barClearance = it }
         }
+    }
+}
+
+/**
+ * The app's screens, with the tray's arrivals wired in: the latest tray tap that asked a tab for something
+ * more than itself — the schedule for a day or a lesson's sheet, the reports for their debts. See [Arrival],
+ * and why each tap is its own instance. Each is bound to the screen it landed on, so a tab preserved below a
+ * draft cannot replay the tap later.
+ */
+@Composable
+private fun rememberGraph(navigator: KlasNavigator): KlasGraph {
+    var scheduleArrival by remember { mutableStateOf<Pair<Long, Arrival<ScheduleTarget>>?>(null) }
+    var debtsArrival by remember { mutableStateOf<Pair<Long, Arrival<Unit>>?>(null) }
+
+    val arriveAtSchedule: (ScheduleTarget) -> Unit = { target -> scheduleArrival = navigator.top.id to Arrival(target) }
+    val arriveAtDebts = { debtsArrival = navigator.top.id to Arrival(Unit) }
+    OpensWhatTheTrayNames(navigator, onSchedule = arriveAtSchedule, onDebts = arriveAtDebts)
+
+    return remember(navigator) {
+        KlasGraph(
+            navigator,
+            scheduleArrival = { id -> scheduleArrival?.takeIf { it.first == id }?.second },
+            debtsArrival = { id -> debtsArrival?.takeIf { it.first == id }?.second },
+            arriveAtSchedule = arriveAtSchedule,
+            arriveAtDebts = arriveAtDebts,
+        )
+    }
+}
+
+/** A phone's tabs at the foot of the window while a tab is [visible], fading with the screen they belong to. */
+@Composable
+private fun BoxScope.FloatingTabs(
+    visible: Boolean,
+    selected: TopDestination?,
+    onSelect: (TopDestination) -> Unit,
+    onClearance: (Dp) -> Unit,
+) {
+    AnimatedVisibility(
+        visible = visible,
+        modifier = Modifier.align(Alignment.BottomCenter),
+        enter = chromeEnter(),
+        exit = chromeExit(),
+    ) {
+        FloatingTabBar(TopDestination.entries, selected, onSelect, onClearance)
     }
 }
 
@@ -300,7 +343,7 @@ private fun OpensFirstLesson(navigator: KlasNavigator, firstLesson: FirstLesson)
 private fun rememberEntries(
     navigator: KlasNavigator,
     graph: KlasGraph,
-    railOffer: NavEntryDecorator<Screen>,
+    tabChrome: NavEntryDecorator<Screen>,
 ): List<NavEntry<Screen>> {
     val decorated = rememberDecoratedNavEntries(
         backStack = navigator.live,
@@ -308,7 +351,7 @@ private fun rememberEntries(
             rememberSaveableStateHolderNavEntryDecorator(),
             rememberViewModelStoreNavEntryDecorator(),
             rememberResultEventBusNavEntryDecorator(),
-            railOffer,
+            tabChrome,
         ),
         entryProvider = graph::entry,
     ).associateBy { it.contentKey }
@@ -316,14 +359,16 @@ private fun rememberEntries(
 }
 
 /**
- * Gives a tab's screen the rail to hand its add button to, while [railLayout] — asked once per entry, so a
+ * Gives a tab's screen what the tabs lend it: the rail to hand its add button to, while [railLayout], and the
+ * room the floating bar takes at its foot, [barClearance]. Whether it is a tab's is asked once per entry, so a
  * screen fading out keeps the answer it arrived with.
  */
 @Composable
-private fun rememberRailOffer(
+private fun rememberTabChrome(
     navigator: KlasNavigator,
     railAction: RailAction,
     railLayout: () -> Boolean,
+    barClearance: () -> Dp,
 ): NavEntryDecorator<Screen> = remember(navigator, railAction) {
     NavEntryDecorator(
         decorate = { entry ->
@@ -331,7 +376,10 @@ private fun rememberRailOffer(
                 val screen = navigator.live.firstOrNull { it.id == entry.contentKey }
                 screen?.let { TopDestination.of(it.route) } != null
             }
-            CompositionLocalProvider(LocalRailAction provides railAction.takeIf { tab && railLayout() }) {
+            CompositionLocalProvider(
+                LocalRailAction provides railAction.takeIf { tab && railLayout() },
+                LocalTabBarClearance provides if (tab) barClearance() else 0.dp,
+            ) {
                 entry.Content()
             }
         },
@@ -351,6 +399,15 @@ private val RailTypes = setOf(
     NavigationSuiteType.WideNavigationRailCollapsed,
     NavigationSuiteType.WideNavigationRailExpanded,
 )
+
+/** The suite's types that are bars, which a phone draws as a `FloatingTabBar` instead. */
+private val BarTypes = setOf(
+    NavigationSuiteType.ShortNavigationBarCompact,
+    NavigationSuiteType.ShortNavigationBarMedium,
+)
+
+/** The floating bar's room until it is first measured: its height at the default font size, and its gap. */
+private val EstimatedBarClearance = 72.dp
 
 /** A FAB's height, which the rail's header keeps whether or not the tab has one. */
 private val RailActionHeight = 56.dp

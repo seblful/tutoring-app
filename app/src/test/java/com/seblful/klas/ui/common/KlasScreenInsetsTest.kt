@@ -7,8 +7,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
@@ -70,6 +72,23 @@ class KlasScreenInsetsTest {
     }
 
     @Test
+    fun `on a tab under the floating bar the last row and the add button clear the bar`() {
+        setScreen(barClearance = BarClearance, fab = true) { modifier, bottomInset ->
+            LazyColumn(modifier.fillMaxWidth().testTag("list"), contentPadding = bottomInset) {
+                items(Rows) { Box(Modifier.fillMaxWidth().height(RowHeight).testTag("row $it")) }
+            }
+        }
+        dispatchInsets(keyboard = false)
+        compose.onNodeWithTag("list").performScrollToIndex(Rows - 1)
+        compose.waitForIdle()
+
+        val barTop = windowBottom() - NavBar - BarClearance
+        assertEquals(windowBottom(), bottomOf("list"))
+        assertEquals(barTop, bottomOf("row ${Rows - 1}"))
+        assertTrue("the add button sits under the bar", bottomOf("fab") <= barTop)
+    }
+
+    @Test
     fun `the activity resizes for the keyboard`() {
         val manifest = ProjectFiles.moduleFile("src/main/AndroidManifest.xml").readText()
 
@@ -82,11 +101,26 @@ class KlasScreenInsetsTest {
 
     private fun setScreen(
         imeAware: Boolean = false,
+        barClearance: Dp = 0.dp,
+        fab: Boolean = false,
         content: @Composable (Modifier, PaddingValues) -> Unit,
     ) {
         compose.setContent {
             view = LocalView.current
-            KlasTheme { KlasScreen(title = "Screen", imeAware = imeAware, content = content) }
+            KlasTheme {
+                CompositionLocalProvider(LocalTabBarClearance provides barClearance) {
+                    KlasScreen(
+                        title = "Screen",
+                        imeAware = imeAware,
+                        floatingActionButton = if (fab) {
+                            { Box(Modifier.size(FabSize).testTag("fab")) }
+                        } else {
+                            null
+                        },
+                        content = content,
+                    )
+                }
+            }
         }
     }
 
@@ -118,6 +152,8 @@ class KlasScreenInsetsTest {
     private companion object {
         val NavBar = 48.dp
         val Keyboard = 280.dp
+        val BarClearance = 72.dp
+        val FabSize = 56.dp
         val RowHeight = 100.dp
         const val Rows = 30
     }

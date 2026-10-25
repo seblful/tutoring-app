@@ -61,7 +61,8 @@ Build screens from shared state and controls. Feature rules belong in the domain
 - Edge to edge: `KlasScreen` pads its body's top and sides and hands the bottom inset over as
   `bottomInset`, so rows pass under the system navigation bar. A list adds it to `contentPadding`
   (`plusInset`), a scrolling column pads by it inside its scroll, and anything else pads by it.
-  It is zero on a tab (the tab bar takes it) and under the keyboard on an `imeAware` form.
+  On a phone's tab it also holds the floating tab bar's room (`LocalTabBarClearance`), so rows pass under
+  the bar and the FAB and snackbars sit above it; it is zero under the keyboard on an `imeAware` form.
 - Use `SegmentedPage` (tabs, no divider) for fixed views, `PageStepper` for successive pages; both
   page titles are ink. The schedule's page title is also its date picker (`PageNavigator`); «today» stays
   an icon beside it. A held tab tints a rounded shape around its label, not Material's full-cell ripple. Choices of a value use `SegmentedChoice`, settings-shaped `ChoiceRow` (segments
@@ -242,9 +243,10 @@ Build screens from shared state and controls. Feature rules belong in the domain
   mark-done button (`DoneButton`, `RowStart.Done`): named per lesson, off until it has begun, a spent tick
   once taught. Owed lists the three who owe most, each with their last payment, and «See all».
   Selection follows the back stack. Destinations arrive by Material's fade through; predictive back
-  shrinks the leaving screen over the one beneath (`predictiveBackPop`). The tabs are Material's short
-  navigation bar on a phone, a landscape one included, and its wide rail from medium width
-  (`NavigationSuiteScaffold`). The rail's header carries a tab's FAB (`RailAction`, decided per entry so a
+  shrinks the leaving screen over the one beneath (`predictiveBackPop`). On a phone, a landscape one included,
+  the tabs are a pill floating over the screen's foot (`FloatingTabBar`, the owner's choice over Material's
+  full-width short bar), whose indicator slides between tabs and which fades with the screen it belongs
+  to; from medium width they are Material's wide rail (`NavigationSuiteScaffold`). The rail's header carries a tab's FAB (`RailAction`, decided per entry so a
   fading screen keeps its own) and keeps a FAB's height without one; a pushed screen keeps its own FAB.
   Side camera cutouts are cleared once, around the whole suite.
 - Navigation 3 shows one flat back stack of `Screen`s (`KlasNavigator`): a route plus an id, so the same
