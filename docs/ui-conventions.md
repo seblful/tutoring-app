@@ -34,8 +34,14 @@ Build screens from shared state and controls. Feature rules belong in the domain
   `LessonChanges` workflow owns the calendar's undo window; bind it to the application scope
   and the screen's failure event once with `inScope`. Confirms stay where the docs require them
   (deleting a taught lesson, forms that drop members) or where nothing can be undone (restore a backup).
-- Rotation/resizing is handled in place by `MainActivity.configChanges`; dialog text still uses
-  `rememberSaveable`. Save a `MoneyTextField`'s text and derive `MoneyField` from it.
+- Rotation/resizing is handled in place by `MainActivity.configChanges`. Form view models persist editable
+  drafts and pristine baselines through `SavedStateHandle.savedDraft`; reload referenced records without
+  overwriting restored edits. Persist whether an editor is open as well as its fields and selected assignee.
+  Dialog text uses `rememberSaveable`; money fields retain raw text rather than a reformatted amount.
+- Android 13+ app-language settings and the in-app picker are synchronized by `AppLanguagePreferences`.
+  The first migration preserves an existing in-app choice; subsequent system changes update shared settings.
+  Older Android versions retain localized contexts. Locale overrides must inherit density, font scale and
+  orientation from the platform.
 
 ## Layout and controls
 
@@ -68,6 +74,7 @@ Build screens from shared state and controls. Feature rules belong in the domain
   (`plusInset`), a scrolling column pads by it inside its scroll, and anything else pads by it.
   On a phone's tab it also holds the floating tab bar's room (`LocalTabBarClearance`), so rows pass under
   the bar and the FAB and snackbars sit above it; it is zero under the keyboard on an `imeAware` form.
+  Open search also avoids the keyboard, hides the add button, and consumes Back before leaving its screen.
 - Use `SegmentedPage` (tabs, no divider) for fixed views, `PageStepper` for successive pages; both
   page titles are ink. The schedule's page title is also its date picker (`PageNavigator`); «today» stays
   an icon beside it. A held tab tints a rounded shape around its label, not Material's full-cell ripple. Choices of a value use `SegmentedChoice`, settings-shaped `ChoiceRow` (segments
@@ -83,6 +90,10 @@ Build screens from shared state and controls. Feature rules belong in the domain
 - Compose Styles (experimental, opted in) are for the app's own foundation-built atoms only — `StatusBadge`
   so far: defaults live in `KlasStyles`, the caller's `style` goes last. Material components keep their
   parameters until Material supports Styles; a Style cannot read `MaterialTheme`, so it uses `Shapes`/`Typography`.
+- Text-size floors use sp. At large font sizes the floating navigation bar shows icons with full accessible
+  names and the selected destination's label across its width. Calendar weekday headings use localized
+  narrow names. Settings choices switch to a field when segments cannot accommodate large text; form
+  dialogs scroll their bodies while keeping actions reachable.
 - Shapes are Material's baseline scale (`Shape.kt`); search opens Material's search input in place of the
   bar's title (`SearchField`).
 - Follow `Spacing`; page sides use `gutter`. A row gets ripple room from card padding, keeping text

@@ -128,6 +128,12 @@ without startup scheduling; activity/receiver injection works even before a test
   running its phases in one instrumentation invocation cannot prove a process restart.
 - Payment, duration and repeat-count dialogs have saved-state restoration tests that confirm the
   restored value, rather than only checking that their controls reappear.
+- Draft restoration tests create new student, group and booking view models from saved handles; editor
+  tests restore the parent payment/homework interaction with typed fields. Test process death with the
+  activity stopped in the background and return to its existing task; force-stop represents a fresh launch.
+- Device UI checks cover 200% text, RTL swipe direction, search Back/IME behavior and short landscape
+  dialogs. Whole-word label checks at large text apply to the selected navigation label; every icon must
+  retain its full accessible name.
 - `./gradlew testDeviceTools` tests the host runner's failure detection and cleanup without a device.
 - Notification display and real calendar writes need observation on a device.
 
