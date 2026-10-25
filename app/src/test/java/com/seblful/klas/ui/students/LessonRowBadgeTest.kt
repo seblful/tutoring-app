@@ -8,10 +8,10 @@ import com.seblful.klas.domain.model.ClassSession
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.TutoringClass
+import com.seblful.klas.queries.groups.GroupLessonRow
 import com.seblful.klas.queries.students.ClassRow
 import com.seblful.klas.testutil.AppLocaleRule
 import com.seblful.klas.ui.groups.GroupLessonItem
-import com.seblful.klas.ui.groups.GroupLessonRow
 import com.seblful.klas.ui.theme.KlasTheme
 import org.junit.Rule
 import org.junit.Test

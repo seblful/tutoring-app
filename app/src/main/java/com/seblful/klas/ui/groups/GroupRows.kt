@@ -16,6 +16,8 @@ import com.seblful.klas.R
 import com.seblful.klas.domain.lesson.LessonPhase
 import com.seblful.klas.domain.model.Attendance
 import com.seblful.klas.domain.model.Balance
+import com.seblful.klas.queries.groups.GroupLessonRow
+import com.seblful.klas.queries.groups.GroupMemberRow
 import com.seblful.klas.ui.common.ArchivedBadge
 import com.seblful.klas.ui.common.Avatar
 import com.seblful.klas.ui.common.BadgeLine

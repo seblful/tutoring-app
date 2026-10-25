@@ -33,6 +33,8 @@ import com.seblful.klas.domain.model.Assignee
 import com.seblful.klas.domain.reports.Taught
 import com.seblful.klas.format.bulletJoin
 import com.seblful.klas.format.formatHours
+import com.seblful.klas.queries.groups.GroupDetails
+import com.seblful.klas.queries.groups.GroupMemberRow
 import com.seblful.klas.queries.homework.AssigneeChoice
 import com.seblful.klas.queries.homework.HomeworkRow
 import com.seblful.klas.ui.common.AddRow
@@ -296,7 +298,7 @@ internal fun groupHomeworkUndo(viewModel: GroupDetailViewModel, messages: Messag
 
 /** Under the name, as the student's contact line is: what the group is taught, and for how much. */
 @Composable
-private fun GroupHeader(state: GroupDetailState, modifier: Modifier = Modifier) {
+private fun GroupHeader(state: GroupDetails, modifier: Modifier = Modifier) {
     val group = state.group ?: return
     Column(modifier.fillMaxWidth()) {
         Row(Modifier.heightIn(min = MinTouchTarget), verticalAlignment = Alignment.CenterVertically) {
@@ -408,7 +410,7 @@ private fun MembersSection(
 private fun GroupOverflowMenu(archived: Boolean, onArchive: () -> Unit, onDelete: (() -> Unit)?) {
     OverflowMenu { close ->
         ArchiveMenuItem(archived) { close(); onArchive() }
-        // Only while there is something it can do — see [GroupDetailState.canDelete].
+        // Only while there is something it can do — see [GroupDetails.canDelete].
         if (onDelete != null) {
             MenuItem(
                 text = {

@@ -13,6 +13,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.seblful.klas.R
 import com.seblful.klas.domain.model.Assignee
+import com.seblful.klas.queries.groups.GroupDetails
+import com.seblful.klas.queries.groups.GroupLessonRow
 import com.seblful.klas.queries.homework.AssigneeChoice
 import com.seblful.klas.queries.homework.HomeworkRow
 import com.seblful.klas.ui.common.EmptyState
@@ -45,7 +47,7 @@ fun GroupListScreen(
 
 @Composable
 private fun GroupList(
-    state: GroupDetailState,
+    state: GroupDetails,
     section: GroupSection,
     viewModel: GroupDetailViewModel,
     onBack: () -> Unit,
