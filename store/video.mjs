@@ -15,13 +15,13 @@
 //
 // CHROME=<path> overrides where Chrome is looked for. See docs/store-listing.md.
 
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { evaluate, openChrome } from "./lib/chrome.mjs";
 import { mp4 } from "./lib/mp4.mjs";
 import { HOME, ICON_MARK, LOGO, PHONE_CSS, RES, fontFaces, homeScreen, lockScreen, statusBar, text, url } from "./lib/phone.mjs";
-import { decode } from "./lib/png.mjs";
+import { blur, decode, write } from "./lib/png.mjs";
 import { difference } from "./lib/compare.mjs";
 import { joinScroll } from "./lib/scroll.mjs";
 
@@ -40,6 +40,13 @@ const DOWNLOAD_ICON = `<svg viewBox="0 0 24 24"><path fill="#4c5bc4" d="M11 3h2v
  * and may differ from them by at most [GPU_MEAN] levels on average and [GPU_OFF] of their pixels far out.
  */
 const GPU_CHECKS = [0.2, 0.45, 0.85];
+/**
+ * How much the app's captures are softened before the GPU draws them: a Gaussian's sigma, in capture
+ * pixels. Shrunk to a quarter of their size and less, their type came out harsher on the GPU than in
+ * Chrome's software drawing (--software), which smooths them as it shrinks them; this matches that.
+ * Captions and the phone are drawn by the page, and stay as sharp as ever.
+ */
+const SOFTEN = 1.8;
 const GPU_MEAN = 3;
 const GPU_OFF = 0.01;
 const CALENDAR_ICON = `<svg viewBox="0 0 24 24"><path fill="#4c5bc4" d="M7 2h2v2h6V2h2v2h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2V2Zm12 8H5v10h14V10Z"/></svg>`;
@@ -175,9 +182,16 @@ async function film(locale, layout) {
   const stage = STAGES[layout];
 
   const source = join(WORK, `${name}.html`);
-  writeFileSync(source, page({ locale, layout, stage, words, raw, shots, tray, typed }));
   const scale = options.scale;
+  let images = onGpu ? softened(raw, locale) : raw;
+  writeFileSync(source, page({ locale, layout, stage, words, raw, images, shots, tray, typed }));
   await load(source, stage, scale);
+  if (!onGpu && images !== raw) {
+    // This Chrome turned out to have no GPU drawing, and its software drawing smooths the captures itself.
+    images = raw;
+    writeFileSync(source, page({ locale, layout, stage, words, raw, images, shots, tray, typed }));
+    await load(source, stage, scale);
+  }
   const info = await evaluate(send, "film.ready");
   const tooWide = await evaluate(send, `[...document.querySelectorAll(".caption .line")]
     .filter((line) => line.scrollWidth > line.closest(".caption").clientWidth).map((line) => line.textContent)`);
@@ -317,9 +331,28 @@ async function check(file, duration, width, height) {
   }
 }
 
+/**
+ * [raw]'s captures blurred by [SOFTEN], in the film's scratch folder: made when a capture is newer than its
+ * softened copy, so each locale's are made once for all its films.
+ */
+function softened(raw, locale) {
+  const into = join(WORK, `soft-${SOFTEN}`, locale);
+  mkdirSync(into, { recursive: true });
+  for (const file of readdirSync(raw).filter((f) => f.endsWith(".png"))) {
+    const from = join(raw, file), to = join(into, file);
+    if (existsSync(to) && statSync(to).mtimeMs >= statSync(from).mtimeMs) continue;
+    writeFileSync(to, write(blur(decode(readFileSync(from)), SOFTEN)));
+  }
+  return into;
+}
+
 // --- The page --------------------------------------------------------------------------------------
 
-function page({ locale, layout, stage, words, raw, shots, tray, typed }) {
+/**
+ * The film's page. Pixels are read from [raw]'s captures, and the page shows them from [images]: the
+ * same, or softened copies (see [SOFTEN]).
+ */
+function page({ locale, layout, stage, words, raw, images, shots, tray, typed }) {
   const strings = appStrings(locale);
   const caption = (entry) => {
     const still = entry[locale] ?? fail(`${locale}: no caption for «${entry.shot}» in listing.json`);
@@ -338,7 +371,7 @@ function page({ locale, layout, stage, words, raw, shots, tray, typed }) {
     return `
         <div class="layer" data-shot="${name}">
           ${statusBar(s.top, s.dark ? "#e4e1e9" : "#1b1b21", AFTER_REMINDER.includes(name) ? tray.clock : words.clock)}
-          <img class="app" src="${url(join(raw, `${name}.png`))}">
+          <img class="app" src="${url(join(images, `${name}.png`))}">
         </div>`;
   };
   const agenda = tray.notifications.find((n) => n.lines.length) ?? fail(`${locale}: no agenda in notifications.json`);
@@ -361,12 +394,12 @@ function page({ locale, layout, stage, words, raw, shots, tray, typed }) {
     layout, stage,
     capture: { width: today.width, height: today.height },
     shots: {
-      ...Object.fromEntries([...SHOTS, ...PIECES].map((name) => [name, { src: url(join(raw, `${name}.png`)), marks: shot(name).marks }])),
-      homescreen: homeMarks(raw, shot("widget-today")),
+      ...Object.fromEntries([...SHOTS, ...PIECES].map((name) => [name, { src: url(join(images, `${name}.png`)), marks: shot(name).marks }])),
+      homescreen: homeMarks(images, shot("widget-today")),
     },
     words: { tagline: words.tagline },
     film: typed,
-    ...reportParts(raw, shot("reports"), shot("film-reports-end")),
+    ...reportParts(raw, images, shot("reports"), shot("film-reports-end")),
     closeUp: closeUp(raw, shot("film-homework-list")),
   };
   // Beside the settings when wide; over the phone's lower half, under the rows it calls out, when tall.
@@ -388,7 +421,7 @@ function page({ locale, layout, stage, words, raw, shots, tray, typed }) {
       <div class="face"></div>
       <div class="screen"><div class="stack">
         ${SHOTS.map(layer).join("")}
-        <div class="layer" data-shot="homescreen">${homeScreen(raw, { ...tray, homeClock: words.clock })}</div>
+        <div class="layer" data-shot="homescreen">${homeScreen(images, { ...tray, homeClock: words.clock })}</div>
         <div class="layer" data-shot="lockscreen">${lockScreen(tray)}</div>
       </div></div>
       <div class="glass"></div>
@@ -428,7 +461,7 @@ function page({ locale, layout, stage, words, raw, shots, tray, typed }) {
  * (how far it moved, found to the pixel, and where to join them), and the total's type with its card's
  * colour behind it, to cover the figure the capture shows.
  */
-function reportParts(raw, opened, scrolled) {
+function reportParts(raw, images, opened, scrolled) {
   const top = decode(readFileSync(join(raw, "reports.png")));
   const bottom = decode(readFileSync(join(raw, "film-reports-end.png")));
   const list = opened.marks.list;
@@ -442,7 +475,7 @@ function reportParts(raw, opened, scrolled) {
   const at = (y * top.width + x) * top.channels;
   const background = `#${[0, 1, 2].map((k) => top.pixels[at + k].toString(16).padStart(2, "0")).join("")}`;
   return {
-    scroll: { list, d, seam, bar, src: url(join(raw, "film-reports-end.png")) },
+    scroll: { list, d, seam, bar, src: url(join(images, "film-reports-end.png")) },
     count: { ...total, background },
   };
 }
@@ -478,11 +511,11 @@ function closeUp(raw, before) {
  * and its tick for the lesson on now, from the widget's own capture. The widget's corner is the rounding
  * phone.mjs draws it with.
  */
-function homeMarks(raw, widget) {
+function homeMarks(images, widget) {
   const { left, top, width, height } = HOME.today, x = left * 4, y = top * 4;
   const [l, t, r, b] = widget.marks.tick ?? fail("No «tick» mark on widget-today; take the captures again");
   return {
-    src: url(join(raw, "widget-today.png")),
+    src: url(join(images, "widget-today.png")),
     marks: {
       widget: [x, y, x + width * 4, y + height * 4, Math.round((0.058 / 0.956) * 1648)],
       tick: [x + l, y + t, x + r, y + b, Math.round((r - l) / 2)],

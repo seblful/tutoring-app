@@ -72,8 +72,7 @@ node store/video.mjs --locale ru-RU --stills 6.2,7.5    # inspect specific momen
 node store/video.mjs --software                       # screenshot fallback; slower
 ```
 
-Release set: `--4k` on the GPU for YouTube (13 min for all four), and `--software` for the 1080p files
-(about ten times slower), where the GPU draws the app's type harsher than software does.
+Release set: plain for the 1080p files and `--4k` for YouTube, both on the GPU.
 
 Reuse the captures above; Node/Chrome suffice, with no ffmpeg or npm dependencies. Generated files in
 `store/build/video/` are uncommitted: H.264/AAC, 60 fps, 46 seconds.
@@ -106,6 +105,8 @@ Sound is deterministic synthesis in `sound.js`, with no sampled recordings.
   Theme transition uses `film-theme`/`film-theme-dark`, then `today-dark`.
 - **Rendering:** `gpu.js` uses Chrome's experimental html-in-canvas (`CanvasDrawElement`), accumulates
   WebGL exposures and passes the canvas to WebCodecs. Unsupported Chrome or `--software` uses screenshots.
+  On the GPU the captures are shown blurred by `SOFTEN` (copies in `store/build/film/soft-*`): shrunk
+  as they are, their type otherwise came out harsher than in software, which smooths them itself.
   `encoder.js` encodes; `lib/mp4.mjs` writes the MP4 index first. `lib/chrome.mjs` asks for the
   high-performance GPU, and `video.mjs` prints the one it got («Drawing on …»): on a two-GPU laptop it
   should name the discrete card. The stills (`render.mjs`) draw on the GPU too: their 4320 × 7680 pages

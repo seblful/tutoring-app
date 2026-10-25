@@ -68,6 +68,69 @@ export function encode({ width, height, channels: from, pixels }, factor, channe
     chunk("IEND", Buffer.alloc(0))]);
 }
 
+/**
+ * [image] blurred by a Gaussian of [sigma] pixels — near enough: three box blurs, each a running sum, so
+ * a whole capture takes a moment at any [sigma] — its colour weighted by its alpha so a transparent edge
+ * does not darken what it borders.
+ */
+export function blur({ width, height, channels, pixels }, sigma) {
+  // The three boxes whose sizes give the Gaussian's spread (Kutskir's "fastest Gaussian blur").
+  const ideal = Math.sqrt(4 * sigma * sigma + 1);
+  let lower = Math.floor(ideal);
+  if (lower % 2 === 0) lower--;
+  const upper = lower + 2;
+  const smaller = Math.round((12 * sigma * sigma - 3 * lower * lower - 12 * lower - 9) / (-4 * lower - 4));
+  const radii = [0, 1, 2].map((i) => ((i < smaller ? lower : upper) - 1) / 2);
+
+  const n = width * height, alpha = channels === 4;
+  // Premultiplied, in floats, one channel plane at a time.
+  const planes = Array.from({ length: channels }, () => new Float32Array(n));
+  for (let i = 0; i < n; i++) {
+    const a = alpha ? pixels[i * 4 + 3] / 255 : 1;
+    for (let k = 0; k < channels; k++) planes[k][i] = k === 3 ? a : pixels[i * channels + k] * a;
+  }
+  /** One box of [r] along [lines] lines of [length], [step] apart within a line and [stride] between them. */
+  const box = (from, to, r, length, lines, step, stride) => {
+    const width = 2 * r + 1, last = length - 1;
+    for (let line = 0; line < lines; line++) {
+      const base = line * stride, at = (p) => from[base + Math.min(last, Math.max(0, p)) * step];
+      let sum = 0;
+      for (let j = -r; j <= r; j++) sum += at(j);
+      for (let p = 0; p < length; p++) {
+        to[base + p * step] = sum / width;
+        sum += at(p + r + 1) - at(p - r);
+      }
+    }
+  };
+  const spare = new Float32Array(n);
+  for (const plane of planes) {
+    for (const r of radii) {
+      box(plane, spare, r, width, height, 1, width);
+      box(spare, plane, r, height, width, width, 1);
+    }
+  }
+  const out = Buffer.alloc(n * channels);
+  for (let i = 0; i < n; i++) {
+    const a = alpha ? planes[3][i] : 1;
+    for (let k = 0; k < channels; k++) {
+      const v = k === 3 ? a * 255 : a > 0 ? planes[k][i] / a : 0;
+      out[i * channels + k] = Math.min(255, Math.max(0, Math.round(v)));
+    }
+  }
+  return { width, height, channels, pixels: out };
+}
+
+/** [image] as a PNG at its own size, with its alpha if it has one; quickly compressed, for scratch files. */
+export function write({ width, height, channels, pixels }) {
+  const stride = width * channels + 1, out = Buffer.alloc(height * stride);
+  for (let y = 0; y < height; y++) pixels.copy(out, y * stride + 1, y * width * channels, (y + 1) * width * channels);
+  const header = Buffer.alloc(13);
+  header.writeUInt32BE(width, 0); header.writeUInt32BE(height, 4);
+  header[8] = 8; header[9] = channels === 4 ? 6 : 2;
+  return Buffer.concat([PNG_SIGNATURE, chunk("IHDR", header), chunk("IDAT", deflateSync(out, { level: 1 })),
+    chunk("IEND", Buffer.alloc(0))]);
+}
+
 function paeth(a, b, c) {
   const p = a + b - c, pa = Math.abs(p - a), pb = Math.abs(p - b), pc = Math.abs(p - c);
   return pa <= pb && pa <= pc ? a : pb <= pc ? b : c;
