@@ -28,7 +28,7 @@ fun <S> AnimatedContentTransitionScope<S>.fadeThrough(): ContentTransform =
             scaleIn(tween(InMillis, delayMillis = OutMillis, easing = KlasMotion.EmphasizedDecelerate), ArrivingScale)
         ) togetherWith fadeOut(tween(OutMillis, easing = KlasMotion.EmphasizedAccelerate))
 
-/** Chrome drawn over the screens — a phone's floating tabs — arriving on [fadeThrough]'s beat, with its screen. */
+/** Chrome drawn over the screens — a phone's tab bar — arriving on [fadeThrough]'s beat, with its screen. */
 fun chromeEnter(): EnterTransition =
     fadeIn(tween(InMillis, delayMillis = OutMillis, easing = KlasMotion.EmphasizedDecelerate))
 

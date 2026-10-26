@@ -60,7 +60,7 @@ import com.seblful.klas.ui.common.ProvideClockFormat
 import com.seblful.klas.ui.common.ProvideLocalizedResources
 import com.seblful.klas.ui.common.RailAction
 import com.seblful.klas.ui.common.TabReselect
-import com.seblful.klas.ui.navigation.FloatingTabBar
+import com.seblful.klas.ui.navigation.DockedTabBar
 import com.seblful.klas.ui.navigation.KlasGraph
 import com.seblful.klas.ui.navigation.KlasNavigator
 import com.seblful.klas.ui.navigation.KlasTabs
@@ -194,14 +194,14 @@ private fun MainApp(firstLesson: FirstLesson) {
     OpensWhatTheTrayNames(navigator)
     val graph = remember(navigator) { KlasGraph(navigator) }
     // Material's current components for the width: the short bar on a phone (a landscape one included), the
-    // wide rail from medium width on. Where Material would draw its bar, the tabs float over the screens
-    // instead (`FloatingTabBar`), and the suite draws nothing.
+    // wide rail from medium width on. Where Material would draw its bar, the app docks its own over the screens
+    // instead (`DockedTabBar`), and the suite draws nothing.
     val suiteType = NavigationSuiteScaffoldDefaults.navigationSuiteType(currentWindowAdaptiveInfoV2())
     val railLayout by rememberUpdatedState(suiteType in RailTypes)
-    val floatingBar = suiteType in BarTypes
+    val phoneBar = suiteType in BarTypes
     var barClearance by remember { mutableStateOf(EstimatedBarClearance) }
-    val tabClearance by rememberUpdatedState(if (floatingBar) barClearance else 0.dp)
-    // Beside a tab the rail carries the tab's add button in its header; a floating bar leaves it to the
+    val tabClearance by rememberUpdatedState(if (phoneBar) barClearance else 0.dp)
+    // Beside a tab the rail carries the tab's add button in its header; a phone's bar leaves it to the
     // screen, which keeps clear of the bar instead. Whether a screen is a tab's is the entry's own fact, asked
     // once: a tab fading out under a pushed form keeps its button in the rail, and a pushed screen fading out
     // over a tab never offers one.
@@ -229,7 +229,7 @@ private fun MainApp(firstLesson: FirstLesson) {
     // It also leaves the suite's type to be *only* about the window's width — bar on a phone, rail once
     // there is room.
     //
-    // The phone's floating bar is past all this: laid over the screens, its going reflows nothing, so it
+    // The phone's docked bar is past all this: laid over the screens, its going reflows nothing, so it
     // simply fades on the screen change's own beat (`chromeEnter`/`chromeExit`). The state below is the rail's.
     val shiftInset = with(LocalDensity.current) { PredictiveShiftInset.roundToPx() }
     // Starting as it should be: a pushed screen restored after the process died does not flash the tabs.
@@ -251,7 +251,7 @@ private fun MainApp(firstLesson: FirstLesson) {
         // tabs apply — unless the card shares the window with the People list. Still one call site,
         // because a second would be a second composable identity and would rebuild the `NavDisplay`.
         state = chrome,
-        navigationSuiteType = if (floatingBar) NavigationSuiteType.None else suiteType,
+        navigationSuiteType = if (phoneBar) NavigationSuiteType.None else suiteType,
         // Always a button's height, so the tabs below stay put between a tab with one and a tab without.
         primaryActionContent = { if (railLayout) RailHeader(railAction) },
     ) {
@@ -268,14 +268,14 @@ private fun MainApp(firstLesson: FirstLesson) {
                 )
             }
             // After the `NavDisplay`, so it is drawn over the screens; it never moves them.
-            if (floatingBar) FloatingTabs(onTab, selectedTab, onTabTap) { barClearance = it }
+            if (phoneBar) PhoneTabs(onTab, selectedTab, onTabTap) { barClearance = it }
         }
     }
 }
 
 /** A phone's tabs at the foot of the window while a tab is [visible], fading with the screen they belong to. */
 @Composable
-private fun BoxScope.FloatingTabs(
+private fun BoxScope.PhoneTabs(
     visible: Boolean,
     selected: TopDestination?,
     onSelect: (TopDestination) -> Unit,
@@ -287,7 +287,7 @@ private fun BoxScope.FloatingTabs(
         enter = chromeEnter(),
         exit = chromeExit(),
     ) {
-        FloatingTabBar(TopDestination.entries, selected, onSelect, onClearance)
+        DockedTabBar(TopDestination.entries, selected, onSelect, onClearance)
     }
 }
 
@@ -330,7 +330,7 @@ private fun rememberEntries(
 
 /**
  * Gives a tab's screen what the tabs lend it: the rail to hand its add button to, while [railLayout], and the
- * room the floating bar takes at its foot, [barClearance]. Whether it is a tab's is asked once per entry, so a
+ * room the phone's tab bar takes at its foot, [barClearance]. Whether it is a tab's is asked once per entry, so a
  * screen fading out keeps the answer it arrived with.
  */
 @Composable
@@ -370,14 +370,14 @@ private val RailTypes = setOf(
     NavigationSuiteType.WideNavigationRailExpanded,
 )
 
-/** The suite's types that are bars, which a phone draws as a `FloatingTabBar` instead. */
+/** The suite's types that are bars, which a phone draws as a `DockedTabBar` instead. */
 private val BarTypes = setOf(
     NavigationSuiteType.ShortNavigationBarCompact,
     NavigationSuiteType.ShortNavigationBarMedium,
 )
 
-/** The floating bar's room until it is first measured: its height at the default font size, and its gap. */
-private val EstimatedBarClearance = 72.dp
+/** The phone's bar's room until it is first measured: its hairline and row at the default font size. */
+private val EstimatedBarClearance = 65.dp
 
 /** A FAB's height, which the rail's header keeps whether or not the tab has one. */
 private val RailActionHeight = 56.dp

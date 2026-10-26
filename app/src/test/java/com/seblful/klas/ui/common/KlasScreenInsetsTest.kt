@@ -72,7 +72,7 @@ class KlasScreenInsetsTest {
     }
 
     @Test
-    fun `on a tab under the floating bar the last row and the add button clear the bar`() {
+    fun `on a tab over the docked bar the last row and the add button clear the bar`() {
         setScreen(barClearance = BarClearance, fab = true) { modifier, bottomInset ->
             LazyColumn(modifier.fillMaxWidth().testTag("list"), contentPadding = bottomInset) {
                 items(Rows) { Box(Modifier.fillMaxWidth().height(RowHeight).testTag("row $it")) }

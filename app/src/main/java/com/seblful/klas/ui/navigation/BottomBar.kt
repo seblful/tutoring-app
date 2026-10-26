@@ -2,13 +2,14 @@ package com.seblful.klas.ui.navigation
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.indication
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -16,7 +17,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.selection.selectable
@@ -26,45 +26,40 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ProvideTextStyle
-import androidx.compose.material3.ShortNavigationBarItemDefaults
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteItem
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.hideFromAccessibility
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.seblful.klas.ui.common.HoldToName
 import com.seblful.klas.ui.common.LocalTabBarClearance
 import com.seblful.klas.ui.common.MinTouchTarget
 import com.seblful.klas.ui.common.OneLineLabel
-import com.seblful.klas.ui.common.Spacing
+import com.seblful.klas.ui.designsystem.component.KlasDivider
 import com.seblful.klas.ui.theme.KlasMotion
+import kotlin.math.roundToInt
 
 /**
- * The app's top-level tabs as the navigation rail's items. A phone draws them in [FloatingTabBar].
+ * The app's top-level tabs as the navigation rail's items. A phone draws them in [DockedTabBar].
  *
  * @param tabs the tabs to show, in order (see [TopDestination]).
  * @param selected the tab that is **marked**, which is not the same question as which route is
@@ -91,17 +86,20 @@ fun KlasTabs(
 }
 
 /**
- * The tabs on a phone: a pill floating over the foot of the screen, so a tab's rows run on beneath it.
+ * The tabs on a phone: a bar docked at the window's foot, on the page's own colour under a hairline. Each tab
+ * is its icon; the marked one grows a pill that names it, and the others make room as it grows.
  *
  * Drawn over the screen rather than beside it, so the screen leaves room for it: [onClearance] reports how
- * much of the window's foot above the navigation bar the pill covers, which `AppRoot` hands each tab as
- * [LocalTabBarClearance]. Measured, because a larger font makes the bar taller. The marked tab's indicator
- * slides from tab to tab instead of appearing in place.
+ * much of the window's foot above the navigation bar the bar covers, which `AppRoot` hands each tab as
+ * [LocalTabBarClearance]. Measured, because a larger font makes the pill taller.
+ *
+ * Every tab keeps its label composed, folded to no width while it is not marked: it still names the tab to
+ * TalkBack, and all five are measured against the same room, so each one fits when its tab is marked.
  *
  * @param selected the marked tab — see [KlasTabs].
  */
 @Composable
-fun FloatingTabBar(
+fun DockedTabBar(
     tabs: List<TopDestination>,
     selected: TopDestination?,
     onSelect: (TopDestination) -> Unit,
@@ -109,134 +107,125 @@ fun FloatingTabBar(
     modifier: Modifier = Modifier,
 ) {
     val density = LocalDensity.current
-    Box(
-        modifier
-            .fillMaxWidth()
-            .windowInsetsPadding(
-                WindowInsets.navigationBars.only(WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal),
-            )
-            .padding(start = Spacing.gutter, end = Spacing.gutter, bottom = BarGap),
-        contentAlignment = Alignment.Center,
-    ) {
-        Surface(
-            modifier = Modifier
-                .widthIn(max = MaxBarWidth)
-                .fillMaxWidth()
-                .onSizeChanged { onClearance(with(density) { it.height.toDp() } + BarGap) },
-            shape = CircleShape,
-            color = MaterialTheme.colorScheme.surfaceContainer,
-            shadowElevation = BarElevation,
-        ) {
-            FloatingTabItems(tabs, selected, onSelect)
-        }
-    }
-}
-
-@Composable
-private fun FloatingTabItems(
-    tabs: List<TopDestination>,
-    selected: TopDestination?,
-    onSelect: (TopDestination) -> Unit,
-) {
-    val colors = ShortNavigationBarItemDefaults.colors()
-    val largeText = LocalDensity.current.fontScale >= LargeNavigationText
-    val index = tabs.indexOf(selected)
-    val position by animateFloatAsState(
-        index.coerceAtLeast(0).toFloat(),
-        animationSpec = KlasMotion.defaultSpatial(),
-        label = "tab indicator",
-    )
-    Column {
-        Row(
+    Surface(modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.surface) {
+        Column(
             Modifier
-                .selectableGroup()
-                .padding(horizontal = BarPadding)
-                // One pill under the row, read at draw time: the spring moves it without recomposing a tab.
-                .drawBehind {
-                    if (index < 0) return@drawBehind
-                    val slot = size.width / tabs.size
-                    val width = IndicatorWidth.toPx()
-                    val start = position * slot + (slot - width) / 2
-                    val x = if (layoutDirection == LayoutDirection.Rtl) size.width - start - width else start
-                    drawRoundRect(
-                        color = colors.selectedIndicatorColor,
-                        topLeft = Offset(x, ItemPadding.toPx()),
-                        size = Size(width, IndicatorHeight.toPx()),
-                        cornerRadius = CornerRadius(IndicatorHeight.toPx() / 2),
-                    )
-                },
-        ) {
-            tabs.forEach { dest ->
-                val isSelected = dest == selected
-                FloatingTab(
-                    dest = dest,
-                    selected = isSelected,
-                    iconColor = if (isSelected) colors.selectedIconColor else colors.unselectedIconColor,
-                    labelColor = if (isSelected) colors.selectedTextColor else colors.unselectedTextColor,
-                    onClick = { onSelect(dest) },
-                    showLabel = !largeText,
+                .windowInsetsPadding(
+                    WindowInsets.navigationBars.only(WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal),
                 )
+                .onSizeChanged { onClearance(with(density) { it.height.toDp() }) },
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            KlasDivider(color = MaterialTheme.colorScheme.surfaceContainerHighest)
+            BoxWithConstraints(
+                Modifier
+                    .widthIn(max = MaxBarWidth)
+                    .fillMaxWidth()
+                    .padding(horizontal = BarPadding),
+            ) {
+                // What the marked tab's label may take: the row, less every tab's icon and the label's own gaps.
+                val labelRoom = (maxWidth - TabWidth * tabs.size - LabelGap - LabelEnd).coerceAtLeast(0.dp)
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = BarHeight)
+                        .selectableGroup(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    tabs.forEach { dest ->
+                        DockedTab(dest, selected = dest == selected, labelRoom = labelRoom) { onSelect(dest) }
+                    }
+                }
             }
         }
-        if (largeText && selected != null) {
-            Text(
-                stringResource(selected.labelRes),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = Spacing.gutter, vertical = Spacing.tight)
-                    .semantics { hideFromAccessibility() },
-                style = MaterialTheme.typography.labelMedium,
-                color = colors.selectedTextColor,
-                textAlign = TextAlign.Center,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
     }
 }
 
 @Composable
-private fun RowScope.FloatingTab(
-    dest: TopDestination,
-    selected: Boolean,
-    iconColor: Color,
-    labelColor: Color,
-    onClick: () -> Unit,
-    showLabel: Boolean,
-) {
-    val name = stringResource(dest.labelRes)
+private fun DockedTab(dest: TopDestination, selected: Boolean, labelRoom: Dp, onClick: () -> Unit) {
+    val colors = MaterialTheme.colorScheme
     val interaction = remember { MutableInteractionSource() }
-    val icon by animateColorAsState(iconColor, KlasMotion.defaultEffects(), label = "tab icon")
-    val label by animateColorAsState(labelColor, KlasMotion.defaultEffects(), label = "tab label")
-    Column(
+    // How far the tab is marked, 0 to 1 — the spring may overshoot, so whatever takes width clamps it.
+    val reveal = animateFloatAsState(
+        if (selected) 1f else 0f,
+        animationSpec = KlasMotion.defaultSpatial(),
+        label = "tab reveal",
+    )
+    // On its own clock: a word shown half cut reads as a glitch, so it goes before its room folds and comes
+    // once most of its room is there.
+    val labelAlpha = animateFloatAsState(
+        if (selected) 1f else 0f,
+        animationSpec = if (selected) tween(LabelInMillis, delayMillis = LabelInDelayMillis) else tween(LabelOutMillis),
+        label = "tab label alpha",
+    )
+    // Faded on a short clock of its own: tied to the fold's spring, it hung on as a ghost around the icon.
+    val pillAlpha = animateFloatAsState(if (selected) 1f else 0f, tween(PillFadeMillis), label = "tab pill")
+    val iconScale by animateFloatAsState(
+        if (selected) SelectedIconScale else 1f,
+        animationSpec = KlasMotion.bouncySpatial(),
+        label = "tab icon scale",
+    )
+    val content by animateColorAsState(
+        if (selected) colors.onPrimaryContainer else colors.onSurfaceVariant,
+        KlasMotion.defaultEffects(),
+        label = "tab content",
+    )
+    val pill = colors.primaryContainer
+    Box(
         Modifier
-            .weight(1f)
             .heightIn(min = MinTouchTarget)
-            // The ripple is the indicator's shape, as Material's own items draw it, not the whole cell.
-            .selectable(selected, interaction, indication = null, role = Role.Tab, onClick = onClick)
-            .then(if (showLabel) Modifier else Modifier.semantics { contentDescription = name })
-            .padding(vertical = ItemPadding),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(IconToLabel),
+            .selectable(selected, interaction, indication = null, role = Role.Tab, onClick = onClick),
+        contentAlignment = Alignment.Center,
     ) {
-        Box(
+        Row(
             Modifier
-                .size(IndicatorWidth, IndicatorHeight)
+                .heightIn(min = PillHeight)
+                // The tab's own bounds, which grow from the icon's round as the label unfolds: the pill stays
+                // around the icon. Scaled about its middle instead, it drifted off the icon as the tab folded.
+                .drawBehind {
+                    val shown = pillAlpha.value
+                    if (shown > 0f) drawRoundRect(pill, cornerRadius = CornerRadius(size.height / 2), alpha = shown)
+                }
                 .clip(CircleShape)
-                .indication(interaction, ripple()),
-            contentAlignment = Alignment.Center,
+                .indication(interaction, ripple())
+                .padding(horizontal = TabPadding),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            CompositionLocalProvider(LocalContentColor provides icon) { TabIcon(dest, selected) }
-        }
-        if (showLabel) CompositionLocalProvider(LocalContentColor provides label) {
-            ProvideTextStyle(MaterialTheme.typography.labelMedium) { TabLabel(dest) }
+            CompositionLocalProvider(LocalContentColor provides content) {
+                Box(
+                    Modifier.graphicsLayer {
+                        scaleX = iconScale
+                        scaleY = iconScale
+                    },
+                ) { TabIcon(dest, selected, labelShown = selected) }
+                ProvideTextStyle(MaterialTheme.typography.labelLarge) {
+                    Box(Modifier.foldedTo(reveal, labelAlpha, labelRoom).padding(start = LabelGap, end = LabelEnd)) {
+                        TabLabel(dest)
+                    }
+                }
+            }
         }
     }
 }
 
+/**
+ * Measured against [room] whatever the row has left, so a label never re-sizes its text while a neighbour's
+ * grows; laid out at [reveal] of its width and clipped there, drawn at [alpha]. Placed from its start, so it
+ * unfolds from the icon in either direction of reading.
+ */
+private fun Modifier.foldedTo(reveal: State<Float>, alpha: State<Float>, room: Dp): Modifier = clipToBounds()
+    .layout { measurable, constraints ->
+        val full = measurable.measure(Constraints(maxWidth = (room + LabelGap + LabelEnd).roundToPx()))
+        val width = (full.width * reveal.value.coerceIn(0f, 1f)).roundToInt().coerceAtMost(constraints.maxWidth)
+        layout(width, full.height) { full.placeRelative(0, 0) }
+    }
+    .graphicsLayer { this.alpha = alpha.value }
+
+/** Held, it names its tab — unless [labelShown], where the word is already beside it. */
 @Composable
-private fun TabIcon(dest: TopDestination, selected: Boolean) {
-    HoldToName(stringResource(dest.labelRes), above = true) {
+private fun TabIcon(dest: TopDestination, selected: Boolean, labelShown: Boolean = false) {
+    val icon = @Composable {
         Icon(
             imageVector = if (selected) dest.icon else dest.iconOutlined,
             // Null: the label beside it says the same word, and the item carries its own selected/unselected
@@ -244,6 +233,7 @@ private fun TabIcon(dest: TopDestination, selected: Boolean) {
             contentDescription = null,
         )
     }
+    if (labelShown) icon() else HoldToName(stringResource(dest.labelRes), above = true, content = icon)
 }
 
 @Composable
@@ -256,19 +246,21 @@ private fun TabLabel(dest: TopDestination) {
 }
 
 private val MinLabelSize = 9.sp
-private const val LargeNavigationText = 1.3f
 
-/** Between the pill and the navigation bar's inset — or the window's foot, where there is none. */
-private val BarGap = 8.dp
-
-/** A landscape phone's pill stays a pill instead of a band across the window. */
+/** A landscape phone's tabs stay a thumb's reach apart instead of spreading across the window. */
 private val MaxBarWidth = 480.dp
 
-/** Material's level 3, as its floating toolbars carry. */
-private val BarElevation = 6.dp
+private val BarHeight = 64.dp
+private val BarPadding = 8.dp
+private val PillHeight = 44.dp
+private val TabPadding = 12.dp
 
-private val BarPadding = 4.dp
-private val ItemPadding = 6.dp
-private val IconToLabel = 4.dp
-private val IndicatorWidth = 56.dp
-private val IndicatorHeight = 32.dp
+/** An unmarked tab: its icon and padding, a touch target wide. */
+private val TabWidth = MinTouchTarget
+private val LabelGap = 8.dp
+private val LabelEnd = 4.dp
+private const val SelectedIconScale = 1.1f
+private const val LabelInDelayMillis = 110
+private const val LabelInMillis = 150
+private const val LabelOutMillis = 50
+private const val PillFadeMillis = 120

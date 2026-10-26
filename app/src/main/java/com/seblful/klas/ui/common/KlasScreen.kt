@@ -90,7 +90,7 @@ import com.seblful.klas.ui.theme.KlasMotion
  * cap applied — and the **bottom inset**, which the body owns: a list adds it to its `contentPadding`
  * (see [plusInset]) and a scrolling column pads by it *inside* its scroll, so rows pass under the system
  * navigation bar and the last one still clears it. A body that does not scroll pads by it. On a phone's tab
- * it also holds the floating tab bar's [LocalTabBarClearance], which lifts the FAB and snackbars above the
+ * it also holds the docked tab bar's [LocalTabBarClearance], which lifts the FAB and snackbars above the
  * bar too. It reads as nothing on an [imeAware] form while the keyboard covers it.
  */
 @OptIn(ExperimentalMaterial3Api::class)

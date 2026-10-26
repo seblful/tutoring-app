@@ -8,9 +8,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isSelectable
 import androidx.compose.ui.test.junit4.ComposeContentTestRule
 import androidx.compose.ui.test.junit4.v2.createComposeRule
-import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
@@ -68,7 +69,7 @@ class BottomBarLabelTest {
                 composeRule.waitForIdle()
                 tabs.forEach { dest ->
                     val label = context.getString(dest.labelRes)
-                    composeRule.onNodeWithContentDescription(label).assertIsDisplayed()
+                    composeRule.onNode(hasText(label) and isSelectable()).assertIsDisplayed()
                 }
                 val label = context.getString(TopDestination.SCHEDULE.labelRes)
                 val layout = composeRule.layoutOf(label)
@@ -114,7 +115,7 @@ class BottomBarLabelTest {
             ) {
                 KlasTheme {
                     Box(Modifier.width(width.value)) {
-                        FloatingTabBar(tabs = tabs, selected = TopDestination.SCHEDULE, onSelect = {}, onClearance = {})
+                        DockedTabBar(tabs = tabs, selected = TopDestination.SCHEDULE, onSelect = {}, onClearance = {})
                     }
                 }
             }
