@@ -46,6 +46,25 @@ class BackupRestoreUndoTest {
     }
 
     @Test
+    fun `a restore whose copy could not be kept does not leave the last restore's copy on offer`() = runTest {
+        env.fixtures.pricedStudent("Борис", subjectId = env.fixtures.subject("Физика"))
+        env.backupRestore.restore(backupOf("Аня")) // keeps a copy of Борис
+        assertEquals(listOf("Аня"), names())
+        val diskFull = object : RestoreSnapshots by env.restoreSnapshots {
+            override suspend fun save(json: String, takenAt: Instant) = error("disk full")
+        }
+        val restore = BackupRestore(
+            env.backupManager, env.settingsRepo, env.calendarMirror, env.reminders, diskFull, env.clock,
+        )
+
+        restore.restore(backupOf("Вера"))
+
+        assertEquals(listOf("Вера"), names())
+        assertNull(restore.undoableSince.value, "the copy on offer would put Борис back over Вера")
+        assertFalse(restore.undoRestore())
+    }
+
+    @Test
     fun `a restore onto an empty phone keeps nothing to undo`() = runTest {
         val file = backupOf("Аня")
 

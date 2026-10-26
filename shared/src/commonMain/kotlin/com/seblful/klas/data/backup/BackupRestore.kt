@@ -55,11 +55,17 @@ class BackupRestore @Inject constructor(
         val copy = if (keep) backup.encode(before, takenAt) else null
         replaceWith(
             data,
-            backedUpAt = data.exportedAtMillis?.let { Instant.fromEpochMilliseconds(it) } ?: takenAt,
+            // A date after now is a clock that was wrong, and would hold the weekly copy off until it passed.
+            backedUpAt = data.exportedAtMillis?.let { Instant.fromEpochMilliseconds(it) }
+                ?.coerceAtMost(takenAt) ?: takenAt,
             phoneSetup = data.preferences.phoneSetup(),
         )
         // The restore has happened whether or not its undo could be kept, so a failure here is not its.
-        copy?.let { runCatchingCancellable { snapshots.save(it, takenAt) } }
+        // The one still kept would put back older data than what was just replaced, so it goes.
+        copy?.let {
+            runCatchingCancellable { snapshots.save(it, takenAt) }
+                .onFailure { runCatchingCancellable { snapshots.clear() } }
+        }
     }
 
     /**

@@ -1,5 +1,6 @@
 package com.seblful.klas.data.backup
 
+import androidx.sqlite.SQLiteException
 import com.seblful.klas.data.local.SnapshotDao
 import com.seblful.klas.data.local.Transactor
 import com.seblful.klas.data.settings.SettingsRepository
@@ -111,7 +112,15 @@ class BackupManager @Inject constructor(
         // The transaction is here rather than on the DAO so it is the injected port, and so a JVM test
         // can count it: `replace` empties every table before it fills any, and a restore that stopped
         // in between would have destroyed the tutor's data to import nothing.
-        transactor.transaction { snapshot.replace(data.toSnapshot()) }
+        try {
+            transactor.transaction { snapshot.replace(data.toSnapshot()) }
+        } catch (e: SQLiteException) {
+            // The rollback has already happened; what the tutor is told is that the file, not the disk, is at fault.
+            if (e.message.orEmpty().contains("constraint failed")) {
+                throw MalformedBackupException("its rows break a database constraint: ${e.message}", e)
+            }
+            throw e
+        }
     }
 
     suspend fun importJson(text: String) = import(parse(text))

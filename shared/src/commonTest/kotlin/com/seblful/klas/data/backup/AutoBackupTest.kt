@@ -67,6 +67,27 @@ class AutoBackupTest {
     }
 
     @Test
+    fun `a last backup dated in the future does not hold the weekly copy off`() = runTest {
+        env.fixtures.student(name = "Аня")
+        pick()
+        env.settingsRepo.update { it.copy(lastExportAt = env.clock.now() + 30.days) }
+
+        assertEquals(Outcome.SAVED, auto.runIfDue())
+
+        assertEquals(env.clock.now(), env.settingsRepo.get().lastExportAt)
+    }
+
+    @Test
+    fun `a backup dated after now is no evidence of one - due, and stale`() {
+        val now = env.clock.now()
+
+        assertTrue(AutoBackup.isDue(now + 1.days, now))
+        assertTrue(AutoBackup.isStale(now + 1.days, now))
+        assertFalse(AutoBackup.isDue(now - 1.days, now))
+        assertFalse(AutoBackup.isStale(now - 1.days, now))
+    }
+
+    @Test
     fun `only the newest copies are kept, and files saved by hand are never touched`() = runTest {
         pick()
         folders.files[FOLDER] = mutableMapOf("klas-backup-2026-05-01.json" to "{}", "notes.txt" to "")

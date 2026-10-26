@@ -46,7 +46,7 @@ class BackupExports @Inject constructor(
             if (folder != null && it.autoBackupFolder != folder) it
             else it.copy(
                 // A slower old snapshot must not replace the history of a newer successful export.
-                lastExportAt = maxOf(at, it.lastExportAt ?: at),
+                lastExportAt = maxOf(at, (it.lastExportAt ?: at).coerceAtMost(clock.now())),
                 autoBackupFailed = if (folder != null) false else it.autoBackupFailed,
             )
         }

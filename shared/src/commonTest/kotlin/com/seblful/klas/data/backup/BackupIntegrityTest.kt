@@ -1,5 +1,6 @@
 package com.seblful.klas.data.backup
 
+import com.seblful.klas.data.billing.PaymentEntity
 import com.seblful.klas.data.billing.RateChangeEntity
 import com.seblful.klas.data.homework.HomeworkEntity
 import com.seblful.klas.data.people.GroupEntity
@@ -14,6 +15,7 @@ import kotlinx.coroutines.test.runTest
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
@@ -341,5 +343,30 @@ class BackupIntegrityTest {
 
         assertTrue(refusal != null, "refused")
         assertTrue(refusal!!.reason.contains("homework 4"), "says which row: ${refusal?.reason}")
+    }
+
+    @Test
+    fun `a lesson starting beyond the years the schedule can draw is refused`() {
+        val lastDay = 253_402_300_799_999 // 9999-12-31T23:59:59.999Z
+        val firstDay = -2_208_988_800_000 // 1900-01-01T00:00:00Z
+
+        BackupIntegrity.check(backup(classes = listOf(validClass.copy(startMillis = lastDay))))
+        BackupIntegrity.check(backup(classes = listOf(validClass.copy(startMillis = firstDay))))
+        assertTrue(refusalFor(backup(classes = listOf(validClass.copy(startMillis = lastDay + 1)))) != null)
+        assertTrue(refusalFor(backup(classes = listOf(validClass.copy(startMillis = firstDay - 1)))) != null)
+        assertTrue(refusalFor(backup(classes = listOf(validClass.copy(startMillis = Long.MAX_VALUE)))) != null)
+    }
+
+    @Test
+    fun `a file whose rows point at rows it does not hold is refused as a broken file`() = runTest {
+        val data = BackupData(
+            subjects = listOf(SubjectEntity(1, "Алгебра")),
+            students = listOf(StudentEntity(1, "Иван")),
+            payments = listOf(PaymentEntity(id = 1, studentId = 99, dateMillis = 1L, amountMinor = 100)),
+        )
+
+        val error = assertFailsWith<Throwable> { env.backupManager.import(data) }
+
+        assertEquals(BackupFailure.Malformed, BackupFailure.of(error), "refused as a broken file: $error")
     }
 }

@@ -5,6 +5,7 @@ import kotlinx.coroutines.test.runTest
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.time.Duration.Companion.days
 import kotlin.time.Instant
 
 /** A restored file is a backup of what is now on the phone, so «No backup yet» is not said after one. */
@@ -26,11 +27,18 @@ class BackupRestoreLastBackupTest {
 
     @Test
     fun `a restored file is the last backup - on the date it was made`() = runTest {
-        val made = Instant.parse("2026-10-01T09:00:00Z")
+        val made = Instant.parse("2026-05-01T09:00:00Z")
 
         env.backupRestore.restore(backupMadeAt(made))
 
         assertEquals(made, lastBackup())
+    }
+
+    @Test
+    fun `a file dated in the future counts from the restore, so the weekly copy is not held off`() = runTest {
+        env.backupRestore.restore(backupMadeAt(env.clock.now() + 30.days))
+
+        assertEquals(env.clock.now(), lastBackup())
     }
 
     @Test
@@ -52,7 +60,7 @@ class BackupRestoreLastBackupTest {
 
     @Test
     fun `undoing a restore keeps the backup the restore counted`() = runTest {
-        val made = Instant.parse("2026-10-01T09:00:00Z")
+        val made = Instant.parse("2026-05-01T09:00:00Z")
         env.fixtures.pricedStudent("Борис", subjectId = env.fixtures.subject("Физика"))
         env.backupRestore.restore(backupMadeAt(made))
 

@@ -76,12 +76,12 @@ class AutoBackup(
         private val OWN_FILE = Regex("""klas-auto-backup-\d{4}-\d{2}-\d{2}( \(\d+\))?\.json""")
 
         fun isDue(lastExportAt: Instant?, now: Instant): Boolean =
-            lastExportAt == null || now - lastExportAt >= EVERY - SLACK
+            lastExportAt == null || lastExportAt > now || now - lastExportAt >= EVERY - SLACK
 
         /** Past this, the Backup page warns that recent work is on this phone alone. */
         val STALE_AFTER = 14.days
 
         fun isStale(lastExportAt: Instant?, now: Instant): Boolean =
-            lastExportAt == null || now - lastExportAt > STALE_AFTER
+            lastExportAt == null || lastExportAt > now || now - lastExportAt > STALE_AFTER
     }
 }

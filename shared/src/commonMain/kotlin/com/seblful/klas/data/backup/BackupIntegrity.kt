@@ -12,8 +12,8 @@ import com.seblful.klas.domain.model.Money
  * [BackupFailure.Malformed], because that is what it is from the tutor's side: the file is not a Klas
  * backup this app can use, whatever it says in its `version`.
  */
-class MalformedBackupException(val reason: String) :
-    IllegalArgumentException("Backup contains a row this build cannot read: $reason")
+class MalformedBackupException(val reason: String, cause: Throwable? = null) :
+    IllegalArgumentException("Backup contains a row this build cannot read: $reason", cause)
 
 /**
  * What a parsed [BackupData] has to be true of before a single row of it is written.
@@ -66,7 +66,14 @@ object BackupIntegrity {
         if (l.durationMinutes <= 0) {
             refuse("lesson ${l.id} lasts ${l.durationMinutes} minutes")
         }
+        // The all-time report draws a bar for every year between the first lesson and the last.
+        if (l.startMillis !in FIRST_START_MILLIS..LAST_START_MILLIS) {
+            refuse("lesson ${l.id} starts at ${l.startMillis} ms, outside the years 1900..9999")
+        }
     }
+
+    private const val FIRST_START_MILLIS = -2_208_988_800_000 // 1900-01-01T00:00:00Z
+    private const val LAST_START_MILLIS = 253_402_300_799_999 // 9999-12-31T23:59:59.999Z
 
     private fun checkAttendance(a: AttendanceEntity) {
         checkAmount(a.priceMinor, "class ${a.id}'s rate")
