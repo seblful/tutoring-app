@@ -1,12 +1,10 @@
 package com.seblful.klas.ui.schedule.booking
 
 import com.seblful.klas.data.lessons.ClassRepository
-import com.seblful.klas.domain.lesson.GroupRules
 import com.seblful.klas.domain.model.Assignee
 import com.seblful.klas.domain.model.ClassMode
 import com.seblful.klas.domain.model.Group
 import com.seblful.klas.domain.model.Money
-import com.seblful.klas.domain.model.TutoringClass
 import com.seblful.klas.domain.schedule.Recurrence
 import com.seblful.klas.domain.schedule.Repeat
 import com.seblful.klas.domain.schedule.Scheduling
@@ -18,7 +16,6 @@ import kotlinx.datetime.atTime
 import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
 import kotlinx.serialization.Serializable
-import kotlin.time.Duration.Companion.seconds
 import kotlin.time.Instant
 
 /** Who a lesson is booked for: one student, or a whole group. */

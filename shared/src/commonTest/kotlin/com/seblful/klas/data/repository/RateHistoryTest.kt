@@ -51,7 +51,7 @@ class RateHistoryTest {
         assertTrue(history.record(owner, from = null, to = Money.ofMajor(25)))
 
         val change = history.observeFor(owner).first().single()
-        assertTrue(change.isInitial, "no previous rate means the history starts here")
+        assertTrue(change.from == null, "no previous rate means the history starts here")
         assertNull(change.from)
         assertEquals(Money.ofMajor(25), change.to)
     }
@@ -101,7 +101,7 @@ class RateHistoryTest {
         env.enrollmentRepo.enroll(sid, subj, Money.ofMajor(30))
 
         val change = changesFor(sid, subj).single()
-        assertTrue(change.isInitial)
+        assertTrue(change.from == null)
         assertEquals(Money.ofMajor(30), change.to)
     }
 
@@ -201,7 +201,7 @@ class RateHistoryTest {
         val id = env.groupRepo.save(Group(name = "11 «А»", price = Money.ofMajor(25)), setOf(sid))
 
         val change = history.observeFor(RateOwner.GroupRate(id)).first().single()
-        assertTrue(change.isInitial)
+        assertTrue(change.from == null)
         assertEquals(Money.ofMajor(25), change.to)
     }
 

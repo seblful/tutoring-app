@@ -3,7 +3,6 @@ package com.seblful.klas.ui.schedule
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -47,7 +46,6 @@ import com.seblful.klas.ui.common.DatePickerModal
 import com.seblful.klas.ui.common.LocalCurrency
 import com.seblful.klas.ui.common.PageStepper
 import com.seblful.klas.ui.common.ScreenTip
-import com.seblful.klas.ui.common.SectionTitle
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.pageByArrow
 import com.seblful.klas.ui.designsystem.component.CoachMark

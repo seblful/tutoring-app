@@ -84,8 +84,7 @@ private fun RateChangeRow(change: RateChange) {
         Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
-        // Branching on `from` itself rather than on `isInitial`, which is the same test one step
-        // removed: the compiler follows the null check and the previous rate needs no assertion.
+        // A rate with no previous one is where its history starts; the null check hands over the previous rate.
         val from = change.from
         Text(
             text = if (from == null) {

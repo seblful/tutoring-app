@@ -229,7 +229,6 @@ class SchemaCleanupMigrationTest {
                 db.classDao().getById(101),
             )
             assertEquals(listOf(200L, 201L), db.classDao().getSession(20).map { it.id })
-            assertEquals(103L, db.classDao().nextScheduledAfter(0)?.id)
             assertEquals(listOf(103L, 211L), db.classDao().scheduledForStudent(2).map { it.id }.sorted())
 
             val settings = db.settingsDao().get()

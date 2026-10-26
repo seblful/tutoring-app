@@ -66,6 +66,9 @@ data class StudentRow(
  */
 enum class StudentSort { NAME, DEBT }
 
+/** The «Owes» chip's and the filter's test, the row badge's own [Balance] case. */
+private val Money.owes: Boolean get() = Balance.of(this) is Balance.Owed
+
 @OptIn(ExperimentalCoroutinesApi::class)
 @ViewModelKey
 @ContributesIntoMap(AppScope::class, binding = binding<ViewModel>())
@@ -100,7 +103,7 @@ class StudentsViewModel @Inject constructor(
     /** How many active students owe — the N on that chip. */
     val owing: StateFlow<Int> =
         combine(students.observeActive(), balances.observe()) { active, sums ->
-            active.count { sums.balanceOf(it.id).balance.minor > 0 }
+            active.count { sums.balanceOf(it.id).balance.owes }
         }
             .derive(this, computation, 0)
 
@@ -134,7 +137,7 @@ class StudentsViewModel @Inject constructor(
             val asked = combine(_query, _owesOnly, ::Pair)
             combine(source, balances.observe(), facts, asked, _sort) { studentList, sums, known, (query, owes), sort ->
                 PeopleSearch.filter(studentList, query) { it.name }
-                    .filter { !owes || sums.balanceOf(it.id).balance.minor > 0 }
+                    .filter { !owes || sums.balanceOf(it.id).balance.owes }
                     .map { student ->
                         StudentRow(
                             student = student,

@@ -38,7 +38,6 @@ import androidx.compose.ui.unit.dp
 import com.seblful.klas.R
 import com.seblful.klas.domain.lesson.LessonKind
 import com.seblful.klas.domain.lesson.LessonPhase
-import com.seblful.klas.domain.lesson.SessionRules
 import com.seblful.klas.domain.model.Attended
 import com.seblful.klas.domain.model.Homework
 import com.seblful.klas.domain.model.LessonStatus
@@ -64,7 +63,6 @@ import com.seblful.klas.ui.common.outsetRowPress
 import com.seblful.klas.ui.common.rememberToggleFeedback
 import com.seblful.klas.ui.common.text
 import com.seblful.klas.ui.common.timeRangeText
-import com.seblful.klas.ui.common.timeText
 import com.seblful.klas.ui.designsystem.component.ButtonKind
 import com.seblful.klas.ui.designsystem.component.ChoiceDialog
 import com.seblful.klas.ui.designsystem.component.KlasButton

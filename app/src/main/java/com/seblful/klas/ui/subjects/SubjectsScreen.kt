@@ -145,7 +145,7 @@ private fun SubjectRows(
         contentPadding = PaddingValues(Spacing.gutter).plusInset(bottomInset),
         verticalArrangement = Arrangement.Top,
     ) {
-        itemsIndexed(rows, key = { _, row -> row.subject.id }) { index, row ->
+        itemsIndexed(rows, key = { _, row -> row.subject.id }, contentType = { _, _ -> "subject" }) { index, row ->
             SurfaceRow(
                 position = SlicePosition.of(index, rows.size + 1),
                 onClick = { onOpen(row) },
@@ -155,7 +155,7 @@ private fun SubjectRows(
                 KlasRow(title = row.subject.name, supporting = usageLine(row), end = RowEnd.Opens)
             }
         }
-        item(key = "add") {
+        item(key = "add", contentType = "add") {
             SurfaceRow(position = SlicePosition.LAST, onClick = onAdd, contentPadding = AddPadding) {
                 AddRow(stringResource(R.string.subjects_add), onClick = onAdd, AddRowInSection)
             }

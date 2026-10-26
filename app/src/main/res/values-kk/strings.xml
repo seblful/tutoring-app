@@ -37,7 +37,6 @@
     <string name="students_search_hint">Оқушыларды іздеу</string>
     <string name="groups_search_hint">Топтарды іздеу</string>
     <string name="subjects_search_hint">Пән атауы</string>
-    <string name="students_sort">Сұрыптау</string>
     <string name="students_sort_name">Аты бойынша</string>
     <string name="students_sort_debt">Бірінші борышкерлер</string>
     <string name="unsaved_save_title">Өзгерістерді сақтау керек пе?</string>
@@ -169,7 +168,6 @@
     <string name="class_subject_from_group">Топ тақырыпты орнатады</string>
     <string name="class_group_price_label">Бір оқушыға сағаттық ақы</string>
     <string name="class_mark_completed">Өткізілді деп белгілеу</string>
-    <string name="class_status_label">Күй</string>
     <string name="class_series_availability">Бос күндер: %1$d. Бос емес күндер өткізіп жіберіледі.</string>
     <string name="class_attendance_label">Қатысу</string>
     <string name="class_attendance_expected">Күтілетін</string>
@@ -181,7 +179,6 @@
     <string name="class_status_cancelled">Болдырылмады</string>
     <string name="class_status_in_progress">Өтіп жатыр</string>
     <string name="class_status_overdue">Белгіленбеген</string>
-    <string name="lesson_kind_all">Барлығы</string>
     <string name="lesson_kind_individual">Жеке</string>
     <string name="lesson_kind_group">Топ</string>
     <string name="lesson_kind_individual_one">Жеке</string>
@@ -190,7 +187,6 @@
     <string name="students_empty">Әлі студенттер жоқ</string>
     <string name="students_empty_detail">Студент - бұл аты-жөні, олардың пәндері және сағатына ақы. Осыдан кейін сіз сабақтарға тапсырыс бере аласыз және төлемдерді қадағалай аласыз.</string>
     <string name="students_add">Оқушы қосу</string>
-    <string name="students_show_archived">Мұрағатталғанды көрсету</string>
     <string name="student_archived_badge">Мұрағатталған</string>
     <string name="student_add_title">Жаңа студент</string>
     <string name="student_edit_title">Оқушыны өңдеу</string>
@@ -232,7 +228,6 @@
     <string name="student_payments_title">Төлемдер</string>
     <string name="student_last_payment">Соңғы төлем %1$s</string>
     <string name="student_lessons_empty">Әлі сабақ жоқ</string>
-    <string name="student_subject_remove">%1$s жойыңыз</string>
     <string name="student_subject_remove_confirm">Бұл оқушының пәндерінен %1$s жойылсын ба? Сағаттық ақы мен оның өзгерістер тарихы жойылады.</string>
     <string name="student_classes_title">Сабақтар</string>
     <string name="student_homework_title">Үй тапсырмасы</string>
@@ -261,7 +256,6 @@
     <string name="balance_settled">Ештеңе жоқ</string>
     <string name="balance_credit">Алдын ала төлем: %1$s</string>
     <string name="balance_owes">%1$s қарызы</string>
-    <string name="price_edit_title">Сағаттық ақыны өзгерту</string>
     <string name="price_label">Сағатына тариф</string>
     <string name="price_per_lesson_hint">%1$s %2$s сабағына</string>
     <string name="price_per_hour">%1$s/\u2060сағ</string>
@@ -271,7 +265,6 @@
     <string name="payment_add_short">Төлем</string>
     <string name="payment_edit_title">Төлемді өңдеу</string>
     <string name="payment_amount_label">Сома</string>
-    <string name="payment_delete">%2$s бойынша %1$s төлемін жою</string>
     <string name="payment_deleted">Төлем жойылды</string>
     <string name="payment_corrected">Төлем өзгертілді</string>
     <string name="payment_undo_changed">Содан бері төлем өзгерді, сондықтан ештеңе қайтарылмады.</string>
@@ -753,7 +746,6 @@
     <string name="reports_best_year">Ең жақсы жыл: %1$s</string>
     <string name="nav_today">Бүгін</string>
     <string name="today_now">Қазір</string>
-    <string name="today_next">Келесі</string>
     <string name="today_to_mark">Аяқталған, бірақ белгіленбеген</string>
     <string name="today_mark_all">Барлығын оқытыңыз деп белгілеңіз</string>
     <string name="today_mark_one">Марк %1$s, %2$s оқытты</string>
@@ -778,7 +770,6 @@
     <string name="payment_method_transfer">Банк аударымы</string>
     <string name="reports_received">Алынған</string>
     <string name="reports_received_hint">Осы кезеңде жасалған төлемдер</string>
-    <string name="reports_received_total">Төленді</string>
     <string name="payment_method_none">Көрсетілмеген</string>
     <string name="payment_fill_balance">Толық баланс · %1$s</string>
     <string name="payment_fill_lesson">Бір сабақ · %1$s</string>
@@ -798,7 +789,6 @@
     <string name="form_gap_price">Сағаттық ақы</string>
     <string name="form_gap_members">мүшелері</string>
     <string name="filter_more">Сүзгі</string>
-    <string name="filter_all">Барлығы</string>
     <plurals name="batch_selected">
         <item quantity="one">%1$d таңдалды</item>
         <item quantity="other">%1$d таңдалды</item>

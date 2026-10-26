@@ -37,7 +37,6 @@
     <string name="students_search_hint">Zoek studenten</string>
     <string name="groups_search_hint">Zoek groepen</string>
     <string name="subjects_search_hint">Vaknaam</string>
-    <string name="students_sort">Sorteren</string>
     <string name="students_sort_name">Op naam</string>
     <string name="students_sort_debt">Debiteuren eerst</string>
     <string name="unsaved_save_title">Wijzigingen opslaan?</string>
@@ -169,7 +168,6 @@
     <string name="class_subject_from_group">De groep stelt het onderwerp in</string>
     <string name="class_group_price_label">Uurtarief per leerling</string>
     <string name="class_mark_completed">Als gegeven markeren</string>
-    <string name="class_status_label">Status</string>
     <string name="class_series_availability">Beschikbare datums: %1$d. Bezette datums worden overgeslagen.</string>
     <string name="class_attendance_label">Aanwezigheid</string>
     <string name="class_attendance_expected">Verwacht</string>
@@ -181,7 +179,6 @@
     <string name="class_status_cancelled">Geannuleerd</string>
     <string name="class_status_in_progress">Bezig</string>
     <string name="class_status_overdue">Niet gemarkeerd</string>
-    <string name="lesson_kind_all">Allemaal</string>
     <string name="lesson_kind_individual">Individueel</string>
     <string name="lesson_kind_group">Groep</string>
     <string name="lesson_kind_individual_one">Individueel</string>
@@ -190,7 +187,6 @@
     <string name="students_empty">Nog geen studenten</string>
     <string name="students_empty_detail">Een student is een naam, zijn vakken en een uurtarief. Daarna kunt u lessen boeken en betalingen volgen.</string>
     <string name="students_add">Voeg een leerling toe</string>
-    <string name="students_show_archived">Gearchiveerd tonen</string>
     <string name="student_archived_badge">Gearchiveerd</string>
     <string name="student_add_title">Nieuwe leerling</string>
     <string name="student_edit_title">Leerling bewerken</string>
@@ -232,7 +228,6 @@
     <string name="student_payments_title">Betalingen</string>
     <string name="student_last_payment">Laatste betaling %1$s</string>
     <string name="student_lessons_empty">Nog geen lessen</string>
-    <string name="student_subject_remove">%1$s verwijderen</string>
     <string name="student_subject_remove_confirm">%1$s verwijderen uit de vakken van deze leerling? Het uurtarief en de tariefgeschiedenis worden verwijderd.</string>
     <string name="student_classes_title">Lessen</string>
     <string name="student_homework_title">Huiswerk</string>
@@ -261,7 +256,6 @@
     <string name="balance_settled">Niets verschuldigd</string>
     <string name="balance_credit">Tegoed: %1$s</string>
     <string name="balance_owes">Schuld aan %1$s</string>
-    <string name="price_edit_title">Uurtarief wijzigen</string>
     <string name="price_label">Tarief per uur</string>
     <string name="price_per_lesson_hint">%1$s voor een %2$s-les</string>
     <string name="price_per_hour">%1$s/\u2060u</string>
@@ -271,7 +265,6 @@
     <string name="payment_add_short">Betaling</string>
     <string name="payment_edit_title">Betaling bewerken</string>
     <string name="payment_amount_label">Bedrag</string>
-    <string name="payment_delete">Betaling van %1$s op %2$s verwijderen</string>
     <string name="payment_deleted">Betaling verwijderd</string>
     <string name="payment_corrected">Betaling gewijzigd</string>
     <string name="payment_undo_changed">De betaling is sindsdien gewijzigd, dus er is niets ongedaan gemaakt.</string>
@@ -753,7 +746,6 @@
     <string name="reports_best_year">Beste jaar: %1$s</string>
     <string name="nav_today">Vandaag</string>
     <string name="today_now">Nu</string>
-    <string name="today_next">Volgende</string>
     <string name="today_to_mark">Afgelopen, nog geen status</string>
     <string name="today_mark_all">Markeer alles onderwezen</string>
     <string name="today_mark_one">Mark %1$s, %2$s geleerd</string>
@@ -778,7 +770,6 @@
     <string name="payment_method_transfer">Bankoverschrijving</string>
     <string name="reports_received">Ontvangen</string>
     <string name="reports_received_hint">Betalingen gedaan in deze periode</string>
-    <string name="reports_received_total">Betaald</string>
     <string name="payment_method_none">Niet opgegeven</string>
     <string name="payment_fill_balance">Volledig saldo · %1$s</string>
     <string name="payment_fill_lesson">Eén les · %1$s</string>
@@ -798,7 +789,6 @@
     <string name="form_gap_price">Uurtarief</string>
     <string name="form_gap_members">leden</string>
     <string name="filter_more">Filteren</string>
-    <string name="filter_all">Allemaal</string>
     <plurals name="batch_selected">
         <item quantity="one">%1$d geselecteerd</item>
         <item quantity="other">%1$d geselecteerd</item>

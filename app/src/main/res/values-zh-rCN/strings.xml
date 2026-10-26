@@ -36,7 +36,6 @@
     <string name="students_search_hint">搜索学生</string>
     <string name="groups_search_hint">搜索组</string>
     <string name="subjects_search_hint">科目名称</string>
-    <string name="students_sort">排序</string>
     <string name="students_sort_name">按名称</string>
     <string name="students_sort_debt">债务人优先</string>
     <string name="unsaved_save_title">保存更改吗？</string>
@@ -163,7 +162,6 @@
     <string name="class_subject_from_group">小组设定科目</string>
     <string name="class_group_price_label">每名学生的课时费</string>
     <string name="class_mark_completed">标记为已完成</string>
-    <string name="class_status_label">状态</string>
     <string name="class_series_availability">可用日期：%1$d。已被占用的日期将被跳过。</string>
     <string name="class_attendance_label">出勤</string>
     <string name="class_attendance_expected">预计</string>
@@ -175,7 +173,6 @@
     <string name="class_status_cancelled">已取消</string>
     <string name="class_status_in_progress">进行中</string>
     <string name="class_status_overdue">未标记</string>
-    <string name="lesson_kind_all">全部</string>
     <string name="lesson_kind_individual">个人</string>
     <string name="lesson_kind_group">团体</string>
     <string name="lesson_kind_individual_one">个人</string>
@@ -184,7 +181,6 @@
     <string name="students_empty">还没有学生</string>
     <string name="students_empty_detail">学生是一个名字、他们的科目和每小时的费率。之后，您可以预订课程并跟踪付款。</string>
     <string name="students_add">添加学生</string>
-    <string name="students_show_archived">显示已存档</string>
     <string name="student_archived_badge">已存档</string>
     <string name="student_add_title">新生</string>
     <string name="student_edit_title">编辑学生</string>
@@ -223,7 +219,6 @@
     <string name="student_payments_title">付款</string>
     <string name="student_last_payment">最后付款%1$s</string>
     <string name="student_lessons_empty">还没有课程</string>
-    <string name="student_subject_remove">删除%1$s</string>
     <string name="student_subject_remove_confirm">从此学生的科目中移除%1$s？课时费及其历史记录将被删除。</string>
     <string name="student_classes_title">课程</string>
     <string name="student_homework_title">家庭作业</string>
@@ -251,7 +246,6 @@
     <string name="balance_settled">没有欠下什么</string>
     <string name="balance_credit">预付余额: %1$s</string>
     <string name="balance_owes">欠款%1$s</string>
-    <string name="price_edit_title">修改课时费</string>
     <string name="price_label">每小时费率</string>
     <string name="price_per_lesson_hint">%1$s 用于 %2$s 课程</string>
     <string name="price_per_hour">%1$s/\u2060h</string>
@@ -261,7 +255,6 @@
     <string name="payment_add_short">支付</string>
     <string name="payment_edit_title">编辑付款</string>
     <string name="payment_amount_label">数量</string>
-    <string name="payment_delete">删除%2$s上%1$s的付款</string>
     <string name="payment_deleted">付款已删除</string>
     <string name="payment_corrected">付款方式已更改</string>
     <string name="payment_undo_changed">此后付款发生了变化，因此没有任何操作被撤消。</string>
@@ -727,7 +720,6 @@
     <string name="reports_best_year">最佳年份：%1$s</string>
     <string name="nav_today">今天</string>
     <string name="today_now">现在</string>
-    <string name="today_next">下一步</string>
     <string name="today_to_mark">已结束，状态待标记</string>
     <string name="today_mark_all">标记所有已教过的内容</string>
     <string name="today_mark_one">马克%1$s、%2$s教导</string>
@@ -751,7 +743,6 @@
     <string name="payment_method_transfer">银行转账</string>
     <string name="reports_received">已收到</string>
     <string name="reports_received_hint">在此期间支付的款项</string>
-    <string name="reports_received_total">已付款</string>
     <string name="payment_method_none">未指定</string>
     <string name="payment_fill_balance">满额·%1$s</string>
     <string name="payment_fill_lesson">一课·%1$s</string>
@@ -771,7 +762,6 @@
     <string name="form_gap_price">课时费</string>
     <string name="form_gap_members">会员</string>
     <string name="filter_more">筛选</string>
-    <string name="filter_all">全部</string>
     <plurals name="batch_selected">
         <item quantity="other">已选择%1$d</item>
     </plurals>

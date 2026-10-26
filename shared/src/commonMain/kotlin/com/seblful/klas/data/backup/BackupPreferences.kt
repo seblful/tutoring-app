@@ -44,7 +44,7 @@ internal fun AppSettings.toBackupPreferences() = BackupPreferences(
  * build would write, leaves this phone's own rather than refusing the whole file over a caption.
  */
 internal fun AppSettings.applying(preferences: BackupPreferences): AppSettings = copy(
-    currency = Currency.entries.firstOrNull { it.name == preferences.currency } ?: currency,
+    currency = Currency.forCode(preferences.currency) ?: currency,
     defaultLessonMinutes = preferences.defaultLessonMinutes.takeIf { it in 1..MINUTES_PER_DAY } ?: defaultLessonMinutes,
     defaultGroupPrice = when (val minor = preferences.defaultGroupPriceMinor) {
         null -> null

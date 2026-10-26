@@ -41,7 +41,6 @@
     <string name="students_search_hint">البحث عن الطلاب</string>
     <string name="groups_search_hint">مجموعات البحث</string>
     <string name="subjects_search_hint">اسم المادة</string>
-    <string name="students_sort">فرز</string>
     <string name="students_sort_name">بالاسم</string>
     <string name="students_sort_debt">المدينون أولاً</string>
     <string name="unsaved_save_title">حفظ التغييرات؟</string>
@@ -193,7 +192,6 @@
     <string name="class_subject_from_group">المجموعة تحدد الموضوع</string>
     <string name="class_group_price_label">سعر الساعة لكل طالب</string>
     <string name="class_mark_completed">تعليم كمكتمل</string>
-    <string name="class_status_label">الحالة</string>
     <string name="class_series_availability">عدد المواعيد المتاحة: %1$d. ستُتخطى المواعيد المحجوزة.</string>
     <string name="class_attendance_label">الحضور</string>
     <string name="class_attendance_expected">متوقع</string>
@@ -205,7 +203,6 @@
     <string name="class_status_cancelled">ملغى</string>
     <string name="class_status_in_progress">جارٍ الآن</string>
     <string name="class_status_overdue">لم يتم وضع علامة عليه</string>
-    <string name="lesson_kind_all">الكل</string>
     <string name="lesson_kind_individual">فرد</string>
     <string name="lesson_kind_group">المجموعة</string>
     <string name="lesson_kind_individual_one">فرد</string>
@@ -214,7 +211,6 @@
     <string name="students_empty">لا يوجد طلاب حتى الآن</string>
     <string name="students_empty_detail">الطالب هو اسمه ومادته ومعدله في الساعة. بعد ذلك يمكنك حجز الدروس وتتبع المدفوعات.</string>
     <string name="students_add">إضافة طالب</string>
-    <string name="students_show_archived">تم أرشفة العرض</string>
     <string name="student_archived_badge">مؤرشف</string>
     <string name="student_add_title">طالب جديد</string>
     <string name="student_edit_title">تحرير الطالب</string>
@@ -268,7 +264,6 @@
     <string name="student_payments_title">المدفوعات</string>
     <string name="student_last_payment">الدفعة الأخيرة %1$s</string>
     <string name="student_lessons_empty">لا توجد دروس بعد</string>
-    <string name="student_subject_remove">قم بإزالة %1$s</string>
     <string name="student_subject_remove_confirm">هل تريد إزالة %1$s من مواد هذا الطالب؟ سيُحذف سعر الساعة وسجل تغييراته.</string>
     <string name="student_classes_title">الدروس</string>
     <string name="student_homework_title">الواجبات المنزلية</string>
@@ -301,7 +296,6 @@
     <string name="balance_settled">لا شيء مستحق</string>
     <string name="balance_credit">رصيد مدفوع مقدّمًا: %1$s</string>
     <string name="balance_owes">يملك %1$s</string>
-    <string name="price_edit_title">تغيير سعر الساعة</string>
     <string name="price_label">سعر الساعة</string>
     <string name="price_per_lesson_hint">%1$s لدرس %2$s</string>
     <string name="price_per_hour">%1$s/\u2060ساعة</string>
@@ -311,7 +305,6 @@
     <string name="payment_add_short">الدفع</string>
     <string name="payment_edit_title">تحرير الدفع</string>
     <string name="payment_amount_label">المبلغ</string>
-    <string name="payment_delete">حذف دفعة %1$s على %2$s</string>
     <string name="payment_deleted">تم حذف الدفعة</string>
     <string name="payment_corrected">تم تغيير الدفع</string>
     <string name="payment_undo_changed">تغيرت الدفعة منذ ذلك الحين، لذلك لم يتم التراجع عن أي شيء.</string>
@@ -857,7 +850,6 @@
     <string name="reports_best_year">أفضل عام: %1$s</string>
     <string name="nav_today">اليوم</string>
     <string name="today_now">الآن</string>
-    <string name="today_next">التالي</string>
     <string name="today_to_mark">انتهت ولم تُحدَّد حالتها</string>
     <string name="today_mark_all">ضع علامة على كل ما تم تدريسه</string>
     <string name="today_mark_one">مارك %1$s، %2$s قام بالتدريس</string>
@@ -886,7 +878,6 @@
     <string name="payment_method_transfer">تحويل بنكي</string>
     <string name="reports_received">تم الاستلام</string>
     <string name="reports_received_hint">الدفعات التي تمت في هذه الفترة</string>
-    <string name="reports_received_total">تم الدفع</string>
     <string name="payment_method_none">غير محدد</string>
     <string name="payment_fill_balance">الرصيد الكامل · %1$s</string>
     <string name="payment_fill_lesson">درس واحد · %1$s</string>
@@ -906,7 +897,6 @@
     <string name="form_gap_price">سعر الساعة</string>
     <string name="form_gap_members">أعضاء</string>
     <string name="filter_more">التصفية</string>
-    <string name="filter_all">الكل</string>
     <plurals name="batch_selected">
         <item quantity="zero">عدد العناصر المحددة: %1$d</item>
         <item quantity="one">عدد العناصر المحددة: %1$d</item>

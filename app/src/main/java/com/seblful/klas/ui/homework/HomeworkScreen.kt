@@ -11,11 +11,9 @@ import androidx.compose.foundation.lazy.grid.LazyGridItemScope
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
-import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.saveable.rememberSerializable
@@ -30,7 +28,6 @@ import com.seblful.klas.R
 import com.seblful.klas.domain.guide.Tip
 import com.seblful.klas.domain.lesson.LessonKind
 import com.seblful.klas.domain.model.Assignee
-import com.seblful.klas.queries.homework.AssigneeChoice
 import com.seblful.klas.queries.homework.HomeworkLists
 import com.seblful.klas.queries.homework.HomeworkRow
 import com.seblful.klas.queries.homework.HomeworkSection
@@ -283,7 +280,7 @@ private fun HomeworkList(
             )
         }
         if (side == HomeworkSide.ARCHIVE) {
-            items(rows, key = { it.homework.id }) { card(it) }
+            items(rows, key = { it.homework.id }, contentType = { "homework" }) { card(it) }
         } else {
             // By the lesson it is for: past lessons' first, then today's — the order the tutor works through it.
             bySection(rows).forEach { (section, inSection) ->
@@ -294,7 +291,7 @@ private fun HomeworkList(
                         color = if (section == HomeworkSection.OVERDUE) klasSemantics.overdue else Color.Unspecified,
                     )
                 }
-                items(inSection, key = { it.homework.id }) { card(it) }
+                items(inSection, key = { it.homework.id }, contentType = { "homework" }) { card(it) }
             }
         }
     }

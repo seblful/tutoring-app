@@ -5,11 +5,7 @@ import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
-import androidx.room.Update
 import androidx.room.Upsert
-import com.seblful.klas.domain.model.Attended
-import com.seblful.klas.domain.model.ClassMode
-import com.seblful.klas.domain.model.LessonStatus
 import kotlinx.coroutines.flow.Flow
 
 // Rows are returned unordered wherever the order would depend on **name** collation: SQLite's

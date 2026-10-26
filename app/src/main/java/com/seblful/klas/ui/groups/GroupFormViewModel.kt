@@ -136,12 +136,6 @@ class GroupFormViewModel @AssistedInject constructor(
         val selectedMemberIds: Set<Long> = form.memberIds intersect candidates.mapTo(HashSet()) { it.id }
 
         /**
-         * Members the form is holding but will **not** save: ticked, or loaded with the group, and no
-         * longer priced for its subject.
-         */
-        val strandedMemberIds: Set<Long> get() = form.memberIds - selectedMemberIds
-
-        /**
          * How many of the roster the save would take off it, for want of a price for the subject — asked
          * about **before** the save, not reported after it. The report was a snackbar sent as the form
          * closed, so it went with the screen and the roster shrank in silence after all.

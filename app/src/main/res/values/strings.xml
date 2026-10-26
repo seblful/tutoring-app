@@ -73,7 +73,6 @@
     <string name="subjects_search_hint">Subject name</string>
 
     <!-- Sorting the students list: the tutor's two questions are "who is this" and "who owes me" -->
-    <string name="students_sort">Sort</string>
     <string name="students_sort_name">By name</string>
     <string name="students_sort_debt">Debtors first</string>
 
@@ -258,7 +257,6 @@
     <string name="class_mark_completed">Mark as taught</string>
 
     <!-- Class status -->
-    <string name="class_status_label">Status</string>
     <string name="class_series_availability">Free dates: %1$d. Taken dates will be skipped.</string>
     <string name="class_attendance_label">Attendance</string>
     <string name="class_attendance_expected">Expected</string>
@@ -278,7 +276,6 @@
     <string name="class_status_overdue">Not marked</string>
 
     <!-- Individual vs group lessons: one vocabulary for the distinction, used everywhere it is drawn. -->
-    <string name="lesson_kind_all">All</string>
     <string name="lesson_kind_individual">Individual</string>
     <string name="lesson_kind_group">Group</string>
     <!-- One lesson, on a student's card, where a group lesson names its group instead -->
@@ -291,7 +288,6 @@
     <string name="students_empty">No students yet</string>
     <string name="students_empty_detail">A student is a name, their subjects and a rate per hour. After that you can book lessons and track payments.</string>
     <string name="students_add">Add a student</string>
-    <string name="students_show_archived">Show archived</string>
     <string name="student_archived_badge">Archived</string>
     <string name="student_add_title">New student</string>
     <string name="student_edit_title">Edit student</string>
@@ -338,7 +334,6 @@
     <string name="student_payments_title">Payments</string>
     <string name="student_last_payment">Last payment %1$s</string>
     <string name="student_lessons_empty">No lessons yet</string>
-    <string name="student_subject_remove">Remove %1$s</string>
     <string name="student_subject_remove_confirm">Remove %1$s from this student? Its rate and rate history will be deleted.</string>
     <string name="student_classes_title">Lessons</string>
     <string name="student_homework_title">Homework</string>
@@ -380,7 +375,6 @@
     <string name="balance_owes">Owes %1$s</string>
 
     <!-- Price -->
-    <string name="price_edit_title">Change the rate</string>
     <string name="price_label">Rate per hour</string>
     <string name="price_per_lesson_hint">%1$s for a %2$s lesson</string>
     <!-- The word joiner after the slash keeps the unit on its line: a range broke as «20 $–25 $/», then «h». -->
@@ -394,7 +388,6 @@
     <string name="payment_add_short">Payment</string>
     <string name="payment_edit_title">Edit payment</string>
     <string name="payment_amount_label">Amount</string>
-    <string name="payment_delete">Delete payment of %1$s on %2$s</string>
     <string name="payment_deleted">Payment deleted</string>
     <string name="payment_corrected">Payment changed</string>
     <string name="payment_undo_changed">The payment changed since, so nothing was undone.</string>
@@ -1043,7 +1036,6 @@
     <string name="reports_best_year">Best year: %1$s</string>
     <string name="nav_today">Today</string>
     <string name="today_now">Now</string>
-    <string name="today_next">Next</string>
     <string name="today_to_mark">Over and not marked</string>
     <string name="today_mark_all">Mark all taught</string>
     <string name="today_mark_one">Mark %1$s, %2$s taught</string>
@@ -1069,7 +1061,6 @@
     <string name="payment_method_transfer">Transfer</string>
     <string name="reports_received">Received</string>
     <string name="reports_received_hint">Payments made in this period</string>
-    <string name="reports_received_total">Paid in</string>
     <string name="payment_method_none">Not said</string>
     <string name="payment_fill_balance">Full balance · %1$s</string>
     <string name="payment_fill_lesson">One lesson · %1$s</string>
@@ -1089,7 +1080,6 @@
     <string name="form_gap_price">a rate</string>
     <string name="form_gap_members">members</string>
     <string name="filter_more">Filter</string>
-    <string name="filter_all">All</string>
     <plurals name="batch_selected">
         <item quantity="one">%1$d selected</item>
         <item quantity="other">%1$d selected</item>

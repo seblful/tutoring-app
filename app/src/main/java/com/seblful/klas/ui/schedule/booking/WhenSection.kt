@@ -206,7 +206,7 @@ private fun Stepper(state: ClassFormState, onStep: (later: Boolean) -> Unit, onP
                 style = style,
                 color = when {
                     slot == null -> colors.primary
-                    state.conflictBlocksSave -> colors.error
+                    state.conflictBlocksSave -> klasSemantics.validation
                     else -> colors.onSurface
                 },
                 textAlign = TextAlign.Center,

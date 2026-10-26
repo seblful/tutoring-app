@@ -11,7 +11,6 @@ import com.seblful.klas.domain.people.Captions
 import com.seblful.klas.domain.schedule.CalendarLayout
 import com.seblful.klas.domain.schedule.DaySummary
 import com.seblful.klas.ui.common.state.Loadable
-import com.seblful.klas.ui.common.state.readyOrLoadingAfter
 import com.seblful.klas.ui.common.state.valueOrNull
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate

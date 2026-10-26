@@ -3,10 +3,6 @@ package com.seblful.klas.data.local
 import androidx.room.migration.Migration
 import androidx.sqlite.SQLiteConnection
 import androidx.sqlite.execSQL
-import com.seblful.klas.data.homework.HomeworkEntity
-import com.seblful.klas.data.lessons.CLASS_ROWS
-import com.seblful.klas.data.lessons.ClassDao
-import com.seblful.klas.data.lessons.ClassRow
 import com.seblful.klas.data.settings.SettingsEntity
 
 /**

@@ -363,7 +363,6 @@ class GroupFormViewModelTest {
         advanceUntilIdle()
 
         assertFalse("nobody left who could be billed", vm.state.current.canSave)
-        assertEquals(setOf(ann), vm.state.current.strandedMemberIds)
         assertEquals("nothing written, so the roster is untouched", listOf(ann), env.groupRepo.getMemberIds(id))
     }
 
@@ -485,7 +484,7 @@ class GroupFormViewModelTest {
         val changes = vm.state.current.rateHistory
         assertEquals(2, changes.size)
         assertEquals(Money.ofMajor(25), changes.first().to)
-        assertTrue("the oldest row is where the rate started", changes.last().isInitial)
+        assertTrue("the oldest row is where the rate started", changes.last().from == null)
     }
 
     /** A group that does not exist yet has no rate to have a history of. */

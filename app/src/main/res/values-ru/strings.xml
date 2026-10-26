@@ -101,7 +101,6 @@
     <string name="subjects_search_hint">Название предмета</string>
 
     <!-- Sorting the students list: the tutor's two questions are "who is this" and "who owes me" -->
-    <string name="students_sort">Сортировка</string>
     <string name="students_sort_name">По имени</string>
     <string name="students_sort_debt">Сначала должники</string>
 
@@ -309,7 +308,6 @@
     <string name="class_mark_completed">Отметить проведённым</string>
 
     <!-- Class status -->
-    <string name="class_status_label">Статус</string>
     <string name="class_series_availability">Свободных дат: %1$d. Занятые даты будут пропущены.</string>
     <string name="class_attendance_label">Посещаемость</string>
     <string name="class_attendance_expected">Ожидается</string>
@@ -338,7 +336,6 @@
       Individual vs group lessons: one vocabulary for the distinction, used everywhere it is drawn —
       the filter chips over a student's lessons and the income split in the reports.
     -->
-    <string name="lesson_kind_all">Все</string>
     <string name="lesson_kind_individual">Индивидуальные</string>
     <string name="lesson_kind_group">Групповые</string>
     <!-- One lesson, on a student's card, where a group lesson names its group instead -->
@@ -351,7 +348,6 @@
     <string name="students_empty">Пока нет учеников</string>
     <string name="students_empty_detail">Ученик — это имя, предметы и ставка за час. Дальше можно записывать занятия и вести учёт оплат.</string>
     <string name="students_add">Добавить ученика</string>
-    <string name="students_show_archived">Показать архивных</string>
     <string name="student_archived_badge">В архиве</string>
     <string name="student_add_title">Новый ученик</string>
     <string name="student_edit_title">Изменить ученика</string>
@@ -402,7 +398,6 @@
     </plurals>
     <string name="student_last_payment">Последняя оплата %1$s</string>
     <string name="student_lessons_empty">Занятий пока нет</string>
-    <string name="student_subject_remove">Убрать предмет «%1$s»</string>
     <string name="student_subject_remove_confirm">Убрать предмет «%1$s» у ученика? Его ставка и история ставки будут удалены.</string>
     <string name="student_balance_title">Баланс</string>
     <string name="student_statement">Выписка</string>
@@ -451,7 +446,6 @@
     <string name="balance_owes">Долг %1$s</string>
 
     <!-- Price -->
-    <string name="price_edit_title">Изменить ставку</string>
     <string name="price_label">Ставка за час</string>
     <string name="price_per_lesson_hint">%1$s за занятие %2$s</string>
     <string name="price_per_hour">%1$s/\u2060час</string>
@@ -464,7 +458,6 @@
     <string name="payment_add_short">Платёж</string>
     <string name="payment_edit_title">Изменить платёж</string>
     <string name="payment_amount_label">Сумма</string>
-    <string name="payment_delete">Удалить платёж %1$s от %2$s</string>
     <string name="payment_deleted">Платёж удалён</string>
     <string name="payment_corrected">Платёж изменён</string>
     <string name="payment_undo_changed">Платёж уже изменился, поэтому ничего не вернули.</string>
@@ -1178,7 +1171,6 @@
     <string name="reports_best_year">Лучший год: %1$s</string>
     <string name="nav_today">Сегодня</string>
     <string name="today_now">Сейчас</string>
-    <string name="today_next">Далее</string>
     <string name="today_to_mark">Прошли и не отмечены</string>
     <string name="today_mark_all">Отметить все проведёнными</string>
     <string name="today_mark_one">Отметить «%1$s», %2$s, проведённым</string>
@@ -1205,7 +1197,6 @@
     <string name="payment_method_transfer">Перевод</string>
     <string name="reports_received">Получено</string>
     <string name="reports_received_hint">Оплаты, внесённые за период</string>
-    <string name="reports_received_total">Внесено</string>
     <string name="payment_method_none">Не указано</string>
     <string name="payment_fill_balance">Весь долг · %1$s</string>
     <string name="payment_fill_lesson">Одно занятие · %1$s</string>
@@ -1225,7 +1216,6 @@
     <string name="form_gap_price">ставка</string>
     <string name="form_gap_members">участники</string>
     <string name="filter_more">Фильтр</string>
-    <string name="filter_all">Все</string>
     <plurals name="batch_selected">
         <item quantity="one">Выбрано: %1$d</item>
         <item quantity="few">Выбрано: %1$d</item>

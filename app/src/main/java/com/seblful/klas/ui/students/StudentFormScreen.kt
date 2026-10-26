@@ -45,7 +45,6 @@ import com.seblful.klas.ui.common.AddRow
 import com.seblful.klas.ui.common.KlasScreen
 import com.seblful.klas.ui.common.ListSkeleton
 import com.seblful.klas.ui.common.LoadingFormScreen
-import com.seblful.klas.ui.common.LocalCurrency
 import com.seblful.klas.ui.common.MinTouchTarget
 import com.seblful.klas.ui.common.MoneyTextField
 import com.seblful.klas.ui.common.Reveal

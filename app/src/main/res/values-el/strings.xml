@@ -37,7 +37,6 @@
     <string name="students_search_hint">Αναζήτηση μαθητών</string>
     <string name="groups_search_hint">Ομάδες αναζήτησης</string>
     <string name="subjects_search_hint">Όνομα μαθήματος</string>
-    <string name="students_sort">Ταξινόμηση</string>
     <string name="students_sort_name">Ονοματεπώνυμο</string>
     <string name="students_sort_debt">Πρώτα οι οφειλέτες</string>
     <string name="unsaved_save_title">Αποθήκευση αλλαγών;</string>
@@ -169,7 +168,6 @@
     <string name="class_subject_from_group">Η ομάδα ορίζει το θέμα</string>
     <string name="class_group_price_label">Ωριαία τιμή ανά μαθητή</string>
     <string name="class_mark_completed">Σήμανση ως πραγματοποιημένο</string>
-    <string name="class_status_label">Κατάσταση</string>
     <string name="class_series_availability">Διαθέσιμες ημερομηνίες: %1$d. Οι κατειλημμένες ημερομηνίες θα παραλειφθούν.</string>
     <string name="class_attendance_label">Παρουσίες</string>
     <string name="class_attendance_expected">Αναμενόμενο</string>
@@ -181,7 +179,6 @@
     <string name="class_status_cancelled">Ακυρωμένο</string>
     <string name="class_status_in_progress">Σε εξέλιξη</string>
     <string name="class_status_overdue">Χωρίς επισήμανση</string>
-    <string name="lesson_kind_all">Όλα</string>
     <string name="lesson_kind_individual">Ατομικό</string>
     <string name="lesson_kind_group">Ομάδα</string>
     <string name="lesson_kind_individual_one">Ατομικό</string>
@@ -190,7 +187,6 @@
     <string name="students_empty">Δεν υπάρχουν ακόμη μαθητές</string>
     <string name="students_empty_detail">Ένας μαθητής είναι ένα όνομα, τα θέματά του και ο ρυθμός ανά ώρα. Μετά από αυτό μπορείτε να κάνετε κράτηση μαθημάτων και να παρακολουθείτε τις πληρωμές.</string>
     <string name="students_add">Προσθήκη μαθητή</string>
-    <string name="students_show_archived">Εμφάνιση αρχειοθετημένο</string>
     <string name="student_archived_badge">Αρχειοθετήθηκε</string>
     <string name="student_add_title">Νέος μαθητής</string>
     <string name="student_edit_title">Επεξεργασία μαθητή</string>
@@ -232,7 +228,6 @@
     <string name="student_payments_title">Πληρωμές</string>
     <string name="student_last_payment">Τελευταία πληρωμή %1$s</string>
     <string name="student_lessons_empty">Δεν υπάρχουν ακόμη μαθήματα</string>
-    <string name="student_subject_remove">Κατάργηση %1$s</string>
     <string name="student_subject_remove_confirm">Αφαίρεση του %1$s από αυτόν τον μαθητή; Η ωριαία τιμή και το ιστορικό της θα διαγραφούν.</string>
     <string name="student_classes_title">Μαθήματα</string>
     <string name="student_homework_title">Εργασία για το σπίτι</string>
@@ -261,7 +256,6 @@
     <string name="balance_settled">Δεν χρωστάει τίποτα</string>
     <string name="balance_credit">Πιστωτικό υπόλοιπο: %1$s</string>
     <string name="balance_owes">Οφείλει %1$s</string>
-    <string name="price_edit_title">Αλλαγή ωριαίας τιμής</string>
     <string name="price_label">Ρυθμός ανά ώρα</string>
     <string name="price_per_lesson_hint">%1$s για ένα μάθημα %2$s</string>
     <string name="price_per_hour">%1$s/\u2060ώρα</string>
@@ -271,7 +265,6 @@
     <string name="payment_add_short">Πληρωμή</string>
     <string name="payment_edit_title">Επεξεργασία πληρωμής</string>
     <string name="payment_amount_label">Ποσό</string>
-    <string name="payment_delete">Διαγραφή πληρωμής %1$s σε %2$s</string>
     <string name="payment_deleted">Η πληρωμή διαγράφηκε</string>
     <string name="payment_corrected">Η πληρωμή άλλαξε</string>
     <string name="payment_undo_changed">Η πληρωμή άλλαξε έκτοτε, επομένως δεν αναιρέθηκε τίποτα.</string>
@@ -753,7 +746,6 @@
     <string name="reports_best_year">Καλύτερη χρονιά: %1$s</string>
     <string name="nav_today">Σήμερα</string>
     <string name="today_now">Τώρα</string>
-    <string name="today_next">Επόμενο</string>
     <string name="today_to_mark">Ολοκληρώθηκαν, χωρίς επισήμανση</string>
     <string name="today_mark_all">Σημειώστε όλοι διδασκόμενοι</string>
     <string name="today_mark_one">Mark %1$s, %2$s διδάσκεται</string>
@@ -778,7 +770,6 @@
     <string name="payment_method_transfer">Τραπεζική μεταφορά</string>
     <string name="reports_received">Ελήφθη</string>
     <string name="reports_received_hint">Πληρωμές που πραγματοποιήθηκαν αυτήν την περίοδο</string>
-    <string name="reports_received_total">Πληρωμή</string>
     <string name="payment_method_none">Δεν ορίστηκε</string>
     <string name="payment_fill_balance">Πλήρες υπόλοιπο · %1$s</string>
     <string name="payment_fill_lesson">Ένα μάθημα · %1$s</string>
@@ -798,7 +789,6 @@
     <string name="form_gap_price">Ωριαία τιμή</string>
     <string name="form_gap_members">μέλη</string>
     <string name="filter_more">Φίλτρο</string>
-    <string name="filter_all">Όλα</string>
     <plurals name="batch_selected">
         <item quantity="one">Επιλέχθηκε το %1$d</item>
         <item quantity="other">Επιλέχθηκε το %1$d</item>

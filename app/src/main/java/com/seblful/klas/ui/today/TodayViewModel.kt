@@ -17,7 +17,6 @@ import com.seblful.klas.domain.guide.PhoneStep
 import com.seblful.klas.domain.lesson.CompletionTiming
 import com.seblful.klas.domain.lesson.LessonPhase
 import com.seblful.klas.domain.model.ClassSession
-import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.people.Captions
 import com.seblful.klas.domain.reports.Reports

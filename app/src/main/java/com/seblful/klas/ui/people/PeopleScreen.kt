@@ -3,13 +3,9 @@ package com.seblful.klas.ui.people
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconToggleButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -17,22 +13,15 @@ import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.seblful.klas.R
 import com.seblful.klas.domain.model.Assignee
-import com.seblful.klas.ui.common.HoldToName
-import com.seblful.klas.ui.common.KlasMenu
 import com.seblful.klas.ui.common.KlasScreen
-import com.seblful.klas.ui.common.NamedIconButton
 import com.seblful.klas.ui.common.ScreenSearch
 import com.seblful.klas.ui.common.SegmentedPage
 import com.seblful.klas.ui.common.SettingsGear
-import com.seblful.klas.ui.common.TickedMenuItem
 import com.seblful.klas.ui.designsystem.component.KlasFab
-import com.seblful.klas.ui.groups.GroupSort
 import com.seblful.klas.ui.groups.GroupsList
 import com.seblful.klas.ui.groups.GroupsViewModel
-import com.seblful.klas.ui.students.StudentSort
 import com.seblful.klas.ui.students.StudentsList
 import com.seblful.klas.ui.students.StudentsViewModel
-import com.seblful.klas.ui.theme.KlasIcons
 import dev.zacsweers.metrox.viewmodel.metroViewModel
 
 private enum class PeopleTab(val labelRes: Int) {

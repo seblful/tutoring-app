@@ -3,7 +3,6 @@ package com.seblful.klas.queries.students
 import com.seblful.klas.domain.billing.Billing
 import com.seblful.klas.domain.billing.PaymentSuggestions
 import com.seblful.klas.domain.lesson.CardLessons
-import com.seblful.klas.domain.lesson.ClassRules
 import com.seblful.klas.domain.lesson.LessonFilter
 import com.seblful.klas.domain.lesson.LessonKind
 import com.seblful.klas.domain.model.Balance

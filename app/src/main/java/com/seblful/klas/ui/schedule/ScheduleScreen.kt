@@ -22,7 +22,6 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -485,10 +484,10 @@ fun ScheduleScreen(
                                     KlasDivider()
                                 }
                             }
-                            val week = contentState.valueOrNull()
-                            if (week == null) {
+                            val weekContent = contentState.valueOrNull()
+                            if (weekContent == null) {
                                 item(key = "loading", contentType = "loading") { LessonsSkeleton() }
-                            } else if (week.sections.isEmpty()) {
+                            } else if (weekContent.sections.isEmpty()) {
                                 item(key = "empty", contentType = "empty") {
                                     // The same three answers the day list gets, from the same place — this
                                     // branch used to weigh two of them itself and offer nothing either way.
@@ -501,7 +500,7 @@ fun ScheduleScreen(
                                     )
                                 }
                             } else {
-                                week.sections.forEach { section ->
+                                weekContent.sections.forEach { section ->
                                     item(key = "day-${section.date}", contentType = "day-header") {
                                         DaySectionHeader(
                                             date = section.date,

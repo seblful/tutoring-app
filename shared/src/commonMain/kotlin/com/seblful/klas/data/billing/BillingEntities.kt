@@ -1,6 +1,5 @@
 package com.seblful.klas.data.billing
 
-import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
@@ -9,14 +8,7 @@ import com.seblful.klas.data.lessons.AttendanceEntity
 import com.seblful.klas.data.people.GroupEntity
 import com.seblful.klas.data.people.StudentEntity
 import com.seblful.klas.data.people.SubjectEntity
-import com.seblful.klas.domain.model.AppLanguage
-import com.seblful.klas.domain.model.Attended
-import com.seblful.klas.domain.model.ClassMode
-import com.seblful.klas.domain.model.Currency
-import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.PaymentMethod
-import com.seblful.klas.domain.model.ThemeChoice
-import com.seblful.klas.domain.reminders.Reminders
 import kotlinx.serialization.Serializable
 
 /** Current price for one (student, subject). Completed classes snapshot their own charge. */

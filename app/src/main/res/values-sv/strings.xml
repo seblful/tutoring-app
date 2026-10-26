@@ -37,7 +37,6 @@
     <string name="students_search_hint">Sök efter studenter</string>
     <string name="groups_search_hint">Sök i grupper</string>
     <string name="subjects_search_hint">Ämnesnamn</string>
-    <string name="students_sort">Sortera</string>
     <string name="students_sort_name">Efter namn</string>
     <string name="students_sort_debt">Gäldenärer först</string>
     <string name="unsaved_save_title">Spara ändringar?</string>
@@ -169,7 +168,6 @@
     <string name="class_subject_from_group">Gruppen bestämmer ämnet</string>
     <string name="class_group_price_label">Timpris per elev</string>
     <string name="class_mark_completed">Markera som genomförd</string>
-    <string name="class_status_label">Status</string>
     <string name="class_series_availability">Lediga datum: %1$d. Upptagna datum hoppas över.</string>
     <string name="class_attendance_label">Närvaro</string>
     <string name="class_attendance_expected">Förväntat</string>
@@ -181,7 +179,6 @@
     <string name="class_status_cancelled">Inställd</string>
     <string name="class_status_in_progress">Pågår</string>
     <string name="class_status_overdue">Ej markerad</string>
-    <string name="lesson_kind_all">Alla</string>
     <string name="lesson_kind_individual">Individuell</string>
     <string name="lesson_kind_group">Grupp</string>
     <string name="lesson_kind_individual_one">Individuell</string>
@@ -190,7 +187,6 @@
     <string name="students_empty">Inga studenter än</string>
     <string name="students_empty_detail">En student är ett namn, deras ämnen och ett pris per timme. Efter det kan du boka lektioner och spåra betalningar.</string>
     <string name="students_add">Lägg till en elev</string>
-    <string name="students_show_archived">Visa arkiverad</string>
     <string name="student_archived_badge">Arkiverad</string>
     <string name="student_add_title">Ny student</string>
     <string name="student_edit_title">Redigera elev</string>
@@ -232,7 +228,6 @@
     <string name="student_payments_title">Betalningar</string>
     <string name="student_last_payment">Senaste betalning %1$s</string>
     <string name="student_lessons_empty">Inga lektioner än</string>
-    <string name="student_subject_remove">Ta bort %1$s</string>
     <string name="student_subject_remove_confirm">Ta bort %1$s från elevens ämnen? Timpriset och dess historik tas bort.</string>
     <string name="student_classes_title">Lektioner</string>
     <string name="student_homework_title">Läxor</string>
@@ -261,7 +256,6 @@
     <string name="balance_settled">Inget skyldigt</string>
     <string name="balance_credit">Tillgodo: %1$s</string>
     <string name="balance_owes">Är skyldig %1$s</string>
-    <string name="price_edit_title">Ändra timpris</string>
     <string name="price_label">Pris per timme</string>
     <string name="price_per_lesson_hint">%1$s för en %2$s-lektion</string>
     <string name="price_per_hour">%1$s/\u2060h</string>
@@ -271,7 +265,6 @@
     <string name="payment_add_short">Betalning</string>
     <string name="payment_edit_title">Redigera betalning</string>
     <string name="payment_amount_label">Belopp</string>
-    <string name="payment_delete">Ta bort betalning av %1$s på %2$s</string>
     <string name="payment_deleted">Betalning raderad</string>
     <string name="payment_corrected">Betalning ändrad</string>
     <string name="payment_undo_changed">Betalningen har ändrats sedan dess, så ingenting ångrades.</string>
@@ -753,7 +746,6 @@
     <string name="reports_best_year">Bästa år: %1$s</string>
     <string name="nav_today">Idag</string>
     <string name="today_now">Nu</string>
-    <string name="today_next">Nästa</string>
     <string name="today_to_mark">Avslutade, men inte markerade</string>
     <string name="today_mark_all">Markera alla undervisade</string>
     <string name="today_mark_one">Mark %1$s, %2$s lärde ut</string>
@@ -778,7 +770,6 @@
     <string name="payment_method_transfer">Banköverföring</string>
     <string name="reports_received">Mottaget</string>
     <string name="reports_received_hint">Betalningar gjorda under denna period</string>
-    <string name="reports_received_total">Inbetald</string>
     <string name="payment_method_none">Inte angivet</string>
     <string name="payment_fill_balance">Full balans · %1$s</string>
     <string name="payment_fill_lesson">En lektion · %1$s</string>
@@ -798,7 +789,6 @@
     <string name="form_gap_price">Timpris</string>
     <string name="form_gap_members">medlemmar</string>
     <string name="filter_more">Filter</string>
-    <string name="filter_all">Alla</string>
     <plurals name="batch_selected">
         <item quantity="one">%1$d valt</item>
         <item quantity="other">%1$d valt</item>

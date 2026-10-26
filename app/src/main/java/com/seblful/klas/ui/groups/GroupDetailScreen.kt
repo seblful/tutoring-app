@@ -35,8 +35,6 @@ import com.seblful.klas.format.bulletJoin
 import com.seblful.klas.format.formatHours
 import com.seblful.klas.queries.groups.GroupDetails
 import com.seblful.klas.queries.groups.GroupMemberRow
-import com.seblful.klas.queries.homework.AssigneeChoice
-import com.seblful.klas.queries.homework.HomeworkRow
 import com.seblful.klas.ui.common.AddRow
 import com.seblful.klas.ui.common.AddRowInSection
 import com.seblful.klas.ui.common.ArchiveMenuItem

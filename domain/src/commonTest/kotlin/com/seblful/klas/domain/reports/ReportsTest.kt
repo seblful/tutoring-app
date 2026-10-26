@@ -385,9 +385,8 @@ class ReportsTest {
         assertNull(report.bySubject.single().share)
     }
 
-    /** The chart's bar heights are the trend's own statement, like [Reports.Trend.rows]. */
     @Test
-    fun `a bar's height is its fraction of the peak`() {
+    fun `a bar's key encodes its month, which the module unpacks`() {
         val classes = listOf(
             klass(1, 10, "2026-02-10T10:00:00Z", 6000),
             klass(1, 10, "2026-11-10T10:00:00Z", 3000),
@@ -396,10 +395,8 @@ class ReportsTest {
 
         val trend = Reports.trend(classes, period, zone)
 
-        assertEquals(1.0f, trend.shareOf(trend.bars[1]))
-        assertEquals(0.5f, trend.shareOf(trend.bars[10]))
-        assertEquals(0f, trend.shareOf(trend.bars[2]), "a quiet month is an empty track")
         assertEquals(1, trend.bars[1].monthIndex, "the key's encoding is the module's to unpack")
+        assertEquals(10, trend.bars[10].monthIndex)
     }
 
     @Test

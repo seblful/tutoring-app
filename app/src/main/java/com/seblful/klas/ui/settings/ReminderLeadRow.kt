@@ -2,16 +2,12 @@ package com.seblful.klas.ui.settings
 
 import androidx.annotation.PluralsRes
 import androidx.annotation.StringRes
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.Icon
-import androidx.compose.material3.ListItem
-import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -26,16 +22,11 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import com.seblful.klas.R
 import com.seblful.klas.ui.common.ChoiceField
-import com.seblful.klas.ui.common.DisabledAlpha
 import com.seblful.klas.ui.common.KlasMenu
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.TickedMenuItem
-import com.seblful.klas.ui.common.insetRowPress
 import com.seblful.klas.ui.designsystem.component.DialogAction
 import com.seblful.klas.ui.designsystem.component.FormDialog
-import com.seblful.klas.ui.designsystem.component.SettingsGroup
-import com.seblful.klas.ui.designsystem.component.settingsRowColors
-import com.seblful.klas.ui.theme.KlasIcons
 import com.seblful.klas.ui.theme.klasSemantics
 
 /** One selected lead time, with presets and a custom amount in minutes, hours or days. */

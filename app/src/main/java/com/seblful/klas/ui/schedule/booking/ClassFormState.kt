@@ -119,9 +119,6 @@ data class ClassFormState(
         get() = RosterChange(dropped = booked.filter { it.studentId in form.excludedMemberIds })
             .billedDropped.size
 
-    /** A group was chosen but there are none to choose — worded differently from "none picked". */
-    val hasNoGroups: Boolean get() = form.target == ClassTarget.GROUP && groups.isEmpty()
-
     /**
      * A group is chosen and nobody in it can be booked — every member archived, or gone from it. The
      * roster simply did not draw, the save stayed enabled, and tapping it was refused with «Отметьте хотя

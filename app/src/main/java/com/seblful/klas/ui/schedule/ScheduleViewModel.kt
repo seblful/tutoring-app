@@ -161,9 +161,6 @@ class ScheduleViewModel @Inject constructor(
     /** The groups the filter menu offers after the students. */
     val filterableGroups: StateFlow<List<Group>> = groups.observeActive().hold(this, emptyList())
 
-    /** Narrows the schedule to one student, or to everyone again with null. */
-    fun setStudentFilter(studentId: Long?) = setWho(studentId?.let { ScheduleWho.Student(it) })
-
     /** Narrows the schedule to one student's or group's lessons, or to everyone's with null. */
     fun setWho(who: ScheduleWho?) = askedFilter.update { it.copy(who = who) }
 

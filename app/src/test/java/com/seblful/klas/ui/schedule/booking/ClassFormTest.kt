@@ -3,7 +3,6 @@ package com.seblful.klas.ui.schedule.booking
 import com.seblful.klas.domain.model.Assignee
 import com.seblful.klas.domain.model.ClassSession
 import com.seblful.klas.domain.model.Group
-import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Student
 import com.seblful.klas.domain.model.Subject
 import com.seblful.klas.domain.model.TutoringClass
@@ -209,18 +208,6 @@ class ClassFormTest {
         assertTrue(stateWith(form = validForm).canSave)
         assertFalse(stateWith(form = validForm, conflict = someoneElse).canSave)
         assertFalse(stateWith(form = validForm.copy(subjectId = null)).canSave)
-    }
-
-    @Test
-    fun `booking for a group says so when there are no groups`() {
-        assertTrue(stateWith(form = ClassForm(target = ClassTarget.GROUP)).hasNoGroups)
-        assertFalse(
-            stateWith(
-                form = ClassForm(target = ClassTarget.GROUP),
-                groups = listOf(Group(id = 1, name = "11 «А»", price = Money.ofMajor(20))),
-            ).hasNoGroups,
-        )
-        assertFalse("a student booking has no opinion about groups", stateWith().hasNoGroups)
     }
 
     // ---- The save bar ----------------------------------------------------------------------------

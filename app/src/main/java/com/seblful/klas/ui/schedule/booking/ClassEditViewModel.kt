@@ -36,7 +36,6 @@ import com.seblful.klas.notifications.NotificationPermission
 import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.common.state.UiEvents
 import com.seblful.klas.ui.common.state.derive
-import com.seblful.klas.ui.common.state.hold
 import com.seblful.klas.ui.common.state.ready
 import com.seblful.klas.ui.common.state.savedDraft
 import com.seblful.klas.ui.common.state.shared

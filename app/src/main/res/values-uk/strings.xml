@@ -39,7 +39,6 @@
     <string name="students_search_hint">Пошук студентів</string>
     <string name="groups_search_hint">Групи пошуку</string>
     <string name="subjects_search_hint">Назва предмета</string>
-    <string name="students_sort">Сортувати</string>
     <string name="students_sort_name">По імені</string>
     <string name="students_sort_debt">Спершу боржники</string>
     <string name="unsaved_save_title">Зберегти зміни?</string>
@@ -181,7 +180,6 @@
     <string name="class_subject_from_group">Група встановлює тему</string>
     <string name="class_group_price_label">Ставка за учня</string>
     <string name="class_mark_completed">Позначити як проведене</string>
-    <string name="class_status_label">Статус</string>
     <string name="class_series_availability">Вільних дат: %1$d. Зайняті дати буде пропущено.</string>
     <string name="class_attendance_label">Відвідуваність</string>
     <string name="class_attendance_expected">Очікувано</string>
@@ -193,7 +191,6 @@
     <string name="class_status_cancelled">Скасовано</string>
     <string name="class_status_in_progress">Триває</string>
     <string name="class_status_overdue">Не позначено</string>
-    <string name="lesson_kind_all">Усі</string>
     <string name="lesson_kind_individual">Фізична особа</string>
     <string name="lesson_kind_group">Група</string>
     <string name="lesson_kind_individual_one">Фізична особа</string>
@@ -202,7 +199,6 @@
     <string name="students_empty">Студентів ще немає</string>
     <string name="students_empty_detail">Студент - це ім\'я, його предмети та ставка за годину. Після цього ви можете бронювати уроки та відстежувати оплату.</string>
     <string name="students_add">Додати студента</string>
-    <string name="students_show_archived">Показати в архіві</string>
     <string name="student_archived_badge">Заархівовано</string>
     <string name="student_add_title">Новий студент</string>
     <string name="student_edit_title">Редагувати студента</string>
@@ -250,7 +246,6 @@
     <string name="student_payments_title">Платежі</string>
     <string name="student_last_payment">Останній платіж %1$s</string>
     <string name="student_lessons_empty">Ще немає уроків</string>
-    <string name="student_subject_remove">Видаліть %1$s</string>
     <string name="student_subject_remove_confirm">Вилучити %1$s із предметів цього учня? Ставку та історію її змін буде видалено.</string>
     <string name="student_classes_title">Уроки</string>
     <string name="student_homework_title">Домашнє завдання</string>
@@ -281,7 +276,6 @@
     <string name="balance_settled">Нічого не винен</string>
     <string name="balance_credit">Переплата: %1$s</string>
     <string name="balance_owes">Винен %1$s</string>
-    <string name="price_edit_title">Змінити ставку</string>
     <string name="price_label">Ставка за годину</string>
     <string name="price_per_lesson_hint">%1$s для уроку %2$s</string>
     <string name="price_per_hour">%1$s/\u2060год</string>
@@ -291,7 +285,6 @@
     <string name="payment_add_short">Оплата</string>
     <string name="payment_edit_title">Редагувати платіж</string>
     <string name="payment_amount_label">Сума</string>
-    <string name="payment_delete">Видалити платіж %1$s на %2$s</string>
     <string name="payment_deleted">Платіж видалено</string>
     <string name="payment_corrected">Платіж змінено</string>
     <string name="payment_undo_changed">Відтоді платіж змінився, тому нічого не було скасовано.</string>
@@ -805,7 +798,6 @@
     <string name="reports_best_year">Найкращий рік: %1$s</string>
     <string name="nav_today">Сьогодні</string>
     <string name="today_now">Зараз</string>
-    <string name="today_next">Далі</string>
     <string name="today_to_mark">Завершені, але ще не позначені</string>
     <string name="today_mark_all">Позначити всі як проведені</string>
     <string name="today_mark_one">Позначити заняття з %1$s, %2$s як проведене</string>
@@ -832,7 +824,6 @@
     <string name="payment_method_transfer">Банківський переказ</string>
     <string name="reports_received">Отримано</string>
     <string name="reports_received_hint">Платежі, здійснені в цей період</string>
-    <string name="reports_received_total">Оплачено</string>
     <string name="payment_method_none">Не вказано</string>
     <string name="payment_fill_balance">Повний баланс · %1$s</string>
     <string name="payment_fill_lesson">Один урок · %1$s</string>
@@ -852,7 +843,6 @@
     <string name="form_gap_price">Ставка</string>
     <string name="form_gap_members">членів</string>
     <string name="filter_more">Фільтр</string>
-    <string name="filter_all">Усі</string>
     <plurals name="batch_selected">
         <item quantity="one">Вибрано: %1$d</item>
         <item quantity="few">Вибрано: %1$d</item>

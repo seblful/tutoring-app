@@ -13,7 +13,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -35,7 +34,6 @@ import com.seblful.klas.domain.model.Student
 import com.seblful.klas.ui.common.AddRow
 import com.seblful.klas.ui.common.ConfirmDialog
 import com.seblful.klas.ui.common.DropdownField
-import com.seblful.klas.ui.common.KlasScreen
 import com.seblful.klas.ui.common.LoadingFormScreen
 import com.seblful.klas.ui.common.MemberPickRow
 import com.seblful.klas.ui.common.MinTouchTarget
@@ -46,7 +44,6 @@ import com.seblful.klas.ui.common.ShowMessagesFor
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.formBar
 import com.seblful.klas.ui.common.leaveGuard
-import com.seblful.klas.ui.common.plusInset
 import com.seblful.klas.ui.common.rateChangeLine
 import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.state.Loadable
@@ -58,7 +55,6 @@ import com.seblful.klas.ui.designsystem.component.KlasButton
 import com.seblful.klas.ui.designsystem.component.KlasDivider
 import com.seblful.klas.ui.designsystem.template.FormScreen
 import com.seblful.klas.ui.students.AddSubjectPriceDialog
-import com.seblful.klas.ui.theme.KlasIcons
 import com.seblful.klas.ui.theme.klasSemantics
 import dev.zacsweers.metrox.viewmodel.assistedMetroViewModel
 
@@ -155,7 +151,9 @@ private fun GroupFormBody(
         pricingItems(state, viewModel)
         rosterHeaderItem(state)
         if (state.candidates.size + state.unpriced.size > MemberSearchFrom) {
-            item(key = "member-search") { MemberSearch(memberQuery) { memberQuery = it } }
+            item(key = "member-search", contentType = "member-search") {
+                MemberSearch(memberQuery) { memberQuery = it }
+            }
         }
         memberItems(state, viewModel, memberQuery, onPrice, onAddStudent)
         noteItem(state, viewModel)
@@ -167,7 +165,7 @@ private fun GroupFormBody(
 
 private fun LazyListScope.identityItems(state: GroupFormViewModel.UiState, viewModel: GroupFormViewModel) {
     val form = state.form
-    item(key = "name") {
+    item(key = "name", contentType = "name") {
         // A name is required, and says so — as a **hint, not an error**. `canSave` knew it and
         // only greyed out the save button, which left the tutor to work out which of six fields
         // it meant; but a blank box on a form that has just opened is incomplete, not wrong, and
@@ -188,7 +186,7 @@ private fun LazyListScope.identityItems(state: GroupFormViewModel.UiState, viewM
         )
     }
 
-    item(key = "subject") {
+    item(key = "subject", contentType = "subject") {
         // Subject first: it decides who may be in the group. 0 is the "not chosen" row — a real
         // option rather than a hidden state, because a group legitimately has none and the
         // tutor needs to see that rather than guess.
@@ -214,7 +212,7 @@ private fun LazyListScope.identityItems(state: GroupFormViewModel.UiState, viewM
 
 private fun LazyListScope.noteItem(state: GroupFormViewModel.UiState, viewModel: GroupFormViewModel) {
     val form = state.form
-    item(key = "note") {
+    item(key = "note", contentType = "note") {
         OutlinedTextField(
             value = form.note,
             onValueChange = { v -> viewModel.update { it.copy(note = v) } },
@@ -228,7 +226,7 @@ private fun LazyListScope.noteItem(state: GroupFormViewModel.UiState, viewModel:
 
 private fun LazyListScope.pricingItems(state: GroupFormViewModel.UiState, viewModel: GroupFormViewModel) {
     val form = state.form
-    item(key = "price") {
+    item(key = "price", contentType = "price") {
         // The group's own rate: what each member of its lessons is billed, whatever the
         // subject. Required — a group prices its own lessons, so it has to say what they cost —
         // and shown plainly rather than behind a tap, because it is the substance of the group,
@@ -247,7 +245,7 @@ private fun LazyListScope.pricingItems(state: GroupFormViewModel.UiState, viewMo
         )
     }
 
-    item(key = "mode") {
+    item(key = "mode", contentType = "mode") {
         ModeField(
             label = stringResource(R.string.student_mode_label),
             selected = form.mode,
@@ -258,7 +256,7 @@ private fun LazyListScope.pricingItems(state: GroupFormViewModel.UiState, viewMo
 
 private fun LazyListScope.rosterHeaderItem(state: GroupFormViewModel.UiState) {
     val form = state.form
-    item(key = "roster-header") {
+    item(key = "roster-header", contentType = "roster-header") {
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.itemGap)) {
             KlasDivider(Modifier.padding(vertical = Spacing.tight))
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -307,7 +305,7 @@ private fun LazyListScope.memberItems(
     val form = state.form
     val candidates = state.candidates.matching(query)
     val unpriced = state.unpriced.matching(query)
-    items(candidates, key = { it.id }) { student ->
+    items(candidates, key = { it.id }, contentType = { "candidate" }) { student ->
         MemberPickRow(
             student = student,
             selected = student.id in form.memberIds,
@@ -316,7 +314,7 @@ private fun LazyListScope.memberItems(
     }
 
     if (unpriced.isNotEmpty()) {
-        item(key = "unpriced-help") {
+        item(key = "unpriced-help", contentType = "unpriced-help") {
             Text(
                 stringResource(R.string.group_price_setup_hint),
                 style = MaterialTheme.typography.bodySmall,
@@ -326,11 +324,11 @@ private fun LazyListScope.memberItems(
         }
         // Laid out as the member rows above, so the roster reads as one list: an unticked box that cannot
         // be ticked yet, the name, and the step that makes them eligible.
-        items(unpriced, key = { "unpriced:${it.id}" }) { student ->
+        items(unpriced, key = { "unpriced:${it.id}" }, contentType = { "unpriced" }) { student ->
             UnpricedMemberRow(student, onSetPrice = { onPrice(student.id) })
         }
     }
-    item(key = "add-student") {
+    item(key = "add-student", contentType = "add-student") {
         AddRow(stringResource(R.string.schedule_add_student), onClick = { onAddStudent(form.subjectId) })
     }
 }

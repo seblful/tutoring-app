@@ -47,7 +47,4 @@ data class RateChange(
     val from: Money?,
     val to: Money,
     val at: Instant?,
-) {
-    /** Whether this row is where the rate's history starts, rather than a change to it. */
-    val isInitial: Boolean get() = from == null
-}
+)

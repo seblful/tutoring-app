@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.MaterialTheme
@@ -101,7 +100,7 @@ private fun StudentRows(
         // Past the add button, so it never sits on the last row.
         contentPadding = FabListPadding.plusInset(bottomInset),
     ) {
-        itemsIndexed(rows, key = { _, row -> row.student.id }) { index, row ->
+        itemsIndexed(rows, key = { _, row -> row.student.id }, contentType = { _, _ -> "student" }) { index, row ->
             // Archiving somebody, or re-sorting by debt, moves rows. Without this they teleport, which reads as a
             // glitch rather than as a change.
             StudentCard(

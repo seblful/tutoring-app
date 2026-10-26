@@ -33,6 +33,7 @@ import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.outsetRowPress
 import com.seblful.klas.ui.theme.KlasIcons
 import com.seblful.klas.ui.theme.KlasMotion
+import com.seblful.klas.ui.theme.klasSemantics
 
 /*
  * The booking form's folded rows — Length, Repeat, Price, Format: one line saying what each is set to, opened in
@@ -83,7 +84,7 @@ internal fun Fold(
                 Text(
                     summary,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.let { if (wanting) it.error else it.onSurfaceVariant },
+                    color = if (wanting) klasSemantics.validation else MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )

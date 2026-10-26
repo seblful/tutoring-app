@@ -1,7 +1,6 @@
 package com.seblful.klas.ui.groups
 
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import com.seblful.klas.data.lessons.ClassRepository
 import com.seblful.klas.data.lessons.NearestLessons
 import com.seblful.klas.data.people.GroupRepository
@@ -139,7 +138,7 @@ class GroupsViewModel @Inject constructor(
     val subjects: StateFlow<List<SubjectChoice>> = listed.map { rows ->
         rows.mapNotNull { row -> row.group.subjectId?.let { SubjectChoice(it, row.subjectName.orEmpty()) } }
             .distinct()
-            .sortedBy { it.name.lowercase() }
+            .sortedWith(NameOrder.by { it.name })
     }.hold(this, emptyList())
 
     override fun toggleArchived() {

@@ -37,7 +37,6 @@
     <string name="students_search_hint">छात्र खोजें</string>
     <string name="groups_search_hint">समूह खोजें</string>
     <string name="subjects_search_hint">विषय का नाम</string>
-    <string name="students_sort">क्रमबद्ध करें</string>
     <string name="students_sort_name">नाम से</string>
     <string name="students_sort_debt">देनदार पहले</string>
     <string name="unsaved_save_title">परिवर्तन सहेजें?</string>
@@ -169,7 +168,6 @@
     <string name="class_subject_from_group">समूह विषय निर्धारित करता है</string>
     <string name="class_group_price_label">प्रति विद्यार्थी की फीस</string>
     <string name="class_mark_completed">संपन्न चिह्नित करें</string>
-    <string name="class_status_label">स्थिति</string>
     <string name="class_series_availability">उपलब्ध तिथियाँ: %1$d। पहले से बुक तिथियाँ छोड़ दी जाएँगी।</string>
     <string name="class_attendance_label">उपस्थिति</string>
     <string name="class_attendance_expected">अपेक्षित</string>
@@ -181,7 +179,6 @@
     <string name="class_status_cancelled">रद्द</string>
     <string name="class_status_in_progress">जारी है</string>
     <string name="class_status_overdue">अंकित नहीं</string>
-    <string name="lesson_kind_all">सभी</string>
     <string name="lesson_kind_individual">व्यक्तिगत</string>
     <string name="lesson_kind_group">समूह</string>
     <string name="lesson_kind_individual_one">व्यक्तिगत</string>
@@ -190,7 +187,6 @@
     <string name="students_empty">अभी तक कोई छात्र नहीं</string>
     <string name="students_empty_detail">एक छात्र का एक नाम, उनके विषय और प्रति घंटे की दर होती है। उसके बाद आप पाठ बुक कर सकते हैं और भुगतान ट्रैक कर सकते हैं।</string>
     <string name="students_add">एक छात्र जोड़ें</string>
-    <string name="students_show_archived">संग्रहीत दिखाएं</string>
     <string name="student_archived_badge">संग्रहीत</string>
     <string name="student_add_title">नया छात्र</string>
     <string name="student_edit_title">छात्र संपादित करें</string>
@@ -232,7 +228,6 @@
     <string name="student_payments_title">भुगतान</string>
     <string name="student_last_payment">अंतिम भुगतान %1$s</string>
     <string name="student_lessons_empty">अभी तक कोई पाठ नहीं</string>
-    <string name="student_subject_remove">%1$s निकालें</string>
     <string name="student_subject_remove_confirm">इस विद्यार्थी के विषयों से %1$s हटाएँ? इसकी फीस और फीस का इतिहास मिटा दिया जाएगा।</string>
     <string name="student_classes_title">पाठ</string>
     <string name="student_homework_title">गृहकार्य</string>
@@ -261,7 +256,6 @@
     <string name="balance_settled">कुछ भी बकाया नहीं है</string>
     <string name="balance_credit">अग्रिम भुगतान: %1$s</string>
     <string name="balance_owes">%1$s का बकाया है</string>
-    <string name="price_edit_title">फीस बदलें</string>
     <string name="price_label">दर प्रति घंटा</string>
     <string name="price_per_lesson_hint">%2$s पाठ के लिए %1$s</string>
     <string name="price_per_hour">%1$s/\u2060h</string>
@@ -271,7 +265,6 @@
     <string name="payment_add_short">भुगतान</string>
     <string name="payment_edit_title">भुगतान संपादित करें</string>
     <string name="payment_amount_label">राशि</string>
-    <string name="payment_delete">%2$s पर %1$s का भुगतान हटाएं</string>
     <string name="payment_deleted">भुगतान हटा दिया गया</string>
     <string name="payment_corrected">भुगतान बदल गया</string>
     <string name="payment_undo_changed">तब से भुगतान बदल गया, इसलिए कुछ भी पूर्ववत नहीं किया गया।</string>
@@ -753,7 +746,6 @@
     <string name="reports_best_year">सर्वोत्तम वर्ष: %1$s</string>
     <string name="nav_today">आज</string>
     <string name="today_now">अब</string>
-    <string name="today_next">अगला</string>
     <string name="today_to_mark">समाप्त, लेकिन स्थिति दर्ज नहीं</string>
     <string name="today_mark_all">सभी पढ़ाए गए को चिह्नित करें</string>
     <string name="today_mark_one">मार्क %1$s, %2$s ने पढ़ाया</string>
@@ -778,7 +770,6 @@
     <string name="payment_method_transfer">बैंक ट्रांसफ़र</string>
     <string name="reports_received">प्राप्त हुआ</string>
     <string name="reports_received_hint">इस अवधि में किए गए भुगतान</string>
-    <string name="reports_received_total">भुगतान किया गया</string>
     <string name="payment_method_none">निर्दिष्ट नहीं</string>
     <string name="payment_fill_balance">पूर्ण संतुलन · %1$s</string>
     <string name="payment_fill_lesson">एक पाठ · %1$s</string>
@@ -798,7 +789,6 @@
     <string name="form_gap_price">प्रति घंटे की फीस</string>
     <string name="form_gap_members">सदस्य</string>
     <string name="filter_more">फ़िल्टर</string>
-    <string name="filter_all">सभी</string>
     <plurals name="batch_selected">
         <item quantity="one">%1$d चयनित</item>
         <item quantity="other">%1$d चयनित</item>

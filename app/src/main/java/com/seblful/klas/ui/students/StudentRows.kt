@@ -11,16 +11,13 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import com.seblful.klas.R
 import com.seblful.klas.domain.lesson.LessonPhase
 import com.seblful.klas.domain.model.Payment
-import com.seblful.klas.domain.model.PaymentMethod
 import com.seblful.klas.format.bulletJoin
 import com.seblful.klas.format.formatDate
-import com.seblful.klas.format.toLocalDate
 import com.seblful.klas.queries.students.ClassRow
 import com.seblful.klas.queries.students.SubjectPrice
 import com.seblful.klas.ui.common.BadgeLine

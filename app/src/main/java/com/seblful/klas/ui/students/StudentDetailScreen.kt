@@ -22,9 +22,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.seblful.klas.R
 import com.seblful.klas.domain.model.Assignee
 import com.seblful.klas.domain.model.Payment
-import com.seblful.klas.domain.people.Phone
-import com.seblful.klas.queries.homework.AssigneeChoice
-import com.seblful.klas.queries.homework.HomeworkRow
 import com.seblful.klas.queries.students.ArchiveIntent
 import com.seblful.klas.queries.students.StudentDetails
 import com.seblful.klas.ui.common.AddRow
@@ -33,7 +30,6 @@ import com.seblful.klas.ui.common.ConfirmDialog
 import com.seblful.klas.ui.common.ExternalTarget
 import com.seblful.klas.ui.common.KlasScreen
 import com.seblful.klas.ui.common.LoadingDetailScreen
-import com.seblful.klas.ui.common.LocalCurrency
 import com.seblful.klas.ui.common.NamedIconButton
 import com.seblful.klas.ui.common.OverviewSection
 import com.seblful.klas.ui.common.SectionNote

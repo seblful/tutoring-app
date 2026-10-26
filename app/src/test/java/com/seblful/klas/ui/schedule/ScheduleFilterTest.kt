@@ -47,7 +47,7 @@ class ScheduleFilterTest : ScheduleTestFixture() {
             observing(vm.filter)
             advanceUntilIdle()
 
-            vm.setStudentFilter(ann)
+            vm.setWho(ScheduleWho.Student(ann))
             advanceUntilIdle()
 
             assertEquals("Аня", vm.filter.value.who?.name)
@@ -114,10 +114,10 @@ class ScheduleFilterTest : ScheduleTestFixture() {
         val vm = vm()
         observing(vm.content)
         advanceUntilIdle()
-        vm.setStudentFilter(ann)
+        vm.setWho(ScheduleWho.Student(ann))
         advanceUntilIdle()
 
-        vm.setStudentFilter(null)
+        vm.setWho(null)
         advanceUntilIdle()
 
         assertNull(vm.filter.value.who)
@@ -140,7 +140,7 @@ class ScheduleFilterTest : ScheduleTestFixture() {
         val vm = vm()
         observing(vm.content)
         advanceUntilIdle()
-        vm.setStudentFilter(ann)
+        vm.setWho(ScheduleWho.Student(ann))
         advanceUntilIdle()
 
         val row = vm.dayContent.rows.single()
@@ -164,7 +164,7 @@ class ScheduleFilterTest : ScheduleTestFixture() {
         val vm = vm()
         observing(vm.content)
         advanceUntilIdle()
-        vm.setStudentFilter(ann)
+        vm.setWho(ScheduleWho.Student(ann))
         advanceUntilIdle()
 
         assertTrue(vm.dayContent.rows.isEmpty())
@@ -182,7 +182,7 @@ class ScheduleFilterTest : ScheduleTestFixture() {
 
         assertEquals(2, vm.dayLoads.current[today]?.counts?.get(LessonStatus.SCHEDULED))
 
-        vm.setStudentFilter(ann)
+        vm.setWho(ScheduleWho.Student(ann))
         advanceUntilIdle()
 
         assertEquals(1, vm.dayLoads.current[today]?.counts?.get(LessonStatus.SCHEDULED))
@@ -203,7 +203,7 @@ class ScheduleFilterTest : ScheduleTestFixture() {
         observing(vm.filter)
         advanceUntilIdle()
 
-        vm.setStudentFilter(9999L)
+        vm.setWho(ScheduleWho.Student(9999L))
         advanceUntilIdle()
 
         assertNull(vm.filter.value.who)
@@ -223,7 +223,7 @@ class ScheduleFilterTest : ScheduleTestFixture() {
             observing(vm.filter)
             observing(vm.filterableStudents)
             advanceUntilIdle()
-            vm.setStudentFilter(ann)
+            vm.setWho(ScheduleWho.Student(ann))
             advanceUntilIdle()
 
             env.studentRepo.setArchived(env.studentRepo.getById(ann)!!, archived = true)
@@ -244,7 +244,7 @@ class ScheduleFilterTest : ScheduleTestFixture() {
         advanceUntilIdle()
         assertEquals(ScheduleEmpty.QUIET, vm.emptyReason.value.valueOrNull())
 
-        vm.setStudentFilter(ann)
+        vm.setWho(ScheduleWho.Student(ann))
         advanceUntilIdle()
 
         assertEquals(ScheduleEmpty.FILTERED, vm.emptyReason.value.valueOrNull())

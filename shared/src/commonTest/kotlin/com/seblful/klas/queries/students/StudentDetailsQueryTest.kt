@@ -158,6 +158,6 @@ class StudentDetailsQueryTest {
         assertEquals(Money.ofMajor(35), bySubject.getValue("Алгебра").history.first().to)
         assertEquals(Money.ofMajor(30), bySubject.getValue("Алгебра").history.first().from)
         assertEquals(1, bySubject.getValue("Геометрия").history.size, "geometry never moved")
-        assertTrue(bySubject.getValue("Геометрия").history.single().isInitial)
+        assertTrue(bySubject.getValue("Геометрия").history.single().from == null)
     }
 }

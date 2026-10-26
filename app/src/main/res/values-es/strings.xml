@@ -38,7 +38,6 @@
     <string name="students_search_hint">Buscar estudiantes</string>
     <string name="groups_search_hint">Buscar grupos</string>
     <string name="subjects_search_hint">Nombre de la asignatura</string>
-    <string name="students_sort">Ordenar</string>
     <string name="students_sort_name">Por nombre</string>
     <string name="students_sort_debt">Deudores primero</string>
     <string name="unsaved_save_title">¿Guardar cambios?</string>
@@ -175,7 +174,6 @@
     <string name="class_subject_from_group">El grupo fija el tema</string>
     <string name="class_group_price_label">Tarifa por estudiante</string>
     <string name="class_mark_completed">Marcar como impartida</string>
-    <string name="class_status_label">Estado</string>
     <string name="class_series_availability">Fechas disponibles: %1$d. Se omitirán las fechas ocupadas.</string>
     <string name="class_attendance_label">Asistencia</string>
     <string name="class_attendance_expected">Esperado</string>
@@ -187,7 +185,6 @@
     <string name="class_status_cancelled">Cancelada</string>
     <string name="class_status_in_progress">En curso</string>
     <string name="class_status_overdue">No marcado</string>
-    <string name="lesson_kind_all">Todos</string>
     <string name="lesson_kind_individual">Individuo</string>
     <string name="lesson_kind_group">Grupo</string>
     <string name="lesson_kind_individual_one">Individuo</string>
@@ -196,7 +193,6 @@
     <string name="students_empty">Aún no hay estudiantes</string>
     <string name="students_empty_detail">Un estudiante es un nombre, sus materias y una tarifa por hora. Después de eso, podrás reservar lecciones y realizar un seguimiento de los pagos.</string>
     <string name="students_add">Agregar un estudiante</string>
-    <string name="students_show_archived">Mostrar archivado</string>
     <string name="student_archived_badge">Archivado</string>
     <string name="student_add_title">Nuevo estudiante</string>
     <string name="student_edit_title">Editar estudiante</string>
@@ -241,7 +237,6 @@
     <string name="student_payments_title">Pagos</string>
     <string name="student_last_payment">Último pago %1$s</string>
     <string name="student_lessons_empty">Aún no hay lecciones</string>
-    <string name="student_subject_remove">Eliminar %1$s</string>
     <string name="student_subject_remove_confirm">¿Quitar %1$s de las asignaturas de este estudiante? Se eliminarán la tarifa y su historial.</string>
     <string name="student_classes_title">Lecciones</string>
     <string name="student_homework_title">Tarea</string>
@@ -271,7 +266,6 @@
     <string name="balance_settled">Nada adeudado</string>
     <string name="balance_credit">Saldo a favor: %1$s</string>
     <string name="balance_owes">Debe %1$s</string>
-    <string name="price_edit_title">Cambiar tarifa</string>
     <string name="price_label">Tarifa por hora</string>
     <string name="price_per_lesson_hint">%1$s para una lección de %2$s</string>
     <string name="price_per_hour">%1$s/\u2060hora</string>
@@ -281,7 +275,6 @@
     <string name="payment_add_short">Pago</string>
     <string name="payment_edit_title">Editar pago</string>
     <string name="payment_amount_label">Cantidad</string>
-    <string name="payment_delete">Eliminar pago de %1$s en %2$s</string>
     <string name="payment_deleted">Pago eliminado</string>
     <string name="payment_corrected">Pago cambiado</string>
     <string name="payment_undo_changed">El pago cambió desde entonces, por lo que no se deshizo nada.</string>
@@ -779,7 +772,6 @@
     <string name="reports_best_year">Mejor año: %1$s</string>
     <string name="nav_today">Hoy</string>
     <string name="today_now">Ahora</string>
-    <string name="today_next">Siguiente</string>
     <string name="today_to_mark">Finalizadas, sin estado indicado</string>
     <string name="today_mark_all">Marcar todas como impartidas</string>
     <string name="today_mark_one">Marcar la clase con %1$s, %2$s como impartida</string>
@@ -805,7 +797,6 @@
     <string name="payment_method_transfer">Transferencia bancaria</string>
     <string name="reports_received">Recibido</string>
     <string name="reports_received_hint">Pagos realizados en este período</string>
-    <string name="reports_received_total">Pagado</string>
     <string name="payment_method_none">Sin especificar</string>
     <string name="payment_fill_balance">Saldo total · %1$s</string>
     <string name="payment_fill_lesson">Una lección · %1$s</string>
@@ -825,7 +816,6 @@
     <string name="form_gap_price">Tarifa por hora</string>
     <string name="form_gap_members">miembros</string>
     <string name="filter_more">Filtro</string>
-    <string name="filter_all">Todos</string>
     <plurals name="batch_selected">
         <item quantity="one">%1$d seleccionado</item>
         <item quantity="many">%1$d seleccionado</item>

@@ -99,12 +99,6 @@ object Reports {
         /** The best bucket — what every bar's height is a fraction of, and the one worth naming. */
         val peak: Bar? get() = bars.maxByOrNull { it.total.minor }?.takeUnless { it.total.isZero }
 
-        /**
-         * [bar]'s height as a fraction of [peak], or zero when no income was earned.
-         */
-        fun shareOf(bar: Bar): Float =
-            peak?.let { bar.total.minor.toFloat() / it.total.minor } ?: 0f
-
         /** Nothing a chart could show: no income at all, or a single bucket to compare with itself. */
         val isEmpty: Boolean get() = bars.size < 2 || peak == null
 

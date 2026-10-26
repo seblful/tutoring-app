@@ -8,13 +8,7 @@ import androidx.room.PrimaryKey
 import com.seblful.klas.data.billing.PriceEntity
 import com.seblful.klas.data.lessons.AttendanceEntity
 import com.seblful.klas.data.lessons.LessonEntity
-import com.seblful.klas.domain.model.AppLanguage
-import com.seblful.klas.domain.model.Attended
 import com.seblful.klas.domain.model.ClassMode
-import com.seblful.klas.domain.model.Currency
-import com.seblful.klas.domain.model.LessonStatus
-import com.seblful.klas.domain.model.ThemeChoice
-import com.seblful.klas.domain.reminders.Reminders
 import kotlinx.serialization.Serializable
 
 @Serializable

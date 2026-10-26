@@ -423,7 +423,7 @@ fun OnboardingScreen(
                             )
                         } else {
                             LazyColumn(Modifier.weight(1f)) {
-                                items(added, key = { it.id }) { subject ->
+                                items(added, key = { it.id }, contentType = { "subject" }) { subject ->
                                     // Each one can be taken back. The list was read-only, so a typo in the
                                     // step whose only gate is "at least one subject" could be *finished
                                     // with* but not fixed — the tutor had to skip setup to reach the screen

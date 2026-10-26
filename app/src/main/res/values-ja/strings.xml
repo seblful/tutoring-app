@@ -36,7 +36,6 @@
     <string name="students_search_hint">生徒を検索する</string>
     <string name="groups_search_hint">検索グループ</string>
     <string name="subjects_search_hint">科目名</string>
-    <string name="students_sort">並べ替え</string>
     <string name="students_sort_name">名前で</string>
     <string name="students_sort_debt">債務者第一</string>
     <string name="unsaved_save_title">変更を保存しますか?</string>
@@ -163,7 +162,6 @@
     <string name="class_subject_from_group">グループが科目を設定します</string>
     <string name="class_group_price_label">生徒1人あたりの時間単価</string>
     <string name="class_mark_completed">実施済みにする</string>
-    <string name="class_status_label">ステータス</string>
     <string name="class_series_availability">空いている日程：%1$d件。予約済みの日程はスキップします。</string>
     <string name="class_attendance_label">出欠</string>
     <string name="class_attendance_expected">期待される</string>
@@ -175,7 +173,6 @@
     <string name="class_status_cancelled">キャンセル済み</string>
     <string name="class_status_in_progress">実施中</string>
     <string name="class_status_overdue">マークなし</string>
-    <string name="lesson_kind_all">すべて</string>
     <string name="lesson_kind_individual">個人</string>
     <string name="lesson_kind_group">グループ</string>
     <string name="lesson_kind_individual_one">個人</string>
@@ -184,7 +181,6 @@
     <string name="students_empty">生徒はまだいません</string>
     <string name="students_empty_detail">学生とは、名前、科目、および時間当たりの料金です。その後、レッスンを予約し、支払いを追跡することができます。</string>
     <string name="students_add">生徒を追加する</string>
-    <string name="students_show_archived">番組がアーカイブされました</string>
     <string name="student_archived_badge">アーカイブ済み</string>
     <string name="student_add_title">新入生</string>
     <string name="student_edit_title">学生を編集する</string>
@@ -223,7 +219,6 @@
     <string name="student_payments_title">支払い</string>
     <string name="student_last_payment">最終支払い %1$s</string>
     <string name="student_lessons_empty">レッスンはまだありません</string>
-    <string name="student_subject_remove">%1$s を削除</string>
     <string name="student_subject_remove_confirm">この生徒の科目から%1$sを削除しますか？時間単価とその履歴が削除されます。</string>
     <string name="student_classes_title">レッスン</string>
     <string name="student_homework_title">宿題</string>
@@ -251,7 +246,6 @@
     <string name="balance_settled">何も負っていない</string>
     <string name="balance_credit">前払い残高: %1$s</string>
     <string name="balance_owes">%1$s の未払い金があります</string>
-    <string name="price_edit_title">時間単価を変更</string>
     <string name="price_label">時間あたりの料金</string>
     <string name="price_per_lesson_hint">%1$s %2$s レッスン用</string>
     <string name="price_per_hour">%1$s/\u2060h</string>
@@ -261,7 +255,6 @@
     <string name="payment_add_short">支払い</string>
     <string name="payment_edit_title">支払いの編集</string>
     <string name="payment_amount_label">金額</string>
-    <string name="payment_delete">%2$s での %1$s の支払いを削除します</string>
     <string name="payment_deleted">支払いが削除されました</string>
     <string name="payment_corrected">支払いが変更されました</string>
     <string name="payment_undo_changed">その後支払いが変更されたため、何も取り消されませんでした。</string>
@@ -727,7 +720,6 @@
     <string name="reports_best_year">最高の年: %1$s</string>
     <string name="nav_today">今日</string>
     <string name="today_now">今</string>
-    <string name="today_next">次へ</string>
     <string name="today_to_mark">終了・状態未記録</string>
     <string name="today_mark_all">教えられたすべてにマークを付ける</string>
     <string name="today_mark_one">マーク %1$s、%2$s が教えました</string>
@@ -751,7 +743,6 @@
     <string name="payment_method_transfer">銀行振込</string>
     <string name="reports_received">受け取りました</string>
     <string name="reports_received_hint">この期間に行われた支払い</string>
-    <string name="reports_received_total">支払い済み</string>
     <string name="payment_method_none">未指定</string>
     <string name="payment_fill_balance">フルバランス・%1$s</string>
     <string name="payment_fill_lesson">1 レッスン · %1$s</string>
@@ -771,7 +762,6 @@
     <string name="form_gap_price">時間単価</string>
     <string name="form_gap_members">のメンバー</string>
     <string name="filter_more">フィルター</string>
-    <string name="filter_all">すべて</string>
     <plurals name="batch_selected">
         <item quantity="other">%1$d が選択されました</item>
     </plurals>

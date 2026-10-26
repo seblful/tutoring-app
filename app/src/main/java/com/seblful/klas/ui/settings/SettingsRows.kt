@@ -2,15 +2,10 @@ package com.seblful.klas.ui.settings
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
-import androidx.compose.material3.ListItemColors
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
@@ -37,8 +32,6 @@ import com.seblful.klas.ui.common.ChoiceRow
 import com.seblful.klas.ui.common.DialogRadioRow
 import com.seblful.klas.ui.common.DisabledAlpha
 import com.seblful.klas.ui.common.MoneyTextField
-import com.seblful.klas.ui.common.SectionCard
-import com.seblful.klas.ui.common.SectionTitle
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.TimePickerModal
 import com.seblful.klas.ui.common.durationLabel
@@ -50,7 +43,6 @@ import com.seblful.klas.ui.common.timeText
 import com.seblful.klas.ui.designsystem.component.ChoiceDialog
 import com.seblful.klas.ui.designsystem.component.DialogAction
 import com.seblful.klas.ui.designsystem.component.FormDialog
-import com.seblful.klas.ui.designsystem.component.SettingsGroup
 import com.seblful.klas.ui.designsystem.component.settingsRowColors
 import com.seblful.klas.ui.theme.KlasIcons
 import kotlinx.datetime.DayOfWeek

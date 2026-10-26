@@ -37,7 +37,6 @@
     <string name="students_search_hint">Hae opiskelijoita</string>
     <string name="groups_search_hint">Hae ryhmiä</string>
     <string name="subjects_search_hint">Oppiaineen nimi</string>
-    <string name="students_sort">Lajittele</string>
     <string name="students_sort_name">Nimen mukaan</string>
     <string name="students_sort_debt">Velalliset ensin</string>
     <string name="unsaved_save_title">Tallennetaanko muutokset?</string>
@@ -169,7 +168,6 @@
     <string name="class_subject_from_group">Ryhmä asettaa aiheen</string>
     <string name="class_group_price_label">Tuntihinta oppilasta kohden</string>
     <string name="class_mark_completed">Merkitse pidetyksi</string>
-    <string name="class_status_label">Tila</string>
     <string name="class_series_availability">Vapaita päiviä: %1$d. Varatut päivät ohitetaan.</string>
     <string name="class_attendance_label">Läsnäolo</string>
     <string name="class_attendance_expected">Odotettu</string>
@@ -181,7 +179,6 @@
     <string name="class_status_cancelled">Peruttu</string>
     <string name="class_status_in_progress">Käynnissä</string>
     <string name="class_status_overdue">Ei merkitty</string>
-    <string name="lesson_kind_all">Kaikki</string>
     <string name="lesson_kind_individual">Yksilö</string>
     <string name="lesson_kind_group">ryhmä</string>
     <string name="lesson_kind_individual_one">Yksilö</string>
@@ -190,7 +187,6 @@
     <string name="students_empty">Ei vielä opiskelijoita</string>
     <string name="students_empty_detail">Opiskelija on nimi, oppiaineet ja tuntihinta. Sen jälkeen voit varata oppitunteja ja seurata maksuja.</string>
     <string name="students_add">Lisää opiskelija</string>
-    <string name="students_show_archived">Näytä arkistoitu</string>
     <string name="student_archived_badge">Arkistoitu</string>
     <string name="student_add_title">Uusi opiskelija</string>
     <string name="student_edit_title">Muokkaa opiskelijaa</string>
@@ -232,7 +228,6 @@
     <string name="student_payments_title">Maksut</string>
     <string name="student_last_payment">Viimeinen maksu %1$s</string>
     <string name="student_lessons_empty">Ei vielä oppitunteja</string>
-    <string name="student_subject_remove">Poista %1$s</string>
     <string name="student_subject_remove_confirm">Poistetaanko %1$s tältä oppilaalta? Tuntihinta ja sen historia poistetaan.</string>
     <string name="student_classes_title">Oppitunnit</string>
     <string name="student_homework_title">Kotitehtävä</string>
@@ -261,7 +256,6 @@
     <string name="balance_settled">Ei mitään velkaa</string>
     <string name="balance_credit">Ennakkomaksu: %1$s</string>
     <string name="balance_owes">Velkaa %1$s</string>
-    <string name="price_edit_title">Muuta tuntihintaa</string>
     <string name="price_label">Tuntinopeus</string>
     <string name="price_per_lesson_hint">%1$s %2$s-tunnille</string>
     <string name="price_per_hour">%1$s/\u2060h</string>
@@ -271,7 +265,6 @@
     <string name="payment_add_short">Maksu</string>
     <string name="payment_edit_title">Muokkaa maksua</string>
     <string name="payment_amount_label">Määrä</string>
-    <string name="payment_delete">Poista %1$s maksu %2$s</string>
     <string name="payment_deleted">Maksu poistettu</string>
     <string name="payment_corrected">Maksu muutettu</string>
     <string name="payment_undo_changed">Maksu muuttui sen jälkeen, joten mitään ei peruttu.</string>
@@ -753,7 +746,6 @@
     <string name="reports_best_year">Paras vuosi: %1$s</string>
     <string name="nav_today">Tänään</string>
     <string name="today_now">Nyt</string>
-    <string name="today_next">Seuraava</string>
     <string name="today_to_mark">Päättyneet ilman tilamerkintää</string>
     <string name="today_mark_all">Merkitse kaikki opetetut</string>
     <string name="today_mark_one">Mark %1$s, %2$s opetti</string>
@@ -778,7 +770,6 @@
     <string name="payment_method_transfer">Tilisiirto</string>
     <string name="reports_received">Vastaanotettu</string>
     <string name="reports_received_hint">Tänä aikana suoritetut maksut</string>
-    <string name="reports_received_total">Maksettu</string>
     <string name="payment_method_none">Ei määritetty</string>
     <string name="payment_fill_balance">Täysi saldo · %1$s</string>
     <string name="payment_fill_lesson">Yksi oppitunti · %1$s</string>
@@ -798,7 +789,6 @@
     <string name="form_gap_price">Tuntihinta</string>
     <string name="form_gap_members">jäseniä</string>
     <string name="filter_more">Suodatin</string>
-    <string name="filter_all">Kaikki</string>
     <plurals name="batch_selected">
         <item quantity="one">%1$d valittu</item>
         <item quantity="other">%1$d valittu</item>

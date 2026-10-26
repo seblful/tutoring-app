@@ -6,7 +6,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 
 /**
- * The guarded-write tail: [block] launched into [this] â€” the injected `@ApplicationScope` â€” with a
+ * The guarded-write tail: [block] launched into [this] — the injected `@ApplicationScope` — with a
  * failure reported to the screen as [failure] rather than thrown.
  */
 fun <E, T> CoroutineScope.write(
@@ -23,7 +23,7 @@ fun <E, T> CoroutineScope.write(
 }
 
 /**
- * [block] run in [this] â€” the injected `@ApplicationScope` â€” and **awaited** by the caller, which is a
+ * [block] run in [this] — the injected `@ApplicationScope` — and **awaited** by the caller, which is a
  * coroutine in `viewModelScope` with something to do once the write is in: navigate away, tick what was
  * just made, raise a dialog.
  */

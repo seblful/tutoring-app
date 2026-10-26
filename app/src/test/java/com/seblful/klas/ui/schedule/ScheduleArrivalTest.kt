@@ -103,7 +103,7 @@ class ScheduleArrivalTest : ScheduleTestFixture() {
         val vm = vm()
         observing(vm.filter)
         observing(vm.askedSheet)
-        vm.setStudentFilter(ann)
+        vm.setWho(ScheduleWho.Student(ann))
         advanceUntilIdle()
 
         vm.arrive(Arrival(ScheduleTarget.Lesson(bobs)))

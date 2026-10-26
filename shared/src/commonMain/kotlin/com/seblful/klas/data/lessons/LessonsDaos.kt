@@ -1,9 +1,6 @@
 package com.seblful.klas.data.lessons
 
 import androidx.room.Dao
-import androidx.room.Delete
-import androidx.room.Insert
-import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
 import androidx.room.Upsert
@@ -107,15 +104,12 @@ interface ClassDao {
      */
     @Query(
         "$CLASS_ROWS WHERE l.startMillis >= :fromMillis AND l.startMillis < :toMillis " +
-            "AND l.startMillis + l.durationMinutes * 60000 > :nowMillis ORDER BY l.startMillis",
+            "AND $ENDS > :nowMillis ORDER BY l.startMillis",
     )
     suspend fun notEndedBefore(fromMillis: Long, nowMillis: Long, toMillis: Long): List<ClassRow>
 
     /** Every class of the lessons [LessonDao.countDueForCompletion] counts — one read, not one per lesson. */
-    @Query(
-        "$CLASS_ROWS WHERE l.status = 'SCHEDULED' AND (l.startMillis + l.durationMinutes * 60000) <= :nowMillis " +
-            "ORDER BY a.id",
-    )
+    @Query("$CLASS_ROWS WHERE $DUE ORDER BY a.id")
     suspend fun dueForCompletion(nowMillis: Long): List<ClassRow>
 
     /**
@@ -172,10 +166,6 @@ interface ClassDao {
     @Query("$CLASS_ROWS WHERE l.groupId = :groupId AND l.status = 'SCHEDULED'")
     suspend fun scheduledForGroup(groupId: Long): List<ClassRow>
 
-    /** The next class in a scheduled lesson starting after [nowMillis], for the reminder. */
-    @Query("$CLASS_ROWS WHERE l.status = 'SCHEDULED' AND l.startMillis > :nowMillis ORDER BY l.startMillis LIMIT 1")
-    suspend fun nextScheduledAfter(nowMillis: Long): ClassRow?
-
     /**
      * Who was taught last, most recent first, up to [limit]: each student's last individual lesson over
      * by [nowMillis] and each group's, cancelled ones aside. Exactly one of a row's two ids is set.
@@ -205,10 +195,7 @@ interface ClassDao {
 @Dao
 interface LessonDao {
     /** How many lessons still planned end at or before [nowMillis] — due for auto-completion. */
-    @Query(
-        "SELECT COUNT(*) FROM lessons WHERE status = 'SCHEDULED' " +
-            "AND (startMillis + durationMinutes * 60000) <= :nowMillis",
-    )
+    @Query("SELECT COUNT(*) FROM lessons l WHERE $DUE")
     suspend fun countDueForCompletion(nowMillis: Long): Int
 
     /** How many lessons are taught on [subjectId] — used to block deleting a subject with history. */
@@ -294,12 +281,17 @@ data class LessonSpan(val ownerId: Long, val nextMillis: Long?, val lastMillis: 
 /** A student's or a group's last lesson — see [ClassDao.observeRecentlyTaught]. */
 data class RecentlyTaught(val studentId: Long?, val groupId: Long?, val lastMillis: Long)
 
+/** When a lesson (aliased `l`) is over. */
+private const val ENDS: String = "(l.startMillis + l.durationMinutes * 60000)"
+
 /** A lesson that happened, or was due to: not cancelled, and over by `:nowMillis`. */
-private const val TAUGHT: String =
-    "l.status != 'CANCELLED' AND l.startMillis + l.durationMinutes * 60000 <= :nowMillis"
+private const val TAUGHT: String = "l.status != 'CANCELLED' AND $ENDS <= :nowMillis"
+
+/** Scheduled and over by `:nowMillis`: the lessons auto-completion settles, and the count it announces. */
+private const val DUE: String = "l.status = 'SCHEDULED' AND $ENDS <= :nowMillis"
 
 private const val SPAN: String =
-    "MIN(CASE WHEN l.status != 'CANCELLED' AND l.startMillis + l.durationMinutes * 60000 > :nowMillis " +
+    "MIN(CASE WHEN l.status != 'CANCELLED' AND $ENDS > :nowMillis " +
         "THEN l.startMillis END) AS nextMillis, " +
-        "MAX(CASE WHEN l.status != 'CANCELLED' AND l.startMillis + l.durationMinutes * 60000 <= :nowMillis " +
+        "MAX(CASE WHEN $TAUGHT " +
         "THEN l.startMillis END) AS lastMillis"

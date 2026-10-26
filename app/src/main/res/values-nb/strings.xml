@@ -37,7 +37,6 @@
     <string name="students_search_hint">Søk etter studenter</string>
     <string name="groups_search_hint">Søk etter grupper</string>
     <string name="subjects_search_hint">Fagnavn</string>
-    <string name="students_sort">Sorter</string>
     <string name="students_sort_name">Ved navn</string>
     <string name="students_sort_debt">Debitorer først</string>
     <string name="unsaved_save_title">Vil du lagre endringer?</string>
@@ -169,7 +168,6 @@
     <string name="class_subject_from_group">Gruppen setter emnet</string>
     <string name="class_group_price_label">Timepris per elev</string>
     <string name="class_mark_completed">Merk som gjennomført</string>
-    <string name="class_status_label">Status</string>
     <string name="class_series_availability">Ledige datoer: %1$d. Opptatte datoer hoppes over.</string>
     <string name="class_attendance_label">Oppmøte</string>
     <string name="class_attendance_expected">Forventet</string>
@@ -181,7 +179,6 @@
     <string name="class_status_cancelled">Avlyst</string>
     <string name="class_status_in_progress">Pågår</string>
     <string name="class_status_overdue">Ikke merket</string>
-    <string name="lesson_kind_all">Alle</string>
     <string name="lesson_kind_individual">Individuelt</string>
     <string name="lesson_kind_group">Gruppe</string>
     <string name="lesson_kind_individual_one">Individuelt</string>
@@ -190,7 +187,6 @@
     <string name="students_empty">Ingen studenter ennå</string>
     <string name="students_empty_detail">En student er et navn, deres fag og en timepris. Etter det kan du bestille leksjoner og spore betalinger.</string>
     <string name="students_add">Legg til en student</string>
-    <string name="students_show_archived">Vis arkivert</string>
     <string name="student_archived_badge">Arkivert</string>
     <string name="student_add_title">Ny student</string>
     <string name="student_edit_title">Rediger elev</string>
@@ -232,7 +228,6 @@
     <string name="student_payments_title">Betalinger</string>
     <string name="student_last_payment">Siste betaling %1$s</string>
     <string name="student_lessons_empty">Ingen leksjoner ennå</string>
-    <string name="student_subject_remove">Fjern %1$s</string>
     <string name="student_subject_remove_confirm">Fjerne %1$s fra denne eleven? Timeprisen og historikken slettes.</string>
     <string name="student_classes_title">Leksjoner</string>
     <string name="student_homework_title">Lekser</string>
@@ -261,7 +256,6 @@
     <string name="balance_settled">Ingenting skyldtes</string>
     <string name="balance_credit">Til gode: %1$s</string>
     <string name="balance_owes">Skylder %1$s</string>
-    <string name="price_edit_title">Endre timepris</string>
     <string name="price_label">Pris per time</string>
     <string name="price_per_lesson_hint">%1$s for en %2$s-leksjon</string>
     <string name="price_per_hour">%1$s/\u2060t</string>
@@ -271,7 +265,6 @@
     <string name="payment_add_short">Betaling</string>
     <string name="payment_edit_title">Rediger betaling</string>
     <string name="payment_amount_label">Beløp</string>
-    <string name="payment_delete">Slett betaling av %1$s på %2$s</string>
     <string name="payment_deleted">Betaling slettet</string>
     <string name="payment_corrected">Betaling endret</string>
     <string name="payment_undo_changed">Betalingen har endret seg siden, så ingenting ble angret.</string>
@@ -753,7 +746,6 @@
     <string name="reports_best_year">Beste år: %1$s</string>
     <string name="nav_today">I dag</string>
     <string name="today_now">Nå</string>
-    <string name="today_next">Neste</string>
     <string name="today_to_mark">Avsluttet, men ikke markert</string>
     <string name="today_mark_all">Merk alle underviste</string>
     <string name="today_mark_one">Mark %1$s, %2$s lærte</string>
@@ -778,7 +770,6 @@
     <string name="payment_method_transfer">Bankoverføring</string>
     <string name="reports_received">Mottatt</string>
     <string name="reports_received_hint">Utbetalinger i denne perioden</string>
-    <string name="reports_received_total">Innbetalt</string>
     <string name="payment_method_none">Ikke oppgitt</string>
     <string name="payment_fill_balance">Full balanse · %1$s</string>
     <string name="payment_fill_lesson">Én leksjon · %1$s</string>
@@ -798,7 +789,6 @@
     <string name="form_gap_price">Timepris</string>
     <string name="form_gap_members">medlemmer</string>
     <string name="filter_more">Filter</string>
-    <string name="filter_all">Alle</string>
     <plurals name="batch_selected">
         <item quantity="one">%1$d valgt</item>
         <item quantity="other">%1$d valgt</item>

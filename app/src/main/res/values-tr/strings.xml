@@ -37,7 +37,6 @@
     <string name="students_search_hint">Öğrencileri arayın</string>
     <string name="groups_search_hint">Grupları ara</string>
     <string name="subjects_search_hint">Ders adı</string>
-    <string name="students_sort">Sırala</string>
     <string name="students_sort_name">Ada göre</string>
     <string name="students_sort_debt">Önce borçlular</string>
     <string name="unsaved_save_title">Değişiklikler kaydedilsin mi?</string>
@@ -169,7 +168,6 @@
     <string name="class_subject_from_group">Grup konuyu belirler</string>
     <string name="class_group_price_label">Öğrenci başına saat ücreti</string>
     <string name="class_mark_completed">Yapıldı olarak işaretle</string>
-    <string name="class_status_label">Durum</string>
     <string name="class_series_availability">Boş tarihler: %1$d. Dolu tarihler atlanacak.</string>
     <string name="class_attendance_label">Yoklama</string>
     <string name="class_attendance_expected">Beklenen</string>
@@ -181,7 +179,6 @@
     <string name="class_status_cancelled">İptal edildi</string>
     <string name="class_status_in_progress">Devam ediyor</string>
     <string name="class_status_overdue">İşaretlenmemiş</string>
-    <string name="lesson_kind_all">Hepsi</string>
     <string name="lesson_kind_individual">Bireysel</string>
     <string name="lesson_kind_group">Grup</string>
     <string name="lesson_kind_individual_one">Bireysel</string>
@@ -190,7 +187,6 @@
     <string name="students_empty">Henüz öğrenci yok</string>
     <string name="students_empty_detail">Bir öğrencinin adı, konuları ve saat başına oranıdır. Bundan sonra ders rezervasyonu yapabilir ve ödemeleri takip edebilirsiniz.</string>
     <string name="students_add">Bir öğrenci ekle</string>
-    <string name="students_show_archived">Gösteri arşivlendi</string>
     <string name="student_archived_badge">Arşivlendi</string>
     <string name="student_add_title">Yeni öğrenci</string>
     <string name="student_edit_title">Öğrenciyi düzenle</string>
@@ -232,7 +228,6 @@
     <string name="student_payments_title">Ödemeler</string>
     <string name="student_last_payment">Son ödeme %1$s</string>
     <string name="student_lessons_empty">Henüz ders yok</string>
-    <string name="student_subject_remove">%1$s\'yi kaldır</string>
     <string name="student_subject_remove_confirm">%1$s bu öğrencinin ders konularından kaldırılsın mı? Saat ücreti ve ücret geçmişi silinecek.</string>
     <string name="student_classes_title">Dersler</string>
     <string name="student_homework_title">Ödev</string>
@@ -261,7 +256,6 @@
     <string name="balance_settled">Hiçbir borcum yok</string>
     <string name="balance_credit">Fazla ödeme: %1$s</string>
     <string name="balance_owes">%1$s\'ye borçluyuz</string>
-    <string name="price_edit_title">Saat ücretini değiştir</string>
     <string name="price_label">Saat başına ücret</string>
     <string name="price_per_lesson_hint">%1$s, %2$s dersi için</string>
     <string name="price_per_hour">%1$s/\u2060h</string>
@@ -271,7 +265,6 @@
     <string name="payment_add_short">Ödeme</string>
     <string name="payment_edit_title">Ödemeyi düzenle</string>
     <string name="payment_amount_label">Tutar</string>
-    <string name="payment_delete">%2$s\'deki %1$s ödemesini sil</string>
     <string name="payment_deleted">Ödeme silindi</string>
     <string name="payment_corrected">Ödeme değiştirildi</string>
     <string name="payment_undo_changed">O zamandan beri ödeme değişti, dolayısıyla hiçbir şey geri alınmadı.</string>
@@ -753,7 +746,6 @@
     <string name="reports_best_year">En iyi yıl: %1$s</string>
     <string name="nav_today">Bugün</string>
     <string name="today_now">Şimdi</string>
-    <string name="today_next">Sonraki</string>
     <string name="today_to_mark">Bitmiş, henüz işaretlenmemiş</string>
     <string name="today_mark_all">Tümünü yapıldı olarak işaretle</string>
     <string name="today_mark_one">%1$s ile %2$s dersini yapıldı olarak işaretle</string>
@@ -778,7 +770,6 @@
     <string name="payment_method_transfer">Banka havalesi</string>
     <string name="reports_received">Alındı</string>
     <string name="reports_received_hint">Bu dönemde yapılan ödemeler</string>
-    <string name="reports_received_total">Ödendi</string>
     <string name="payment_method_none">Belirtilmedi</string>
     <string name="payment_fill_balance">Tam bakiye · %1$s</string>
     <string name="payment_fill_lesson">Bir ders · %1$s</string>
@@ -798,7 +789,6 @@
     <string name="form_gap_price">Saat ücreti</string>
     <string name="form_gap_members">üye</string>
     <string name="filter_more">Filtre</string>
-    <string name="filter_all">Hepsi</string>
     <plurals name="batch_selected">
         <item quantity="one">%1$d seçildi</item>
         <item quantity="other">%1$d seçildi</item>
