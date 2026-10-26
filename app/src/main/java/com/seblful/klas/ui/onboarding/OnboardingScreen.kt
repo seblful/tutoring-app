@@ -287,8 +287,8 @@ fun OnboardingScreen(
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 verticalArrangement = Arrangement.spacedBy(Spacing.itemGap, Alignment.CenterVertically),
                             ) {
-                                KlasLogo(Modifier.size(96.dp))
-                                KlasWordmark(Modifier.width(160.dp).height(64.dp))
+                                KlasLogo(Modifier.size(LogoSize))
+                                KlasWordmark(Modifier.width(WordmarkWidth).height(WordmarkHeight))
                                 Text(
                                     stringResource(R.string.onboarding_tagline),
                                     style = MaterialTheme.typography.bodyLarge,
@@ -568,6 +568,11 @@ private val SubjectRowHeight = MinTouchTarget
 
 private val LocaleRowHeight = 88.dp
 
+private val LogoSize = 96.dp
+private val WordmarkWidth = 160.dp
+private val WordmarkHeight = 64.dp
+private val BulletIconSize = 20.dp
+
 @Composable
 private fun ValueLine(icon: ImageVector, text: String) {
     Row(
@@ -579,7 +584,7 @@ private fun ValueLine(icon: ImageVector, text: String) {
             icon,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(20.dp),
+            modifier = Modifier.size(BulletIconSize),
         )
         Text(text, style = MaterialTheme.typography.bodyMedium)
     }

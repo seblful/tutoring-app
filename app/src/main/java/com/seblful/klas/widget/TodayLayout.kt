@@ -70,7 +70,7 @@ internal fun TodayLayout(
     openLesson: (classId: Long) -> Action,
     markTaught: (classId: Long) -> Action,
 ) {
-    val showTitleBar = LocalSize.current.height >= 180.dp
+    val showTitleBar = LocalSize.current.height >= TitleBarMinHeight
     Scaffold(
         backgroundColor = GlanceTheme.colors.widgetBackground,
         horizontalPadding = 0.dp,
@@ -178,7 +178,10 @@ private fun LessonRow(row: TodayRow, texts: TodayTexts, open: Action, markTaught
 
 /** Below the sample's first width breakpoint: smaller titles, and no title in the title bar. */
 @Composable
-private fun isSmall(): Boolean = LocalSize.current.width < 260.dp
+private fun isSmall(): Boolean = LocalSize.current.width < SmallWidth
+
+private val TitleBarMinHeight = 180.dp
+private val SmallWidth = 260.dp
 
 @OptIn(ExperimentalGlancePreviewApi::class)
 @Preview(widthDp = 172, heightDp = 234)

@@ -26,6 +26,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.seblful.klas.ui.common.MinTouchTarget
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.theme.KlasIcons
 
@@ -124,6 +125,6 @@ internal val StartButtonSize = 56.dp
 
 internal const val STEP_VALUE_TAG = "step_value"
 
-private val RowButtonSize = 48.dp
+private val RowButtonSize = MinTouchTarget
 private val StepIconSize = 20.dp
 private val MinValueSize = 16.dp

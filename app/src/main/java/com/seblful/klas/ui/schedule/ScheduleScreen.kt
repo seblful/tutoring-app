@@ -489,7 +489,7 @@ fun ScheduleScreen(
                                         whole = ScheduleEmptySpan.WEEK,
                                         onAddClass = addClass,
                                         onAddStudent = onAddStudent,
-                                        minHeight = 200.dp,
+                                        minHeight = WeekEmptyMinHeight,
                                     )
                                 }
                             } else {
@@ -758,7 +758,7 @@ private fun LazyListScope.dayList(
                 whole = ScheduleEmptySpan.DAY,
                 onAddClass = onAddClass,
                 onAddStudent = onAddStudent,
-                minHeight = 260.dp,
+                minHeight = DayEmptyMinHeight,
             )
         }
     } else {
@@ -824,6 +824,10 @@ private fun viewModeLabel(mode: ScheduleViewMode): Int = when (mode) {
 
 /** A month grid's own width beside the day it opens: Material's fixed supporting pane. */
 private val CalendarPaneWidth = 360.dp
+
+private val WeekEmptyMinHeight = 200.dp
+
+private val DayEmptyMinHeight = 260.dp
 
 private typealias UndoableChange = ScheduleViewModel.Undoable.Change
 

@@ -737,7 +737,7 @@ private fun ColumnScope.ComparisonLine(state: Reports.Report) {
                     KlasIcons.Filled.TrendingDown
                 },
                 contentDescription = null,
-                modifier = Modifier.size(16.dp),
+                modifier = Modifier.size(TrendIconSize),
             )
             Spacer(Modifier.width(Spacing.tight))
         }
@@ -795,7 +795,7 @@ private fun PeakLegend(text: String) {
     ) {
         Box(
             Modifier
-                .size(PeakSwatch)
+                .size(LegendSwatch)
                 .clip(MaterialTheme.shapes.extraSmall)
                 .background(MaterialTheme.colorScheme.primary),
         )
@@ -803,7 +803,13 @@ private fun PeakLegend(text: String) {
     }
 }
 
-private val PeakSwatch = 10.dp
+private val LegendSwatch = 10.dp
+
+private val TrendIconSize = 16.dp
+
+private val KindBarHeight = 12.dp
+
+private val ProgressBarHeight = 6.dp
 
 @Composable
 private fun IncomeTrendChart(trend: Reports.Trend, labelOf: (Reports.Trend.Bar) -> String) {
@@ -862,7 +868,7 @@ private fun IncomeTrendChart(trend: Reports.Trend, labelOf: (Reports.Trend.Bar) 
 @Composable
 private fun KindSplitCard(lines: List<Reports.KindLine>) {
     ReportCard(stringResource(R.string.reports_by_kind)) {
-        Row(Modifier.fillMaxWidth().height(12.dp).clip(CircleShape)) {
+        Row(Modifier.fillMaxWidth().height(KindBarHeight).clip(CircleShape)) {
             lines.forEach { line ->
                 Box(
                     Modifier
@@ -875,7 +881,7 @@ private fun KindSplitCard(lines: List<Reports.KindLine>) {
         }
         lines.forEach { line ->
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(Modifier.size(10.dp).clip(CircleShape).background(lessonKindFill(line.kind)))
+                Box(Modifier.size(LegendSwatch).clip(CircleShape).background(lessonKindFill(line.kind)))
                 Spacer(Modifier.width(Spacing.inline))
                 Text(
                     lessonKindLabel(line.kind),
@@ -926,7 +932,7 @@ internal fun RankedBar(fraction: Float, modifier: Modifier = Modifier) {
     val fill = MaterialTheme.colorScheme.primary
     val shown = animateBarShare(fraction)
     Spacer(
-        modifier.height(6.dp).drawBehind {
+        modifier.height(ProgressBarHeight).drawBehind {
             drawRoundRect(track, cornerRadius = CornerRadius(size.height / 2))
             val filled = Size((size.width * shown.value.coerceIn(0f, 1f)).roundToInt().toFloat(), size.height)
             drawRoundRect(fill, size = filled, cornerRadius = CornerRadius(filled.minDimension / 2))
