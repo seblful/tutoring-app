@@ -7,8 +7,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.rememberTextMeasurer
 import com.seblful.klas.format.bulletJoin
 
@@ -17,12 +15,9 @@ import com.seblful.klas.format.bulletJoin
  * across two, as «In person» was when wrapped with the phone before it.
  */
 @Composable
-fun FactsLine(
-    parts: List<String>,
-    modifier: Modifier = Modifier,
-    style: TextStyle = MaterialTheme.typography.bodyMedium,
-    color: Color = MaterialTheme.colorScheme.onSurfaceVariant,
-) {
+fun FactsLine(parts: List<String>, modifier: Modifier = Modifier) {
+    val style = MaterialTheme.typography.bodyMedium
+    val color = MaterialTheme.colorScheme.onSurfaceVariant
     val shown = parts.filter { it.isNotBlank() }
     val joined = bulletJoin(shown)
     val measurer = rememberTextMeasurer()

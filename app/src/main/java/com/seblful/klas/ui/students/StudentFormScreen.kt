@@ -120,7 +120,6 @@ fun StudentFormContent(
     state: StudentFormViewModel.UiState,
     viewModel: StudentFormViewModel,
     modifier: Modifier = Modifier,
-    bottomInset: PaddingValues = PaddingValues(),
     contacts: Boolean = true,
 ) {
     val form = state.form
@@ -133,7 +132,6 @@ fun StudentFormContent(
             // belt-and-braces copy for an embedding that has not, and a no-op for the two that have.
             .imePadding()
             .verticalScroll(rememberScrollState())
-            .padding(bottomInset)
             .padding(Spacing.gutter),
         verticalArrangement = Arrangement.spacedBy(Spacing.itemGap),
     ) {

@@ -17,12 +17,11 @@ import com.seblful.klas.format.formatDate
 
 /**
  * A rate's recorded history, newest first — shared by a student's subject rows and a group's rate,
- * because "what did this cost before?" is one question however it is owned.
- *
- * @param max how many rows to draw before collapsing the remainder into a count.
+ * because "what did this cost before?" is one question however it is owned. Older changes past the
+ * newest few collapse into a count.
  */
 @Composable
-fun RateHistoryList(changes: List<RateChange>, modifier: Modifier = Modifier, max: Int = MaxRateRows) {
+fun RateHistoryList(changes: List<RateChange>, modifier: Modifier = Modifier) {
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.tight)) {
         if (changes.isEmpty()) {
             Text(
@@ -31,8 +30,8 @@ fun RateHistoryList(changes: List<RateChange>, modifier: Modifier = Modifier, ma
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         } else {
-            changes.take(max).forEach { RateChangeRow(it) }
-            val older = changes.size - max
+            changes.take(MaxRateRows).forEach { RateChangeRow(it) }
+            val older = changes.size - MaxRateRows
             if (older > 0) {
                 Text(
                     pluralStringResource(R.plurals.rate_history_older, older, older),

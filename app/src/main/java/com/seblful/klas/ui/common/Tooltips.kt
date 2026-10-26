@@ -42,7 +42,7 @@ fun HoldToName(name: String, above: Boolean = false, content: @Composable () -> 
  * An icon button that **names itself when held** — the shape every glyph in a bar takes.
  *
  * @param tint an override for the glyph's colour — the accent where a button marks something (a list in
- * a non-default order, a send action). Null keeps the button's own, which is what dims it when disabled.
+ * a non-default order, a send action). Null keeps the button's own.
  */
 @Composable
 fun NamedIconButton(
@@ -50,11 +50,10 @@ fun NamedIconButton(
     name: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    enabled: Boolean = true,
     tint: Color? = null,
 ) {
     HoldToName(name) {
-        IconButton(onClick = onClick, modifier = modifier, enabled = enabled) {
+        IconButton(onClick = onClick, modifier = modifier) {
             if (tint != null) Icon(icon, name, tint = tint) else Icon(icon, name)
         }
     }

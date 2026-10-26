@@ -55,7 +55,6 @@ import com.seblful.klas.format.MoneyField
 import com.seblful.klas.lock.LocalAppLocked
 import com.seblful.klas.lock.UnlockedWindow
 import com.seblful.klas.ui.theme.KlasIcons
-import com.seblful.klas.ui.theme.klasSemantics
 
 /*
  * The inline form fields: picking one of a few things, and the search box.
@@ -137,14 +136,12 @@ fun <T> ChoiceField(
     onSelect: (T) -> Unit,
     enabled: Boolean = true,
     supportingText: String? = null,
-    isError: Boolean = false,
 ) {
     MenuField(
         label = label,
         selectedText = optionLabel(selected),
         enabled = enabled,
         supportingText = supportingText,
-        isError = isError,
     ) { dismiss ->
         // Labelled once the menu is open, so a long list can be searched by what it reads.
         val labelled = options.map { it to optionLabel(it) }
@@ -237,9 +234,6 @@ fun PickerField(
     label: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    enabled: Boolean = true,
-    supportingText: String? = null,
-    isError: Boolean = false,
 ) {
     val interactions = remember { MutableInteractionSource() }
     val colors = OutlinedTextFieldDefaults.colors()
@@ -254,7 +248,6 @@ fun PickerField(
                 .clickable(
                     interactionSource = interactions,
                     indication = null,
-                    enabled = enabled,
                     role = Role.Button,
                     onClick = onClick,
                 ),
@@ -267,36 +260,18 @@ fun PickerField(
                     Text(
                         value,
                         style = MaterialTheme.typography.bodyLarge,
-                        color = if (enabled) colors.unfocusedTextColor else colors.disabledTextColor,
+                        color = colors.unfocusedTextColor,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
                 },
-                enabled = enabled,
+                enabled = true,
                 singleLine = true,
                 visualTransformation = VisualTransformation.None,
                 interactionSource = interactions,
-                isError = isError,
+                isError = false,
                 label = { Text(label) },
                 colors = colors,
-            )
-        }
-        // Outside the tappable box, where an `OutlinedTextField` puts its own supporting line, so the press
-        // ripple stays on the field rather than spreading over the sentence under it.
-        if (supportingText != null) {
-            Text(
-                supportingText,
-                style = MaterialTheme.typography.bodySmall,
-                color = if (isError) {
-                    klasSemantics.validation
-                } else {
-                    MaterialTheme.colorScheme.onSurfaceVariant
-                },
-                modifier = Modifier.padding(
-                    start = Spacing.gutter,
-                    end = Spacing.gutter,
-                    top = Spacing.tight,
-                ),
             )
         }
     }

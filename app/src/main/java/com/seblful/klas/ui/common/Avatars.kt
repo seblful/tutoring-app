@@ -18,7 +18,6 @@ import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.seblful.klas.domain.people.AvatarPalette
 import com.seblful.klas.ui.theme.klasColors
@@ -37,28 +36,22 @@ import com.seblful.klas.ui.theme.klasColors
  * a wall of identical chips, and a student keeps their colour when their name is corrected.
  */
 @Composable
-fun Avatar(name: String, studentId: Long, modifier: Modifier = Modifier, size: Dp = 40.dp) {
+fun Avatar(name: String, studentId: Long, modifier: Modifier = Modifier) {
     val (container, content) = avatarColors(studentId)
     Box(
         modifier
-            .size(size)
+            .size(AvatarSize)
             .clip(CircleShape)
             .background(container)
             .clearAndSetSemantics { },
         contentAlignment = Alignment.Center,
     ) {
-        Text(
-            text = monogram(name),
-            // Scaled with the circle, so a small monogram is not a full-size letter cropped by a smaller ring.
-            style = if (size >= 40.dp) {
-                MaterialTheme.typography.titleMedium
-            } else {
-                MaterialTheme.typography.labelMedium
-            },
-            color = content,
-        )
+        Text(text = monogram(name), style = MaterialTheme.typography.titleMedium, color = content)
     }
 }
+
+private val AvatarSize = 40.dp
+
 /** The first character of [name], in capitals — a whole code point, so an emoji or a rare ideograph is not halved. */
 internal fun monogram(name: String): String {
     val trimmed = name.trim()
@@ -73,11 +66,11 @@ internal fun monogram(name: String): String {
  * @param selected for a row tinted as selected, whose `secondaryContainer` the usual disc would vanish into.
  */
 @Composable
-fun IconAvatar(icon: ImageVector, modifier: Modifier = Modifier, size: Dp = 40.dp, selected: Boolean = false) {
+fun IconAvatar(icon: ImageVector, modifier: Modifier = Modifier, selected: Boolean = false) {
     val colors = MaterialTheme.colorScheme
     Box(
         modifier
-            .size(size)
+            .size(AvatarSize)
             .clip(CircleShape)
             .background(if (selected) colors.surfaceContainerLowest else colors.secondaryContainer)
             .clearAndSetSemantics { },

@@ -7,7 +7,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -25,13 +24,12 @@ fun KlasFab(
     label: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    icon: ImageVector = KlasIcons.Filled.Add,
     expanded: Boolean = true,
 ) {
     val roomy = LocalDensity.current.fontScale < LargeFontScale
     ExtendedFloatingActionButton(
         text = { Text(label, Modifier.clearAndSetSemantics {}) },
-        icon = { Icon(icon, contentDescription = null) },
+        icon = { Icon(KlasIcons.Filled.Add, contentDescription = null) },
         onClick = onClick,
         expanded = expanded && roomy,
         modifier = modifier.semantics { contentDescription = label },

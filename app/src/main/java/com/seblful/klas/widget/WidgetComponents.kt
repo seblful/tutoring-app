@@ -65,14 +65,13 @@ internal fun WidgetListItem(
     }
 }
 
-/** A [LazyColumn] clipped to a rounded rectangle, with [verticalItemsSpacing] between its [items]. */
+/** A [LazyColumn] clipped to a rounded rectangle, with [Spacing.tight] between its [items]. */
 @Composable
 internal fun <T> RoundedScrollingLazyColumn(
     items: List<T>,
     itemId: (T) -> Long,
     itemContentProvider: @Composable (item: T) -> Unit,
     modifier: GlanceModifier = GlanceModifier,
-    verticalItemsSpacing: Dp = Spacing.tight,
 ) {
     Box(modifier = modifier.fillMaxSize().cornerRadius(16.dp)) {
         LazyColumn {
@@ -80,7 +79,7 @@ internal fun <T> RoundedScrollingLazyColumn(
                 Column(modifier = GlanceModifier.fillMaxWidth()) {
                     itemContentProvider(item)
                     if (index != items.lastIndex) {
-                        Spacer(modifier = GlanceModifier.height(verticalItemsSpacing))
+                        Spacer(modifier = GlanceModifier.height(Spacing.tight))
                     }
                 }
             }
