@@ -55,8 +55,10 @@ Preserve on-device data and existing backup files when changing storage. Before 
   SAF supports cloud destinations such as Drive without app-held cloud credentials. The export screen
   says which settings go with the file and which stay with the phone.
 - Export reads one transactional snapshot. Import **replaces the database, never merges**, preserves
-  IDs and commits in one transaction. `BackupIntegrity` checks readability before writes;
-  `BackupFailure` classifies refusals; `BackupRestore` owns rows, first-run state and mirror refresh.
+  IDs and commits in one transaction. `BackupIntegrity` checks readability before writes (including a
+  lesson start within the years 1900–9999, which the all-time report draws a bar for each of);
+  `BackupFailure` classifies refusals, and rows that break a database constraint are a broken file, not an
+  unavailable one; `BackupRestore` owns rows, first-run state and mirror refresh.
 - Older file versions import with defaults; newer ones are refused. v8 homework becomes rows through
   `legacyHomework`; old lesson notes are not restored. v10 added a payment's method, bumped because an
   older build would drop it on import; v11 added `preferences` for the same reason — an older build would
@@ -71,11 +73,13 @@ Preserve on-device data and existing backup files when changing storage. Before 
 - A restore is asked about only after the file is read: `BackupManager.preview` parses it as the import
   will (a refused file is refused before the question) and the dialog names its date and counts.
   Exports carry an optional `exportedAtMillis`; older files lack it and older builds ignore it, so it
-  needed no version bump.
+  needed no version bump. A date after now is a wrong clock: a restore counts from now instead, and a
+  stored one counts as no backup (`AutoBackup.isDue`/`isStale`), so it cannot hold the weekly copy off.
 - Before replacing anything, `BackupRestore` encodes what is on the phone and, once the import has
   succeeded, keeps it through `RestoreSnapshots` (Android: one file in `filesDir`, outside platform
   backup). Backup offers «Undo the last import» until the next import replaces that copy. An empty
-  phone keeps nothing; a refused file leaves the previous copy as it was. Undoing replaces everything,
+  phone keeps nothing; a refused file leaves the previous copy as it was, but a restore whose copy could
+  not be saved clears the previous one rather than offer older data. Undoing replaces everything,
   including what was added since, so it asks first.
 - The weekly copy (`AutoBackup`) writes into a SAF folder the tutor picks (`settings.autoBackupFolder`, a
   persisted tree grant). A daily worker writes once a week has passed since the last export of any kind,
@@ -89,7 +93,9 @@ Preserve on-device data and existing backup files when changing storage. Before 
   per file, capped on read) and AES-256-GCM, through the `BackupCipher` port. `BackupManager.parse`
   refuses a sealed file as `PasswordNeeded`, so the restore flow asks for the password first; a wrong
   one fails the GCM tag and reads as `WrongPassword`, not as a broken file. A lost password is a lost
-  backup, and the export dialog says so. Weekly copies are not sealed: that would mean storing the
+  backup, and the export dialog says so. The password is never saved, but that one was asked for is, so
+  a picker answer that arrives after the process was put away asks again instead of writing plain JSON.
+  Weekly copies are not sealed: that would mean storing the
   password on the phone they are meant to outlive.
 - `BackupExports` stamps each snapshot once and records that timestamp after writing the file, before
   reporting success. Slower older exports cannot move history backwards. Manual exports run in the

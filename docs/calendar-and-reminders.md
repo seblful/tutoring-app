@@ -9,7 +9,8 @@ The database drives both mirrors; neither writes changes back into Klas.
 - `ClassRepository.write` mirrors after commit; `CalendarMirror` owns backfill and withdrawal.
 - An undoable write through `LessonChanges` holds its lesson's mirror until the workflow settles it
   (the undo window closed, ~12 s) or the caller uses its undo handle,
-  so an undone cancel never deletes and re-invites. The hold is in memory: a process killed inside the
+  so an undone cancel never deletes and re-invites. Each receipt holds and releases its own hold, so a
+  lesson a write left as it was holds nothing and a late settlement cannot end a later write's hold. The hold is in memory: a process killed inside the
   window leaves the event as it was until the lesson's next write.
 - Completed events are refreshed but never created/re-created (`CalendarSyncPolicy.Action.REFRESH`).
 - Event descriptions include current homework attached to that lesson: the student's own assignments

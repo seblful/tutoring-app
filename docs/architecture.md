@@ -44,7 +44,7 @@ Paths below are inside `com.seblful.klas`; follow the linked sources for individ
 | `LessonChanges` | Undoable lesson and archive writes; owns calendar settlement in the host application's scope. Callers receive opaque undo handles. |
 | `LessonCompletions` | Current-state completion eligibility and batch results; guarded completion undo and explicit correction. Completion mirrors immediately. |
 | `CalendarMirror` | Event content, sync backfill/withdrawal and restore reconciliation. |
-| `EnrollmentRepository` / `RateHistoryRepository` | Subjects and prices stay paired; rate changes share one log. |
+| `EnrollmentRepository` / `RateHistoryRepository` | Subjects and prices stay paired; rate changes share one log. The student form's edit saves the student and their subjects in one transaction. |
 | `GroupRepository` | Only writer of group membership; archiving cancels the group's planned lessons. |
 | `HomeworkRepository` | Only writer of homework; refreshes affected calendar descriptions after saving. Phone reminders read homework when firing. |
 | `PaymentRepository` | Payment dates, corrections and derived instants. |
@@ -52,7 +52,7 @@ Paths below are inside `com.seblful.klas`; follow the linked sources for individ
 | `GuideRepository` | The new tutor's guide: tips seen and the first-steps card in the settings row, and whether each first step has happened (`GuideDao`). |
 | `SettingsWorkflow` | Applies a settings update, calendar changes and maintenance; returns the number of lessons settled. Permission prompts and confirmation remain with the host UI. |
 | `BackupExports` | Manual and weekly snapshot export, optional sealing and awaited history recording; weekly folder guards and failure flags. Hosts own scope and result messages; `AutoBackup` owns due checks and retention. |
-| `StudentRepository` / `SubjectRepository` | Archiving cancels a student's planned lessons; subject deletion requires no references. |
+| `StudentRepository` / `SubjectRepository` | Archiving cancels a student's planned lessons and writes the stored row in the same transaction; subject and group deletion recheck their references inside it. |
 
 A write spanning tables is one `Transactor.transaction`, including conflict reads guarding the write.
 Order: pure rules → transactional rows → calendar/reminders after commit.

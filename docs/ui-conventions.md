@@ -413,7 +413,8 @@ Build screens from shared state and controls. Feature rules belong in the domain
   (`StudentFilterAction`, `GroupFilterAction`) holds «Owes · N», which narrows students to debtors, «Archived»,
   which lists the retired too, and the order; groups add a subject once two are taught. Only what is in force
   shows under the tabs, as chips (`StudentFilters`, `GroupFilters`). Reports use charts
-  only when shape helps; CSV delimiter follows decimal separator, and the summary and the ledger can each
+  only when shape helps; CSV delimiter follows decimal separator, a name a spreadsheet would run as a formula
+  (leading `= + - @`) is written as text, and the summary and the ledger can each
   be saved or shared from one Export menu. The hero carries Earned/Received and the period's lessons · hours · ahead; a student's
   income row opens them, with a chevron, as a debt's does. The funnel narrows the report, its chip under
   the period.
