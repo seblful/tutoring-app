@@ -24,6 +24,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import com.seblful.klas.format.formatDateTime
 import com.seblful.klas.format.formatTime
+import com.seblful.klas.ui.designsystem.component.tabular
 import kotlinx.datetime.LocalTime
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Instant
@@ -108,7 +109,3 @@ fun rememberColumnTimeWidth(style: TextStyle): Dp {
         with(density) { samples.maxOf { measurer.measure(it, tabular).size.width }.toDp() }
     }
 }
-
-private fun TextStyle.tabular(): TextStyle = copy(fontFeatureSettings = TabularFigures)
-
-private const val TabularFigures = "tnum"

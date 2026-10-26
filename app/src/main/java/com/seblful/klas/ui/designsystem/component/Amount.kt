@@ -26,7 +26,7 @@ data class AmountText(val text: String, val meaning: AmountMeaning = AmountMeani
 fun Amount(amount: AmountText, modifier: Modifier = Modifier, style: TextStyle = MaterialTheme.typography.bodyMedium) {
     Text(
         amount.text,
-        style = remember(style) { style.copy(fontFeatureSettings = TabularFigures) },
+        style = remember(style) { style.tabular() },
         color = when (amount.meaning) {
             AmountMeaning.Debt -> klasSemantics.debt
             AmountMeaning.Credit, AmountMeaning.Plain -> Color.Unspecified
@@ -36,4 +36,5 @@ fun Amount(amount: AmountText, modifier: Modifier = Modifier, style: TextStyle =
     )
 }
 
-private const val TabularFigures = "tnum"
+/** Equal-width digits, so a column of amounts or times lines up. */
+internal fun TextStyle.tabular(): TextStyle = copy(fontFeatureSettings = "tnum")

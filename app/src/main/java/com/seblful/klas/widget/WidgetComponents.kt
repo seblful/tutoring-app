@@ -3,8 +3,6 @@ package com.seblful.klas.widget
 import androidx.annotation.DrawableRes
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.glance.ColorFilter
 import androidx.glance.GlanceModifier
 import androidx.glance.GlanceTheme
@@ -73,7 +71,7 @@ internal fun <T> RoundedScrollingLazyColumn(
     itemContentProvider: @Composable (item: T) -> Unit,
     modifier: GlanceModifier = GlanceModifier,
 ) {
-    Box(modifier = modifier.fillMaxSize().cornerRadius(16.dp)) {
+    Box(modifier = modifier.fillMaxSize().cornerRadius(MediumRadius)) {
         LazyColumn {
             itemsIndexed(items, itemId = { _, item -> itemId(item) }) { index, item ->
                 Column(modifier = GlanceModifier.fillMaxWidth()) {
@@ -101,7 +99,7 @@ internal fun NoDataContent(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = GlanceModifier.fillMaxSize(),
     ) {
-        if (LocalSize.current.height >= 180.dp) {
+        if (LocalSize.current.height >= TodayTitleBarMinHeight) {
             Image(
                 provider = ImageProvider(noDataIconRes),
                 colorFilter = ColorFilter.tint(GlanceTheme.colors.secondary),
@@ -115,7 +113,7 @@ internal fun NoDataContent(
                 fontWeight = FontWeight.Medium,
                 color = GlanceTheme.colors.onSurface,
                 // A narrow widget's line would wrap a lone word.
-                fontSize = if (LocalSize.current.width < 260.dp) 14.sp else 16.sp,
+                fontSize = if (LocalSize.current.width < TodaySmallWidth) WidgetTitleSmall else WidgetTitleLarge,
                 textAlign = TextAlign.Center,
             ),
             modifier = GlanceModifier.padding(horizontal = Spacing.itemGap),

@@ -65,8 +65,8 @@ fun AboutScreen(onBack: () -> Unit, onBackup: () -> Unit) {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(Spacing.itemGap),
         ) {
-            KlasLogo(Modifier.size(88.dp))
-            KlasWordmark(Modifier.width(144.dp).height(56.dp))
+            KlasLogo(Modifier.size(LogoSize))
+            KlasWordmark(Modifier.width(WordmarkWidth).height(WordmarkHeight))
             Text(
                 stringResource(R.string.about_tagline),
                 style = MaterialTheme.typography.bodyMedium,
@@ -148,3 +148,9 @@ fun AboutScreen(onBack: () -> Unit, onBackup: () -> Unit) {
         }
     }
 }
+
+private val LogoSize = 88.dp
+
+private val WordmarkWidth = 144.dp
+
+private val WordmarkHeight = 56.dp

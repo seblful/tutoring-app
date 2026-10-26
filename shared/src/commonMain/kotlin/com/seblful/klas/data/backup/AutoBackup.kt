@@ -61,6 +61,8 @@ class AutoBackup(
     }
 
     companion object {
+        private const val PREFIX = "klas-auto-backup-"
+
         /** How many of its own copies the folder keeps. */
         const val KEEP = 5
 
@@ -70,10 +72,10 @@ class AutoBackup(
         private val SLACK = 12.hours
 
         /** Named apart from manual exports so pruning can never touch a file the tutor saved by hand. */
-        fun fileName(day: String) = "klas-auto-backup-$day.json"
+        fun fileName(day: String) = "$PREFIX$day.json"
 
         /** Ours: `klas-auto-backup-2026-10-23.json`, or the `… (1).json` a provider names a same-day second. */
-        private val OWN_FILE = Regex("""klas-auto-backup-\d{4}-\d{2}-\d{2}( \(\d+\))?\.json""")
+        private val OWN_FILE = Regex("""${Regex.escape(PREFIX)}\d{4}-\d{2}-\d{2}( \(\d+\))?\.json""")
 
         fun isDue(lastExportAt: Instant?, now: Instant): Boolean =
             lastExportAt == null || lastExportAt > now || now - lastExportAt >= EVERY - SLACK

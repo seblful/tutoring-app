@@ -80,3 +80,6 @@ val FabListPadding = PaddingValues(
 )
 
 internal const val DisabledAlpha = 0.38f
+
+/** A glyph that carries the message of a whole screen: the lock, the finished-setup check. */
+val HeroIconSize = 48.dp

@@ -24,15 +24,11 @@ class FormattersTest {
     @get:Rule
     val locale = AppLocaleRule.russian()
 
-    private fun keyOf(year: Int, month: Int) = year * 12 + (month - 1)
-
     @Test
-    fun `month key is decoded with the encoding used by Reports`() {
-        val date = LocalDate(2026, 6, 1)
-        val key = date.year * 12 + (date.month.number - 1)
-        assertEquals("Июнь", formatMonthName(key))
-        assertEquals("Январь", formatMonthName(keyOf(2027, 1)))
-        assertEquals("Декабрь", formatMonthName(keyOf(2026, 12)))
+    fun `a month index names its month`() {
+        assertEquals("Январь", formatMonthName(0))
+        assertEquals("Июнь", formatMonthName(5))
+        assertEquals("Декабрь", formatMonthName(11))
     }
 
     @Test

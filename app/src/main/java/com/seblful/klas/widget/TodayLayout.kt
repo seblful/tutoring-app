@@ -2,7 +2,6 @@ package com.seblful.klas.widget
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.glance.GlanceModifier
 import androidx.glance.GlanceTheme
 import androidx.glance.ImageProvider
@@ -70,7 +69,7 @@ internal fun TodayLayout(
     openLesson: (classId: Long) -> Action,
     markTaught: (classId: Long) -> Action,
 ) {
-    val showTitleBar = LocalSize.current.height >= TitleBarMinHeight
+    val showTitleBar = LocalSize.current.height >= TodayTitleBarMinHeight
     Scaffold(
         backgroundColor = GlanceTheme.colors.widgetBackground,
         horizontalPadding = 0.dp,
@@ -146,7 +145,7 @@ private fun LessonRow(row: TodayRow, texts: TodayTexts, open: Action, markTaught
                 style = TextStyle(
                     fontWeight = FontWeight.Medium,
                     // M3 title small on a narrow widget, title medium otherwise.
-                    fontSize = if (isSmall()) 14.sp else 16.sp,
+                    fontSize = if (isSmall()) WidgetTitleSmall else WidgetTitleLarge,
                     // Done, so it steps back behind what is still to teach.
                     color = if (row.taught) GlanceTheme.colors.onSurfaceVariant else GlanceTheme.colors.onSurface,
                 ),
@@ -159,7 +158,7 @@ private fun LessonRow(row: TodayRow, texts: TodayTexts, open: Action, markTaught
                         text = texts.onNow,
                         maxLines = 1,
                         style = TextStyle(
-                            fontSize = 12.sp,
+                            fontSize = WidgetLabel,
                             fontWeight = FontWeight.Medium,
                             color = GlanceTheme.colors.primary,
                         ),
@@ -169,7 +168,7 @@ private fun LessonRow(row: TodayRow, texts: TodayTexts, open: Action, markTaught
                 Text(
                     text = row.supportingText,
                     maxLines = 2,
-                    style = TextStyle(fontSize = 12.sp, color = GlanceTheme.colors.secondary),
+                    style = TextStyle(fontSize = WidgetLabel, color = GlanceTheme.colors.secondary),
                 )
             }
         },
@@ -178,10 +177,7 @@ private fun LessonRow(row: TodayRow, texts: TodayTexts, open: Action, markTaught
 
 /** Below the sample's first width breakpoint: smaller titles, and no title in the title bar. */
 @Composable
-private fun isSmall(): Boolean = LocalSize.current.width < SmallWidth
-
-private val TitleBarMinHeight = 180.dp
-private val SmallWidth = 260.dp
+private fun isSmall(): Boolean = LocalSize.current.width < TodaySmallWidth
 
 @OptIn(ExperimentalGlancePreviewApi::class)
 @Preview(widthDp = 172, heightDp = 234)

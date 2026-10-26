@@ -50,7 +50,11 @@ class TodayWidget : GlanceAppWidget() {
 
     // The smallest Today, and the sizes from which the title bar shows, narrow and wide.
     override val previewSizeMode = SizeMode.Responsive(
-        setOf(DpSize(120.dp, 115.dp), DpSize(160.dp, 180.dp), DpSize(260.dp, 180.dp)),
+        setOf(
+            DpSize(120.dp, 115.dp),
+            DpSize(160.dp, TodayTitleBarMinHeight),
+            DpSize(TodaySmallWidth, TodayTitleBarMinHeight),
+        ),
     )
 
     override suspend fun providePreview(context: Context, widgetCategory: Int) {

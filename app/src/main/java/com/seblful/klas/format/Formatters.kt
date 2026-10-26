@@ -150,11 +150,11 @@ fun bulletJoin(vararg parts: String): String = bulletJoin(parts.asList())
 private const val BULLET = " · "
 
 /**
- * The month of an epoch-month key on its own, e.g. "Июнь" — for a list that already sits under the
+ * The month at [monthIndex] (0–11) on its own, e.g. "Июнь" — for a list that already sits under the
  * year it belongs to, where repeating "2026" on all twelve rows says nothing.
  */
-fun formatMonthName(key: Int): String =
-    java.time.Month.of(key % 12 + 1).getDisplayName(TextStyle.FULL_STANDALONE, formats.locale)
+fun formatMonthName(monthIndex: Int): String =
+    java.time.Month.of(monthIndex + 1).getDisplayName(TextStyle.FULL_STANDALONE, formats.locale)
         .capitalizedForDisplay()
 
 /** Formats a month as e.g. "Июнь 2026" — the schedule calendar's page title. */

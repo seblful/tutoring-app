@@ -44,7 +44,7 @@ class FormattersLanguageTest {
                     "«${formatMonth(YearMonth(2026, 6))}» does not start with a capital",
                     formatMonth(YearMonth(2026, 6)).first().isUpperCase(),
                 )
-                assertTrue(formatMonthName(2026 * 12 + 5).first().isUpperCase())
+                assertTrue(formatMonthName(5).first().isUpperCase())
             }
         }
     }

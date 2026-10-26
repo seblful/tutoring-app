@@ -5,7 +5,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.glance.ColorFilter
 import androidx.glance.GlanceModifier
 import androidx.glance.Image
@@ -70,7 +69,7 @@ internal fun RectangularIconButton(
                     maxLines = 2,
                     style = TextStyle(
                         color = contentColor,
-                        fontSize = 12.sp,
+                        fontSize = WidgetLabel,
                         fontWeight = FontWeight.Medium,
                         textAlign = TextAlign.Center,
                     ),
@@ -99,8 +98,8 @@ internal fun PillShapedButton(
         Box(
             contentAlignment = Alignment.Center,
             modifier = GlanceModifier
-                .width(52.dp)
-                .height(32.dp)
+                .width(PillWidth)
+                .height(PillHeight)
                 .background(backgroundColor)
                 .cornerRadius(FullRadius),
         ) {
@@ -135,3 +134,7 @@ internal val FullRadius = 100.dp
 internal val MediumRadius = 16.dp
 
 internal val Transparent = ColorProvider(Color.Transparent, Color.Transparent)
+
+/** The pill that lights behind a button's icon. */
+private val PillWidth = 52.dp
+private val PillHeight = 32.dp

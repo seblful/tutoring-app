@@ -63,6 +63,12 @@ class MoneyTest {
     }
 
     @Test
+    fun `a whole unit is the minor-unit factor`() {
+        assertEquals(Money.MINOR_PER_MAJOR, Money.ofMajor(1).minor)
+        assertEquals("1,05", Money(Money.MINOR_PER_MAJOR + 5).amountText(','))
+    }
+
+    @Test
     fun `arithmetic adds and subtracts minor units`() {
         assertEquals(Money(300), Money(100) + Money(200))
         assertEquals(Money(-50), Money(100) - Money(150))

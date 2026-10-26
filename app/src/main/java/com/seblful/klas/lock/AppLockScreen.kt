@@ -23,11 +23,11 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.LocalTextToolbar
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
-import androidx.compose.ui.unit.dp
 import androidx.navigationevent.NavigationEventInfo
 import androidx.navigationevent.compose.NavigationBackHandler
 import androidx.navigationevent.compose.rememberNavigationEventState
 import com.seblful.klas.R
+import com.seblful.klas.ui.common.HeroIconSize
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.designsystem.component.KlasButton
 import com.seblful.klas.ui.theme.KlasIcons
@@ -87,7 +87,7 @@ internal fun AppLockScreen(onUnlock: (title: String) -> Unit) {
             KlasIcons.Outlined.PhonelinkLock,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(48.dp),
+            modifier = Modifier.size(HeroIconSize),
         )
         Text(
             stringResource(R.string.app_lock_locked, stringResource(R.string.app_name)),

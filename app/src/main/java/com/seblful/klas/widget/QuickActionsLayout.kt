@@ -1,7 +1,6 @@
 package com.seblful.klas.widget
 
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.unit.dp
 import androidx.glance.ColorFilter
 import androidx.glance.GlanceModifier
 import androidx.glance.GlanceTheme
@@ -63,7 +62,7 @@ internal fun QuickActionsLayout(
         }
         ToolBarLayoutSize.TwoRowGrid -> {
             // Beside the mark and the prominent shortcut: two more columns where they fit, else one.
-            val contentButtons = buttonItems.take(if (LocalSize.current.width >= 240.dp) 4 else 2)
+            val contentButtons = buttonItems.take(if (LocalSize.current.width >= ToolBarWideMinWidth) 4 else 2)
             Scaffold(modifier = GlanceModifier.padding(vertical = WidgetPadding), horizontalPadding = WidgetPadding) {
                 TwoRowGrid(listOf(appIconItem, headerButtonItem) + contentButtons)
             }
@@ -162,9 +161,9 @@ private enum class ToolBarLayoutSize {
         fun fromLocalSize(): ToolBarLayoutSize {
             val size = LocalSize.current
             return when {
-                size.height < 128.dp -> HorizontalRow
-                size.width < 128.dp -> VerticalColumn
-                size.height < 172.dp -> TwoRowGrid
+                size.height < ToolBarRowMaxHeight -> HorizontalRow
+                size.width < ToolBarColumnMaxWidth -> VerticalColumn
+                size.height < ToolBarHeaderMinHeight -> TwoRowGrid
                 else -> HeaderTwoRowGrid
             }
         }
@@ -173,7 +172,9 @@ private enum class ToolBarLayoutSize {
 
 /** Filled buttons only where neither side is cramped. */
 @Composable
-private fun canUseFilledButtons(): Boolean = LocalSize.current.let { it.height >= 72.dp && it.width >= 72.dp }
+private fun canUseFilledButtons(): Boolean = LocalSize.current.let {
+    it.height >= ToolBarFilledMinSize && it.width >= ToolBarFilledMinSize
+}
 
 /**
  * Names under the icons where the title bar's grid has tiles tall enough for a name on two lines: four icons
@@ -187,7 +188,9 @@ private fun canLabelGridButtons(): Boolean {
 }
 
 @Composable
-private fun canShowHeaderTitle(): Boolean = LocalSize.current.let { it.width >= 240.dp && it.height >= 172.dp }
+private fun canShowHeaderTitle(): Boolean = LocalSize.current.let {
+    it.width >= ToolBarWideMinWidth && it.height >= ToolBarHeaderMinHeight
+}
 
 /** How many [MinButtonSize] items fit along the row or column, [ItemsSpacing] apart. */
 @Composable

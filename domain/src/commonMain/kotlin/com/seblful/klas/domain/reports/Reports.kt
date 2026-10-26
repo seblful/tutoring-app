@@ -23,6 +23,9 @@ import kotlinx.datetime.toLocalDateTime
  */
 object Reports {
 
+    private const val MONTHS_IN_YEAR = 12
+    private const val PERCENT = 100L
+
     /** Income for one calendar month, keyed as `year * 12 + (monthValue - 1)` (newest first). */
     data class MonthlyIncome(val monthKey: Int, val total: Money)
 
@@ -93,7 +96,7 @@ object Reports {
          */
         data class Bar(val key: Int, val total: Money) {
             /** The month this bar covers (0–11) — the key's encoding is this module's to unpack. */
-            val monthIndex: Int get() = key % 12
+            val monthIndex: Int get() = key % MONTHS_IN_YEAR
         }
 
         /** The best bucket — what every bar's height is a fraction of, and the one worth naming. */
@@ -444,7 +447,7 @@ object Reports {
      */
     fun percentOf(part: Money, whole: Money): Int {
         if (whole.minor <= 0) return 0
-        return ((part.minor * 100 + whole.minor / 2) / whole.minor).toInt()
+        return ((part.minor * PERCENT + whole.minor / 2) / whole.minor).toInt()
     }
 
     /**
@@ -495,7 +498,7 @@ object Reports {
         if (previous.minor <= 0) return Change.NoBaseline
         val delta = current.minor - previous.minor
         // Rounded away from zero at the half, so a 0.5 % rise reads as 1 % rather than as no change.
-        val magnitude = (kotlin.math.abs(delta) * 100 + previous.minor / 2) / previous.minor
+        val magnitude = (kotlin.math.abs(delta) * PERCENT + previous.minor / 2) / previous.minor
         return Change.Percent(if (delta < 0) -magnitude else magnitude)
     }
 
@@ -517,5 +520,5 @@ object Reports {
     private fun monthKeyOf(c: TutoringClass, zone: TimeZone): Int =
         monthKeyOf(c.start.toLocalDateTime(zone).date)
 
-    private fun monthKeyOf(date: LocalDate): Int = date.year * 12 + (date.month.number - 1)
+    private fun monthKeyOf(date: LocalDate): Int = date.year * MONTHS_IN_YEAR + (date.month.number - 1)
 }

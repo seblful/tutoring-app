@@ -288,8 +288,6 @@ private val IncomeCardHeight = 116.dp
 
 private val SectionCardHeight = 132.dp
 
-private const val CSV_MIME_TYPE = "text/csv"
-
 @Composable
 private fun csvHeadings(period: ReportPeriod, methods: Map<PaymentMethod?, String>) = ReportCsv.Headings(
     total = stringResource(R.string.reports_total_income),
@@ -767,7 +765,7 @@ private fun TrendCard(trend: Reports.Trend) {
         trend.peak?.let { peak ->
             PeakLegend(
                 if (isMonths) {
-                    stringResource(R.string.reports_best_month, formatMonthName(peak.key))
+                    stringResource(R.string.reports_best_month, formatMonthName(peak.monthIndex))
                 } else {
                     stringResource(R.string.reports_best_year, peak.key.toString())
                 },
@@ -778,7 +776,7 @@ private fun TrendCard(trend: Reports.Trend) {
         // above and would only be a row of zeros here. Both halves of that are stated on [Reports.Trend].
         trend.rows.forEach { bar ->
             AmountRow(
-                label = if (isMonths) formatMonthName(bar.key) else bar.key.toString(),
+                label = if (isMonths) formatMonthName(bar.monthIndex) else bar.key.toString(),
                 amount = AmountText(bar.total.text()),
             )
         }

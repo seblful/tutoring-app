@@ -60,7 +60,7 @@ fun StatRow(stats: List<Stat>, modifier: Modifier = Modifier) {
             stats.forEachIndexed { index, stat ->
                 if (index > 0) {
                     VerticalDivider(
-                        Modifier.height(36.dp).align(Alignment.CenterVertically),
+                        Modifier.height(StatDividerHeight).align(Alignment.CenterVertically),
                         color = MaterialTheme.colorScheme.outlineVariant,
                     )
                 }
@@ -117,3 +117,5 @@ private val TileInsetX = Spacing.inline
 private val ValueToLabel = 0.dp
 
 private val MinValueSize = 11.dp
+
+private val StatDividerHeight = 36.dp

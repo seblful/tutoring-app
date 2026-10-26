@@ -195,7 +195,8 @@ object ReportCsv {
     private fun amountText(amount: Money, dialect: Dialect): String {
         val sign = if (amount.minor < 0) "-" else ""
         val abs = kotlin.math.abs(amount.minor)
-        return "$sign${abs / 100}${dialect.decimal}${(abs % 100).toString().padStart(2, '0')}"
+        val fraction = (abs % Money.MINOR_PER_MAJOR).toString().padStart(2, '0')
+        return "$sign${abs / Money.MINOR_PER_MAJOR}${dialect.decimal}$fraction"
     }
 
     /** A leading one of these makes a spreadsheet read a cell as a formula. */

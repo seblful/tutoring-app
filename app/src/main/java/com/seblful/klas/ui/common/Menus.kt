@@ -142,7 +142,12 @@ fun MenuHeading(text: String) {
         text,
         style = MaterialTheme.typography.labelMedium,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.padding(start = MenuHeadingStart, end = MenuHeadingStart, top = 12.dp, bottom = 4.dp),
+        modifier = Modifier.padding(
+            start = MenuHeadingStart,
+            end = MenuHeadingStart,
+            top = MenuHeadingTop,
+            bottom = MenuHeadingBottom,
+        ),
     )
 }
 
@@ -160,3 +165,7 @@ private val MenuItemInset = 4.dp
 
 /** Where a menu row's words start: Material's 12 dp inside the row, and the row's own inset. */
 private val MenuHeadingStart = 16.dp
+
+private val MenuHeadingTop = 12.dp
+
+private val MenuHeadingBottom = 4.dp

@@ -71,6 +71,7 @@ import com.seblful.klas.ui.backup.messageIn
 import com.seblful.klas.ui.common.ChoiceRow
 import com.seblful.klas.ui.common.CurrencyPicker
 import com.seblful.klas.ui.common.EmptyState
+import com.seblful.klas.ui.common.HeroIconSize
 import com.seblful.klas.ui.common.KlasLogo
 import com.seblful.klas.ui.common.KlasScreen
 import com.seblful.klas.ui.common.KlasWordmark
@@ -627,7 +628,7 @@ private fun ColumnScope.FirstLessonStep(name: String, onBook: () -> Unit, onNotN
                     KlasIcons.Filled.Check,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                    modifier = Modifier.padding(Spacing.itemGap).size(48.dp),
+                    modifier = Modifier.padding(Spacing.itemGap).size(HeroIconSize),
                 )
             }
             Text(

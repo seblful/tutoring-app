@@ -53,7 +53,9 @@ import com.seblful.klas.ui.theme.klasSemantics
 import dev.zacsweers.metrox.viewmodel.metroViewModel
 import kotlin.time.Instant
 
-internal val BACKUP_MIME_TYPES = arrayOf("application/json", "application/octet-stream", "text/plain")
+internal const val BACKUP_MIME_TYPE = "application/json"
+
+internal val BACKUP_MIME_TYPES = arrayOf(BACKUP_MIME_TYPE, "application/octet-stream", "text/plain")
 
 @Composable
 fun BackupScreen(
@@ -96,7 +98,7 @@ fun BackupScreen(
     ShowMessagesFor(viewModel.events, messages, words = words)
     ShowMessagesFor(restoreViewModel.events, messages, words = words)
 
-    val saveBackup = rememberCreateDocument("application/json", noPickerMsg, messages) { ref ->
+    val saveBackup = rememberCreateDocument(BACKUP_MIME_TYPE, noPickerMsg, messages) { ref ->
         when (val picked = pickedExport(exportSealed, exportPassword)) {
             is PickedExport.Write -> viewModel.export(ref, picked.password)
             PickedExport.PasswordLost -> {

@@ -165,14 +165,12 @@ class ReportsViewModel @Inject constructor(
             events.send(if (ok) ExportEvent.SHARED else ExportEvent.ERROR)
         }
     }
-
-    private companion object {
-        /**
-         * What a report is, to the app receiving it. `text/csv` rather than `text/plain`: the type is
-         * what decides who the share sheet offers, and the point of this file is that it opens in a
-         * spreadsheet. The screen states the same constant for the `CreateDocument` contract, which is
-         * the platform's half of the same question.
-         */
-        const val CSV_MIME_TYPE = "text/csv"
-    }
 }
+
+/**
+ * What a report is, to the app receiving it. `text/csv` rather than `text/plain`: the type is
+ * what decides who the share sheet offers, and the point of this file is that it opens in a
+ * spreadsheet. The screen states the same constant for the `CreateDocument` contract, which is
+ * the platform's half of the same question.
+ */
+internal const val CSV_MIME_TYPE = "text/csv"

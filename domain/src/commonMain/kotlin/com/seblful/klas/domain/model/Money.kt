@@ -34,8 +34,8 @@ value class Money(val minor: Long) : Comparable<Money> {
     fun amountText(decimal: Char): String {
         val sign = if (minor < 0) "-" else ""
         val abs = kotlin.math.abs(minor)
-        val major = abs / 100
-        val kopecks = (abs % 100).toInt()
+        val major = abs / MINOR_PER_MAJOR
+        val kopecks = (abs % MINOR_PER_MAJOR).toInt()
         return if (kopecks == 0) "$sign$major" else "$sign$major$decimal${kopecks.toString().padStart(2, '0')}"
     }
 
@@ -64,6 +64,9 @@ value class Money(val minor: Long) : Comparable<Money> {
     companion object {
         val ZERO = Money(0)
 
+        /** Minor units in one whole unit: 100 kopecks to the ruble, 100 cents to the dollar. */
+        const val MINOR_PER_MAJOR = 100L
+
         private const val DIGITS_PER_GROUP = 3
 
         /**
@@ -87,6 +90,6 @@ value class Money(val minor: Long) : Comparable<Money> {
         val MAX = Money(100_000_000)
 
         /** Builds a [Money] from a whole-unit amount — 5 is `5,00`. */
-        fun ofMajor(major: Long): Money = Money(major * 100)
+        fun ofMajor(major: Long): Money = Money(major * MINOR_PER_MAJOR)
     }
 }

@@ -113,6 +113,14 @@ class ReportsTest {
     }
 
     @Test
+    fun `a month bar unpacks its key to its month index`() {
+        fun indexOf(year: Int, month: Int) = Reports.Trend.Bar(keyOf(year, month), Money.ZERO).monthIndex
+        assertEquals(0, indexOf(2026, 1))
+        assertEquals(5, indexOf(2026, 6))
+        assertEquals(11, indexOf(2027, 12))
+    }
+
+    @Test
     fun `moving a completed lesson forward takes its income out of the month - without relocating it`() {
         val may = klass(1, 1, "2026-05-10T10:00:00Z", 5000)
         assertEquals(
