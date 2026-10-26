@@ -111,7 +111,10 @@ internal data class DemoTutor(
 
         /** Every language with a demo tutor, by Play code. */
         val all: List<DemoTutor> by lazy {
-            TEXT.listFiles().orEmpty().filter { File(it, "demo.json").isFile }.map { load(it.name) }.sortedBy { it.play }
+            TEXT.listFiles().orEmpty()
+                .filter { File(it, "demo.json").isFile }
+                .map { load(it.name) }
+                .sortedBy { it.play }
         }
 
         /** The tutor in [play]'s words. */

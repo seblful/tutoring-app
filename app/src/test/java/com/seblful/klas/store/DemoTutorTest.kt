@@ -1,5 +1,6 @@
 package com.seblful.klas.store
 
+import com.seblful.klas.domain.people.NameOrder
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
@@ -65,6 +66,15 @@ class DemoTutorTest {
                     unmarked.endOn(DemoTutor.TODAY) <= slot.startOn(DemoTutor.TODAY)
                 assertTrue("$slot overlaps the unmarked lesson", apart)
             }
+        }
+    }
+
+    /** People's last row cannot scroll up into the part of the phone the listing shows: not the debtor's. */
+    @Test
+    fun `the student who owes is not last in People`() {
+        for (t in tutors) {
+            val people = (t.students.map { it.name } + t.group.members).sortedWith(NameOrder.comparator)
+            assertNotEquals(t.play, t.debtor.name, people.last())
         }
     }
 
