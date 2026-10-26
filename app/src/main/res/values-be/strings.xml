@@ -255,7 +255,7 @@
     <string name="section_see_all">Глядзець усё</string>
     <string name="student_homework_empty">Хатняга задання яшчэ няма</string>
     <string name="student_homework_done">Гатова</string>
-    <string name="stat_debt">Павінны</string>
+    <string name="stat_debt">Доўг</string>
     <string name="stat_credit">Пераплата</string>
     <string name="stat_lessons">Урокі</string>
     <string name="stat_hours">Гадзіны</string>
@@ -275,7 +275,7 @@
     <string name="rate_history_unknown_date">дата невядомая</string>
     <string name="balance_settled">Нічога не павінен</string>
     <string name="balance_credit">Пераплата: %1$s</string>
-    <string name="balance_owes">Павінны %1$s</string>
+    <string name="balance_owes">Доўг %1$s</string>
     <string name="price_label">Стаўка за гадзіну</string>
     <string name="price_per_lesson_hint">%1$s для ўрока %2$s</string>
     <string name="price_per_hour">%1$s/\u2060гадз</string>

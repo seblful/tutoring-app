@@ -273,7 +273,7 @@
     <string name="section_see_all">شاهد الكل</string>
     <string name="student_homework_empty">لم يتم تحديد الواجبات المنزلية بعد</string>
     <string name="student_homework_done">تم</string>
-    <string name="stat_debt">عويس</string>
+    <string name="stat_debt">مستحقات</string>
     <string name="stat_credit">رصيد مدفوع مقدّمًا</string>
     <string name="stat_lessons">الدروس</string>
     <string name="stat_hours">ساعات</string>
@@ -295,7 +295,7 @@
     <string name="rate_history_unknown_date">التاريخ غير معروف</string>
     <string name="balance_settled">لا شيء مستحق</string>
     <string name="balance_credit">رصيد مدفوع مقدّمًا: %1$s</string>
-    <string name="balance_owes">يملك %1$s</string>
+    <string name="balance_owes">عليه %1$s</string>
     <string name="price_label">سعر الساعة</string>
     <string name="price_per_lesson_hint">%1$s لدرس %2$s</string>
     <string name="price_per_hour">%1$s/\u2060ساعة</string>

@@ -255,7 +255,7 @@
     <string name="section_see_all">Zobacz wszystko</string>
     <string name="student_homework_empty">Nie ma jeszcze zadanej pracy domowej</string>
     <string name="student_homework_done">Gotowe</string>
-    <string name="stat_debt">Jest winien</string>
+    <string name="stat_debt">Zaległość</string>
     <string name="stat_credit">Nadpłata</string>
     <string name="stat_lessons">Lekcje</string>
     <string name="stat_hours">Godziny</string>
@@ -275,7 +275,7 @@
     <string name="rate_history_unknown_date">data nieznana</string>
     <string name="balance_settled">Nic nie jest należne</string>
     <string name="balance_credit">Nadpłata: %1$s</string>
-    <string name="balance_owes">Jest winien %1$s</string>
+    <string name="balance_owes">Zaległość %1$s</string>
     <string name="price_label">Stawka za godzinę</string>
     <string name="price_per_lesson_hint">%1$s dla lekcji %2$s</string>
     <string name="price_per_hour">%1$s/\u2060h</string>

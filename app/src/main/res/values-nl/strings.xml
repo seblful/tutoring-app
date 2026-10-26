@@ -255,7 +255,7 @@
     <string name="rate_history_unknown_date">datum onbekend</string>
     <string name="balance_settled">Niets verschuldigd</string>
     <string name="balance_credit">Tegoed: %1$s</string>
-    <string name="balance_owes">Schuld aan %1$s</string>
+    <string name="balance_owes">Openstaand %1$s</string>
     <string name="price_label">Tarief per uur</string>
     <string name="price_per_lesson_hint">%1$s voor een %2$s-les</string>
     <string name="price_per_hour">%1$s/\u2060u</string>

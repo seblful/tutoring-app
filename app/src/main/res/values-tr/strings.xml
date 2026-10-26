@@ -255,7 +255,7 @@
     <string name="rate_history_unknown_date">tarih bilinmiyor</string>
     <string name="balance_settled">Hiçbir borcum yok</string>
     <string name="balance_credit">Fazla ödeme: %1$s</string>
-    <string name="balance_owes">%1$s\'ye borçluyuz</string>
+    <string name="balance_owes">Borcu %1$s</string>
     <string name="price_label">Saat başına ücret</string>
     <string name="price_per_lesson_hint">%1$s, %2$s dersi için</string>
     <string name="price_per_hour">%1$s/\u2060h</string>

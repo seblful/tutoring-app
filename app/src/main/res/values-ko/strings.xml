@@ -228,7 +228,7 @@
     <string name="section_see_all">모두 보기</string>
     <string name="student_homework_empty">아직 숙제가 설정되지 않았습니다.</string>
     <string name="student_homework_done">완료</string>
-    <string name="stat_debt">빚진</string>
+    <string name="stat_debt">미납</string>
     <string name="stat_credit">선불 잔액</string>
     <string name="stat_lessons">수업</string>
     <string name="stat_hours">시간</string>
@@ -245,7 +245,7 @@
     <string name="rate_history_unknown_date">날짜를 알 수 없음</string>
     <string name="balance_settled">빚진 게 없어</string>
     <string name="balance_credit">선불 잔액: %1$s</string>
-    <string name="balance_owes">빚진 %1$s</string>
+    <string name="balance_owes">미납 %1$s</string>
     <string name="price_label">시간당 요금</string>
     <string name="price_per_lesson_hint">%2$s 수업을 위한 %1$s</string>
     <string name="price_per_hour">%1$s/\u2060h</string>

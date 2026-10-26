@@ -245,7 +245,7 @@
     <string name="rate_history_unknown_date">日付不明</string>
     <string name="balance_settled">何も負っていない</string>
     <string name="balance_credit">前払い残高: %1$s</string>
-    <string name="balance_owes">%1$s の未払い金があります</string>
+    <string name="balance_owes">未払い %1$s</string>
     <string name="price_label">時間あたりの料金</string>
     <string name="price_per_lesson_hint">%1$s %2$s レッスン用</string>
     <string name="price_per_hour">%1$s/\u2060h</string>

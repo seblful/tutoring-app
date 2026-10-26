@@ -237,7 +237,7 @@
     <string name="section_see_all">Se alla</string>
     <string name="student_homework_empty">Inga läxor ännu</string>
     <string name="student_homework_done">Klart</string>
-    <string name="stat_debt">skyldig</string>
+    <string name="stat_debt">Skyldig</string>
     <string name="stat_credit">Tillgodo</string>
     <string name="stat_lessons">Lektioner</string>
     <string name="stat_hours">Timmar</string>

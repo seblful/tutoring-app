@@ -228,7 +228,7 @@
     <string name="section_see_all">查看全部</string>
     <string name="student_homework_empty">尚未布置作业</string>
     <string name="student_homework_done">完成</string>
-    <string name="stat_debt">欧斯</string>
+    <string name="stat_debt">欠款</string>
     <string name="stat_credit">预付余额</string>
     <string name="stat_lessons">课程</string>
     <string name="stat_hours">时间</string>

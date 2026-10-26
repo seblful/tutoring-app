@@ -237,7 +237,7 @@
     <string name="section_see_all">Se alle</string>
     <string name="student_homework_empty">Ingen lekser satt ennå</string>
     <string name="student_homework_done">Ferdig</string>
-    <string name="stat_debt">skylder</string>
+    <string name="stat_debt">Skylder</string>
     <string name="stat_credit">Til gode</string>
     <string name="stat_lessons">Leksjoner</string>
     <string name="stat_hours">Timer</string>
