@@ -120,7 +120,9 @@ After the first bundle exists in Play Console:
 1. Create a Google Cloud project, enable the Google Play Android Developer API, and create a service
    account with a downloaded JSON key.
 2. Invite its email in Play Console → Users and permissions; grant Klas testing/production release
-   permissions as needed. Link the project under Setup → API access if the Console shows that page.
+   permissions as needed, and the permission to edit the store listing for the
+   [Store listing](store-listing.md#publish) workflow. Link the project under Setup → API access if the
+   Console shows that page.
 3. Store the key and enable publishing:
    ```bash
    gh secret set PLAY_SERVICE_ACCOUNT_JSON < service-account.json

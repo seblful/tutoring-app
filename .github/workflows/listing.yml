@@ -1,0 +1,39 @@
+name: Store listing
+
+# Sends the Play store listing in the repository to Google Play: every language's words, the YouTube
+# videos named in store/text/<locale>/video.txt, and the graphics in store/listing/. Run by hand from the
+# Actions tab once the listing has changed on main — Play reviews listing changes, so not on every
+# release. Only what differs from Play's listing is sent (store/publish.mjs). Setup is in
+# docs/releasing.md; regenerating the listing in docs/store-listing.md.
+on:
+  workflow_dispatch:
+    inputs:
+      validate:
+        description: Only check the changes with Play; publish nothing
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  # Two edits at once: Play keeps one and the other fails on commit.
+  group: store-listing
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Send the listing to Google Play
+        env:
+          PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+        run: node store/publish.mjs ${{ inputs.validate && '--validate' || '' }}
