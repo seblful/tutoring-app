@@ -1,0 +1,44 @@
+Klas er timeboka til en privatlærer: timeplanen din, elevene dine, hvem som har betalt og hvem som skylder — regnet ut for deg, på telefonen din.
+
+UNDERVISNINGSDAGEN PÅ ET BLIKK
+• Dags-, uke- og månedsvisning av alle leksjoner
+• Se hva som er gjennomført, hva som pågår nå og hvem som er neste
+• Book en leksjon én gang, eller gjenta den hver uke eller annenhver uke
+• Overlappende tider avvises, så du blir aldri dobbeltbooket
+• Merk en leksjon som gjennomført med et sveip — eller la Klas gjøre det når leksjonen er over
+
+PENGER UTEN REGNEARK
+• Timepris per elev og fag, med prishistorikk
+• En ny pris endrer aldri leksjoner som allerede er gjennomført
+• Registrer betalinger; saldo, gjeld og tilgode regnes ut for deg
+• Sorter elevene etter hvem som skylder mest
+
+GRUPPER
+• Book én leksjon for hele gruppen til gruppens egen pris
+• Avregningen skjer fortsatt per elev — også «denne kom ikke»
+
+LEKSER SOM FINNER NESTE LEKSJON
+• Gi lekser til en elev eller en gruppe med noen få ord
+• De knyttes automatisk til neste leksjon
+• Del dem med eleven med ett trykk, og huk av når de er gjort
+
+RAPPORTER
+• Inntekter for en måned, et år eller hele perioden, sammenlignet med perioden før
+• Fordelt på måned, fag, elev og gruppe, individuelt og i gruppe
+• All utestående gjeld i én liste
+• Eksport til CSV for regneark eller regnskapsføreren din
+
+PÅMINNELSER OG KALENDER
+• Et varsel før hver leksjon, i tide
+• Valgfritt: dagsplan om morgenen, kveldsliste over umerkede leksjoner og ukentlig gjeldssammendrag
+• Valgfritt: synkronisering med kalenderen på telefonen, med e-postinvitasjoner til elevene
+
+PRIVAT FRA GRUNNEN AV
+• Ingen konto, ingen registrering, ikke behov for internett
+• Dataene dine blir på telefonen — Klas har ingen servere å sende dem til
+• Full sikkerhetskopi til en fil du selv tar vare på, og gjenoppretting på en ny telefon
+• Ingen reklame og ingen sporing
+
+Laget for en privatlærer som jobber alene. Lyst og mørkt tema. 25 språk og over 150 valutaer.
+
+Klas er åpen kildekode under GNU GPL v3.

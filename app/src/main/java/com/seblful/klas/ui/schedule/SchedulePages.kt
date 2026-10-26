@@ -43,6 +43,17 @@ data class SchedulePages(
     fun nextWeek(): SchedulePages = copy(week = week.plus(DAYS_IN_WEEK, DateTimeUnit.DAY))
 
     /**
+     * Weeks now start on [start]. The week page keeps the selected day if it was showing it — a Sunday
+     * picked at the end of a Monday week opens the Sunday week it now starts — and otherwise the week it was on.
+     */
+    fun startingWeeksOn(start: DayOfWeek): SchedulePages {
+        if (start == weekStart) return this
+        val showingSelected = selected >= week && selected < week.plus(DAYS_IN_WEEK, DateTimeUnit.DAY)
+        val anchor = if (showingSelected) selected else week
+        return copy(weekStart = start, week = CalendarLayout.startOfWeek(anchor, start))
+    }
+
+    /**
      * Today is now [date]. A selection still on the previous today follows it — without that, an app left
      * open overnight opened the day view on yesterday, with no «now» line. A day the tutor browsed to stays.
      */

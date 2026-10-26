@@ -65,7 +65,7 @@ class SettingsRepositoryTest {
         val german = SettingsRepository(dao, listOf(Locale.forLanguageTag("de-DE")).toDevicePreferences())
         val british = SettingsRepository(dao, listOf(Locale.forLanguageTag("en-GB")).toDevicePreferences())
         val japanese = SettingsRepository(dao, listOf(Locale.forLanguageTag("ja-JP")).toDevicePreferences())
-        val unknown = SettingsRepository(dao, listOf(Locale.forLanguageTag("en-IS")).toDevicePreferences())
+        val unknown = SettingsRepository(dao, listOf(Locale.forLanguageTag("ko-KP")).toDevicePreferences())
 
         assertEquals(Currency.USD, american.get().currency)
         assertEquals(Currency.EUR, german.get().currency)

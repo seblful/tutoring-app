@@ -3,11 +3,13 @@ package com.seblful.klas.ui.common
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performTextInput
 import com.seblful.klas.domain.model.Currency
 import com.seblful.klas.testutil.AppLocaleRule
 import com.seblful.klas.ui.theme.KlasTheme
@@ -40,6 +42,7 @@ class CurrencyPickerTest {
                 hasText("— ${Currency.BYN.symbol} (BYN)", substring = true),
         ).assertExists()
         compose.onNodeWithText("Currency").performClick()
+        compose.onNode(hasSetTextAction() and hasText("Search")).performTextInput("Japanese")
         compose.onNode(
             hasText("Japanese", substring = true) and hasText("— ¥ (JPY)", substring = true),
         ).performScrollTo().performClick()

@@ -165,14 +165,14 @@ Build screens from shared state and controls. Feature rules belong in the domain
 
 ## Formatting and appearance
 
-- Display money via `Money.money()` (`16 037,50 ₽`, `16,037.50 $`); seed inputs with ungrouped
+- Display money via `Money.money()` (`16 037,50 ₽`, `$16,037.50`, `€ 1.500,50`); seed inputs with ungrouped
   `amount()` because `parseMoneyOrNull` treats a comma as decimal. CSV uses ungrouped amounts.
 - BYN uses the official vector sign at provisional [U+20C5](https://www.unicode.org/alloc/Pipeline.html),
   embedded in all Golos Text weights. After replacing fonts or editing `art/belarusian_ruble.svg`, run
   `uv run art/add_byn_glyph.py`. Its outline gains stroke weight with the font, using Golos's own
   hyphen thickness as the reference. System notifications fall back to `BYN`.
-- Currency choices in setup (a dropdown) and Settings (a value row opening a list dialog) share 28
-  currencies. Sort by the localized name and show the name, symbol and ISO code
+- Currency choices in setup (a dropdown) and Settings (a value row opening a list dialog) share every
+  currency in `Currency`. Sort by the localized name and show the name, symbol and ISO code
   (`Belarusian ruble — ⃅ (BYN)`); codes distinguish shared symbols. Use the same label in change
   confirmation. Currency remains a label on stored amounts, without conversion or precision changes.
 - First run asks only what a lesson needs. Step 1 is the basics, all pre-set: language, currency and the
@@ -211,9 +211,12 @@ Build screens from shared state and controls. Feature rules belong in the domain
   Unsupported phone languages fall back to English. Translations live in `app/src/main/res`; the
   inventory and review status are in `localization/manifest.json`. Run
   `python -X utf8 localization/verify_translations.py --report localization/verification.json` for
-  detailed resource checks. Technical checks do not replace native-speaker or screen review.
-- Phone settings govern 12/24-hour time and week start, independent of app language; ask the application
-  context. `ProvideClockFormat` at the root asks for the clock once, and again on every resume. Use `WallClock.days()` for midnight rollover, `DayBounds` for day boundaries. Timezone changes
+  detailed resource checks. Technical checks do not replace native-speaker or screen review: hand out
+  `localization/native-review/` (regenerate with `native_review.py`).
+- Phone settings govern 12/24-hour time, independent of app language; ask the application context. The week
+  starts where Settings says (`WeekStartChoice`; `PHONE`, the default, reads the phone's `fw` preference, else
+  Monday). Date order comes from the language's own LONG/FULL patterns (`Formats`), and a language that writes a
+  12-hour clock natively («오후 9:05») keeps its own marker and order; the rest show a Latin "9:05 PM". `ProvideClockFormat` at the root asks for the clock once, and again on every resume. Use `WallClock.days()` for midnight rollover, `DayBounds` for day boundaries. Timezone changes
   re-query open calendars; form endings and booking use the same elapsed-time slots across DST.
 - Indigo/teal Material 3, dynamic color off by default; app-owned amber means “on now”, green “taught”.
   Dark containers keep the dark accents' chroma, not the seed's (`DarkPaletteTest`). Every scheme role is

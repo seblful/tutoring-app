@@ -54,4 +54,17 @@ class CurrencyTest {
         assertEquals(Currency.LEGACY, Currency.parse("XYZ"))
         assertNotEquals(Currency.LEGACY, Currency.FALLBACK)
     }
+
+    @Test
+    fun `no two currencies share a symbol`() {
+        val shared = Currency.entries.groupBy { it.symbol }.filterValues { it.size > 1 }
+        assertEquals(emptyMap(), shared, "a shared symbol says whose money it is to nobody")
+    }
+
+    @Test
+    fun `a tutor anywhere is offered their own currency`() {
+        assertEquals(Currency.VND, Currency.preferredFor(listOf("VND")))
+        assertEquals(Currency.IDR, Currency.preferredFor(listOf(null, "IDR")))
+        assertEquals(Currency.XOF, Currency.preferredFor(listOf("XOF")))
+    }
 }

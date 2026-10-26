@@ -7,6 +7,7 @@ import com.seblful.klas.domain.model.AppLanguage
 import com.seblful.klas.domain.model.Currency
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.ThemeChoice
+import com.seblful.klas.domain.model.WeekStartChoice
 import com.seblful.klas.domain.reminders.Reminders
 import com.seblful.klas.settings.DevicePreferences
 import dev.zacsweers.metro.AppScope
@@ -57,6 +58,7 @@ data class AppSettings(
     val unfinishedMinuteOfDay: Int = SettingsDefaults.UNFINISHED_MINUTE_OF_DAY,
     val autoCompleteEnabled: Boolean = false,
     val themeMode: ThemeChoice = ThemeChoice.SYSTEM,
+    val weekStart: WeekStartChoice = WeekStartChoice.PHONE,
     /**
      * Whether to take the colour scheme from the wallpaper instead of the app's own palette. Off by
      * default — see `SettingsEntity.dynamicColorEnabled` for why that is a decision and not a gap.
@@ -215,6 +217,7 @@ class SettingsRepository @Inject constructor(
             unfinishedMinuteOfDay = unfinishedMinuteOfDay,
             autoCompleteEnabled = autoCompleteEnabled,
             themeMode = themeMode,
+            weekStart = weekStart,
             dynamicColorEnabled = dynamicColorEnabled,
             defaultLessonMinutes = defaultLessonMinutes,
             // The column's 0-means-not-set sentinel is spelled here, at the row's edge, once.
@@ -261,6 +264,7 @@ class SettingsRepository @Inject constructor(
         unfinishedMinuteOfDay = unfinishedMinuteOfDay,
         autoCompleteEnabled = autoCompleteEnabled,
         themeMode = themeMode,
+        weekStart = weekStart,
         dynamicColorEnabled = dynamicColorEnabled,
         defaultLessonMinutes = defaultLessonMinutes,
         defaultGroupPriceMinor = defaultGroupPrice?.minor ?: 0,

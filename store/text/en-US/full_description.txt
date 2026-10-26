@@ -39,6 +39,6 @@ PRIVATE BY DESIGN
 • Full backup to a file you keep, and restore on a new phone
 • No ads and no trackers
 
-Made for a tutor who works alone. Russian or English, money in BYN, RUB, USD or EUR. Light and dark themes.
+Made for a tutor who works alone. 25 languages and over 150 currencies. Light and dark themes.
 
 Klas is open source under the GNU GPL v3.

@@ -1,6 +1,7 @@
 package com.seblful.klas.ui.schedule
 
 import com.seblful.klas.domain.model.LessonStatus
+import com.seblful.klas.domain.model.WeekStartChoice
 import com.seblful.klas.domain.time.today
 import com.seblful.klas.testutil.current
 import com.seblful.klas.testutil.observing
@@ -161,6 +162,28 @@ class ScheduleNavigationTest : ScheduleTestFixture() {
         assertEquals(LocalDate(2026, 7, 18), vm.weekDays.value.last())
         assertEquals(DayOfWeek.SUNDAY, vm.monthGrid.value.firstDate.dayOfWeek)
     }
+
+    @Test
+    fun `a week start chosen in Settings overrides the phone's and moves the open pages`() =
+        runTest(mainRule.dispatcher) {
+            val vm = vm(weekStart = DayOfWeek.MONDAY)
+            observing(vm.weekDays)
+            observing(vm.monthGrid)
+            vm.selectDate(LocalDate(2026, 7, 15)) // a Wednesday
+            advanceUntilIdle()
+            assertEquals(LocalDate(2026, 7, 13), vm.weekDays.value.first())
+
+            env.settingsRepo.update { it.copy(weekStart = WeekStartChoice.SUNDAY) }
+            advanceUntilIdle()
+
+            assertEquals(LocalDate(2026, 7, 12), vm.visibleWeek.value)
+            assertEquals(LocalDate(2026, 7, 12), vm.weekDays.value.first())
+            assertEquals(DayOfWeek.SUNDAY, vm.monthGrid.value.firstDate.dayOfWeek)
+
+            env.settingsRepo.update { it.copy(weekStart = WeekStartChoice.PHONE) }
+            advanceUntilIdle()
+            assertEquals("back to the phone's Monday", LocalDate(2026, 7, 13), vm.weekDays.value.first())
+        }
 
     @Test
     fun `the day view loads no markers at all`() = runTest(mainRule.dispatcher) {

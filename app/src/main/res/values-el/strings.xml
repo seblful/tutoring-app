@@ -447,6 +447,8 @@
     <string name="theme_system">Σύστημα</string>
     <string name="theme_light">Φωτεινό</string>
     <string name="theme_dark">Σκούρο</string>
+    <string name="settings_week_start">Έναρξη εβδομάδας</string>
+    <string name="week_start_phone">Όπως στο σύστημα</string>
     <string name="settings_language">Γλώσσα</string>
     <string name="language_system">Σύστημα</string>
     <string name="settings_dynamic_color">Χρώματα από την ταπετσαρία</string>

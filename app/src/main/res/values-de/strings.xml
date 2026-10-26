@@ -447,6 +447,8 @@
     <string name="theme_system">System</string>
     <string name="theme_light">Hell</string>
     <string name="theme_dark">Dunkel</string>
+    <string name="settings_week_start">Wochenbeginn</string>
+    <string name="week_start_phone">Wie im System</string>
     <string name="settings_language">Sprache</string>
     <string name="language_system">System</string>
     <string name="settings_dynamic_color">Farben des Hintergrundbilds</string>

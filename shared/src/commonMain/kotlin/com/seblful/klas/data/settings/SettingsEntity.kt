@@ -6,6 +6,7 @@ import androidx.room.PrimaryKey
 import com.seblful.klas.domain.model.AppLanguage
 import com.seblful.klas.domain.model.Currency
 import com.seblful.klas.domain.model.ThemeChoice
+import com.seblful.klas.domain.model.WeekStartChoice
 import com.seblful.klas.domain.reminders.Reminders
 import kotlinx.datetime.isoDayNumber
 
@@ -181,6 +182,9 @@ data class SettingsEntity(
      */
     @ColumnInfo(defaultValue = "")
     val phoneSetup: String = "",
+    /** Where the schedule's weeks start. Added by v15 → v16. */
+    @ColumnInfo(defaultValue = "PHONE")
+    val weekStart: WeekStartChoice = WeekStartChoice.PHONE,
 ) {
     companion object {
         const val SINGLETON_ID = 0

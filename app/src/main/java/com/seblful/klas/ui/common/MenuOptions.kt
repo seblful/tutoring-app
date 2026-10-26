@@ -42,14 +42,7 @@ fun <T> ColumnScope.MenuOptions(
     }
     var query by rememberSaveable { mutableStateOf("") }
     val matches = remember(options, query) { PeopleSearch.filter(options, query, nameOf) }
-    OutlinedTextField(
-        value = query,
-        onValueChange = { query = it },
-        placeholder = { Text(stringResource(R.string.action_search)) },
-        leadingIcon = { Icon(KlasIcons.Filled.Search, contentDescription = null) },
-        singleLine = true,
-        modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.inline, vertical = Spacing.tight),
-    )
+    SearchField(query, onQueryChange = { query = it })
     matches.take(MENU_SHOWN).forEach { option(it) }
     val hidden = matches.size - MENU_SHOWN
     if (hidden > 0) {
@@ -59,4 +52,17 @@ fun <T> ColumnScope.MenuOptions(
             enabled = false,
         )
     }
+}
+
+/** The search a long list of choices opens with — a menu's past [LONG_MENU], the currency dialog's. */
+@Composable
+fun SearchField(query: String, onQueryChange: (String) -> Unit, modifier: Modifier = Modifier) {
+    OutlinedTextField(
+        value = query,
+        onValueChange = onQueryChange,
+        placeholder = { Text(stringResource(R.string.action_search)) },
+        leadingIcon = { Icon(KlasIcons.Filled.Search, contentDescription = null) },
+        singleLine = true,
+        modifier = modifier.fillMaxWidth().padding(horizontal = Spacing.inline, vertical = Spacing.tight),
+    )
 }

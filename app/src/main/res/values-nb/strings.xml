@@ -447,6 +447,8 @@
     <string name="theme_system">System</string>
     <string name="theme_light">Lyst</string>
     <string name="theme_dark">Mørkt</string>
+    <string name="settings_week_start">Uken starter</string>
+    <string name="week_start_phone">Som systemet</string>
     <string name="settings_language">Språk</string>
     <string name="language_system">System</string>
     <string name="settings_dynamic_color">Farger fra bakgrunnsbildet</string>

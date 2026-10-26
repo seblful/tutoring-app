@@ -176,7 +176,7 @@ class ScheduleWriteTest : ScheduleTestFixture() {
             ScheduleViewModel(
                 env.classRepo, env.studentRepo, env.subjectRepo, env.groupRepo, env.homeworkRepo, env.homeworkQuery,
                 env.lessonChanges, env.lessonCompletions, mainRule.appScope,
-                mainRule.dispatcher, env.clock,
+                mainRule.dispatcher, env.clock, env.settingsRepo,
             ),
         )
         val seen = mutableListOf<ScheduleViewModel.Event>()
@@ -203,7 +203,7 @@ class ScheduleWriteTest : ScheduleTestFixture() {
             ScheduleViewModel(
                 env.classRepo, env.studentRepo, env.subjectRepo, env.groupRepo, env.homeworkRepo, env.homeworkQuery,
                 env.lessonChanges, env.lessonCompletions, mainRule.appScope,
-                mainRule.dispatcher, env.clock,
+                mainRule.dispatcher, env.clock, env.settingsRepo,
             ),
         )
         val seen = mutableListOf<ScheduleViewModel.Event>()

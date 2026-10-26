@@ -447,6 +447,8 @@
     <string name="theme_system">Systeem</string>
     <string name="theme_light">Licht</string>
     <string name="theme_dark">Donker</string>
+    <string name="settings_week_start">Week begint op</string>
+    <string name="week_start_phone">Zoals het systeem</string>
     <string name="settings_language">Taal</string>
     <string name="language_system">Systeem</string>
     <string name="settings_dynamic_color">Kleuren van de achtergrond</string>

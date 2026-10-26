@@ -1,0 +1,44 @@
+Klas est le carnet de cours d'un professeur particulier : votre planning, vos élèves, qui a payé et qui doit encore — tout est calculé pour vous, sur votre téléphone.
+
+VOTRE JOURNÉE DE COURS EN UN COUP D'ŒIL
+• Vues par jour, semaine et mois de tous vos cours
+• Voyez ce qui a été donné, ce qui est en cours et qui est le suivant
+• Réservez un cours une seule fois ou répétez-le chaque semaine ou toutes les deux semaines
+• Un créneau qui en chevauche un autre est refusé : jamais deux cours en même temps
+• Marquez un cours comme donné d'un simple glissement — ou laissez Klas le faire à la fin du cours
+
+L'ARGENT SANS TABLEUR
+• Un tarif horaire par élève et par matière, avec historique des tarifs
+• Changer un tarif ne modifie jamais les cours déjà donnés
+• Enregistrez les paiements : soldes, dettes et avances sont calculés pour vous
+• Triez les élèves selon qui doit le plus
+
+GROUPES
+• Un seul cours pour tout le groupe, au tarif du groupe
+• La facturation reste individuelle — y compris « celui-ci n'est pas venu »
+
+DES DEVOIRS QUI TROUVENT LE PROCHAIN COURS
+• Donnez des devoirs à un élève ou à un groupe en quelques mots
+• Ils s'attachent tout seuls à leur prochain cours
+• Partagez-les avec l'élève d'un seul geste, cochez-les une fois faits
+
+RAPPORTS
+• Revenus du mois, de l'année ou depuis le début, comparés à la période précédente
+• Détail par mois, matière, élève et groupe, cours individuels ou en groupe
+• Toutes les dettes en cours dans une seule liste
+• Export CSV pour un tableur ou votre comptable
+
+RAPPELS ET CALENDRIER
+• Une notification avant chaque cours, à l'heure
+• En option : programme du jour le matin, liste du soir des cours non marqués et récapitulatif hebdomadaire des dettes
+• En option : synchronisation avec le calendrier du téléphone, avec invitations par e-mail pour les élèves
+
+CONFIDENTIEL PAR CONCEPTION
+• Aucun compte, aucune inscription, pas besoin d'internet
+• Vos données restent sur votre téléphone — Klas n'a aucun serveur où les envoyer
+• Sauvegarde complète dans un fichier que vous gardez, et restauration sur un nouveau téléphone
+• Ni publicité ni traceurs
+
+Conçu pour un professeur particulier qui travaille seul. Thèmes clair et sombre. 25 langues et plus de 150 devises.
+
+Klas est open source, sous licence GNU GPL v3.

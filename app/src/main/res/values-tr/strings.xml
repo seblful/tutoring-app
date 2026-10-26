@@ -447,6 +447,8 @@
     <string name="theme_system">Sistem</string>
     <string name="theme_light">Açık</string>
     <string name="theme_dark">Koyu</string>
+    <string name="settings_week_start">Haftanın ilk günü</string>
+    <string name="week_start_phone">Sistem ayarı</string>
     <string name="settings_language">Dil</string>
     <string name="language_system">Sistem</string>
     <string name="settings_dynamic_color">Duvar kağıdındaki renkler</string>

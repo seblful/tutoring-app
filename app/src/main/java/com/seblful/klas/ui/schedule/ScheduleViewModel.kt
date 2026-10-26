@@ -9,6 +9,7 @@ import com.seblful.klas.data.lessons.UndoResult
 import com.seblful.klas.data.people.GroupRepository
 import com.seblful.klas.data.people.StudentRepository
 import com.seblful.klas.data.people.SubjectRepository
+import com.seblful.klas.data.settings.SettingsRepository
 import com.seblful.klas.di.ApplicationScope
 import com.seblful.klas.di.Computation
 import com.seblful.klas.di.FirstDayOfWeek
@@ -64,9 +65,11 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.scan
@@ -102,14 +105,14 @@ class ScheduleViewModel @Inject constructor(
     @param:ApplicationScope private val appScope: CoroutineScope,
     @param:Computation private val computation: CoroutineDispatcher,
     private val clock: WallClock,
-
-    @param:FirstDayOfWeek private val weekStart: DayOfWeek = DayOfWeek.MONDAY,
+    settings: SettingsRepository,
+    @param:FirstDayOfWeek private val phoneWeekStart: DayOfWeek = DayOfWeek.MONDAY,
 ) : ViewModel() {
 
     // From the clock, so the one thing that watches the date can be moved in a test. See TimeModule.
     private val zone: TimeZone get() = clock.zone
 
-    private var pages = SchedulePages.on(clock.today(), weekStart)
+    private var pages = SchedulePages.on(clock.today(), phoneWeekStart)
 
     private val _selectedDate = MutableStateFlow(pages.selected)
     val selectedDate: StateFlow<LocalDate> = _selectedDate.asStateFlow()
@@ -129,6 +132,20 @@ class ScheduleViewModel @Inject constructor(
 
     private val _viewMode = MutableStateFlow(pages.mode)
     val viewMode: StateFlow<ScheduleViewMode> = _viewMode.asStateFlow()
+
+    /** The tutor's choice in Settings, resolved against the phone's — followed eagerly, as [pages] anchor on it. */
+    private val weekStart = MutableStateFlow(phoneWeekStart)
+
+    init {
+        settings.observe()
+            .map { it.weekStart.resolve(phoneWeekStart) }
+            .distinctUntilChanged()
+            .onEach { start ->
+                weekStart.value = start
+                page { it.startingWeeksOn(start) }
+            }
+            .launchIn(viewModelScope)
+    }
 
     /** The filter as asked, by ids — [filter] is it resolved against who still exists. */
     private val askedFilter = MutableStateFlow(ScheduleFilter())
@@ -232,13 +249,13 @@ class ScheduleViewModel @Inject constructor(
             .derive(this, computation, Loadable.Loading)
 
     val monthGrid: StateFlow<CalendarLayout.MonthGrid> =
-        _visibleMonth.map { CalendarLayout.monthGrid(it, weekStart) }
-            .derive(this, computation, CalendarLayout.monthGrid(_visibleMonth.value, weekStart))
+        combine(_visibleMonth, weekStart, CalendarLayout::monthGrid)
+            .derive(this, computation, CalendarLayout.monthGrid(_visibleMonth.value, weekStart.value))
 
     /** The seven days the week strip shows. */
     val weekDays: StateFlow<List<LocalDate>> =
-        _visibleWeek.map { CalendarLayout.week(it, weekStart) }
-            .derive(this, computation, CalendarLayout.week(_visibleWeek.value, weekStart))
+        combine(_visibleWeek, weekStart, CalendarLayout::week)
+            .derive(this, computation, CalendarLayout.week(_visibleWeek.value, weekStart.value))
 
     /**
      * Per-day markers for the cells the active view is showing — the month page (including the
@@ -247,15 +264,20 @@ class ScheduleViewModel @Inject constructor(
      * never widens the query, and so the day view pays for no markers at all.
      */
     val dayLoads: StateFlow<Loadable<Map<LocalDate, CalendarLayout.DayLoad>>> =
-        combine(_viewMode, _visibleMonth, _visibleWeek, filter, clock.zones(), ::MarkerKey)
+        combine(
+            _viewMode,
+            combine(_visibleMonth, weekStart, CalendarLayout::monthGrid),
+            _visibleWeek,
+            filter,
+            clock.zones(),
+            ::MarkerKey,
+        )
             .flatMapLatest { key ->
                 val zone = key.zone
                 val range = when (key.mode) {
                     ScheduleViewMode.DAY -> null
                     ScheduleViewMode.WEEK -> key.week to key.week.plus(DAYS_IN_WEEK, DateTimeUnit.DAY)
-                    ScheduleViewMode.MONTH ->
-                        CalendarLayout.monthGrid(key.month, weekStart)
-                            .let { it.firstDate to it.endExclusive }
+                    ScheduleViewMode.MONTH -> key.grid.firstDate to key.grid.endExclusive
                 }
                 if (range == null) {
                     // The day view draws no calendar, so it queries none — and says **Loading** rather
@@ -277,7 +299,7 @@ class ScheduleViewModel @Inject constructor(
 
     private data class MarkerKey(
         val mode: ScheduleViewMode,
-        val month: YearMonth,
+        val grid: CalendarLayout.MonthGrid,
         val week: LocalDate,
         val filter: ScheduleFilter,
         val zone: TimeZone,

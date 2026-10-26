@@ -15,6 +15,7 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextReplacement
 import com.seblful.klas.data.settings.AppSettings
 import com.seblful.klas.domain.model.AppLanguage
@@ -147,9 +148,24 @@ class SettingsContentTest {
         assertEquals(order.sorted(), order)
     }
 
+    @Test
+    fun `the currency list is searched by name`() {
+        settings = AppSettings(currency = Currency.USD)
+        compose.setContent {
+            KlasTheme { LessonSettingsContent(settings, actions.update, onAutoComplete = {}) }
+        }
+        compose.onNodeWithText("Currency").performScrollTo().performClick()
+        compose.onNode(hasSetTextAction() and hasText("Search")).performTextInput("dong")
+
+        compose.onNode(hasText("— ₫ (VND)", substring = true)).performClick()
+        compose.onNodeWithText("Change").performClick()
+        assertEquals(Currency.VND, settings.currency)
+    }
+
     private fun chooseCurrency(code: String) {
         compose.onNodeWithText("Currency").performScrollTo().performClick()
-        compose.onNode(hasText("($code)", substring = true)).performScrollTo().performClick()
+        compose.onNode(hasSetTextAction() and hasText("Search")).performTextInput(code)
+        compose.onNode(hasText("($code)", substring = true)).performClick()
     }
 
     @Test

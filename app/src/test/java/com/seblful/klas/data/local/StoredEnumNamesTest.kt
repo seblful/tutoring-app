@@ -20,6 +20,7 @@ import com.seblful.klas.domain.model.Currency
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.PaymentMethod
 import com.seblful.klas.domain.model.ThemeChoice
+import com.seblful.klas.domain.model.WeekStartChoice
 import com.seblful.klas.testutil.ProjectFiles
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -31,8 +32,17 @@ class StoredEnumNamesTest {
     private val storedAttendance = setOf("EXPECTED", "PRESENT", "ABSENT", "ABSENT_BILLED")
     private val storedModes = setOf("IN_PERSON", "REMOTE")
     private val storedCurrencies = setOf(
-        "BYN", "RUB", "USD", "EUR", "AED", "AUD", "BRL", "CAD", "CHF", "CNY", "CZK", "DKK", "GBP", "HKD",
-        "INR", "JPY", "KRW", "KZT", "MXN", "NOK", "NZD", "PLN", "SAR", "SEK", "SGD", "TRY", "UAH", "ZAR",
+        "BYN", "RUB", "USD", "EUR", "AED", "AUD", "BRL", "CAD", "CHF", "CNY", "CZK", "DKK", "GBP", "HKD", "INR",
+        "JPY", "KRW", "KZT", "MXN", "NOK", "NZD", "PLN", "SAR", "SEK", "SGD", "TRY", "UAH", "ZAR", "AFN", "ALL",
+        "AMD", "AOA", "ARS", "AWG", "AZN", "BAM", "BBD", "BDT", "BHD", "BIF", "BMD", "BND", "BOB", "BSD", "BTN",
+        "BWP", "BZD", "CDF", "CLP", "COP", "CRC", "CUP", "CVE", "DJF", "DOP", "DZD", "EGP", "ERN", "ETB", "FJD",
+        "FKP", "GEL", "GHS", "GIP", "GMD", "GNF", "GTQ", "GYD", "HNL", "HTG", "HUF", "IDR", "ILS", "IQD", "IRR",
+        "ISK", "JMD", "JOD", "KES", "KGS", "KHR", "KMF", "KWD", "KYD", "LAK", "LBP", "LKR", "LRD", "LSL", "LYD",
+        "MAD", "MDL", "MGA", "MKD", "MMK", "MNT", "MOP", "MRU", "MUR", "MVR", "MWK", "MYR", "MZN", "NAD", "NGN",
+        "NIO", "NPR", "OMR", "PAB", "PEN", "PGK", "PHP", "PKR", "PYG", "QAR", "RON", "RSD", "RWF", "SBD", "SCR",
+        "SDG", "SHP", "SLE", "SOS", "SRD", "SSP", "STN", "SYP", "SZL", "THB", "TJS", "TMT", "TND", "TOP", "TTD",
+        "TWD", "TZS", "UGX", "UYU", "UZS", "VES", "VND", "VUV", "WST", "XAF", "XCD", "XOF", "XPF", "YER", "ZMW",
+        "ZWG",
     )
     private val storedLanguages = setOf(
         "SYSTEM", "RUSSIAN", "ENGLISH", "UKRAINIAN", "POLISH", "GERMAN", "FRENCH", "SPANISH",
@@ -41,6 +51,7 @@ class StoredEnumNamesTest {
         "CHINESE_SIMPLIFIED", "CHINESE_TRADITIONAL", "JAPANESE", "KOREAN",
     )
     private val storedThemes = setOf("LIGHT", "DARK", "SYSTEM")
+    private val storedWeekStarts = setOf("PHONE", "MONDAY", "SUNDAY", "SATURDAY")
     private val storedMethods = setOf("CASH", "CARD", "TRANSFER")
 
     private val converters = EnumConverters()
@@ -99,6 +110,15 @@ class StoredEnumNamesTest {
     }
 
     @Test
+    fun `the stored week start names are the ones the settings row holds`() {
+        val message = "A WeekStartChoice constant was renamed, added or removed. The `settings.weekStart` column " +
+            "stores these names — devices holding the old text will silently fall back to PHONE. " +
+            "Migrate the column (or accept the fallback deliberately), then update this list."
+        assertEquals(message, storedWeekStarts, WeekStartChoice.entries.map { it.name }.toSet())
+        assertEquals(message, storedWeekStarts, WeekStartChoice.entries.map(converters::fromWeekStart).toSet())
+    }
+
+    @Test
     fun `the stored payment method names are the ones the payments table holds`() {
         val message = "A PaymentMethod constant was renamed, added or removed. The `payments.method` column " +
             "stores these names — payments holding the old text will silently read as having no method. " +
@@ -127,6 +147,7 @@ class StoredEnumNamesTest {
         assertTrue(converters.fromMode(row.mode) in storedModes)
         val settings = SettingsEntity()
         assertTrue(converters.fromTheme(settings.themeMode) in storedThemes)
+        assertTrue(converters.fromWeekStart(settings.weekStart) in storedWeekStarts)
         assertTrue(converters.fromCurrency(settings.currency) in storedCurrencies)
         assertTrue(converters.fromLanguage(settings.language) in storedLanguages)
     }
@@ -154,7 +175,7 @@ class StoredEnumNamesTest {
         val writable = methods.filter { it.returnType == String::class.java && it.parameterCount == 1 }
             .map { it.parameterTypes.single() }.toSet()
 
-        assertEquals("the seven enum types the schema stores", 7, enumColumns.size)
+        assertEquals("the eight enum types the schema stores", 8, enumColumns.size)
         assertEquals("An enum column has no converter to read it", emptySet<Class<*>>(), enumColumns - readable)
         assertEquals("An enum column has no converter to write it", emptySet<Class<*>>(), enumColumns - writable)
     }

@@ -1,0 +1,44 @@
+Klas è il registro di chi dà lezioni private: il tuo orario, i tuoi studenti, chi ha pagato e chi deve ancora — tutto calcolato per te, sul tuo telefono.
+
+LA TUA GIORNATA DI LEZIONI A COLPO D'OCCHIO
+• Viste per giorno, settimana e mese di tutte le lezioni
+• Vedi cosa è stato svolto, cosa è in corso e chi è il prossimo
+• Prenota una lezione una sola volta o ripetila ogni settimana o ogni due settimane
+• Gli orari sovrapposti vengono rifiutati, così non hai mai due lezioni insieme
+• Segna una lezione come svolta con uno scorrimento, o lascia che lo faccia Klas a fine lezione
+
+SOLDI SENZA FOGLI DI CALCOLO
+• Una tariffa oraria per studente e materia, con storico delle tariffe
+• Cambiare una tariffa non modifica mai le lezioni già svolte
+• Registra i pagamenti: saldi, debiti e crediti vengono calcolati per te
+• Ordina gli studenti per chi deve di più
+
+GRUPPI
+• Prenota una lezione per tutto il gruppo alla tariffa del gruppo
+• Il conteggio resta per singolo studente, compreso «questo non è venuto»
+
+COMPITI CHE TROVANO LA PROSSIMA LEZIONE
+• Assegna i compiti a uno studente o a un gruppo in poche parole
+• Si collegano da soli alla loro prossima lezione
+• Inviali allo studente con un tocco e spuntali quando sono fatti
+
+RAPPORTI
+• Entrate di un mese, un anno o di sempre, a confronto con il periodo precedente
+• Dettaglio per mese, materia, studente e gruppo, lezioni individuali e di gruppo
+• Tutti i debiti in sospeso in un'unica lista
+• Esportazione in CSV per un foglio di calcolo o il tuo commercialista
+
+PROMEMORIA E CALENDARIO
+• Una notifica prima di ogni lezione, puntuale
+• A scelta: programma del giorno al mattino, elenco serale delle lezioni non segnate e riepilogo settimanale dei debiti
+• A scelta: sincronizzazione con il calendario del telefono, con inviti via email per gli studenti
+
+RISERVATEZZA FIN DALLA PROGETTAZIONE
+• Nessun account, nessuna registrazione, nessuna connessione necessaria
+• I tuoi dati restano sul telefono: Klas non ha server a cui inviarli
+• Backup completo in un file che conservi tu e ripristino su un nuovo telefono
+• Niente pubblicità e niente tracker
+
+Pensato per un insegnante privato che lavora da solo. Tema chiaro e scuro. 25 lingue e oltre 150 valute.
+
+Klas è open source con licenza GNU GPL v3.

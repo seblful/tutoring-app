@@ -8,6 +8,7 @@ import com.seblful.klas.domain.model.Currency
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.PaymentMethod
 import com.seblful.klas.domain.model.ThemeChoice
+import com.seblful.klas.domain.model.WeekStartChoice
 
 /**
  * How every enum column is stored: as the constant's **name**, in a `TEXT` column, and read back by a
@@ -24,10 +25,10 @@ import com.seblful.klas.domain.model.ThemeChoice
  * kills the collector, and the screen simply never draws. So the answer differs by whether the column
  * carries money:
  *
- * - **A mode, a currency, a language and a theme do not.** Each falls back — to [ClassMode.IN_PERSON],
- *   [Currency.LEGACY], [AppLanguage.SYSTEM] and [ThemeChoice.SYSTEM] — and the app carries on: one lesson
- *   reads «Очно» when it was remote, or amounts are captioned in the wrong code, which is a wrong word on a
- *   screen rather than a screen that will not open.
+ * - **A mode, a currency, a language, a theme and a week start do not.** Each falls back — to
+ *   [ClassMode.IN_PERSON], [Currency.LEGACY], [AppLanguage.SYSTEM], [ThemeChoice.SYSTEM] and
+ *   [WeekStartChoice.PHONE] — and the app carries on: one lesson reads «Очно» when it was remote, or amounts
+ *   are captioned in the wrong code, which is a wrong word on a screen rather than a screen that will not open.
  * - **A payment method does not either**, and has no default to fall back to: it reads as none, as it does on
  *   every payment recorded before it was asked.
  * - **A status does**, and so does an attendance: together they are what makes a lesson count as income
@@ -83,4 +84,10 @@ class EnumConverters {
 
     @TypeConverter
     fun toTheme(stored: String): ThemeChoice = ThemeChoice.parse(stored)
+
+    @TypeConverter
+    fun fromWeekStart(weekStart: WeekStartChoice): String = weekStart.name
+
+    @TypeConverter
+    fun toWeekStart(stored: String): WeekStartChoice = WeekStartChoice.parse(stored)
 }

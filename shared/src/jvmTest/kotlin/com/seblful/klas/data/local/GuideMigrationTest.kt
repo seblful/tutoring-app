@@ -14,8 +14,8 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 /**
- * The v13 → v14 and v14 → v15 steps on the settings table as the version before exported it. The device test
- * (`GuideSettingsMigrationTest`) also validates v14 against its schema; these run with the unit tests.
+ * The v13 → v14, v14 → v15 and v15 → v16 steps on the settings table as the version before exported it. The
+ * device test (`GuideSettingsMigrationTest`) also validates v14 against its schema; these run with the unit tests.
  */
 class GuideMigrationTest {
 
@@ -56,6 +56,24 @@ class GuideMigrationTest {
             }
         }
         assertEquals("", phoneSetup)
+    }
+
+    @Test
+    fun `a phone that upgrades keeps its weeks where the phone starts them`() {
+        val weekStart = BundledSQLiteDriver().open(File(directory, "klas.db").path).use { connection ->
+            connection.execSQL(settingsTableAt(15))
+            connection.execSQL(
+                "INSERT INTO settings (id, notificationsEnabled, calendarSyncEnabled, onboardingComplete, " +
+                    "reminderLeadMinutes, autoCompleteEnabled, themeMode, defaultLessonMinutes, currency) " +
+                    "VALUES (0, 1, 0, 1, 30, 0, 'SYSTEM', 60, 'BYN')",
+            )
+            Migrations.MIGRATION_15_16.migrate(connection)
+            connection.prepare("SELECT weekStart FROM settings WHERE id = 0").use {
+                check(it.step()) { "the settings row went missing" }
+                it.getText(0)
+            }
+        }
+        assertEquals("PHONE", weekStart)
     }
 
     private fun migrated(onboarded: Boolean): Pair<String, Long> =

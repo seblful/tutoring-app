@@ -30,6 +30,25 @@ class SchedulePagesTest {
     }
 
     @Test
+    fun `a new week start keeps the selected day on the week page`() {
+        val sunday = LocalDate(2026, 10, 18) // the last day of a Monday week
+        val moved = SchedulePages.on(sunday, DayOfWeek.MONDAY).startingWeeksOn(DayOfWeek.SUNDAY)
+
+        assertEquals("the Sunday week it now starts", sunday, moved.week)
+        assertEquals(sunday, moved.selected)
+    }
+
+    @Test
+    fun `a new week start re-anchors a browsed week page on the week it was showing`() {
+        val browsed = pages.nextWeek() // Monday 19 October, away from the selected Thursday
+        val moved = browsed.startingWeeksOn(DayOfWeek.SATURDAY)
+
+        assertEquals(LocalDate(2026, 10, 17), moved.week)
+        assertEquals("weeks keep their new start when paged", LocalDate(2026, 10, 24), moved.nextWeek().week)
+        assertSame("the same start is no change", pages, pages.startingWeeksOn(DayOfWeek.MONDAY))
+    }
+
+    @Test
     fun `browsing a page leaves the selected day alone`() {
         val browsed = pages.nextMonth().nextMonth().previousWeek()
 

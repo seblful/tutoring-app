@@ -13,6 +13,10 @@ node store/render.mjs
 Capture uses the Android project's JDK/SDK setup; rendering needs Node and Chrome (`CHROME=<path>`
 for a nonstandard installation). Upload per language in Play Console → Store presence → Main store listing.
 
+`store/text/<locale>/` holds the listing's words for all 25 app languages, by Play's codes (`de-DE`, `no-NO`,
+`ar`). Graphics are rendered only for the locales in `listing.json` (`en-US`, `ru-RU`), as each needs its own
+`DemoTutor` data; for the rest, paste the words and Play shows the default language's graphics.
+
 | Output | Play slot / limits |
 |---|---|
 | `phoneScreenshots/NN-*.png` | Ordered phone screenshots; 2160 × 3840, 24-bit PNG; at most eight |

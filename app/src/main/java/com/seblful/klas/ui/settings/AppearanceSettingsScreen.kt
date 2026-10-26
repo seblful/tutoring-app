@@ -11,6 +11,8 @@ import androidx.compose.ui.res.stringResource
 import com.seblful.klas.R
 import com.seblful.klas.data.settings.AppSettings
 import com.seblful.klas.domain.model.ThemeChoice
+import com.seblful.klas.domain.model.WeekStartChoice
+import com.seblful.klas.format.fullDisplayName
 import com.seblful.klas.ui.common.ChoiceRow
 import com.seblful.klas.ui.common.LanguageChoices
 import com.seblful.klas.ui.common.Spacing
@@ -18,6 +20,7 @@ import com.seblful.klas.ui.common.languageLabel
 import com.seblful.klas.ui.designsystem.component.SettingsGroup
 import com.seblful.klas.ui.theme.dynamicColorAvailable
 import dev.zacsweers.metrox.viewmodel.metroViewModel
+import kotlinx.datetime.DayOfWeek
 
 @Composable
 fun AppearanceSettingsScreen(onBack: (() -> Unit)?, viewModel: SettingsViewModel = metroViewModel()) {
@@ -42,6 +45,12 @@ internal fun AppearanceSettingsContent(
                 selected = settings.language,
                 onSelect = { picked -> if (picked != settings.language) onUpdate { it.copy(language = picked) } },
             )
+            ChoiceRow(
+                title = stringResource(R.string.settings_week_start),
+                options = WeekStartChoice.entries.map { it to weekStartLabel(it) },
+                selected = settings.weekStart,
+                onSelect = { choice -> onUpdate { it.copy(weekStart = choice) } },
+            )
         }
         SettingsGroup(stringResource(R.string.settings_section_appearance)) {
             ChoiceRow(
@@ -60,6 +69,14 @@ internal fun AppearanceSettingsContent(
             }
         }
     }
+}
+
+@Composable
+internal fun weekStartLabel(choice: WeekStartChoice): String = when (choice) {
+    WeekStartChoice.PHONE -> stringResource(R.string.week_start_phone)
+    WeekStartChoice.MONDAY -> DayOfWeek.MONDAY.fullDisplayName()
+    WeekStartChoice.SUNDAY -> DayOfWeek.SUNDAY.fullDisplayName()
+    WeekStartChoice.SATURDAY -> DayOfWeek.SATURDAY.fullDisplayName()
 }
 
 @Composable

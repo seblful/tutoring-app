@@ -41,8 +41,9 @@ fun currencyChoiceLabel(currency: Currency): String {
     )
 }
 
+/** The code where the platform has no name: older Androids predate VES, MRU, STN, SLE and ZWG. */
 private fun currencyName(currency: Currency, locale: Locale): String =
-    java.util.Currency.getInstance(currency.name).getDisplayName(locale)
+    runCatching { java.util.Currency.getInstance(currency.name).getDisplayName(locale) }.getOrDefault(currency.name)
         .replaceFirstChar { it.titlecase(locale) }
 
 /** Alphabetical in the current app language, rather than privileging one region. */

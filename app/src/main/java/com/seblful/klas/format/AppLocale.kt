@@ -2,7 +2,10 @@ package com.seblful.klas.format
 
 import com.seblful.klas.domain.model.Currency
 import com.seblful.klas.domain.model.Money
+import com.seblful.klas.domain.model.SymbolPlacement
+import java.text.DecimalFormat
 import java.text.DecimalFormatSymbols
+import java.text.NumberFormat
 import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
 
@@ -53,17 +56,46 @@ fun Money.amount(): String = amountText(AppLocale.decimalSeparator)
 
 /**
  * The amount as it is **shown**, captioned with [currency], in the app's language — `16 037,50 ₽`,
- * `16,037.50 $`. Every display of money goes through this, so an amount cannot render two ways.
+ * `$16,037.50`, `€ 1.500,50`: the separators and the sign's side are the language's. Every display of money
+ * goes through this, so an amount cannot render two ways.
  */
 fun Money.money(currency: Currency, locale: Locale = AppLocale.current): String {
-    val (decimal, grouping) = separators.getOrPut(locale) {
-        DecimalFormatSymbols.getInstance(locale).let { it.decimalSeparator to it.groupingSeparator }
-    }
-    return format(currency, decimal, grouping)
+    val style = moneyStyles.getOrPut(locale) { MoneyStyle.of(locale) }
+    return format(currency, style.decimal, style.grouping, style.placement)
 }
 
-/** Each locale's decimal and grouping separators: every amount on a list asks, and `getInstance` copies. */
-private val separators = ConcurrentHashMap<Locale, Pair<Char, Char>>()
+/** How [locale] writes an amount of money, read from the platform's own tables. */
+private data class MoneyStyle(val decimal: Char, val grouping: Char, val placement: SymbolPlacement) {
+    companion object {
+        fun of(locale: Locale): MoneyStyle {
+            val symbols = DecimalFormatSymbols.getInstance(locale)
+            return MoneyStyle(symbols.decimalSeparator, symbols.groupingSeparator, placementIn(locale))
+        }
 
-/** System notification fonts cannot render the bundled Belarusian ruble glyph. */
-fun String.forSystemFont(): String = replace(Currency.BYN.symbol, Currency.BYN.name)
+        /** "¤#,##0.00" puts the sign first, "#,##0.00 ¤" last; a space beside a leading sign is kept. */
+        fun placementIn(locale: Locale): SymbolPlacement {
+            val pattern = (NumberFormat.getCurrencyInstance(locale) as? DecimalFormat)?.toPattern()
+                ?.substringBefore(';') ?: return SymbolPlacement.AFTER
+            val sign = pattern.indexOf(CURRENCY_SIGN)
+            val digits = pattern.indexOfFirst { it == '#' || it == '0' }
+            return when {
+                sign < 0 || digits < 0 || sign > digits -> SymbolPlacement.AFTER
+                pattern.substring(sign + 1, digits).any(Char::isWhitespace) -> SymbolPlacement.BEFORE_SPACED
+                else -> SymbolPlacement.BEFORE
+            }
+        }
+
+        private const val CURRENCY_SIGN = '\u00A4'
+    }
+}
+
+/** Each locale's money style: every amount on a list asks, and `getInstance` copies. */
+private val moneyStyles = ConcurrentHashMap<Locale, MoneyStyle>()
+
+/**
+ * System notification fonts cannot render the bundled Belarusian ruble glyph. Its code, being letters, takes
+ * a space from digits it precedes: "BYN 1,500".
+ */
+fun String.forSystemFont(): String =
+    replace(Regex(Regex.escape(Currency.BYN.symbol) + "(?=\\d)"), Currency.BYN.name + " ")
+        .replace(Currency.BYN.symbol, Currency.BYN.name)

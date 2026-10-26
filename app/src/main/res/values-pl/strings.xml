@@ -483,6 +483,8 @@
     <string name="theme_system">System</string>
     <string name="theme_light">Jasny</string>
     <string name="theme_dark">Ciemny</string>
+    <string name="settings_week_start">Początek tygodnia</string>
+    <string name="week_start_phone">Jak w systemie</string>
     <string name="settings_language">Język</string>
     <string name="language_system">System</string>
     <string name="settings_dynamic_color">Kolory z tapety</string>

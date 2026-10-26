@@ -1,0 +1,44 @@
+Klas es la libreta de clases de un profesor particular: tu horario, tus alumnos, quién ha pagado y quién debe, todo calculado automáticamente en tu móvil.
+
+TU DÍA DE CLASES DE UN VISTAZO
+• Vistas por día, semana y mes de todas las clases
+• Mira lo que ya se ha impartido, lo que está en curso y quién va después
+• Reserva una clase una sola vez o repítela cada semana o cada dos semanas
+• Se rechazan los horarios que se solapan, así que nunca tendrás dos clases a la vez
+• Marca una clase como impartida deslizando el dedo, o deja que Klas lo haga cuando termine
+
+DINERO SIN HOJAS DE CÁLCULO
+• Una tarifa por hora para cada alumno y asignatura, con historial de tarifas
+• Cambiar una tarifa nunca modifica las clases ya impartidas
+• Registra los pagos; saldos, deudas y saldo a favor se calculan solos
+• Ordena a los alumnos según quién debe más
+
+GRUPOS
+• Reserva una sola clase para todo el grupo con la tarifa del grupo
+• La facturación sigue siendo por alumno, incluido «este no vino»
+
+TAREAS QUE ENCUENTRAN LA SIGUIENTE CLASE
+• Asigna tareas a un alumno o a un grupo en pocas palabras
+• Se vinculan solas a su siguiente clase
+• Compártelas con el alumno con un toque y márcalas cuando estén hechas
+
+INFORMES
+• Ingresos de un mes, un año o de todo el tiempo, comparados con el periodo anterior
+• Desglose por mes, asignatura, alumno y grupo, clases individuales frente a grupales
+• Todas las deudas pendientes en una lista
+• Exportación a CSV para una hoja de cálculo o tu contable
+
+RECORDATORIOS Y CALENDARIO
+• Una notificación antes de cada clase, a tiempo
+• Opcional: agenda por la mañana, lista nocturna de clases sin marcar y resumen semanal de deudas
+• Opcional: sincronización con el calendario del móvil, con invitaciones por correo para los alumnos
+
+PRIVACIDAD DESDE EL DISEÑO
+• Sin cuenta, sin registro y sin necesidad de internet
+• Tus datos se quedan en tu móvil: Klas no tiene servidores a los que enviarlos
+• Copia de seguridad completa en un archivo que guardas tú y restauración en un móvil nuevo
+• Sin anuncios ni rastreadores
+
+Pensada para un profesor particular que trabaja por su cuenta. Temas claro y oscuro. 25 idiomas y más de 150 monedas.
+
+Klas es de código abierto, con licencia GNU GPL v3.

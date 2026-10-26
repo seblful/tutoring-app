@@ -447,6 +447,8 @@
     <string name="theme_system">प्रणाली</string>
     <string name="theme_light">हल्की</string>
     <string name="theme_dark">गहरी</string>
+    <string name="settings_week_start">सप्ताह की शुरुआत</string>
+    <string name="week_start_phone">सिस्टम सेटिंग</string>
     <string name="settings_language">भाषा</string>
     <string name="language_system">प्रणाली</string>
     <string name="settings_dynamic_color">वॉलपेपर से रंग</string>

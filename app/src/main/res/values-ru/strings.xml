@@ -736,6 +736,8 @@
     <string name="theme_system">Системная</string>
     <string name="theme_light">Светлая</string>
     <string name="theme_dark">Тёмная</string>
+    <string name="settings_week_start">Начало недели</string>
+    <string name="week_start_phone">Как в системе</string>
     <!-- Material You. Worded as what it does rather than as what Google calls it: «Material You» means
          nothing to a tutor, while the wallpaper is the thing they can look at to predict the result. -->
     <string name="settings_dynamic_color">Цвета из обоев</string>

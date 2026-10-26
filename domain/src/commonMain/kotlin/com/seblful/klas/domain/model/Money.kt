@@ -41,25 +41,51 @@ value class Money(val minor: Long) : Comparable<Money> {
 
     /**
      * The amount as a reader is shown it — [amountText] with the whole part in groups of three, e.g.
-     * `16 037,50` or `16,037.50`. A five-figure total without them reads as a string of digits.
+     * `16 037,50` or `16,037.50`, or in [lakhs] — `1,60,375` — as South Asian amounts are written. A five-figure
+     * total without groups reads as a string of digits.
      *
      * **Display only.** [amountText] stays what a text field is seeded with, because a typed amount's comma
      * is a decimal separator to `parseMoneyOrNull`: an English field seeded `1,500` would read back as 1.5.
      * [grouping] has no default for the reason [amountText]'s separator has none.
      */
-    fun displayText(decimal: Char, grouping: Char): String {
+    fun displayText(decimal: Char, grouping: Char, lakhs: Boolean = false): String {
         val plain = amountText(decimal)
         val sign = if (plain.startsWith('-')) "-" else ""
         val digits = plain.removePrefix(sign)
         val whole = digits.substringBefore(decimal)
         val fraction = digits.substring(whole.length)
-        val grouped = whole.reversed().chunked(DIGITS_PER_GROUP).joinToString(grouping.toString()).reversed()
-        return "$sign$grouped$fraction"
+        val groups = if (lakhs && whole.length > DIGITS_PER_GROUP) {
+            val head = whole.dropLast(DIGITS_PER_GROUP)
+            head.reversed().chunked(DIGITS_PER_LAKH_GROUP).map { it.reversed() }.reversed() +
+                whole.takeLast(DIGITS_PER_GROUP)
+        } else {
+            whole.reversed().chunked(DIGITS_PER_GROUP).map { it.reversed() }.reversed()
+        }
+        return "$sign${groups.joinToString(grouping.toString())}$fraction"
     }
 
-    /** Formats as an amount in [currency], e.g. `1 500 ₽` or `1,500.50 $`. See [displayText]. */
-    fun format(currency: Currency, decimal: Char, grouping: Char): String =
-        "${displayText(decimal, grouping)} ${currency.symbol}"
+    /**
+     * Formats as an amount in [currency] with its sign where [placement] puts it: `1 500 ₽`, `$1,500.50`,
+     * `€ 1.500,50`. A sign spelled in letters always keeps a space from the digits (`NOK 1,500`). See
+     * [displayText].
+     */
+    fun format(
+        currency: Currency,
+        decimal: Char,
+        grouping: Char,
+        placement: SymbolPlacement = SymbolPlacement.AFTER,
+    ): String {
+        val amount = displayText(decimal, grouping, currency.lakhs)
+        val symbol = currency.symbol
+        return when (placement) {
+            SymbolPlacement.AFTER -> "$amount $symbol"
+            SymbolPlacement.BEFORE, SymbolPlacement.BEFORE_SPACED -> {
+                val space = if (placement == SymbolPlacement.BEFORE_SPACED || symbol.last().isLetter()) " " else ""
+                val sign = if (amount.startsWith('-')) "-" else ""
+                "$sign$symbol$space${amount.removePrefix(sign)}"
+            }
+        }
+    }
 
     companion object {
         val ZERO = Money(0)
@@ -68,6 +94,7 @@ value class Money(val minor: Long) : Comparable<Money> {
         const val MINOR_PER_MAJOR = 100L
 
         private const val DIGITS_PER_GROUP = 3
+        private const val DIGITS_PER_LAKH_GROUP = 2
 
         /**
          * The largest rate or payment accepted from input, 1 000 000,00 — enforced by

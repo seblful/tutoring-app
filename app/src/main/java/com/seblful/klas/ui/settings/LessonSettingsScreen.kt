@@ -3,6 +3,8 @@ package com.seblful.klas.ui.settings
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -20,9 +22,11 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.seblful.klas.R
 import com.seblful.klas.data.settings.AppSettings
 import com.seblful.klas.domain.model.Currency
+import com.seblful.klas.domain.people.PeopleSearch
 import com.seblful.klas.ui.common.ConfirmDialog
 import com.seblful.klas.ui.common.DialogRadioRow
 import com.seblful.klas.ui.common.DurationPickerModal
+import com.seblful.klas.ui.common.SearchField
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.currencyChoiceLabel
 import com.seblful.klas.ui.common.currencyChoices
@@ -153,16 +157,23 @@ private fun CurrencySetting(settings: AppSettings, onUpdate: ((AppSettings) -> A
         val choices = remember(locale) { currencyChoices(locale) }
         // Picking is the answer, as in the weekday dialogs; the change is confirmed below, not here.
         ChoiceDialog(title = title, onDismiss = { picking = false }) {
-            Column(Modifier.verticalScroll(rememberScrollState())) {
-                choices.forEach { currency ->
-                    DialogRadioRow(
-                        label = currencyChoiceLabel(currency),
-                        selected = currency == settings.currency,
-                        onClick = {
-                            picking = false
-                            if (currency != settings.currency) pendingCurrency = currency
-                        },
-                    )
+            // Searched and drawn lazily: every currency in the world composed at once stalled the frame.
+            var query by rememberSaveable { mutableStateOf("") }
+            val labelled = choices.map { it to currencyChoiceLabel(it) }
+            val matches = remember(labelled, query) { PeopleSearch.filter(labelled, query) { it.second } }
+            Column {
+                SearchField(query, onQueryChange = { query = it })
+                LazyColumn {
+                    items(matches, key = { it.first.name }) { (currency, label) ->
+                        DialogRadioRow(
+                            label = label,
+                            selected = currency == settings.currency,
+                            onClick = {
+                                picking = false
+                                if (currency != settings.currency) pendingCurrency = currency
+                            },
+                        )
+                    }
                 }
             }
         }

@@ -4,7 +4,8 @@ import kotlinx.datetime.DayOfWeek
 import java.util.Locale
 
 /**
- * Where the week starts, as the phone was told — not as this app assumed.
+ * Where the week starts, as the phone was told — not as this app assumed. A day chosen in Settings
+ * (`WeekStartChoice`) overrides it; this is what `WeekStartChoice.PHONE` resolves to.
  *
  * Android 14 added it to regional preferences (Settings → System → Languages → Regional preferences →
  * First day of week). The platform hands it to apps as the `fw` Unicode extension on their locale —

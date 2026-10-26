@@ -429,6 +429,8 @@
     <string name="theme_system">系統</string>
     <string name="theme_light">淺色</string>
     <string name="theme_dark">深色</string>
+    <string name="settings_week_start">每週開始於</string>
+    <string name="week_start_phone">跟隨系統</string>
     <string name="settings_language">語言</string>
     <string name="language_system">系統</string>
     <string name="settings_dynamic_color">桌布的顏色</string>

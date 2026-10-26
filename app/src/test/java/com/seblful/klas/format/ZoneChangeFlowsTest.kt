@@ -62,7 +62,7 @@ class ZoneChangeFlowsTest {
             val vm = main.own(
                 ScheduleViewModel(
                     env.classRepo, env.studentRepo, env.subjectRepo, env.groupRepo, env.homeworkRepo, env.homeworkQuery,
-                    env.lessonChanges, env.lessonCompletions, main.appScope, main.dispatcher, clock,
+                    env.lessonChanges, env.lessonCompletions, main.appScope, main.dispatcher, clock, env.settingsRepo,
                 ),
             )
             observing(vm.content)

@@ -447,6 +447,8 @@
     <string name="theme_system">Järjestelmä</string>
     <string name="theme_light">Vaalea</string>
     <string name="theme_dark">Tumma</string>
+    <string name="settings_week_start">Viikon ensimmäinen päivä</string>
+    <string name="week_start_phone">Järjestelmän asetus</string>
     <string name="settings_language">Kieli</string>
     <string name="language_system">Järjestelmä</string>
     <string name="settings_dynamic_color">Taustakuvan värit</string>

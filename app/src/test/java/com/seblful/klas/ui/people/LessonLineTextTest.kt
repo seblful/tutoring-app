@@ -43,8 +43,8 @@ class LessonLineTextTest {
 
         assertEquals(
             listOf(
-                "Today $time", "Tomorrow $time", "Thu $time", "24 Jun", "12 Jan 2027",
-                "Last lesson 20 May", "Last lesson 20 Dec 2025", "No lessons yet",
+                "Today $time", "Tomorrow $time", "Thu $time", "Jun 24", "Jan 12, 2027",
+                "Last lesson May 20", "Last lesson Dec 20, 2025", "No lessons yet",
             ),
             said,
         )

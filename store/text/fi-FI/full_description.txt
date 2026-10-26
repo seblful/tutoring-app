@@ -1,0 +1,44 @@
+Klas on yksityisopettajan tuntikirja: lukujärjestyksesi, oppilaasi, kuka on maksanut ja kuka on velkaa — laskettuna puolestasi, puhelimessasi.
+
+OPETUSPÄIVÄ YHDELLÄ SILMÄYKSELLÄ
+• Päivä-, viikko- ja kuukausinäkymä kaikista oppitunneista
+• Näet, mitkä tunnit on pidetty, mikä on käynnissä ja kuka on seuraavana
+• Varaa tunti kerran tai toista se joka viikko tai joka toinen viikko
+• Päällekkäisiä aikoja ei hyväksytä, joten kahta tuntia ei koskaan varata samaan aikaan
+• Merkitse tunti pidetyksi pyyhkäisyllä — tai anna Klasin tehdä se, kun tunti päättyy
+
+RAHAT ILMAN TAULUKKOA
+• Tuntihinta oppilas- ja oppiainekohtaisesti, hintahistorian kanssa
+• Hinnan muutos ei koskaan muuta jo pidettyjä tunteja
+• Kirjaa maksut; saldot, velat ja ennakkomaksut lasketaan puolestasi
+• Järjestä oppilaat sen mukaan, kuka on eniten velkaa
+
+RYHMÄT
+• Varaa yksi tunti koko ryhmälle ryhmän omalla hinnalla
+• Laskutus pysyy oppilaskohtaisena — myös ”tämä ei tullut”
+
+KOTITEHTÄVÄT, JOTKA LÖYTÄVÄT SEURAAVAN TUNNIN
+• Anna kotitehtävä oppilaalle tai ryhmälle muutamalla sanalla
+• Se liittyy itsestään heidän seuraavaan tuntiinsa
+• Jaa se oppilaalle yhdellä napautuksella ja kuittaa, kun se on tehty
+
+RAPORTIT
+• Tulot kuukaudelta, vuodelta tai koko ajalta verrattuna edelliseen jaksoon
+• Erittely kuukausittain, oppiaineittain, oppilaittain ja ryhmittäin, yksilö- ja ryhmätunnit
+• Avoimet velat yhdellä listalla
+• Vienti CSV-muotoon taulukkolaskentaan tai kirjanpitäjälle
+
+MUISTUTUKSET JA KALENTERI
+• Ilmoitus ennen jokaista tuntia, ajallaan
+• Valinnaisesti: aamuinen päiväohjelma, illalla lista merkitsemättömistä tunneista ja viikoittainen velkayhteenveto
+• Valinnaisesti: synkronointi puhelimen kalenteriin ja sähköpostikutsut oppilaille
+
+YKSITYISYYS LÄHTÖKOHTANA
+• Ei tiliä, ei rekisteröitymistä, ei internetyhteyttä
+• Tietosi pysyvät puhelimessasi — Klasilla ei ole palvelimia, joille niitä lähettää
+• Täysi varmuuskopio tiedostoon, jonka säilytät itse, ja palautus uuteen puhelimeen
+• Ei mainoksia eikä seurantaa
+
+Tehty yksin työskentelevälle yksityisopettajalle. Vaalea ja tumma teema. 25 kieltä ja yli 150 valuuttaa.
+
+Klas on avointa lähdekoodia GNU GPL v3 -lisenssillä.

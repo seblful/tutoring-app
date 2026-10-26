@@ -429,6 +429,8 @@
     <string name="theme_system">システム</string>
     <string name="theme_light">ライト</string>
     <string name="theme_dark">ダーク</string>
+    <string name="settings_week_start">週の始まり</string>
+    <string name="week_start_phone">システム設定</string>
     <string name="settings_language">言語</string>
     <string name="language_system">システム</string>
     <string name="settings_dynamic_color">壁紙の色</string>

@@ -9,16 +9,17 @@ import kotlin.test.assertTrue
 class PhoneTest {
 
     @Test
-    fun `every currency but the euro has a code of a plus and one to three digits`() {
-        Currency.entries.filter { it != Currency.EUR }.forEach { currency ->
+    fun `every currency of one country has a code of a plus and one to three digits`() {
+        (Currency.entries - Phone.SHARED_ACROSS_CODES).forEach { currency ->
             val code = Phone.callingCode(currency)
             assertTrue(code != null && Regex("""\+\d{1,3}""").matches(code), "${currency.name}: $code")
         }
     }
 
     @Test
-    fun `the euro names no one country`() {
-        assertNull(Phone.callingCode(Currency.EUR))
+    fun `a currency of several countries names no one code`() {
+        Phone.SHARED_ACROSS_CODES.forEach { assertNull(Phone.callingCode(it), it.name) }
+        assertEquals("+84", Phone.callingCode(Currency.VND))
     }
 
     @Test

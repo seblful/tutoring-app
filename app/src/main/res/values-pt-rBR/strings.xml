@@ -465,6 +465,8 @@
     <string name="theme_system">Sistema</string>
     <string name="theme_light">Claro</string>
     <string name="theme_dark">Escuro</string>
+    <string name="settings_week_start">Início da semana</string>
+    <string name="week_start_phone">Como no sistema</string>
     <string name="settings_language">Idioma</string>
     <string name="language_system">Sistema</string>
     <string name="settings_dynamic_color">Cores do papel de parede</string>

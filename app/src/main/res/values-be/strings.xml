@@ -483,6 +483,8 @@
     <string name="theme_system">Сістэма</string>
     <string name="theme_light">Светлая</string>
     <string name="theme_dark">Цёмная</string>
+    <string name="settings_week_start">Пачатак тыдня</string>
+    <string name="week_start_phone">Як у сістэме</string>
     <string name="settings_language">Мова</string>
     <string name="language_system">Сістэма</string>
     <string name="settings_dynamic_color">Колеры шпалер</string>

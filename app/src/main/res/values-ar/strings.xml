@@ -519,6 +519,8 @@
     <string name="theme_system">النظام</string>
     <string name="theme_light">فاتح</string>
     <string name="theme_dark">داكن</string>
+    <string name="settings_week_start">بداية الأسبوع</string>
+    <string name="week_start_phone">إعداد النظام</string>
     <string name="settings_language">اللغة</string>
     <string name="language_system">النظام</string>
     <string name="settings_dynamic_color">ألوان خلفية الشاشة</string>

@@ -69,7 +69,46 @@ class FormattersLanguageTest {
                 val label = formatWeekRange(start, end)
                 assertTrue("«$label» is too long for the navigator", label.length <= 26)
             }
-            assertEquals("6 – 12 July", formatWeekRange(LocalDate(2026, 7, 6), LocalDate(2026, 7, 12)))
+            assertEquals("July 6 – 12", formatWeekRange(LocalDate(2026, 7, 6), LocalDate(2026, 7, 12)))
+        }
+    }
+
+    @Test
+    fun `a week range in a language that wraps its day in text names the month at both ends`() {
+        inLanguage(Locale.JAPANESE) {
+            assertEquals("7月6日 – 7月12日", formatWeekRange(LocalDate(2026, 7, 6), LocalDate(2026, 7, 12)))
+        }
+    }
+
+    @Test
+    fun `a date is ordered the way its language writes one`() {
+        val date = LocalDate(2026, 10, 14)
+        val expected = mapOf(
+            AppLocaleRule.RUSSIAN to listOf("14 окт. 2026", "14 окт.", "Среда, 14 октября"),
+            AppLocaleRule.ENGLISH to listOf("Oct 14, 2026", "Oct 14", "Wednesday, October 14"),
+            Locale.GERMAN to listOf("14. Okt. 2026", "14. Okt.", "Mittwoch, 14. Oktober"),
+            Locale.JAPANESE to listOf("2026年10月14日", "10月14日", "10月14日水曜日"),
+            Locale.KOREAN to listOf("2026년 10월 14일", "10월 14일", "10월 14일 수요일"),
+            Locale.forLanguageTag("tr") to listOf("14 Eki 2026", "14 Eki", "14 Ekim Çarşamba"),
+        )
+        expected.forEach { (locale, forms) ->
+            val (short, near, day) = forms
+            inLanguage(locale) {
+                assertEquals(locale.toLanguageTag(), short, date.formatDate())
+                assertEquals(locale.toLanguageTag(), near, date.formatNearDate(thisYear = 2026))
+                assertEquals(locale.toLanguageTag(), day, date.formatDay())
+            }
+        }
+    }
+
+    @Test
+    fun `every app language has a day-and-month without a year`() {
+        for (language in AppLanguage.translated) {
+            inLanguage(Locale.forLanguageTag(language.tag!!)) {
+                val near = LocalDate(2026, 10, 14).formatNearDate(thisYear = 2026)
+                assertTrue("${language.tag}: «$near» carries the year", "2026" !in near)
+                assertTrue("${language.tag}: «$near» lost the day", "14" in near)
+            }
         }
     }
 
@@ -83,7 +122,7 @@ class FormattersLanguageTest {
         }
         inLanguage(AppLocaleRule.ENGLISH) {
             assertEquals('.', AppLocale.decimalSeparator)
-            assertEquals("1,500.50 \u20C5", Money(150050).money(Currency.BYN))
+            assertEquals("\u20C51,500.50", Money(150050).money(Currency.BYN))
             assertEquals("1500.50", Money(150050).amount())
             assertEquals("-0.50", Money(-50).toAmountInput())
         }
@@ -102,7 +141,7 @@ class FormattersLanguageTest {
             assertEquals(total, parseMoneyOrNull(total.toAmountInput()))
         }
         inLanguage(AppLocaleRule.ENGLISH) {
-            assertEquals("16,037.50 $", total.money(Currency.USD))
+            assertEquals("\$16,037.50", total.money(Currency.USD))
             assertEquals(total, parseMoneyOrNull(total.toAmountInput()))
         }
     }
@@ -110,10 +149,12 @@ class FormattersLanguageTest {
     @Test
     fun `system text uses a readable fallback for the bundled sign`() {
         val locale = AppLocaleRule.ENGLISH
-        assertEquals("1,500.50 BYN", Money(150050).money(Currency.BYN, locale).forSystemFont())
-        assertEquals("1,500.50 ₽", Money(150050).money(Currency.RUB, locale).forSystemFont())
-        assertEquals("1,500.50 $", Money(150050).money(Currency.USD, locale).forSystemFont())
-        assertEquals("1,500.50 €", Money(150050).money(Currency.EUR, locale).forSystemFont())
+        assertEquals("BYN 1,500.50", Money(150050).money(Currency.BYN, locale).forSystemFont())
+        assertEquals("-BYN 1,500.50", Money(-150050).money(Currency.BYN, locale).forSystemFont())
+        val russian = Money(150050).money(Currency.BYN, AppLocaleRule.RUSSIAN).forSystemFont()
+        assertTrue("«$russian» keeps its sign after the amount", russian.endsWith("500,50 BYN"))
+        assertEquals("₽1,500.50", Money(150050).money(Currency.RUB, locale).forSystemFont())
+        assertEquals("\$1,500.50", Money(150050).money(Currency.USD, locale).forSystemFont())
     }
 
     /** An hour count is a number too, and was the one place the comma was written into the arithmetic. */
@@ -123,6 +164,27 @@ class FormattersLanguageTest {
         inLanguage(AppLocaleRule.ENGLISH) { assertEquals("1.5", formatHours(90)) }
         // Whole hours have no separator to disagree about.
         inLanguage(AppLocaleRule.ENGLISH) { assertEquals("42", formatHours(2520)) }
+    }
+
+    @Test
+    fun `the currency sign goes on the side the language writes it`() {
+        val amount = Money(150050)
+        inLanguage(Locale.GERMAN) { assertEquals("1.500,50 €", amount.money(Currency.EUR)) }
+        inLanguage(Locale.forLanguageTag("nl")) { assertEquals("€ 1.500,50", amount.money(Currency.EUR)) }
+        inLanguage(Locale.JAPANESE) { assertEquals("¥1,500.50", amount.money(Currency.JPY)) }
+        inLanguage(Locale.forLanguageTag("ar")) { assertTrue(amount.money(Currency.SAR).endsWith(" SAR")) }
+        inLanguage(AppLocaleRule.ENGLISH) { assertEquals("NOK 1,500.50", amount.money(Currency.NOK)) }
+    }
+
+    @Test
+    fun `every app language writes every currency`() {
+        for (language in AppLanguage.translated) {
+            val locale = Locale.forLanguageTag(language.tag!!)
+            Currency.entries.forEach { currency ->
+                val text = Money(150050).money(currency, locale)
+                assertTrue("${language.tag} $currency: «$text»", currency.symbol in text && "50" in text)
+            }
+        }
     }
 
     /**
@@ -162,13 +224,33 @@ class FormattersLanguageTest {
         assertEquals("a clock face is not a language", russian, english)
     }
 
-    /** And the 12-hour marker stays the pinned Latin pair, for the reason `Formats.time12` gives. */
+    /** A 24-hour language keeps the pinned Latin pair, for the reason `Formats.time12` gives. */
     @Test
     fun `the 12-hour marker is AM and PM in both languages`() {
-        listOf(AppLocaleRule.RUSSIAN, AppLocaleRule.ENGLISH).forEach { locale ->
+        listOf(AppLocaleRule.RUSSIAN, AppLocaleRule.ENGLISH, Locale.JAPANESE).forEach { locale ->
             inLanguage(locale) {
                 assertEquals("9:00 PM", LocalTime(21, 0).formatTime(hour12 = true))
                 assertEquals("12:00 AM", LocalTime(0, 0).formatTime(hour12 = true))
+            }
+        }
+    }
+
+    @Test
+    fun `a language with its own 12-hour clock writes it its own way`() {
+        val evening = LocalTime(21, 5)
+        inLanguage(Locale.KOREAN) { assertEquals("오후 9:05", evening.formatTime(hour12 = true)) }
+        inLanguage(Locale.forLanguageTag("zh-TW")) { assertEquals("下午9:05", evening.formatTime(hour12 = true)) }
+        inLanguage(Locale.forLanguageTag("ar")) { assertTrue(evening.formatTime(hour12 = true).endsWith("م")) }
+        // A 12-hour language's 24-hour face is still the phone's call, not the language's.
+        inLanguage(Locale.KOREAN) { assertEquals("21:05", evening.formatTime(hour12 = false)) }
+    }
+
+    @Test
+    fun `every app language formats a 12-hour time without failing`() {
+        for (language in AppLanguage.translated) {
+            inLanguage(Locale.forLanguageTag(language.tag!!)) {
+                val label = LocalTime(21, 5).formatTime(hour12 = true)
+                assertTrue("${language.tag}: «$label»", "9" in label && "05" in label)
             }
         }
     }

@@ -2,6 +2,7 @@ package com.seblful.klas.domain
 
 import com.seblful.klas.domain.model.Currency
 import com.seblful.klas.domain.model.Money
+import com.seblful.klas.domain.model.SymbolPlacement
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -73,5 +74,29 @@ class MoneyTest {
         assertEquals(Money(300), Money(100) + Money(200))
         assertEquals(Money(-50), Money(100) - Money(150))
         assertTrue((Money(100) - Money(150)).isNegative)
+    }
+
+    @Test
+    fun `a rupee amount is grouped in lakhs and crores`() {
+        assertEquals("1,00,000 ₹", Money.ofMajor(100_000).format(Currency.INR, '.', ','))
+        assertEquals("1,23,45,678.50 ₹", Money(1_234_567_850).format(Currency.INR, '.', ','))
+        assertEquals("-12,345 ₹", Money.ofMajor(-12_345).format(Currency.INR, '.', ','))
+        assertEquals("999 ₹", Money.ofMajor(999).format(Currency.INR, '.', ','))
+        val dollars = Money.ofMajor(100_000).format(Currency.USD, '.', ',')
+        assertEquals("100,000 $", dollars, "other currencies keep thousands")
+    }
+
+    @Test
+    fun `the sign goes where the language puts it`() {
+        val amount = Money(150050)
+        assertEquals("\$1,500.50", amount.format(Currency.USD, '.', ',', SymbolPlacement.BEFORE))
+        assertEquals("-\$1,500.50", Money(-150050).format(Currency.USD, '.', ',', SymbolPlacement.BEFORE))
+        assertEquals("€ 1.500,50", amount.format(Currency.EUR, ',', '.', SymbolPlacement.BEFORE_SPACED))
+        assertEquals(
+            "NOK 1,500.50",
+            amount.format(Currency.NOK, '.', ',', SymbolPlacement.BEFORE),
+            "a sign in letters keeps its space",
+        )
+        assertEquals("1 500,50 ₫", amount.format(Currency.VND, ',', ' ', SymbolPlacement.AFTER))
     }
 }

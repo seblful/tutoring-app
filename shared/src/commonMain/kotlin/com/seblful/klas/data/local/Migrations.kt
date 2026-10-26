@@ -275,6 +275,13 @@ object Migrations {
         }
     }
 
+    /** Where the schedule's weeks start — the phone's answer, as before, on every phone that upgrades. */
+    val MIGRATION_15_16 = object : Migration(15, 16) {
+        override fun migrate(connection: SQLiteConnection) {
+            connection.execSQL("ALTER TABLE settings ADD COLUMN weekStart TEXT NOT NULL DEFAULT 'PHONE'")
+        }
+    }
+
     /** Everything above, in the order Room should be handed it. See [buildDatabase]. */
     val ALL: Array<Migration> = arrayOf(
         MIGRATION_5_6,
@@ -287,5 +294,6 @@ object Migrations {
         MIGRATION_12_13,
         MIGRATION_13_14,
         MIGRATION_14_15,
+        MIGRATION_15_16,
     )
 }

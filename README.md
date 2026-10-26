@@ -2,7 +2,7 @@
 
 A native Android app for a **single private tutor**: students, groups, lessons, homework, payments and
 debts. The database stays on your device; no backend or account. Calendar sync and sharing are optional.
-25 language variants, Material 3, and 28 currencies with localized names and symbols.
+25 language variants, Material 3, and over 150 currencies with localized names and symbols.
 
 > Application ID: `com.seblful.klas` · launcher label: **Klas**
 

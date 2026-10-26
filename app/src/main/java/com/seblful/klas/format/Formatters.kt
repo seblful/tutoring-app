@@ -12,7 +12,9 @@ import kotlinx.datetime.toJavaLocalDate
 import kotlinx.datetime.toJavaLocalTime
 import kotlinx.datetime.toJavaZoneId
 import kotlinx.datetime.toLocalDateTime
+import java.text.DateFormat
 import java.text.DateFormatSymbols
+import java.text.SimpleDateFormat
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeFormatterBuilder
@@ -22,32 +24,49 @@ import java.util.Locale
 import kotlin.time.Instant
 import kotlin.time.toJavaInstant
 
+/**
+ * The app's date and time formats in [locale], ordered by the platform's own patterns: «14 октября»,
+ * "October 14", «10月14日».
+ *
+ * The order comes from `java.text.DateFormat`'s LONG and FULL patterns with the year taken out, rather than
+ * from ICU skeletons: `android.icu` is unavailable in JVM tests, and `java.text` reads the same CLDR tables
+ * on both. Month names still come from [DateFormatSymbols], whose format-form months are the genitive
+ * «октября» a Russian date needs.
+ */
 private class Formats(val locale: Locale) {
 
     private val symbols = DateFormatSymbols.getInstance(locale)
     private val monthOfDay = monthNames(symbols.months)
     private val shortMonthOfDay = monthNames(symbols.shortMonths)
 
-    val dayMonth: DateTimeFormatter = build { appendPattern("d ").appendText(ChronoField.MONTH_OF_YEAR, monthOfDay) }
-    val dayShortMonth: DateTimeFormatter =
-        build { appendPattern("d ").appendText(ChronoField.MONTH_OF_YEAR, shortMonthOfDay) }
+    private val longDate = DatePattern.parse(datePattern(DateFormat.LONG))
+    private val dayMonthPattern = longDate.withoutYear()
 
-    val date: DateTimeFormatter = build { append(dayShortMonth).appendPattern(" yyyy") }
-    val day: DateTimeFormatter = build { appendPattern("EEEE, ").append(dayMonth) }
+    val dayMonth: DateTimeFormatter = formatter(dayMonthPattern)
+    val dayShortMonth: DateTimeFormatter = formatter(dayMonthPattern.withShortMonth())
+
+    /** With the year; a trailing era word («2026 г.») is dropped, as a date in a list reads without it. */
+    val date: DateTimeFormatter = formatter(longDate.withShortMonth().withoutTrailingText())
+    val day: DateTimeFormatter = formatter(DatePattern.parse(datePattern(DateFormat.FULL)).withoutYear())
     val time: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm", locale)
-    val dateTime: DateTimeFormatter = build { append(dayShortMonth).appendPattern(", HH:mm") }
+    val dateTime: DateTimeFormatter = build { append(dayShortMonth).appendLiteral(", ").append(time) }
     val month: DateTimeFormatter = DateTimeFormatter.ofPattern("LLLL yyyy", locale)
+
+    /** True when [dayMonth] reads day first, «12 июля», so a range can share its month: «6 – 12 июля». */
+    val dayFirst: Boolean = dayMonthPattern.startsWithDay
+
+    /** True when [dayMonth] ends on the day, "July 12", so a range can share its month: "July 6 – 12". */
+    val dayLast: Boolean = dayMonthPattern.endsWithDay
 
     /**
      * The 12-hour faces of [time] and [dateTime], for a phone whose clock is set that way — asked for by
      * `hour12`, never by this module deciding. The app's own default is the 24-hour one above.
      *
-     * The marker is spelled "AM"/"PM" here rather than taken from the locale: `ru` renders it «ДП»/«ПП»
-     * under some CLDR versions and "AM"/"PM" under others, so an unpinned marker would have read
-     * differently on two Androids — and it is the Latin pair a tutor reading a 12-hour clock expects, in
-     * either language. Built rather than patterned because a pattern's `a` is exactly the part that varies.
+     * A language that writes a 12-hour clock natively uses its own pattern and marker: "3:20 PM", «오후 3:20»,
+     * «下午3:20». The rest get a Latin "3:20 PM": `ru` renders its marker «ДП»/«ПП» under some CLDR
+     * versions and "AM"/"PM" under others, and the Latin pair is what a 12-hour reader expects there.
      */
-    val time12: DateTimeFormatter = DateTimeFormatterBuilder()
+    val time12: DateTimeFormatter = nativeTime12() ?: DateTimeFormatterBuilder()
         .appendValue(ChronoField.CLOCK_HOUR_OF_AMPM)
         .appendLiteral(':')
         .appendValue(ChronoField.MINUTE_OF_HOUR, 2)
@@ -57,11 +76,125 @@ private class Formats(val locale: Locale) {
 
     val dateTime12: DateTimeFormatter = build { append(dayShortMonth).appendLiteral(", ").append(time12) }
 
+    private fun datePattern(style: Int): String =
+        (DateFormat.getDateInstance(style, locale) as SimpleDateFormat).toPattern()
+
+    private fun nativeTime12(): DateTimeFormatter? {
+        val pattern = (DateFormat.getTimeInstance(DateFormat.SHORT, locale) as SimpleDateFormat).toPattern()
+            // `B` (flexible day period, newer CLDR's zh-TW) is unknown to Android's java.time.
+            .replace(Regex("[Bb]+"), "a")
+            .replace(NARROW_NO_BREAK_SPACE, ' ')
+        val twelveHour = 'a' in pattern && ('h' in pattern || 'K' in pattern)
+        return if (twelveHour) DateTimeFormatter.ofPattern(pattern, locale) else null
+    }
+
+    private fun formatter(pattern: DatePattern): DateTimeFormatter = build {
+        for (piece in pattern.pieces) {
+            when {
+                piece is DatePattern.Piece.Text -> appendLiteral(piece.text)
+                piece !is DatePattern.Piece.Field -> Unit
+                piece.isShortMonth -> appendText(ChronoField.MONTH_OF_YEAR, shortMonthOfDay)
+                piece.isFullMonth -> appendText(ChronoField.MONTH_OF_YEAR, monthOfDay)
+                else -> appendPattern(piece.letter.toString().repeat(piece.width))
+            }
+        }
+    }
+
     private fun build(parts: DateTimeFormatterBuilder.() -> Unit): DateTimeFormatter =
         DateTimeFormatterBuilder().apply(parts).toFormatter(locale)
 
     private fun monthNames(names: Array<String>): Map<Long, String> =
         (1..12).associate { it.toLong() to names[it - 1] }
+
+    private companion object {
+        const val NARROW_NO_BREAK_SPACE = ' '
+    }
+}
+
+/** A `java.text` date pattern as fields ("MMMM", "d") and the literal text between them. */
+internal class DatePattern(val pieces: List<Piece>) {
+
+    sealed interface Piece {
+        data class Field(val letter: Char, val width: Int) : Piece {
+            private val isMonth: Boolean get() = letter in "ML"
+            val isShortMonth: Boolean get() = isMonth && width == SHORT_TEXT
+            val isFullMonth: Boolean get() = isMonth && width > SHORT_TEXT
+        }
+        data class Text(val text: String) : Piece
+    }
+
+    private val fields: List<Int> = pieces.indices.filter { pieces[it] is Piece.Field }
+
+    val startsWithDay: Boolean get() = pieces.firstOrNull().isDay()
+    val endsWithDay: Boolean get() = pieces.lastOrNull().isDay()
+
+    /**
+     * The pattern with its year and the text tying it in removed, wherever the year sits: "MMMM d, y" →
+     * "MMMM d", «y年M月d日» → «M月d日», "d MMMM y EEEE" → "d MMMM EEEE".
+     */
+    fun withoutYear(): DatePattern {
+        val year = fields.firstOrNull { (pieces[it] as Piece.Field).letter == 'y' } ?: return this
+        val before = fields.lastOrNull { it < year }
+        val after = fields.firstOrNull { it > year }
+        return DatePattern(
+            when {
+                before == null -> pieces.drop(after ?: pieces.size)
+                after == null -> pieces.take(before + 1)
+                else -> pieces.take(before + 1) + pieces.drop(year + 1)
+            },
+        )
+    }
+
+    /** A full month name shortened, "MMMM" → "MMM"; a numeric month («M月») stays numeric. */
+    fun withShortMonth(): DatePattern = DatePattern(
+        pieces.map { if (it is Piece.Field && it.isFullMonth) it.copy(width = SHORT_TEXT) else it },
+    )
+
+    /** Drops text after a final year, «d MMMM y 'г'.» → «d MMMM y»; text after any other field stays («日»). */
+    fun withoutTrailingText(): DatePattern {
+        val last = fields.lastOrNull() ?: return this
+        return if ((pieces[last] as Piece.Field).letter == 'y') DatePattern(pieces.take(last + 1)) else this
+    }
+
+    private fun Piece?.isDay(): Boolean = this is Piece.Field && letter == 'd'
+
+    companion object {
+        /** A text field's short width, "MMM"; wider is the full name, narrower a number. */
+        const val SHORT_TEXT = 3
+
+        fun parse(pattern: String): DatePattern {
+            val pieces = mutableListOf<Piece>()
+            val text = StringBuilder()
+            fun flushText() {
+                if (text.isNotEmpty()) pieces += Piece.Text(text.toString())
+                text.clear()
+            }
+            var i = 0
+            while (i < pattern.length) {
+                val c = pattern[i]
+                when {
+                    c == '\'' -> {
+                        val end = pattern.indexOf('\'', i + 1).let { if (it < 0) pattern.length else it }
+                        if (end == i + 1) text.append('\'') else text.append(pattern, i + 1, end)
+                        i = end + 1
+                    }
+                    c in 'a'..'z' || c in 'A'..'Z' -> {
+                        flushText()
+                        var j = i
+                        while (j < pattern.length && pattern[j] == c) j++
+                        pieces += Piece.Field(c, j - i)
+                        i = j
+                    }
+                    else -> {
+                        text.append(c)
+                        i++
+                    }
+                }
+            }
+            flushText()
+            return DatePattern(pieces)
+        }
+    }
 }
 
 private val cache = java.util.Collections.synchronizedMap(mutableMapOf<Locale, Formats>())
@@ -166,21 +299,28 @@ fun DayOfWeek.shortName(): String = toJavaDayOfWeek().getDisplayName(TextStyle.S
 
 fun DayOfWeek.narrowName(): String = toJavaDayOfWeek().getDisplayName(TextStyle.NARROW_STANDALONE, formats.locale)
 
+/** The weekday's full name on its own, capitalised: "Sunday", «Воскресенье». */
+fun DayOfWeek.fullDisplayName(): String =
+    toJavaDayOfWeek().getDisplayName(TextStyle.FULL_STANDALONE, formats.locale).capitalizedForDisplay()
+
 /** [shortName] starting a phrase: «Чт 16:00», not «чт 16:00». */
 fun DayOfWeek.shortDisplayName(): String = shortName().capitalizedForDisplay()
 
 /**
  * Formats a week as an inclusive range, dropping whatever the two ends share so the label stays
  * short enough to sit between the navigator's arrows:
- * "6 – 12 июля", "29 июня – 5 июля", "28 дек. 2026 – 3 янв. 2027".
+ * "6 – 12 июля", "July 6 – 12", "29 июня – 5 июля", "28 дек. 2026 – 3 янв. 2027". A language whose day
+ * is wrapped in text («7月6日») repeats the month instead: «7月6日 – 7月12日».
  */
 fun formatWeekRange(start: LocalDate, end: LocalDate): String {
     val f = formats
+    fun LocalDate.dayMonth() = toJavaLocalDate().format(f.dayMonth)
     return when {
         start.year != end.year -> "${start.toJavaLocalDate().format(f.date)} – ${end.toJavaLocalDate().format(f.date)}"
-        start.month != end.month ->
-            "${start.toJavaLocalDate().format(f.dayMonth)} – ${end.toJavaLocalDate().format(f.dayMonth)}"
-        else -> "${start.day} – ${end.toJavaLocalDate().format(f.dayMonth)}"
+        start.month != end.month -> "${start.dayMonth()} – ${end.dayMonth()}"
+        f.dayFirst -> "${start.day} – ${end.dayMonth()}"
+        f.dayLast -> "${start.dayMonth()} – ${end.day}"
+        else -> "${start.dayMonth()} – ${end.dayMonth()}"
     }
 }
 
