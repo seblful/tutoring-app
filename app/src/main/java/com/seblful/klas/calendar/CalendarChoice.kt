@@ -37,31 +37,17 @@ object CalendarChoice {
         ?.id
 }
 
-/**
- * What an event's attendee list owes the student — see [guestAction].
- *
- * Three answers rather than a boolean, because "leave it alone" is a real outcome with two quite different
- * causes: the student has no address to invite, or they are already invited and nothing has changed.
- */
-sealed interface GuestAction {
+/** Managed addresses before a change, the ones to retire, and the invitation still to add. */
+internal data class GuestPlan(val managed: Set<String>, val remove: Set<String>, val add: String?)
 
-    /** Nothing to do. */
-    data object None : GuestAction
-
-    /** Add [email] as an attendee, so the calendar account emails them about the lesson. */
-    data class Add(val email: String) : GuestAction
-
-    /** Drop [email], withdrawing an invitation the app sent earlier. */
-    data class Remove(val email: String) : GuestAction
-}
-
-/** What this event's attendees owe [guest], given the addresses [current] already on it. */
-fun guestAction(current: List<String>, guest: Guest?): GuestAction {
-    val email = guest?.email?.takeIf { it.isNotBlank() } ?: return GuestAction.None
-    val present = email in current
-    return when {
-        guest.invited && !present -> GuestAction.Add(email)
-        !guest.invited && present -> GuestAction.Remove(email)
-        else -> GuestAction.None
-    }
+/** A null [managed] is a legacy event: adopt its matching student address once. */
+internal fun guestPlan(current: Set<String>, managed: Set<String>?, guest: Guest?): GuestPlan {
+    val email = guest?.email?.takeIf { it.isNotBlank() }
+    val owned = managed ?: current.intersect(setOfNotNull(email))
+    val desired = email?.takeIf { guest?.invited == true }
+    return GuestPlan(
+        managed = owned,
+        remove = owned - setOfNotNull(desired),
+        add = desired?.takeIf { it !in current },
+    )
 }

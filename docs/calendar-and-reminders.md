@@ -25,6 +25,11 @@ The database drives both mirrors; neither writes changes back into Klas.
 - Email invitations are a separate, off-by-default setting; disabling it and re-syncing withdraws them.
   Invitations carry the event description, including homework when present; delivery and update emails
   are handled by the calendar account.
+  The device keeps which addresses Klas invited, separately from guests added in the calendar. Changing or
+  clearing a student's email retires the old invitation before sending new event content. Failed withdrawals
+  stay pending across restarts and block content updates until removed. This ownership stays on the device,
+  outside tutoring backups. Legacy events adopt the student's current or pre-edit address; older orphaned
+  addresses whose ownership was never recorded cannot be distinguished from manually added guests.
 - Settings → Calendar & invitations reports revoked access with a direct link to restore it. Reminder
   timing is shared with phone lesson reminders and stays editable while either feature is enabled;
   changing it refreshes existing calendar email reminders. Invitations are handled by the calendar account.
@@ -76,7 +81,10 @@ The database drives both mirrors; neither writes changes back into Klas.
 - The app lock (`AppLock`, `AppLockGate`) covers the app until `BiometricPrompt` succeeds with
   biometrics or the screen lock (`UNLOCK_WITH`), and again after `relockAfterMinutes` in the background
   on a monotonic clock. The app stays composed beneath, hidden from touch and screen readers, so the tutor
-  returns where they were. A phone with no screen lock is never locked out. Hiding in recents — on with
+  returns where they were. Dialogs, sheets, menus and tooltips close their separate windows while locked;
+  saveable dialog input returns after unlocking. New window wrappers use `UnlockedWindow`, placing its
+  saveable provider inside the popup body because Android replaces the parent registry there.
+  A phone with no screen lock is never locked out. Hiding in recents — on with
   the lock too — is `setRecentsScreenshotEnabled(false)` from Android 13 and `FLAG_SECURE` before it.
 
 ## Permissions and digests

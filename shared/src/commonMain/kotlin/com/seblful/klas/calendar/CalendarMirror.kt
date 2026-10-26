@@ -50,10 +50,11 @@ class CalendarMirror @Inject constructor(
         classes: List<TutoringClass>,
         settings: AppSettings,
         changed: List<TutoringClass> = emptyList(),
+        previousEmails: Map<Long, String> = emptyMap(),
     ) {
         if (!settings.calendarSyncEnabled) return
         val homework = homeworkQuery.forCalendar(classes, changed)
-        val pass = Pass(settings)
+        val pass = Pass(settings, previousEmails)
         try {
             (classes + homework.related).forEach {
                 pass.mirrorOne(it, CalendarEvent.description(it, homework.attached[it.lessonId].orEmpty()))
@@ -131,8 +132,10 @@ class CalendarMirror @Inject constructor(
     }
 
     /** Refreshes the events naming [studentId] — their name titles them and their email is invited. */
-    suspend fun refreshForStudent(studentId: Long) =
-        refresh { classDao.withCalendarEventForStudent(studentId).map { it.toDomain() } }
+    suspend fun refreshForStudent(studentId: Long, previousEmail: String? = null) {
+        val previous = previousEmail?.takeIf { it.isNotBlank() }?.let { mapOf(studentId to it) }.orEmpty()
+        refresh(previous) { classDao.withCalendarEventForStudent(studentId).map { it.toDomain() } }
+    }
 
     /** Refreshes the events naming [subjectId], whose name is part of every title. */
     suspend fun refreshForSubject(subjectId: Long) =
@@ -150,10 +153,13 @@ class CalendarMirror @Inject constructor(
         homeworkQuery.refreshTargets(assignees, givenAt)
     }
 
-    private suspend fun refresh(read: suspend () -> List<TutoringClass>) {
+    private suspend fun refresh(
+        previousEmails: Map<Long, String> = emptyMap(),
+        read: suspend () -> List<TutoringClass>,
+    ) {
         val settings = settings.get()
         if (!settings.calendarSyncEnabled) return
-        mirror(read(), settings)
+        mirror(read(), settings, previousEmails = previousEmails)
     }
 
     /**
@@ -174,7 +180,7 @@ class CalendarMirror @Inject constructor(
      * One mirroring pass: names read once per row rather than per event, and new event ids written in
      * batches, so a resync of a long history is not one autocommit (and one screen refresh) per event.
      */
-    private inner class Pass(private val settings: AppSettings) {
+    private inner class Pass(private val settings: AppSettings, private val previousEmails: Map<Long, String>) {
         private val students = mutableMapOf<Long, StudentEntity?>()
         private val subjects = mutableMapOf<Long, String>()
         private val groups = mutableMapOf<Long, String?>()
@@ -229,10 +235,16 @@ class CalendarMirror @Inject constructor(
                 groupName = klass.groupId?.let { id -> groups.getOrPut(id) { groupDao.getById(id)?.name } },
             )
 
-        private fun guestFor(student: StudentEntity?): Guest? =
-            student?.email
-                ?.takeIf { it.isNotBlank() }
-                ?.let { Guest(email = it, invited = settings.emailInvitesEnabled) }
+        private fun guestFor(student: StudentEntity?): Guest? {
+            val email = student?.email.orEmpty()
+            val previousEmail = student?.id?.let { previousEmails[it] }
+            if (email.isBlank() && previousEmail == null) return null
+            return Guest(
+                email = email,
+                invited = settings.emailInvitesEnabled && email.isNotBlank(),
+                previousEmail = previousEmail,
+            )
+        }
     }
 
     private companion object {

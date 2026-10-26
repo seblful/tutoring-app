@@ -62,6 +62,19 @@ class CalendarMirrorTest {
         env.studentRepo.upsert(Student(id = STUDENT, name = "Аня", email = "anna@example.com"))
 
         assertEquals("anna@example.com", env.calendar.lastGuest?.email)
+        assertEquals("anya@example.com", env.calendar.lastGuest?.previousEmail)
+    }
+
+    @Test
+    fun `clearing a student's email forwards the old address for withdrawal`() = runTest {
+        mirroredLesson()
+
+        env.studentRepo.upsert(Student(id = STUDENT, name = "Аня", email = ""))
+
+        val guest = env.calendar.lastGuest
+        assertEquals("", guest?.email)
+        assertEquals(false, guest?.invited)
+        assertEquals("anya@example.com", guest?.previousEmail)
     }
 
     @Test

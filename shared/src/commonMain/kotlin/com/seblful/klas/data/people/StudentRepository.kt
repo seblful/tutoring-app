@@ -47,7 +47,7 @@ class StudentRepository @Inject constructor(
         val saved = upsertedId(dao.upsert(row), student.id)
         // Their events show only the name (in the title) and the address (as the guest).
         if (before != null && (before.name != row.name || before.email != row.email)) {
-            calendar.refreshForStudent(saved)
+            calendar.refreshForStudent(saved, previousEmail = before.email.takeIf { it != row.email })
         }
         return saved
     }

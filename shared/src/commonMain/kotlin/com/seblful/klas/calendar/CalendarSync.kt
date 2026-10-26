@@ -7,7 +7,12 @@ import com.seblful.klas.domain.reminders.Reminders
  * The student an event is for, as far as the calendar is concerned: the address that identifies
  * them and whether they should currently be invited to the event.
  */
-data class Guest(val email: String, val invited: Boolean)
+data class Guest(
+    val email: String,
+    val invited: Boolean,
+    /** The pre-edit address lets a device adopt invitations made before it tracked their ownership. */
+    val previousEmail: String? = null,
+)
 
 /**
  * Mirrors classes into the device calendar (which the OS syncs onward to the user's Google
@@ -22,7 +27,7 @@ interface CalendarSync {
      *
      * @param guest the student's address and whether to invite them — an invited guest is added as
      * an attendee so the calendar account emails them, an uninvited one is removed from the event
-     * if the app had added them. Null when the student has no email, leaving attendees untouched.
+     * if the app had added them. Null withdraws the app's managed invitation; unrelated attendees stay.
      * @param reminderLeadMinutes how long before the class the email reminder fires.
      * @param description homework for this student's lesson, included in the calendar invitation.
      */

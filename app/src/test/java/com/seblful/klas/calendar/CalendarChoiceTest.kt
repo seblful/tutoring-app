@@ -75,67 +75,89 @@ class CalendarChoiceTest {
     }
 }
 
-/**
- * Inviting the student, and taking the invitation back — the two properties that matter are that it
- * touches exactly one address and that it is idempotent in both directions.
- */
-class GuestActionTest {
+class GuestPlanTest {
 
     private val anya = "anya@example.com"
     private val tutorsOwnGuest = "kolleg@example.com"
 
     @Test
     fun `a student with no guest record is left alone`() {
-        assertEquals(GuestAction.None, guestAction(listOf(anya), guest = null))
+        assertEquals(GuestPlan(emptySet(), emptySet(), null), guestPlan(setOf(anya), null, guest = null))
     }
 
     /** «Don't invite» is not «no address» — but a blank address really is nothing to act on. */
     @Test
     fun `a blank address is nothing to act on`() {
-        assertEquals(GuestAction.None, guestAction(emptyList(), Guest(email = "", invited = true)))
-        assertEquals(GuestAction.None, guestAction(emptyList(), Guest(email = "", invited = false)))
+        val nothing = GuestPlan(emptySet(), emptySet(), null)
+        assertEquals(nothing, guestPlan(emptySet(), null, Guest(email = "", invited = true)))
+        assertEquals(nothing, guestPlan(emptySet(), null, Guest(email = "", invited = false)))
     }
 
     @Test
     fun `an invited student not yet on the event is added`() {
         assertEquals(
-            GuestAction.Add(anya),
-            guestAction(listOf(tutorsOwnGuest), Guest(anya, invited = true)),
+            GuestPlan(emptySet(), emptySet(), anya),
+            guestPlan(setOf(tutorsOwnGuest), null, Guest(anya, invited = true)),
         )
     }
 
     @Test
     fun `an invited student already on the event is left alone`() {
         assertEquals(
-            GuestAction.None,
-            guestAction(listOf(tutorsOwnGuest, anya), Guest(anya, invited = true)),
+            GuestPlan(setOf(anya), emptySet(), null),
+            guestPlan(setOf(tutorsOwnGuest, anya), null, Guest(anya, invited = true)),
         )
     }
 
     @Test
     fun `an uninvited student already on the event is removed`() {
         assertEquals(
-            GuestAction.Remove(anya),
-            guestAction(listOf(anya, tutorsOwnGuest), Guest(anya, invited = false)),
+            GuestPlan(setOf(anya), setOf(anya), null),
+            guestPlan(setOf(anya, tutorsOwnGuest), null, Guest(anya, invited = false)),
         )
     }
 
     @Test
     fun `an uninvited student who was never added is left alone`() {
         assertEquals(
-            GuestAction.None,
-            guestAction(listOf(tutorsOwnGuest), Guest(anya, invited = false)),
+            GuestPlan(emptySet(), emptySet(), null),
+            guestPlan(setOf(tutorsOwnGuest), null, Guest(anya, invited = false)),
         )
     }
 
     @Test
     fun `guests the tutor added are never named by any answer`() {
-        val others = listOf(tutorsOwnGuest, "mama@example.com")
+        val others = setOf(tutorsOwnGuest, "mama@example.com")
 
-        val added = guestAction(others, Guest(anya, invited = true))
-        val removed = guestAction(others + anya, Guest(anya, invited = false))
+        val added = guestPlan(others, emptySet(), Guest(anya, invited = true))
+        val removed = guestPlan(others + anya, setOf(anya), Guest(anya, invited = false))
 
-        assertEquals(GuestAction.Add(anya), added)
-        assertEquals(GuestAction.Remove(anya), removed)
+        assertEquals(anya, added.add)
+        assertEquals(setOf(anya), removed.remove)
+    }
+
+    @Test
+    fun `clearing the guest retires the managed address`() {
+        assertEquals(
+            GuestPlan(setOf(anya), setOf(anya), null),
+            guestPlan(setOf(anya, tutorsOwnGuest), setOf(anya), guest = null),
+        )
+    }
+
+    @Test
+    fun `a matching manual guest on a tracked event is not adopted`() {
+        assertEquals(
+            GuestPlan(emptySet(), emptySet(), null),
+            guestPlan(setOf(anya), emptySet(), Guest(anya, invited = false)),
+        )
+    }
+
+    @Test
+    fun `changing the address retires every pending managed recipient`() {
+        val old = setOf("old@example.com", "older@example.com")
+        assertEquals(
+            GuestPlan(old, old, anya),
+            guestPlan(old + tutorsOwnGuest, old, Guest(anya, invited = true)),
+        )
     }
 }

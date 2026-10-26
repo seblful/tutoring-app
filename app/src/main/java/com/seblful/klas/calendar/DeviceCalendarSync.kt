@@ -12,11 +12,14 @@ import com.seblful.klas.domain.model.TutoringClass
 import com.seblful.klas.format.DisplayLocale
 import com.seblful.klas.format.inLanguage
 import com.seblful.klas.format.labelRes
+import com.seblful.klas.runCatchingCancellable
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.TimeZone
 
@@ -36,6 +39,9 @@ class DeviceCalendarSync @Inject constructor(
     private val displayLocale: DisplayLocale,
 ) : CalendarSync {
 
+    private val mutationLock = Mutex()
+    private val guests = CalendarGuestLedger(context)
+
     override suspend fun upsert(
         klass: TutoringClass,
         title: String,
@@ -44,24 +50,37 @@ class DeviceCalendarSync @Inject constructor(
         description: String,
     ): String? =
         withContext(Dispatchers.IO) {
-            if (!hasPermission()) return@withContext null
-            val calendarId = writableCalendarId() ?: return@withContext null
-            val values = eventValues(klass, title, description, calendarId)
-
-            // The user may have deleted the event from their calendar — recreate it if so. A lesson still
-            // to come is the only kind this happens for; `refresh` is the arm that must not recreate.
-            val updated = klass.calendarEventId?.toLongOrNull()?.takeIf { write(it, values) }
-            val eventId = updated ?: insert(values)?.toLongOrNull() ?: return@withContext null
-
-            // Email reminder before the class, sent by the calendar account.
-            setEmailReminder(eventId, reminderLeadMinutes, replacing = updated != null)
-            // Invite the student so the account emails them about the class (and its reminder) — or
-            // withdraw that invitation if the tutor has since turned invites off. The guard is a read
-            // optimisation and not the rule: `guestAction` answers `None` for a missing address anyway, so
-            // this only decides whether the provider is worth asking.
-            guest?.takeIf { it.email.isNotBlank() }?.let { syncGuest(eventId, it) }
-
-            eventId.toString()
+            mutationLock.withLock {
+                var createdId: String? = null
+                runCatchingCancellable {
+                    val previous = klass.calendarEventId?.toLongOrNull()
+                    previous?.let { guests.rememberPrevious(it, guest?.previousEmail) }
+                    if (!hasPermission()) return@runCatchingCancellable null
+                    val calendarId = writableCalendarId() ?: return@runCatchingCancellable null
+                    val values = eventValues(klass, title, description, calendarId)
+                    val updated = previous?.let { id ->
+                        // An obsolete recipient must go before new titles or homework reach the event.
+                        val plan = prepareGuests(id, guest)
+                        if (write(id, values)) id to plan else null
+                    }
+                    val (eventId, plan) = updated ?: run {
+                        previous?.let(guests::forget)
+                        val id = insert(values)?.toLongOrNull() ?: return@runCatchingCancellable null
+                        createdId = id.toString()
+                        guests.write(id, emptySet())
+                        id to guestPlan(emptySet(), emptySet(), guest)
+                    }
+                    setEmailReminder(eventId, reminderLeadMinutes, replacing = updated != null)
+                    plan.add?.let { email ->
+                        guests.write(eventId, guests.managed(eventId).orEmpty() + email)
+                        addGuest(eventId, email)
+                    }
+                    eventId.toString()
+                }.getOrElse {
+                    // Once an event exists its binding must survive a failed guest or ownership write.
+                    createdId
+                }
+            }
         }
 
     /**
@@ -84,28 +103,35 @@ class DeviceCalendarSync @Inject constructor(
         runCatching { context.contentResolver.applyBatch(CalendarContract.AUTHORITY, operations) }
     }
 
-    private fun syncGuest(eventId: Long, guest: Guest) {
-        runCatching {
-            when (val action = guestAction(attendees(eventId), guest)) {
-                GuestAction.None -> Unit
-                is GuestAction.Add -> addGuest(eventId, action.email)
-                is GuestAction.Remove -> removeGuest(eventId, action.email)
-            }
-        }
+    private fun prepareGuests(eventId: Long, guest: Guest?): GuestPlan {
+        val plan = guestPlan(attendees(eventId), guests.managed(eventId), guest)
+        guests.write(eventId, plan.managed, retiring = plan.remove)
+        retireGuests(eventId)
+        return plan
     }
 
-    private fun attendees(eventId: Long): List<String> =
-        context.contentResolver.query(
-            CalendarContract.Attendees.CONTENT_URI,
-            arrayOf(CalendarContract.Attendees.ATTENDEE_EMAIL),
-            "${CalendarContract.Attendees.EVENT_ID} = ?",
-            arrayOf(eventId.toString()),
-            null,
-        )?.use { cursor ->
-            buildList {
+    private fun retireGuests(eventId: Long) {
+        val retiring = guests.retiring(eventId)
+        if (retiring.isEmpty()) return
+        retiring.forEach { removeGuest(eventId, it) }
+        check(attendees(eventId).none { it in retiring }) { "Calendar invitation was not withdrawn" }
+        guests.write(eventId, guests.managed(eventId).orEmpty() - retiring)
+    }
+
+    private fun attendees(eventId: Long): Set<String> =
+        checkNotNull(
+            context.contentResolver.query(
+                CalendarContract.Attendees.CONTENT_URI,
+                arrayOf(CalendarContract.Attendees.ATTENDEE_EMAIL),
+                "${CalendarContract.Attendees.EVENT_ID} = ?",
+                arrayOf(eventId.toString()),
+                null,
+            ),
+        ) { "Calendar attendees unavailable" }.use { cursor ->
+            buildSet {
                 while (cursor.moveToNext()) cursor.getString(0)?.let(::add)
             }
-        }.orEmpty()
+        }
 
     private fun addGuest(eventId: Long, email: String) {
         val values = ContentValues().apply {
@@ -124,7 +150,9 @@ class DeviceCalendarSync @Inject constructor(
                 CalendarContract.Attendees.ATTENDEE_STATUS_INVITED,
             )
         }
-        context.contentResolver.insert(CalendarContract.Attendees.CONTENT_URI, values)
+        checkNotNull(context.contentResolver.insert(CalendarContract.Attendees.CONTENT_URI, values)) {
+            "Calendar invitation was not added"
+        }
     }
 
     private fun removeGuest(eventId: Long, email: String) {
@@ -138,30 +166,39 @@ class DeviceCalendarSync @Inject constructor(
     /** The event, brought in line with the lesson — or nothing, if there is no event. */
     override suspend fun refresh(klass: TutoringClass, title: String, description: String) {
         withContext(Dispatchers.IO) {
-            if (!hasPermission()) return@withContext
-            val eventId = klass.calendarEventId?.toLongOrNull() ?: return@withContext
-            val calendarId = writableCalendarId() ?: return@withContext
-            write(eventId, eventValues(klass, title, description, calendarId))
+            mutationLock.withLock {
+                runCatchingCancellable {
+                    if (!hasPermission()) return@runCatchingCancellable
+                    val eventId = klass.calendarEventId?.toLongOrNull() ?: return@runCatchingCancellable
+                    val calendarId = writableCalendarId() ?: return@runCatchingCancellable
+                    retireGuests(eventId)
+                    write(eventId, eventValues(klass, title, description, calendarId))
+                }
+            }
         }
     }
 
     private fun write(eventId: Long, values: ContentValues): Boolean {
         val uri = ContentUris.withAppendedId(CalendarContract.Events.CONTENT_URI, eventId)
-        return runCatching { context.contentResolver.update(uri, values, null, null) }.getOrDefault(0) > 0
+        return context.contentResolver.update(uri, values, null, null) > 0
     }
 
     override suspend fun delete(eventId: String) {
         withContext(Dispatchers.IO) {
-            if (!hasPermission()) return@withContext
-            val id = eventId.toLongOrNull() ?: return@withContext
-            val uri = ContentUris.withAppendedId(CalendarContract.Events.CONTENT_URI, id)
-            runCatching { context.contentResolver.delete(uri, null, null) }
+            mutationLock.withLock {
+                runCatchingCancellable {
+                    if (!hasPermission()) return@runCatchingCancellable
+                    val id = eventId.toLongOrNull() ?: return@runCatchingCancellable
+                    val uri = ContentUris.withAppendedId(CalendarContract.Events.CONTENT_URI, id)
+                    context.contentResolver.delete(uri, null, null)
+                    guests.forget(id)
+                }
+            }
         }
     }
 
     private fun insert(values: ContentValues): String? {
-        val uri = runCatching { context.contentResolver.insert(CalendarContract.Events.CONTENT_URI, values) }
-            .getOrNull() ?: return null
+        val uri = context.contentResolver.insert(CalendarContract.Events.CONTENT_URI, values) ?: return null
         return uri.lastPathSegment
     }
 
