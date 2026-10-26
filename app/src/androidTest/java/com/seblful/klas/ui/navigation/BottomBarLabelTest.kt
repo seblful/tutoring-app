@@ -1,5 +1,6 @@
 package com.seblful.klas.ui.navigation
 
+import android.view.accessibility.AccessibilityNodeInfo
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.CompositionLocalProvider
@@ -81,6 +82,25 @@ class BottomBarLabelTest {
         assertTrue(complaints.joinToString(prefix = "\n", separator = "\n"), complaints.isEmpty())
     }
 
+    /**
+     * Read from the window's accessibility tree, what TalkBack and UiAutomator see: Compose's test tree still
+     * holds a folded label's text, but a transparent node is left out of the real one.
+     */
+    @Test
+    fun everyTabIsNamedToAccessibilityServices() {
+        composeRule.setBarContent(mutableStateOf(360.dp), TopDestination.entries)
+
+        val automation = InstrumentationRegistry.getInstrumentation().uiAutomation
+        // Connecting UiAutomation is what turns accessibility on; Compose fills the tree a moment later.
+        var spoken = emptyList<String>()
+        composeRule.waitUntil(A11Y_TREE_TIMEOUT_MS) {
+            spoken = spokenNames(automation.rootInActiveWindow)
+            spoken.isNotEmpty()
+        }
+        val unnamed = TopDestination.entries.map { context.getString(it.labelRes) }.filterNot { it in spoken }
+        assertTrue("Tabs TalkBack cannot name: $unnamed; it reads $spoken", unnamed.isEmpty())
+    }
+
     @Test
     fun aLabelWithRoomToSpareIsNeverEnlarged() {
         val width = mutableStateOf(NarrowPhone)
@@ -123,6 +143,13 @@ class BottomBarLabelTest {
         waitForIdle()
     }
 
+    /** Each node's name as TalkBack speaks it: its description when it has one, else its text. */
+    private fun spokenNames(node: AccessibilityNodeInfo?): List<String> {
+        if (node == null) return emptyList()
+        val own = (node.contentDescription?.takeIf { it.isNotEmpty() } ?: node.text)?.toString()
+        return listOfNotNull(own) + (0 until node.childCount).flatMap { spokenNames(node.getChild(it)) }
+    }
+
     private fun ComposeContentTestRule.widthsOf(vararg tabs: TopDestination): Map<TopDestination, Int> =
         tabs.associateWith { layoutOf(context.getString(it.labelRes)).size.width }
 
@@ -136,5 +163,7 @@ class BottomBarLabelTest {
         val Widths = listOf(NarrowPhone, 360.dp, LargePhone)
 
         val LargeFontScales = listOf(1.3f, 1.5f, 2f)
+
+        const val A11Y_TREE_TIMEOUT_MS = 5_000L
     }
 }

@@ -45,6 +45,8 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -92,8 +94,9 @@ fun KlasTabs(
  * much of the window's foot above the navigation bar the bar covers, which `AppRoot` hands each tab as
  * [LocalTabBarClearance]. Measured, because a larger font makes the pill taller.
  *
- * Every tab keeps its label composed, folded to no width while it is not marked: it still names the tab to
- * TalkBack, and all five are measured against the same room, so each one fits when its tab is marked.
+ * Every tab keeps its label composed, folded to no width while it is not marked, so all five are measured
+ * against the same room and each one fits when its tab is marked. A folded label is transparent, which hides it
+ * from TalkBack and UiAutomator, so each tab is also named by a content description.
  *
  * @param selected the marked tab — see [KlasTabs].
  */
@@ -175,7 +178,7 @@ private fun DockedTab(dest: TopDestination, selected: Boolean, labelRoom: Dp, on
     Box(
         Modifier
             .heightIn(min = MinTouchTarget)
-            .selectable(selected, interaction, indication = null, role = Role.Tab, onClick = onClick),
+            .tab(stringResource(dest.labelRes), selected, interaction, onClick),
         contentAlignment = Alignment.Center,
     ) {
         Row(
@@ -208,6 +211,15 @@ private fun DockedTab(dest: TopDestination, selected: Boolean, labelRoom: Dp, on
         }
     }
 }
+
+/** Selectable as a tab and named by [name] even while its label is folded: transparent, that label goes unread. */
+private fun Modifier.tab(
+    name: String,
+    selected: Boolean,
+    interaction: MutableInteractionSource,
+    onClick: () -> Unit,
+): Modifier = selectable(selected, interaction, indication = null, role = Role.Tab, onClick = onClick)
+    .semantics { contentDescription = name }
 
 /**
  * Material's state layer, as an alpha to draw at the tab's bounds as they are now. Not a ripple: a ripple takes
