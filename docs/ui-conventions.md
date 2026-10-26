@@ -268,7 +268,7 @@ Build screens from shared state and controls. Feature rules belong in the domain
   out to name it while the others make room. Every label stays composed, folded to no width, so TalkBack
   and tests read each tab by its name. A press shades the tab at its current size (Material's state layer), not a
   ripple, which sizes itself on the bare icon and stayed a grey disc inside the grown pill. The bar fades with the screen it belongs to; from medium width they are Material's wide rail (`NavigationSuiteScaffold`). The rail's header carries a tab's FAB (`RailAction`, decided per entry so a
-  fading screen keeps its own) and keeps a FAB's height without one; a pushed screen keeps its own FAB.
+  fading screen keeps its own) and keeps a FAB's height without one; a pushed screen keeps its own FAB. In a collapsed rail it is the icon alone (`LocalFabIconOnly`): the label does not fit.
   Side camera cutouts are cleared once, around the whole suite.
 - Navigation 3 shows one flat back stack of `Screen`s (`KlasNavigator`): a route plus an id, so the same
   card opened twice is two entries. Per-tab stacks were rejected: a tray tap may put a tab over a form from

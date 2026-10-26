@@ -6,6 +6,7 @@ import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -15,9 +16,10 @@ import com.seblful.klas.ui.theme.KlasIcons
 
 /**
  * The screen's one add action, **labelled**: "Book", not a bare "+" that meant four things on four
- * tabs. It shrinks to its icon when [expanded] is false (a list scrolled away from its top) and at a font
- * scale of 1.5 and above, where the label would cover the content it adds to. Either way it is named for
- * TalkBack by [label], read once.
+ * tabs. It shrinks to its icon when [expanded] is false (a list scrolled away from its top), at a font
+ * scale of 1.5 and above, where the label would cover the content it adds to, and in a collapsed rail
+ * ([LocalFabIconOnly]), whose width clipped it to «+ New st». Either way it is named for TalkBack by
+ * [label], read once.
  */
 @Composable
 fun KlasFab(
@@ -31,9 +33,12 @@ fun KlasFab(
         text = { Text(label, Modifier.clearAndSetSemantics {}) },
         icon = { Icon(KlasIcons.Filled.Add, contentDescription = null) },
         onClick = onClick,
-        expanded = expanded && roomy,
+        expanded = expanded && roomy && !LocalFabIconOnly.current,
         modifier = modifier.semantics { contentDescription = label },
     )
 }
+
+/** True where the add button sits somewhere too narrow for its label, as a collapsed rail's header is. */
+val LocalFabIconOnly = staticCompositionLocalOf { false }
 
 private const val LargeFontScale = 1.5f

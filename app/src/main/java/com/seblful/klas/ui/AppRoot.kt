@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
@@ -60,6 +61,7 @@ import com.seblful.klas.ui.common.ProvideClockFormat
 import com.seblful.klas.ui.common.ProvideLocalizedResources
 import com.seblful.klas.ui.common.RailAction
 import com.seblful.klas.ui.common.TabReselect
+import com.seblful.klas.ui.designsystem.component.LocalFabIconOnly
 import com.seblful.klas.ui.navigation.DockedTabBar
 import com.seblful.klas.ui.navigation.KlasGraph
 import com.seblful.klas.ui.navigation.KlasNavigator
@@ -253,7 +255,13 @@ private fun MainApp(firstLesson: FirstLesson) {
         state = chrome,
         navigationSuiteType = if (phoneBar) NavigationSuiteType.None else suiteType,
         // Always a button's height, so the tabs below stay put between a tab with one and a tab without.
-        primaryActionContent = { if (railLayout) RailHeader(railAction) },
+        primaryActionContent = {
+            if (railLayout) RailHeader(
+                railAction,
+                iconOnly =
+                suiteType == NavigationSuiteType.WideNavigationRailCollapsed,
+            )
+        },
     ) {
         Box(Modifier.fillMaxSize()) {
             CompositionLocalProvider(LocalTabReselect provides reselect) {
@@ -356,11 +364,20 @@ private fun rememberTabChrome(
     )
 }
 
-/** The rail's header: the tab's add button, in a slot a button's height whether or not there is one. */
+/**
+ * The rail's header: the tab's add button, in a slot a button's height whether or not there is one. A
+ * collapsed rail is too narrow for the button's label, so there it is the icon alone, as Material draws it.
+ */
 @Composable
-private fun RailHeader(railAction: RailAction) {
-    Box(Modifier.defaultMinSize(minHeight = RailActionHeight), contentAlignment = Alignment.Center) {
-        railAction.content?.invoke()
+private fun RailHeader(railAction: RailAction, iconOnly: Boolean) {
+    // As wide as the collapsed rail, so the icon alone centres over the tabs rather than hugging the edge.
+    Box(
+        Modifier
+            .then(if (iconOnly) Modifier.width(CollapsedRailWidth) else Modifier)
+            .defaultMinSize(minHeight = RailActionHeight),
+        contentAlignment = Alignment.Center,
+    ) {
+        CompositionLocalProvider(LocalFabIconOnly provides iconOnly) { railAction.content?.invoke() }
     }
 }
 
@@ -378,6 +395,9 @@ private val BarTypes = setOf(
 
 /** The phone's bar's room until it is first measured: its hairline and row at the default font size. */
 private val EstimatedBarClearance = 65.dp
+
+/** Material's collapsed wide rail, whose tabs an icon-only add button centres over. */
+private val CollapsedRailWidth = 96.dp
 
 /** A FAB's height, which the rail's header keeps whether or not the tab has one. */
 private val RailActionHeight = 56.dp
