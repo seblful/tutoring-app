@@ -1,0 +1,44 @@
+Klas is het lesboek van een bijlesdocent: je rooster, je leerlingen, wie heeft betaald en wie nog moet betalen — automatisch berekend, op je telefoon.
+
+JE LESDAG IN ÉÉN OOGOPSLAG
+• Dag-, week- en maandweergave van al je lessen
+• Zie wat er gegeven is, wat nu bezig is en wie de volgende is
+• Plan een les één keer in of herhaal hem elke week of om de week
+• Overlappende tijden worden geweigerd, dus je hebt nooit twee lessen tegelijk
+• Markeer een les als gegeven met een veeg — of laat Klas het doen zodra de les voorbij is
+
+GELD ZONDER SPREADSHEET
+• Een uurtarief per leerling en vak, met tariefgeschiedenis
+• Een nieuw tarief verandert nooit lessen die al gegeven zijn
+• Leg betalingen vast; saldo, schulden en tegoed worden voor je berekend
+• Sorteer leerlingen op wie het meest schuldig is
+
+GROEPEN
+• Plan één les voor de hele groep tegen het groepstarief
+• De afrekening blijft per leerling — inclusief 'deze kwam niet'
+
+HUISWERK DAT DE VOLGENDE LES VINDT
+• Geef huiswerk op voor een leerling of groep in een paar woorden
+• Het wordt vanzelf aan hun volgende les gekoppeld
+• Deel het met één tik met de leerling en vink het af als het klaar is
+
+RAPPORTEN
+• Inkomsten per maand, per jaar of over de hele periode, vergeleken met de periode ervoor
+• Uitsplitsing per maand, vak, leerling en groep, individueel tegenover groep
+• Openstaande schulden in één lijst
+• Export naar CSV voor een spreadsheet of je boekhouder
+
+HERINNERINGEN EN KALENDER
+• Een melding vóór elke les, op tijd
+• Optioneel: 's ochtends een dagoverzicht, 's avonds een lijst met ongemarkeerde lessen en een wekelijks schuldenoverzicht
+• Optioneel: synchronisatie met de kalender van je telefoon, met uitnodigingen per e-mail voor leerlingen
+
+PRIVÉ VANAF HET ONTWERP
+• Geen account, geen registratie, geen internet nodig
+• Je gegevens blijven op je telefoon — Klas heeft geen servers om ze naartoe te sturen
+• Volledige back-up naar een bestand dat je zelf bewaart, en herstel op een nieuwe telefoon
+• Geen advertenties en geen trackers
+
+Gemaakt voor een bijlesdocent die zelfstandig werkt. Licht en donker thema. 25 talen en meer dan 150 valuta's.
+
+Klas is open source onder de GNU GPL v3.

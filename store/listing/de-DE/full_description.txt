@@ -1,0 +1,44 @@
+Klas ist das Unterrichtsbuch für Nachhilfelehrer: Ihr Stundenplan, Ihre Schüler, wer bezahlt hat und wer noch etwas schuldet — automatisch berechnet, auf Ihrem Handy.
+
+IHR UNTERRICHTSTAG AUF EINEN BLICK
+• Tages-, Wochen- und Monatsansicht aller Lektionen
+• Sehen Sie, was gehalten wurde, was gerade läuft und wer als Nächstes kommt
+• Eine Lektion einmalig buchen oder jede Woche bzw. alle zwei Wochen wiederholen
+• Überschneidungen werden abgelehnt, so gibt es nie Doppelbuchungen
+• Lektion per Wischgeste als gehalten markieren — oder Klas erledigt das nach Ende der Lektion selbst
+
+GELD OHNE TABELLENKALKULATION
+• Ein Stundensatz pro Schüler und Fach, samt bisheriger Stundensätze
+• Ein neuer Stundensatz ändert nie bereits gehaltene Lektionen
+• Zahlungen erfassen; Salden, Schulden und Guthaben werden automatisch berechnet
+• Schüler danach sortieren, wer am meisten schuldet
+
+GRUPPEN
+• Eine Lektion für die ganze Gruppe zum Gruppenpreis buchen
+• Abgerechnet wird weiterhin pro Schüler — auch „dieser war nicht da“
+
+HAUSAUFGABEN, DIE DIE NÄCHSTE LEKTION FINDEN
+• Hausaufgaben für einen Schüler oder eine Gruppe in wenigen Worten aufgeben
+• Sie werden automatisch der nächsten Lektion zugeordnet
+• Mit einem Tippen an den Schüler senden, abhaken, wenn erledigt
+
+BERICHTE
+• Einnahmen für einen Monat, ein Jahr oder den gesamten Zeitraum, im Vergleich zum Vorzeitraum
+• Aufschlüsselung nach Monat, Fach, Schüler und Gruppe, Einzel- vs. Gruppenunterricht
+• Offene Schulden in einer Liste
+• Export als CSV für die Tabellenkalkulation oder Ihren Steuerberater
+
+ERINNERUNGEN UND KALENDER
+• Eine Benachrichtigung vor jeder Lektion, pünktlich
+• Optional: Tagesplan am Morgen, abends eine Liste nicht markierter Lektionen und eine wöchentliche Schuldenübersicht
+• Optional: Synchronisierung mit dem Kalender Ihres Handys, mit E-Mail-Einladungen für Schüler
+
+PRIVAT VON GRUND AUF
+• Kein Konto, keine Registrierung, kein Internet nötig
+• Ihre Daten bleiben auf Ihrem Handy — Klas hat keine Server, an die sie gehen könnten
+• Vollständige Sicherung in eine Datei, die Sie behalten, und Wiederherstellung auf einem neuen Handy
+• Keine Werbung, keine Tracker
+
+Für Nachhilfelehrer, die allein arbeiten. Helles und dunkles Design. 25 Sprachen und über 150 Währungen.
+
+Klas ist Open Source unter der GNU GPL v3.

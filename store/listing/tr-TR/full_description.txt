@@ -1,0 +1,44 @@
+Klas, özel ders veren öğretmenin ders defteridir: ders programınız, öğrencileriniz, kimin ödediği ve kimin borçlu olduğu — hepsi sizin için hesaplanır, telefonunuzda.
+
+DERS GÜNÜNÜZ TEK BAKIŞTA
+• Tüm dersler için günlük, haftalık ve aylık görünüm
+• Hangi derslerin yapıldığını, şu an hangisinin sürdüğünü ve sırada kimin olduğunu görün
+• Bir dersi tek seferlik planlayın ya da her hafta veya iki haftada bir tekrarlayın
+• Çakışan saatler kabul edilmez, böylece aynı saate asla iki ders yazılmaz
+• Bir dersi tek kaydırmayla yapıldı olarak işaretleyin ya da ders bitince Klas bunu kendisi yapsın
+
+TABLOSUZ PARA TAKİBİ
+• Her öğrenci ve ders için saatlik ücret, ücret geçmişiyle birlikte
+• Ücreti değiştirmek, yapılmış dersleri asla değiştirmez
+• Ödemeleri kaydedin; bakiye, borç ve fazla ödemeler otomatik hesaplanır
+• Öğrencileri en çok borcu olandan başlayarak sıralayın
+
+GRUPLAR
+• Tüm grup için tek bir ders, grubun kendi ücretiyle
+• Ücretlendirme yine öğrenci bazında yapılır — "bu öğrenci gelmedi" dahil
+
+SONRAKİ DERSİ KENDİ BULAN ÖDEVLER
+• Bir öğrenciye veya gruba birkaç kelimeyle ödev verin
+• Ödev kendiliğinden bir sonraki derse eklenir
+• Tek dokunuşla öğrenciyle paylaşın, tamamlanınca işaretleyin
+
+RAPORLAR
+• Aylık, yıllık veya tüm zamanların geliri, önceki dönemle karşılaştırmalı
+• Ay, ders, öğrenci ve gruba göre dağılım; bireysel ve grup dersleri
+• Ödenmemiş tüm borçlar tek listede
+• Elektronik tablo ya da muhasebeciniz için CSV'ye aktarma
+
+HATIRLATICILAR VE TAKVİM
+• Her dersten önce, zamanında bir bildirim
+• İsteğe bağlı: sabah günün programı, akşam işaretlenmemiş dersler listesi ve haftalık borç özeti
+• İsteğe bağlı: telefonunuzun takvimiyle eşitleme ve öğrencilere e-posta davetleri
+
+GİZLİLİK ESASLI TASARIM
+• Hesap yok, kayıt yok, internet gerekmez
+• Verileriniz telefonunuzda kalır — Klas'ın onları gönderebileceği bir sunucusu yoktur
+• Sakladığınız bir dosyaya tam yedekleme ve yeni telefona geri yükleme
+• Reklam yok, izleyici yok
+
+Tek başına çalışan özel ders öğretmenleri için. Açık ve koyu tema. 25 dil ve 150'den fazla para birimi.
+
+Klas, GNU GPL v3 lisansı altında açık kaynaklıdır.

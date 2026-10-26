@@ -1,0 +1,44 @@
+Klas to dziennik prywatnego korepetytora: plan zajęć, uczniowie, kto zapłacił, a kto zalega — wszystko policzone za Ciebie, w Twoim telefonie.
+
+CAŁY DZIEŃ NA JEDNYM EKRANIE
+• Widok dnia, tygodnia i miesiąca ze wszystkimi lekcjami
+• Widać, co już się odbyło, co trwa teraz i kto jest następny
+• Zaplanuj lekcję jednorazowo albo powtarzaj ją co tydzień lub co dwa tygodnie
+• Nakładające się terminy są odrzucane, więc nigdy nie umówisz dwóch lekcji naraz
+• Oznacz lekcję jako przeprowadzoną jednym przesunięciem — albo pozwól, by Klas zrobił to sam po jej zakończeniu
+
+PIENIĄDZE BEZ ARKUSZA KALKULACYJNEGO
+• Stawka godzinowa dla każdego ucznia i przedmiotu, z historią stawek
+• Zmiana stawki nigdy nie zmienia lekcji, które już się odbyły
+• Zapisuj płatności — saldo, długi i nadpłaty policzą się same
+• Sortuj uczniów według tego, kto jest winien najwięcej
+
+GRUPY
+• Jedna lekcja dla całej grupy według stawki grupy
+• Rozliczenia pozostają osobne dla każdego ucznia — także „ten nie przyszedł”
+
+PRACE DOMOWE, KTÓRE SAME TRAFIAJĄ NA LEKCJĘ
+• Zadaj pracę domową uczniowi lub grupie w kilku słowach
+• Sama przypisze się do ich najbliższej lekcji
+• Wyślij ją uczniowi jednym dotknięciem, odhacz, gdy jest zrobiona
+
+RAPORTY
+• Dochód za miesiąc, rok lub cały czas, w porównaniu z poprzednim okresem
+• Podział według miesięcy, przedmiotów, uczniów i grup, lekcje indywidualne i grupowe
+• Wszystkie zaległości na jednej liście
+• Eksport do CSV — do arkusza kalkulacyjnego lub dla księgowego
+
+PRZYPOMNIENIA I KALENDARZ
+• Powiadomienie przed każdą lekcją, na czas
+• Opcjonalnie: poranny plan dnia, wieczorna lista nieoznaczonych lekcji i cotygodniowe podsumowanie długów
+• Opcjonalnie: synchronizacja z kalendarzem telefonu i zaproszenia e-mail dla uczniów
+
+PRYWATNOŚĆ OD PODSTAW
+• Bez konta, bez rejestracji, bez internetu
+• Twoje dane zostają w telefonie — Klas nie ma serwerów, na które mógłby je wysłać
+• Pełna kopia zapasowa do pliku, który zachowujesz, i przywracanie na nowym telefonie
+• Bez reklam i bez trackerów
+
+Dla korepetytora, który pracuje sam. Jasny i ciemny motyw. 25 języków i ponad 150 walut.
+
+Klas to oprogramowanie open source na licencji GNU GPL v3.

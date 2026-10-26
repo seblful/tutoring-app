@@ -1,0 +1,44 @@
+Klas är lektionsboken för en privatlärare: ditt schema, dina elever, vem som har betalat och vem som är skyldig — uträknat åt dig, i din telefon.
+
+DIN UNDERVISNINGSDAG I EN BLICK
+• Dag-, vecko- och månadsvy över alla lektioner
+• Se vad som är genomfört, vad som pågår nu och vem som är nästa
+• Boka en lektion en gång eller upprepa den varje vecka eller varannan vecka
+• Överlappande tider nekas, så du blir aldrig dubbelbokad
+• Markera en lektion som genomförd med en svepning — eller låt Klas göra det när lektionen är slut
+
+PENGAR UTAN KALKYLARK
+• Ett timpris per elev och ämne, med prishistorik
+• Ett nytt pris ändrar aldrig redan genomförda lektioner
+• Registrera betalningar; saldo, skulder och tillgodo räknas ut åt dig
+• Sortera eleverna efter vem som är skyldig mest
+
+GRUPPER
+• Boka en lektion för hela gruppen till gruppens eget pris
+• Debiteringen sker fortfarande per elev — även ”den här kom inte”
+
+LÄXOR SOM HITTAR NÄSTA LEKTION
+• Ge läxa till en elev eller en grupp med några få ord
+• Den kopplas automatiskt till nästa lektion
+• Dela den med eleven med ett tryck och bocka av när den är gjord
+
+RAPPORTER
+• Intäkter för en månad, ett år eller hela tiden, jämfört med perioden innan
+• Uppdelat per månad, ämne, elev och grupp, individuellt och i grupp
+• Alla utestående skulder i en lista
+• Export till CSV för kalkylark eller din redovisningskonsult
+
+PÅMINNELSER OCH KALENDER
+• En avisering före varje lektion, i tid
+• Valfritt: dagsagenda på morgonen, kvällslista över omärkta lektioner och veckovis skuldsammanfattning
+• Valfritt: synkning med telefonens kalender, med inbjudningar via e-post till eleverna
+
+PRIVAT FRÅN GRUNDEN
+• Inget konto, ingen registrering, inget internet behövs
+• Dina data stannar i din telefon — Klas har inga servrar att skicka dem till
+• Fullständig säkerhetskopia till en fil du själv sparar, och återställning på en ny telefon
+• Ingen reklam och inga spårare
+
+Gjord för en privatlärare som arbetar på egen hand. Ljust och mörkt tema. 25 språk och över 150 valutor.
+
+Klas är öppen källkod under GNU GPL v3.

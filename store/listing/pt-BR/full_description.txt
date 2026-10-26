@@ -1,0 +1,44 @@
+O Klas é a caderneta de aulas do professor particular: sua agenda, seus alunos, quem pagou e quem deve — tudo calculado para você, no seu celular.
+
+SEU DIA DE AULAS EM UM SÓ OLHAR
+• Visualização por dia, semana e mês de todas as aulas
+• Veja o que já foi dado, o que está acontecendo agora e quem é o próximo
+• Agende uma aula uma única vez ou repita toda semana ou a cada duas semanas
+• Horários sobrepostos são recusados, então você nunca marca duas aulas ao mesmo tempo
+• Marque uma aula como realizada com um deslize — ou deixe o Klas fazer isso quando a aula terminar
+
+DINHEIRO SEM PLANILHA
+• Um valor por hora para cada aluno e matéria, com histórico de valores
+• Mudar o valor nunca altera as aulas já realizadas
+• Registre os pagamentos; saldos, dívidas e créditos são calculados para você
+• Ordene os alunos por quem deve mais
+
+GRUPOS
+• Agende uma aula para o grupo todo com o valor do grupo
+• A cobrança continua sendo por aluno — inclusive “este não veio”
+
+TAREFAS QUE ENCONTRAM A PRÓXIMA AULA
+• Passe uma tarefa para um aluno ou um grupo em poucas palavras
+• Ela se vincula sozinha à próxima aula deles
+• Compartilhe com o aluno com um toque e marque quando estiver feita
+
+RELATÓRIOS
+• Receita do mês, do ano ou de todo o período, comparada com o período anterior
+• Detalhamento por mês, matéria, aluno e grupo, aulas individuais e em grupo
+• Todas as dívidas em aberto em uma lista
+• Exportação para CSV para uma planilha ou seu contador
+
+LEMBRETES E CALENDÁRIO
+• Uma notificação antes de cada aula, na hora certa
+• Opcional: agenda pela manhã, lista à noite das aulas não marcadas e resumo semanal de dívidas
+• Opcional: sincronização com o calendário do celular, com convites por e-mail para os alunos
+
+PRIVADO POR PRINCÍPIO
+• Sem conta, sem cadastro, sem precisar de internet
+• Seus dados ficam no seu celular — o Klas não tem servidores para onde enviá-los
+• Backup completo em um arquivo que fica com você e restauração em um celular novo
+• Sem anúncios e sem rastreadores
+
+Feito para o professor particular que trabalha sozinho. Temas claro e escuro. 25 idiomas e mais de 150 moedas.
+
+O Klas é de código aberto, sob a licença GNU GPL v3.
