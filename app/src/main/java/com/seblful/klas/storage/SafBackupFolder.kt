@@ -45,8 +45,15 @@ class SafBackupFolder @Inject constructor(
         val tree = folder.toUri()
         val file = DocumentsContract.createDocument(resolver, root(tree), MIME_TYPE, name)
             ?: error("Could not create $name")
-        resolver.openOutputStream(file)?.bufferedWriter()?.use { it.write(text) }
-            ?: error("Could not open $name")
+        var written = false
+        try {
+            resolver.openOutputStream(file)?.bufferedWriter()?.use { it.write(text) }
+                ?: error("Could not open $name")
+            written = true
+        } finally {
+            // A copy cut short would count as one of the kept ones, and could push out a good one.
+            if (!written) runCatching { DocumentsContract.deleteDocument(resolver, file) }
+        }
     }
 
     override suspend fun list(folder: String): List<String> = withContext(Dispatchers.IO) {
