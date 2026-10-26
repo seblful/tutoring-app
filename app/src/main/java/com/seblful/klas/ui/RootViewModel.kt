@@ -10,7 +10,6 @@ import com.seblful.klas.format.AppLocale
 import com.seblful.klas.format.localeFor
 import com.seblful.klas.lock.AppLock
 import com.seblful.klas.maintenance.Maintenance
-import com.seblful.klas.runCatchingCancellable
 import com.seblful.klas.ui.common.state.hold
 import com.seblful.klas.ui.onboarding.FirstLesson
 import dev.zacsweers.metro.AppScope
@@ -65,7 +64,7 @@ class RootViewModel @Inject constructor(
 
     /** Catch up **in process**, not by enqueueing a worker — called once by `AppRoot` as the UI comes up. */
     fun catchUp() {
-        appScope.launch { runCatchingCancellable { maintenance.run() } }
+        appScope.launch { maintenance.run() }
     }
 
     val settings: StateFlow<AppSettings?> = settings.observe()
