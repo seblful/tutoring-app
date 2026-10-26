@@ -39,6 +39,7 @@ class DaySummaryTest {
         status: LessonStatus = LessonStatus.SCHEDULED,
         attended: Attended = Attended.EXPECTED,
         groupId: Long? = null,
+        charge: Money = ClassRules.chargeFor(rate, minutes),
     ) = TutoringClass(
         id = nextId++,
         lessonId = lessonId,
@@ -49,7 +50,7 @@ class DaySummaryTest {
         price = rate,
         status = status,
         attended = attended,
-        charge = Money.ZERO,
+        charge = charge,
         groupId = groupId,
     )
 
@@ -100,6 +101,16 @@ class DaySummaryTest {
 
         assertEquals(ClassRules.chargeFor(Money.ofMajor(30), 90), taught.money)
         assertEquals(Money.ofMajor(45), taught.money)
+    }
+
+    @Test
+    fun `the day's money is what its rows billed, as the balances and the reports sum it`() {
+        val billed = summaryOf(
+            klass(at = at(9), lessonId = 1, status = LessonStatus.COMPLETED, charge = Money.ofMajor(7)),
+            klass(at = at(11), lessonId = 2, status = LessonStatus.COMPLETED, charge = Money.ZERO),
+        )
+
+        assertEquals(Money.ofMajor(7), billed.money)
     }
 
     @Test

@@ -1,11 +1,10 @@
 package com.seblful.klas.domain.schedule
 
-import com.seblful.klas.domain.lesson.ClassRules
+import com.seblful.klas.domain.billing.Billing
 import com.seblful.klas.domain.lesson.SessionRules
 import com.seblful.klas.domain.model.ClassSession
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
-import com.seblful.klas.domain.reports.Taught
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
@@ -77,10 +76,7 @@ data class DaySummary(
             return DaySummary(
                 lessons = on.size,
                 minutes = on.sumOf { it.first.durationMinutes },
-                money = on.filter { it.status == LessonStatus.COMPLETED }
-                    .flatMap { it.classes }
-                    .filter { it.attended.bills }
-                    .fold(Money.ZERO) { acc, c -> acc + ClassRules.chargeFor(c.price, c.durationMinutes) },
+                money = Billing.charged(on.flatMap { it.classes }),
                 cancelled = off.size,
             )
         }
