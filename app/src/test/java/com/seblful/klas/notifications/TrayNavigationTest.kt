@@ -3,6 +3,7 @@ package com.seblful.klas.notifications
 import android.content.Intent
 import kotlinx.datetime.LocalDate
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Test
 
@@ -120,6 +121,27 @@ class TrayNavigationTest {
         assertEquals(TrayNavigation.Destination.Student(7L), link("klas://student/7"))
         assertEquals(TrayNavigation.Destination.Day(LocalDate(9999, 12, 31)), link("klas://day/9999-12-31"))
         assertEquals(TrayNavigation.Destination.Day(LocalDate(1900, 1, 1)), link("klas://day/1900-01-01"))
+    }
+
+    @Test
+    fun `every named place opens the same screen from its link as from its action`() {
+        val places = mapOf(
+            TrayNavigation.ACTION_OPEN_DEBTS to "debts",
+            TrayNavigation.ACTION_OPEN_TODAY to "today",
+            TrayNavigation.ACTION_BOOK_LESSON to "book",
+            TrayNavigation.ACTION_OPEN_HOMEWORK to "homework",
+            TrayNavigation.ACTION_OPEN_PEOPLE to "people",
+            TrayNavigation.ACTION_OPEN_SCHEDULE to "schedule",
+            TrayNavigation.ACTION_OPEN_REPORTS to "reports",
+            TrayNavigation.ACTION_OPEN_SETTINGS to "settings",
+        )
+
+        places.forEach { (action, name) ->
+            val fromAction = TrayNavigation.destinationFor(action, classId = 0)
+            val fromLink = TrayNavigation.destinationFor(Intent.ACTION_VIEW, classId = 0, link = "klas://$name")
+            assertNotNull("$name has no destination", fromAction)
+            assertEquals(name, fromAction, fromLink)
+        }
     }
 
     /** The activity is exported: a link is anyone's to write, so one the app cannot read goes nowhere. */

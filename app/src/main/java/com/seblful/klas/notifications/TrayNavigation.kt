@@ -183,27 +183,20 @@ object TrayNavigation {
 
     private fun LocalDate.drawable(): LocalDate? = takeIf { it in DRAWABLE_DAYS }
 
-    /** The entries that carry nothing but their action. */
-    private val fixed: Map<String, Destination> = mapOf(
-        ACTION_OPEN_DEBTS to Destination.Debts,
-        ACTION_OPEN_TODAY to Destination.Today,
-        ACTION_BOOK_LESSON to Destination.NewLesson,
-        ACTION_OPEN_HOMEWORK to Destination.Homework,
-        ACTION_OPEN_PEOPLE to Destination.People,
-        ACTION_OPEN_SCHEDULE to Destination.Schedule,
-        ACTION_OPEN_REPORTS to Destination.Reports,
-        ACTION_OPEN_SETTINGS to Destination.Settings,
+    /** A place that carries nothing but its name, reachable by its intent action and by its `klas://` link. */
+    private class Place(val action: String, val link: String, val destination: Destination)
+
+    private val places = listOf(
+        Place(ACTION_OPEN_DEBTS, "debts", Destination.Debts),
+        Place(ACTION_OPEN_TODAY, "today", Destination.Today),
+        Place(ACTION_BOOK_LESSON, "book", Destination.NewLesson),
+        Place(ACTION_OPEN_HOMEWORK, "homework", Destination.Homework),
+        Place(ACTION_OPEN_PEOPLE, "people", Destination.People),
+        Place(ACTION_OPEN_SCHEDULE, "schedule", Destination.Schedule),
+        Place(ACTION_OPEN_REPORTS, "reports", Destination.Reports),
+        Place(ACTION_OPEN_SETTINGS, "settings", Destination.Settings),
     )
 
-    /** The links that name a place and nothing more. */
-    private val linked: Map<String, Destination> = mapOf(
-        "today" to Destination.Today,
-        "schedule" to Destination.Schedule,
-        "people" to Destination.People,
-        "homework" to Destination.Homework,
-        "reports" to Destination.Reports,
-        "debts" to Destination.Debts,
-        "book" to Destination.NewLesson,
-        "settings" to Destination.Settings,
-    )
+    private val fixed: Map<String, Destination> = places.associate { it.action to it.destination }
+    private val linked: Map<String, Destination> = places.associate { it.link to it.destination }
 }
