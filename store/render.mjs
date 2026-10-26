@@ -127,12 +127,12 @@ for (const locale of languages(STORE).filter((l) => !only || l === only)) {
     const behind = entry.behind &&
       appScreen(raw, entry.behind, shots[entry.behind] ?? fail(`${locale}: no capture named "${entry.behind}"`), tray.statusClock);
     const lifts = drawn ? "" : callouts(raw, entry, shot, `${locale} ${entry.shot}`);
-    await draw(screenshotPage({ screen, behind, lifts, entry, copy, index: i, themes }), SHOT,
+    await draw(screenshotPage({ screen, behind, lifts, entry, copy, index: i, themes, lang: locale }), SHOT,
       join(out, "phoneScreenshots", `${name}.png`), `${locale}-${name}`);
   }
 
   const feature = listing.featureGraphic.shot;
-  await draw(featurePage({ raw, shot: feature, colors: shots[feature], tagline: words.tagline, clock: tray.statusClock }),
+  await draw(featurePage({ raw, shot: feature, colors: shots[feature], tagline: words.tagline, clock: tray.statusClock, lang: locale }),
     FEATURE, join(out, "featureGraphic.png"), `${locale}-feature`);
   await draw(iconPage(), ICON, join(out, "icon.png"), `${locale}-icon`, { opaque: false });
   copyText(locale, out);
@@ -189,7 +189,7 @@ function callouts(raw, entry, shot, name) {
  * edge shows; or `layout: "pair"`, in front of a second phone showing `behind`. The backdrop is one long
  * picture across all the screenshots, each showing its own stretch of it ([panorama]).
  */
-function screenshotPage({ screen, behind, lifts, entry, copy, index, themes }) {
+function screenshotPage({ screen, behind, lifts, entry, copy, index, themes, lang }) {
   const layout = entry.layout ?? "straight";
   const phones = {
     straight: `
@@ -210,7 +210,7 @@ function screenshotPage({ screen, behind, lifts, entry, copy, index, themes }) {
       ${phones[layout] ?? fail(`No screenshot layout «${layout}»`)}
     </div>
     ${isDrawn(entry) ? (entry.callout ?? []).map((name) => liftDrawn(DRAWN_CALLOUTS[name] ?? fail(`No drawn callout «${name}»`))).join("") : ""}
-    ${fitCaption()}`);
+    ${fitCaption()}`, lang);
 }
 
 /** Whether [entry]'s screen is drawn here — the lock screen, the home screen — rather than captured. */
@@ -300,7 +300,7 @@ function fitCaption() {
  * The feature graphic: the brand on the left — its name, then the tagline under it — and the phone on the
  * right. The words keep out of the phone's way, and out of the middle, where Play's play button goes.
  */
-function featurePage({ raw, shot, colors, tagline, clock }) {
+function featurePage({ raw, shot, colors, tagline, clock, lang }) {
   return page(FEATURE, `
     <div class="backdrop feature">
       <div class="glow one"></div><div class="glow two"></div>
@@ -326,7 +326,7 @@ function featurePage({ raw, shot, colors, tagline, clock }) {
             return box.right <= ${FEATURE_PHONE_LEFT - CAPTION_GAP / 2} && clear(box);
           }) && words.bottom <= 500;
       });
-    </script>`);
+    </script>`, lang);
 }
 
 function iconPage() {
@@ -335,12 +335,15 @@ function iconPage() {
     <div class="icon"><img src="${url(LOGO)}"></div>`);
 }
 
-function page(size, body) {
-  return `<!doctype html><html><head><meta charset="utf-8"><style>
+/** [lang] picks the language's line breaks and, for Chinese and Japanese, its forms of the characters. */
+function page(size, body, lang = "en") {
+  return `<!doctype html><html lang="${lang}"><head><meta charset="utf-8"><style>
     ${fontFaces()}
     * { box-sizing: border-box; margin: 0; }
     html, body { width: ${size.width}px; height: ${size.height}px; overflow: hidden; }
     body { font-family: Golos, sans-serif; -webkit-font-smoothing: antialiased; }
+    /* Korean breaks lines between words, not between any two syllables as the browser would. */
+    :lang(ko) { word-break: keep-all; }
 
     .backdrop {
       position: relative; width: 100%; height: 100%; overflow: hidden; color: #fff;

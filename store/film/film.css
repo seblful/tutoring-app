@@ -5,6 +5,8 @@
 html, body { width: 1920px; height: 1080px; overflow: hidden; background: #000; }
 html.vertical, html.vertical body { width: 1080px; height: 1920px; }
 body { font-family: Golos, sans-serif; -webkit-font-smoothing: antialiased; color: #fff; }
+/* Korean breaks lines between words, not between any two syllables as the browser would. */
+:lang(ko) { word-break: keep-all; }
 
 #stage { position: absolute; left: 0; top: 0; overflow: hidden; }
 .hidden { display: none !important; }
