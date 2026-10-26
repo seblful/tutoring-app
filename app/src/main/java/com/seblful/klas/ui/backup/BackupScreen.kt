@@ -31,6 +31,7 @@ import com.seblful.klas.data.backup.AutoBackup
 import com.seblful.klas.data.backup.BackupPreview
 import com.seblful.klas.format.formatDate
 import com.seblful.klas.format.toLocalDate
+import com.seblful.klas.storage.DocumentRef
 import com.seblful.klas.ui.common.ConfirmDialog
 import com.seblful.klas.ui.common.KlasScreen
 import com.seblful.klas.ui.common.ShowMessagesFor
@@ -64,8 +65,11 @@ fun BackupScreen(
     val messages = rememberMessages()
     var confirmUndo by rememberSaveable { mutableStateOf(false) }
     var askPassword by rememberSaveable { mutableStateOf(false) }
-    // Held only until the picker answers — see PasswordDialogs for why it is never saved.
+    // The password is held only until the picker answers — see PasswordDialogs for why it is never saved. That
+    // one was asked for is saved, so an answer after the process was put away cannot pass for "no password".
     var exportPassword by remember { mutableStateOf<String?>(null) }
+    var exportSealed by rememberSaveable { mutableStateOf(false) }
+    var passwordLostFor by rememberSaveable { mutableStateOf<String?>(null) }
     val lastExportAt by viewModel.lastExportAt.collectAsStateWithLifecycle()
     val importing by restoreViewModel.importing.collectAsStateWithLifecycle()
     val undoRestoreSince by restoreViewModel.undoRestoreSince.collectAsStateWithLifecycle()
@@ -92,9 +96,16 @@ fun BackupScreen(
     ShowMessagesFor(viewModel.events, messages, words = words)
     ShowMessagesFor(restoreViewModel.events, messages, words = words)
 
-    val saveBackup = rememberCreateDocument("application/json", noPickerMsg, messages) {
-        viewModel.export(it, exportPassword)
+    val saveBackup = rememberCreateDocument("application/json", noPickerMsg, messages) { ref ->
+        when (val picked = pickedExport(exportSealed, exportPassword)) {
+            is PickedExport.Write -> viewModel.export(ref, picked.password)
+            PickedExport.PasswordLost -> {
+                passwordLostFor = ref.value
+                askPassword = true
+            }
+        }
         exportPassword = null
+        exportSealed = false
     }
     // Read and described before it replaces everything.
     val openBackup = rememberOpenDocument(noPickerMsg, messages) { restoreViewModel.open(it) }
@@ -132,10 +143,19 @@ fun BackupScreen(
     if (askPassword) {
         ExportPasswordDialog(
             onSave = { password ->
-                exportPassword = password
-                saveBackup(backupFilename)
+                val chosen = passwordLostFor
+                if (chosen != null) {
+                    viewModel.export(DocumentRef(chosen), password)
+                } else {
+                    exportPassword = password
+                    exportSealed = password != null
+                    saveBackup(backupFilename)
+                }
             },
-            onDismiss = { askPassword = false },
+            onDismiss = {
+                askPassword = false
+                passwordLostFor = null
+            },
         )
     }
 

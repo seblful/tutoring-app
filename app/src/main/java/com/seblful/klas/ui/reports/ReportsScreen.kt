@@ -25,7 +25,6 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.foundation.text.TextAutoSize
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
@@ -80,6 +79,7 @@ import com.seblful.klas.print.Sheet
 import com.seblful.klas.print.SheetPrinter
 import com.seblful.klas.queries.reports.ReportScope
 import com.seblful.klas.queries.reports.ScopeChoice
+import com.seblful.klas.storage.DocumentRef
 import com.seblful.klas.ui.common.EmptyState
 import com.seblful.klas.ui.common.FilterChipRow
 import com.seblful.klas.ui.common.FilterMenuAction
@@ -100,11 +100,9 @@ import com.seblful.klas.ui.common.SectionTitle
 import com.seblful.klas.ui.common.SegmentedChoice
 import com.seblful.klas.ui.common.SettingsGear
 import com.seblful.klas.ui.common.Spacing
-import com.seblful.klas.ui.common.StatRow
 import com.seblful.klas.ui.common.SupportingPaneMaxWidth
 import com.seblful.klas.ui.common.TickedMenuItem
 import com.seblful.klas.ui.common.constrainedContent
-import com.seblful.klas.ui.common.hoursStat
 import com.seblful.klas.ui.common.lessonKindFill
 import com.seblful.klas.ui.common.lessonKindLabel
 import com.seblful.klas.ui.common.lessonsStat
@@ -181,13 +179,14 @@ fun ReportsScreen(
     }
 
     val files = rememberReportFiles(exportable, period, scopes.firstOrNull { it.scope == scope }?.name.orEmpty())
-    // Which file the picker was opened for: one picker per type, one menu for every file.
+    // Which file the picker was opened for: one picker per type, one menu for every file. Lost if the process
+    // is put away while the picker is up; the answer then says nothing was saved.
     var saving by remember { mutableStateOf<ReportsViewModel.ReportFile?>(null) }
     val exportCsv = rememberCreateDocument(CSV_MIME_TYPE, noPickerMsg, messages) { document ->
-        saving?.let { viewModel.export(document, it) }
+        viewModel.exportOrSay(document, saving) { messages.show(exportErrorMsg) }
     }
     val exportPdf = rememberCreateDocument(SheetPrinter.PDF_MIME_TYPE, noPickerMsg, messages) { document ->
-        saving?.let { viewModel.export(document, it) }
+        viewModel.exportOrSay(document, saving) { messages.show(exportErrorMsg) }
     }
     // Names the period, so a report arriving in somebody's mail says which month it is.
     val shareSubject = stringResource(R.string.reports_share_subject, periodTitle(period))
@@ -263,6 +262,15 @@ fun ReportsScreen(
             ReportBody(report, scope, onStudentClick, listState, bottomInset, twoPane, Modifier.weight(1f))
         }
     }
+}
+
+/** Writes [file] to [document]; with no file left to write — the process was put away — [nothingToSave] says so. */
+private fun ReportsViewModel.exportOrSay(
+    document: DocumentRef,
+    file: ReportsViewModel.ReportFile?,
+    nothingToSave: () -> Unit,
+) {
+    if (file == null) nothingToSave() else export(document, file)
 }
 
 @Composable
@@ -813,7 +821,7 @@ private fun IncomeTrendChart(trend: Reports.Trend, labelOf: (Reports.Trend.Bar) 
         horizontalArrangement = Arrangement.spacedBy(BarGap),
     ) {
         trend.bars.forEach { bar ->
-            // Against the peak already in hand: [Reports.Trend.shareOf] would find it again for every bar.
+            // Against the peak already in hand, rather than finding it again for every bar.
             val share = animateBarShare(bar.total.minor.toFloat() / peak.total.minor)
             // The peak in the accent, the rest in the secondary role: both stand 3:1 off the track.
             val fill = if (bar.key == peak.key) filled else others
