@@ -216,6 +216,47 @@ class ReportCsvTest {
     }
 
     @Test
+    fun `a name a spreadsheet would run as a formula is written as text`() {
+        val csv = build(
+            ReportCsv.Line("Доход", "=HYPERLINK(\"http://evil\")", Money.ofMajor(10)),
+            ReportCsv.Line("Доход", "+1", Money.ofMajor(10)),
+            ReportCsv.Line("Доход", "-Аня", Money.ofMajor(10)),
+            ReportCsv.Line("Доход", "@SUM(A1)", Money.ofMajor(10)),
+        )
+
+        assertTrue(csv.contains("\"'=HYPERLINK(\"\"http://evil\"\")\""), csv)
+        assertTrue(csv.contains(";'+1;"), csv)
+        assertTrue(csv.contains(";'-Аня;"), csv)
+        assertTrue(csv.contains(";'@SUM(A1);"), csv)
+    }
+
+    @Test
+    fun `a negative amount stays a number when names are made safe`() {
+        val csv = build(ReportCsv.Line("Долги", "Аня", Money(-1250)))
+
+        assertTrue(csv.contains("Долги;Аня;-12,50\r\n"), csv)
+    }
+
+    @Test
+    fun `the ledger writes a formula-like student or subject as text and keeps its amount`() {
+        val report = Reports.of(
+            period = june,
+            classes = listOf(taught(1, "2026-06-14T10:00:00Z", -3000)),
+            students = listOf(Student(id = 1, name = "=cmd|' /C calc'!A0")),
+            payments = emptyList(),
+            subjectNames = mapOf(SubjectId(1) to "@Физика"),
+            groupNames = emptyMap(),
+            zone = TimeZone.UTC,
+            today = LocalDate(2026, 6, 30),
+        )
+        val words = ReportCsv.LedgerWords(lesson = "Занятие", payment = "Оплата", methods = headings.methods)
+
+        val csv = ReportCsv.buildLedger(listOf("Д", "З", "У", "П", "С"), report, words, ReportCsv.Dialect.COMMA_DECIMAL)
+
+        assertTrue(csv.contains("2026-06-14;Занятие;'=cmd|' /C calc'!A0;'@Физика;-30,00\r\n"), csv)
+    }
+
+    @Test
     fun `an empty report is still a well-formed file with its header`() {
         assertEquals(BOM + "Раздел;Название;Сумма\r\n", build())
     }

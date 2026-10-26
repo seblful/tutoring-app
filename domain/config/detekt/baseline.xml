@@ -2,7 +2,6 @@
 <SmellBaseline>
   <ManuallySuppressedIssues/>
   <CurrentIssues>
-    <ID>ComplexCondition:ReportCsv.kt:ReportCsv$field.any { it == dialect.delimiter || it == '"' || it == '\n' || it == '\r' }</ID>
     <ID>MagicNumber:ClassRules.kt:ClassRules$30</ID>
     <ID>MagicNumber:ClassRules.kt:ClassRules$60L</ID>
     <ID>MagicNumber:Digests.kt:Digests$7</ID>

@@ -159,9 +159,10 @@ object ReportCsv {
                     if (entry.payment) words.payment else words.lesson,
                     entry.student,
                     if (entry.payment) words.methods[entry.method].orEmpty() else entry.subject.orEmpty(),
-                    amountText(entry.amount, dialect),
                 )
                 append(fields.joinToString(dialect.delimiter.toString()) { escape(it, dialect) })
+                append(dialect.delimiter)
+                append(escape(amountText(entry.amount, dialect), dialect, text = false))
                 append(NEWLINE)
             }
         }
@@ -188,7 +189,7 @@ object ReportCsv {
             append(dialect.delimiter)
             append(escape(line.label, dialect))
             append(dialect.delimiter)
-            append(escape(amountText(line.amount, dialect), dialect))
+            append(escape(amountText(line.amount, dialect), dialect, text = false))
             append(NEWLINE)
         }
     }
@@ -199,10 +200,22 @@ object ReportCsv {
         return "$sign${abs / 100}${dialect.decimal}${(abs % 100).toString().padStart(2, '0')}"
     }
 
-    private fun escape(field: String, dialect: Dialect): String =
-        if (field.any { it == dialect.delimiter || it == '"' || it == '\n' || it == '\r' }) {
-            "\"" + field.replace("\"", "\"\"") + "\""
+    /** A leading one of these makes a spreadsheet read a cell as a formula. */
+    private val FORMULA_STARTS = setOf('=', '+', '-', '@', '\t', '\r')
+
+    /** Besides the dialect's delimiter, what puts a field in quotes. */
+    private val QUOTED_CHARS = setOf('"', '\n', '\r')
+
+    /**
+     * [field] quoted where the file needs it. A [text] field — a name, a label — that would be read as a
+     * formula is written with a leading `'` so it stays text; an amount is not [text], and its sign stays.
+     */
+    private fun escape(field: String, dialect: Dialect, text: Boolean = true): String {
+        val safe = if (text && field.firstOrNull() in FORMULA_STARTS) "'$field" else field
+        return if (safe.any { it == dialect.delimiter || it in QUOTED_CHARS }) {
+            "\"" + safe.replace("\"", "\"\"") + "\""
         } else {
-            field
+            safe
         }
+    }
 }
