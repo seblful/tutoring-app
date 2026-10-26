@@ -8,12 +8,12 @@ plugins {
 
 android {
     namespace = "com.seblful.klas.baselineprofile"
-    compileSdk = 37
+    compileSdk = libs.versions.compileSdk.get().toInt()
 
     defaultConfig {
         // Baseline profiles are collected on API 28+; an unrooted phone needs 33+.
         minSdk = 28
-        targetSdk = 36
+        targetSdk = libs.versions.targetSdk.get().toInt()
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 

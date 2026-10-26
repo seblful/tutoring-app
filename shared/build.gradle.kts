@@ -12,8 +12,8 @@ plugins {
 kotlin {
     android {
         namespace = "com.seblful.klas.shared"
-        compileSdk = 37
-        minSdk = 24
+        compileSdk = libs.versions.compileSdk.get().toInt()
+        minSdk = libs.versions.minSdk.get().toInt()
         compilerOptions { jvmTarget = JvmTarget.JVM_11 }
     }
     jvm {

@@ -22,12 +22,12 @@ android {
     namespace = "com.seblful.klas"
     // A published application ID cannot be changed.
     // Current AndroidX dependencies require API 37; the runtime target remains API 36.
-    compileSdk = 37
+    compileSdk = libs.versions.compileSdk.get().toInt()
 
     defaultConfig {
         applicationId = "com.seblful.klas"
-        minSdk = 24
-        targetSdk = 36
+        minSdk = libs.versions.minSdk.get().toInt()
+        targetSdk = libs.versions.targetSdk.get().toInt()
         versionCode = 14
         versionName = "0.4.6"
 

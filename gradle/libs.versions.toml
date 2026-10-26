@@ -1,4 +1,8 @@
 [versions]
+# SDK levels every module builds against. `targetSdk` also moves `app/src/test/resources/robolectric.properties`.
+compileSdk = "37"
+minSdk = "24"
+targetSdk = "36"
 agp = "9.3.1"
 # Kotlin and KSP version independently: since 2.3.0 a KSP release is not tied to one Kotlin line (its
 # number no longer starts with Kotlin's), and 2.3.10 is the first to work with Kotlin 2.4. KSP still
