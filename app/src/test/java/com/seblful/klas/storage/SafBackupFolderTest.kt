@@ -10,6 +10,7 @@ import android.provider.DocumentsContract
 import android.provider.DocumentsContract.Document
 import android.provider.DocumentsProvider
 import androidx.test.core.app.ApplicationProvider
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -85,7 +86,7 @@ class SafBackupFolderTest {
 
     @Test
     fun `a copy is written into the folder`() = runTest {
-        SafBackupFolder(context).write(folder, "klas-auto-backup-2026-10-26.json", "{}")
+        SafBackupFolder(context, Dispatchers.Unconfined).write(folder, "klas-auto-backup-2026-10-26.json", "{}")
 
         assertEquals(listOf("klas-auto-backup-2026-10-26.json"), documents.names.values.toList())
     }
@@ -94,7 +95,9 @@ class SafBackupFolderTest {
     fun `a write the provider drops leaves no truncated copy to be counted among the kept ones`() = runTest {
         documents.failOpen = true
 
-        val failure = runCatching { SafBackupFolder(context).write(folder, "klas-auto-backup-2026-10-26.json", "{}") }
+        val failure = runCatching {
+            SafBackupFolder(context, Dispatchers.Unconfined).write(folder, "klas-auto-backup-2026-10-26.json", "{}")
+        }
 
         assertTrue("the caller has to hear about it", failure.isFailure)
         assertEquals(emptyList<String>(), documents.names.values.toList())

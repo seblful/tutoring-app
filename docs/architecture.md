@@ -94,6 +94,9 @@ in [the version catalog](../gradle/libs.versions.toml).
 - View models contribute via `@ViewModelKey` and `@ContributesIntoMap` and use `metroViewModel()`.
   Navigation arguments require assisted `SavedStateHandle`, a nested factory and `routeViewModel(route)`, which
   hands the route's properties to the handle under their names (Navigation 3 does not).
+- Dispatchers are injected, never named at a call site: `@Computation` for flow mapping and state combination, `@Io` for
+  blocking file, content-provider and calendar calls, so a test controls both. Compile, min and target SDK levels
+  live in the version catalog.
 - Test graphs replace bindings with `excludes` (`StoreGraph`). `KlasGraphTest` checks runtime discovery
   of view models, workers and manifest receivers.
 

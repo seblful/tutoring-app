@@ -8,7 +8,9 @@ import android.os.SystemClock
 import android.provider.CalendarContract
 import com.seblful.klas.data.settings.SettingsChange
 import com.seblful.klas.di.ApplicationContext
+import com.seblful.klas.di.Io
 import com.seblful.klas.domain.model.TutoringClass
+import com.seblful.klas.domain.time.WallClock
 import com.seblful.klas.format.DisplayLocale
 import com.seblful.klas.format.inLanguage
 import com.seblful.klas.format.labelRes
@@ -17,11 +19,10 @@ import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
-import kotlinx.datetime.TimeZone
 
 /**
  * Writes class events to the device calendar via [CalendarContract]. Events land in the user's
@@ -37,6 +38,8 @@ class DeviceCalendarSync @Inject constructor(
 
     private val permission: CalendarPermission,
     private val displayLocale: DisplayLocale,
+    private val clock: WallClock,
+    @param:Io private val io: CoroutineDispatcher,
 ) : CalendarSync {
 
     private val mutationLock = Mutex()
@@ -49,7 +52,7 @@ class DeviceCalendarSync @Inject constructor(
         reminderLeadMinutes: Int,
         description: String,
     ): String? =
-        withContext(Dispatchers.IO) {
+        withContext(io) {
             mutationLock.withLock {
                 var createdId: String? = null
                 runCatchingCancellable {
@@ -165,7 +168,7 @@ class DeviceCalendarSync @Inject constructor(
 
     /** The event, brought in line with the lesson — or nothing, if there is no event. */
     override suspend fun refresh(klass: TutoringClass, title: String, description: String) {
-        withContext(Dispatchers.IO) {
+        withContext(io) {
             mutationLock.withLock {
                 runCatchingCancellable {
                     if (!hasPermission()) return@runCatchingCancellable
@@ -184,7 +187,7 @@ class DeviceCalendarSync @Inject constructor(
     }
 
     override suspend fun delete(eventId: String) {
-        withContext(Dispatchers.IO) {
+        withContext(io) {
             mutationLock.withLock {
                 runCatchingCancellable {
                     if (!hasPermission()) return@runCatchingCancellable
@@ -212,7 +215,7 @@ class DeviceCalendarSync @Inject constructor(
         put(CalendarContract.Events.TITLE, title)
         put(CalendarContract.Events.DTSTART, klass.start.toEpochMilliseconds())
         put(CalendarContract.Events.DTEND, klass.end.toEpochMilliseconds())
-        put(CalendarContract.Events.EVENT_TIMEZONE, TimeZone.currentSystemDefault().id)
+        put(CalendarContract.Events.EVENT_TIMEZONE, clock.zone.id)
         // Write even an empty description to clear homework that was removed or marked done.
         put(CalendarContract.Events.DESCRIPTION, description)
         // The one **word** this class writes, so it is the one thing read in the tutor's chosen language

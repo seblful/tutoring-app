@@ -4,11 +4,12 @@ import android.content.Context
 import android.content.Intent
 import androidx.core.content.FileProvider
 import com.seblful.klas.di.ApplicationContext
+import com.seblful.klas.di.Io
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext
 import java.io.File
 
@@ -17,6 +18,7 @@ import java.io.File
 @SingleIn(AppScope::class)
 class AndroidDocumentSharing @Inject constructor(
     @param:ApplicationContext private val context: Context,
+    @param:Io private val io: CoroutineDispatcher,
 ) : DocumentSharing {
 
     override suspend fun share(filename: String, mimeType: String, subject: String, bytes: ByteArray) {
@@ -24,7 +26,7 @@ class AndroidDocumentSharing @Inject constructor(
         // *after* the bytes had already put it there, so the check is here, before anything is written.
         require(filename == File(filename).name) { "A share filename may not contain a path" }
 
-        val uri = withContext(Dispatchers.IO) {
+        val uri = withContext(io) {
             val file = SharedDocuments(File(context.cacheDir, SHARE_DIRECTORY)).write(filename, bytes)
             FileProvider.getUriForFile(context, "${context.packageName}.$AUTHORITY_SUFFIX", file)
         }

@@ -8,12 +8,13 @@ import android.provider.DocumentsContract.Document
 import androidx.core.net.toUri
 import com.seblful.klas.data.backup.BackupFolder
 import com.seblful.klas.di.ApplicationContext
+import com.seblful.klas.di.Io
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
 import dev.zacsweers.metro.binding
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext
 
 /** Keeping and giving up access to a picked folder, and naming it for the screen. */
@@ -37,11 +38,12 @@ interface FolderGrants {
 @SingleIn(AppScope::class)
 class SafBackupFolder @Inject constructor(
     @param:ApplicationContext private val context: Context,
+    @param:Io private val io: CoroutineDispatcher,
 ) : BackupFolder, FolderGrants {
 
     private val resolver get() = context.contentResolver
 
-    override suspend fun write(folder: String, name: String, text: String) = withContext(Dispatchers.IO) {
+    override suspend fun write(folder: String, name: String, text: String) = withContext(io) {
         val tree = folder.toUri()
         val file = DocumentsContract.createDocument(resolver, root(tree), MIME_TYPE, name)
             ?: error("Could not create $name")
@@ -56,12 +58,12 @@ class SafBackupFolder @Inject constructor(
         }
     }
 
-    override suspend fun list(folder: String): List<String> = withContext(Dispatchers.IO) {
+    override suspend fun list(folder: String): List<String> = withContext(io) {
         children(folder.toUri()).map { it.second }
     }
 
     override suspend fun delete(folder: String, name: String) {
-        withContext(Dispatchers.IO) {
+        withContext(io) {
             val tree = folder.toUri()
             children(tree).filter { it.second == name }.forEach { (id, _) ->
                 DocumentsContract.deleteDocument(resolver, DocumentsContract.buildDocumentUriUsingTree(tree, id))
@@ -78,7 +80,7 @@ class SafBackupFolder @Inject constructor(
         runCatching { resolver.releasePersistableUriPermission(folder.toUri(), ACCESS) }
     }
 
-    override suspend fun name(folder: String): String? = withContext(Dispatchers.IO) {
+    override suspend fun name(folder: String): String? = withContext(io) {
         runCatching {
             resolver.query(root(folder.toUri()), arrayOf(Document.COLUMN_DISPLAY_NAME), null, null, null)
                 ?.use { if (it.moveToFirst()) it.getString(0) else null }

@@ -28,6 +28,13 @@ annotation class ApplicationScope
 @Retention(AnnotationRetention.BINARY)
 annotation class Computation
 
+/**
+ * Dispatcher for blocking file, content-provider and calendar calls, injected for the reason [Computation] is.
+ */
+@Qualifier
+@Retention(AnnotationRetention.BINARY)
+annotation class Io
+
 @ContributesTo(AppScope::class)
 @BindingContainer
 object CoroutinesModule {
@@ -36,6 +43,10 @@ object CoroutinesModule {
     @Provides
     @Computation
     fun provideComputationDispatcher(): CoroutineDispatcher = Dispatchers.Default
+
+    @Provides
+    @Io
+    fun provideIoDispatcher(): CoroutineDispatcher = Dispatchers.IO
 
     /**
      * `SupervisorJob` so one failed write cannot cancel the scope and take every later write with

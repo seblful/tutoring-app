@@ -13,6 +13,7 @@ import com.seblful.klas.format.DisplayLocale
 import com.seblful.klas.settings.DevicePreferences
 import com.seblful.klas.testutil.FakeCalendarPermission
 import com.seblful.klas.testutil.TestEnv
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
@@ -44,6 +45,8 @@ class DeviceCalendarSyncTest {
         ApplicationProvider.getApplicationContext(),
         permission,
         DisplayLocale(env.settingsRepo, DevicePreferences(listOf("ru-BY"), listOf("BYN"))),
+        env.clock,
+        Dispatchers.Unconfined,
     )
 
     private fun lesson(id: Long, eventId: String? = null) = TutoringClass(
@@ -64,6 +67,16 @@ class DeviceCalendarSyncTest {
 
         assertEquals(setOf(eventId.toLong()), provider.events.keys)
         assertEquals(listOf(eventId.toLong() to 30), provider.reminderLeads())
+    }
+
+    @Test
+    fun `an event is written in the clock's zone`() = runTest {
+        val eventId = upsert(lesson(1))
+
+        assertEquals(
+            env.clock.zone.id,
+            provider.events.getValue(eventId.toLong()).getAsString(CalendarContract.Events.EVENT_TIMEZONE),
+        )
     }
 
     @Test
