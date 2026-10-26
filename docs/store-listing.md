@@ -99,8 +99,8 @@ Sound is deterministic synthesis in `sound.js`, with no sampled recordings.
 - **Capture workarounds:** homework typing is drawn from app strings because its dialog never idles under
   Robolectric. Swipe panels and post-swipe list positions come from actual intermediate captures. The
   widget's tick fades `widget-today-ticked` in over `widget-today`.
-  Reports join `reports`/`film-reports-end` at a matching row above the floating tab bar (`bar` mark).
-  The band from the bar's shadow down stays still while the list scrolls under it. Count-up uses
+  Reports join `reports`/`film-reports-end` at a matching row above the docked tab bar (`bar` mark).
+  The band from the bar's hairline down stays still while the list scrolls under it. Count-up uses
   captured typography.
   Theme transition uses `film-theme`/`film-theme-dark`, then `today-dark`.
 - **Rendering:** `gpu.js` uses Chrome's experimental html-in-canvas (`CanvasDrawElement`), accumulates

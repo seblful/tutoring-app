@@ -311,8 +311,8 @@
       `font-size="${total.size}" letter-spacing="${total.spacing}" fill="${total.color}"></text>`;
     content.append(svg);
     view.append(content);
-    // The tab bar floats over the list's foot and stays put as the list moves under it: that band of the
-    // opening capture, from just above the bar's shadow down, held over the moving list.
+    // The tab bar is docked over the list's foot and stays put as the list moves under it: that band of the
+    // opening capture, from the bar's hairline down, held over the moving list.
     const held = piece(F.shots.reports.src, 0, b - bar, bar);
     Object.assign(held.style, { position: "absolute", left: `${l * k}px`, top: `${g.status + bar * k}px`,
       width: `${(r - l) * k}px`, backgroundRepeat: "no-repeat" });
