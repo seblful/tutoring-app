@@ -39,8 +39,6 @@ object TrayNavigation {
     const val ACTION_OPEN_DAY = "com.seblful.klas.action.OPEN_DAY"
     const val ACTION_SHOW_LESSON = "com.seblful.klas.action.SHOW_LESSON"
     const val ACTION_BOOK_LESSON = "com.seblful.klas.action.BOOK_LESSON"
-    /** No longer on the widget, which offers People instead; still routed for a widget not yet redrawn. */
-    const val ACTION_ADD_STUDENT = "com.seblful.klas.action.ADD_STUDENT"
     const val ACTION_OPEN_PEOPLE = "com.seblful.klas.action.OPEN_PEOPLE"
     const val ACTION_OPEN_HOMEWORK = "com.seblful.klas.action.OPEN_HOMEWORK"
 
@@ -110,9 +108,6 @@ object TrayNavigation {
         /** An empty booking form — a widget's «Записать занятие». */
         data object NewLesson : Destination
 
-        /** An empty student form — what the widget's «Добавить ученика» opened. */
-        data object NewStudent : Destination
-
         /** The homework tab. */
         data object Homework : Destination
 
@@ -138,9 +133,9 @@ object TrayNavigation {
      *
      * @param classId the extra as read, so a missing one is the caller's default (0 or -1) and is refused
      *   here rather than being navigated to as lesson zero — which the booking form reads as "new lesson".
-     * @param epochDay [EXTRA_DAY] as read, or null when the intent has none. A day that is missing or out
-     *   of `LocalDate`'s range is read as today: the activity is exported, as the launcher's is, so the
-     *   value is not only this app's to write, and a number it cannot be a date must not crash the start.
+     * @param epochDay [EXTRA_DAY] as read, or null when the intent has none. A day that is missing or
+     *   outside the years the schedule can draw is read as today: the activity is exported, as the launcher's is,
+     *   so the value is not only this app's to write, and a number it cannot be a date must not crash the start.
      * @param fromHistory the intent carries `FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY`: Recents relaunching a
      *   task whose activity Back finished (Android 11 and below), with the intent that *started* the task.
      *   If a notification started it, the tap was answered then, so it must not be replayed.
@@ -158,7 +153,7 @@ object TrayNavigation {
         ACTION_SHOW_LESSON -> lessonIdOrNull(classId)?.let { Destination.LessonOnSchedule(it) }
         ACTION_OPEN_DAY ->
             epochDay
-                ?.let { runCatching { LocalDate.fromEpochDays(it) }.getOrNull() }
+                ?.let { runCatching { LocalDate.fromEpochDays(it) }.getOrNull()?.drawable() }
                 ?.let { Destination.Day(it) }
                 ?: Destination.Today
         else -> fixed[action]
@@ -182,18 +177,23 @@ object TrayNavigation {
         val argument = path.getOrNull(1)
         return when (path.first()) {
             "lesson" -> argument?.toLongOrNull()?.let(::lessonIdOrNull)?.let { Destination.LessonOnSchedule(it) }
-            "day" -> argument?.let { runCatching { LocalDate.parse(it) }.getOrNull() }?.let { Destination.Day(it) }
+            "day" -> argument?.let { runCatching { LocalDate.parse(it) }.getOrNull()?.drawable() }
+                ?.let { Destination.Day(it) }
             "student" -> argument?.toLongOrNull()?.takeIf { it > 0 }?.let { Destination.Student(it) }
             else -> linked[path.first()]
         }
     }
+
+    /** The years the schedule can lay a month out in; its grid reaches past the day it is opened on. */
+    private val DRAWABLE_DAYS = LocalDate(1900, 1, 1)..LocalDate(9999, 12, 31)
+
+    private fun LocalDate.drawable(): LocalDate? = takeIf { it in DRAWABLE_DAYS }
 
     /** The entries that carry nothing but their action. */
     private val fixed: Map<String, Destination> = mapOf(
         ACTION_OPEN_DEBTS to Destination.Debts,
         ACTION_OPEN_TODAY to Destination.Today,
         ACTION_BOOK_LESSON to Destination.NewLesson,
-        ACTION_ADD_STUDENT to Destination.NewStudent,
         ACTION_OPEN_HOMEWORK to Destination.Homework,
         ACTION_OPEN_PEOPLE to Destination.People,
         ACTION_OPEN_SCHEDULE to Destination.Schedule,

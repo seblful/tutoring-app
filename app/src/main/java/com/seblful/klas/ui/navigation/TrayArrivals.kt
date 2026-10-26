@@ -61,7 +61,6 @@ private fun KlasNavigator.arrive(destination: TrayNavigation.Destination?) {
         TrayNavigation.Destination.Debts -> arrivals.openDebts()
         is TrayNavigation.Destination.Day -> arrivals.openSchedule(ScheduleTarget.Day(destination.date))
         TrayNavigation.Destination.NewLesson -> openOnTop(Routes.classEdit(0))
-        TrayNavigation.Destination.NewStudent -> openOnTop(Routes.StudentAdd)
         TrayNavigation.Destination.Settings -> openOnTop(Routes.Settings)
         // Beside People's list on a wide window, as a tap on the student's row would put it.
         is TrayNavigation.Destination.Student -> {

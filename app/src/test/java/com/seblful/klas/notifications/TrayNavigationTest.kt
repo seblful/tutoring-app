@@ -52,6 +52,12 @@ class TrayNavigationTest {
             TrayNavigation.Destination.Today,
             TrayNavigation.destinationFor(TrayNavigation.ACTION_OPEN_DAY, classId = 0, epochDay = Long.MAX_VALUE),
         )
+        assertEquals(
+            TrayNavigation.Destination.Today,
+            TrayNavigation.destinationFor(
+                TrayNavigation.ACTION_OPEN_DAY, classId = 0, epochDay = LocalDate(10_000, 1, 1).toEpochDays(),
+            ),
+        )
     }
 
     @Test
@@ -63,14 +69,10 @@ class TrayNavigationTest {
     }
 
     @Test
-    fun `the widgets' shortcuts open an empty booking, People and the homework, and an old one a student form`() {
+    fun `the widgets' shortcuts open an empty booking, People and the homework`() {
         assertEquals(
             TrayNavigation.Destination.NewLesson,
             TrayNavigation.destinationFor(TrayNavigation.ACTION_BOOK_LESSON, classId = 0),
-        )
-        assertEquals(
-            TrayNavigation.Destination.NewStudent,
-            TrayNavigation.destinationFor(TrayNavigation.ACTION_ADD_STUDENT, classId = 0),
         )
         assertEquals(
             TrayNavigation.Destination.Homework,
@@ -116,6 +118,8 @@ class TrayNavigationTest {
         assertEquals(TrayNavigation.Destination.LessonOnSchedule(42L), link("klas://lesson/42"))
         assertEquals(TrayNavigation.Destination.Day(LocalDate(2026, 10, 23)), link("klas://day/2026-10-23"))
         assertEquals(TrayNavigation.Destination.Student(7L), link("klas://student/7"))
+        assertEquals(TrayNavigation.Destination.Day(LocalDate(9999, 12, 31)), link("klas://day/9999-12-31"))
+        assertEquals(TrayNavigation.Destination.Day(LocalDate(1900, 1, 1)), link("klas://day/1900-01-01"))
     }
 
     /** The activity is exported: a link is anyone's to write, so one the app cannot read goes nowhere. */
@@ -128,6 +132,9 @@ class TrayNavigationTest {
         assertNull(link("klas://lesson/0"))
         assertNull(link("klas://lesson/abc"))
         assertNull(link("klas://day/yesterday"))
+        assertNull(link("klas://day/+999999999-12-31"))
+        assertNull(link("klas://day/10000-01-01"))
+        assertNull(link("klas://day/1899-12-31"))
         assertNull(link("klas://student/0"))
         assertNull(link("klas://student"))
         assertNull(link(null))

@@ -36,7 +36,6 @@ import com.seblful.klas.domain.model.ClassMode
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Student
-import com.seblful.klas.domain.model.Subject
 import com.seblful.klas.notifications.TrayNavigation
 import com.seblful.klas.store.DemoTutor
 import com.seblful.klas.store.StoreApp
@@ -347,8 +346,6 @@ class TutorWorkflowTest {
                 // The widgets' shortcuts.
                 TrayNavigation.ACTION_OPEN_HOMEWORK,
                 TrayNavigation.ACTION_OPEN_PEOPLE,
-                // What the widget offered before People, still routed.
-                TrayNavigation.ACTION_ADD_STUDENT,
             )
             for (action in arrivals) {
                 scenario.onActivity { activity ->
