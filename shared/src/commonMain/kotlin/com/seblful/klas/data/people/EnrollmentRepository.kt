@@ -91,11 +91,15 @@ class EnrollmentRepository @Inject constructor(
      * subject — which is also why dropping the log here is safe (nothing it describes ever billed).
      */
     suspend fun unenroll(studentId: Long, subjectId: Long): Unenroll {
-        // The count is read outside the transaction on purpose: it is the *decision* whether to write
-        // at all, and a refusal writes nothing there is anything to roll back.
+        // A cheap refusal avoids opening a transaction; the write must recheck after acquiring its lock.
         if (classes.anyForStudentSubject(studentId, subjectId)) return Unenroll.HasClasses
-        transactor.transaction { unlink(studentId, subjectId) }
-        return Unenroll.Ok
+        return transactor.transaction {
+            if (classes.anyForStudentSubject(studentId, subjectId)) Unenroll.HasClasses
+            else {
+                unlink(studentId, subjectId)
+                Unenroll.Ok
+            }
+        }
     }
 
     /** The subjects [studentId] takes and has lessons in: billed history that keeps each on them ([unenroll]). */
@@ -108,8 +112,8 @@ class EnrollmentRepository @Inject constructor(
      * unless it has lessons, which keep it, as [unenroll] would.
      */
     suspend fun setSubjects(studentId: Long, pricedSubjects: Map<Long, Money>) {
-        val kept = subjectsWithLessons(studentId)
         transactor.transaction {
+            val kept = subjectsWithLessons(studentId)
             (studentDao.getSubjectIds(studentId) - pricedSubjects.keys - kept).forEach { unlink(studentId, it) }
             pricedSubjects.forEach { (subjectId, price) ->
                 when (priceDao.get(studentId, subjectId)?.toDomain()?.amount) {

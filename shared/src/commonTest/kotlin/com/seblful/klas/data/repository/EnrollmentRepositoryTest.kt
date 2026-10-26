@@ -6,12 +6,15 @@ import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Student
 import com.seblful.klas.testutil.TestEnv
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.test.runTest
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
+import kotlin.time.Instant
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class EnrollmentRepositoryTest {
@@ -104,6 +107,44 @@ class EnrollmentRepositoryTest {
         assertEquals(setOf(2L), repo.subjectsWithLessons(1))
         assertEquals(listOf(2L, 3L), env.studentDao.getSubjectIds(1).sorted())
         assertEquals(Money.ofMajor(30), env.priceDao.get(1, 2)?.amountMinor?.let { Money(it) })
+    }
+
+    @Test
+    fun `unenroll preserves the rate and history of a lesson booked before removal commits`() = runTest {
+        repo.enroll(1, 2, Money.ofMajor(30))
+        val history = env.stored().rateHistory
+
+        val result = bookBeforeRemoval { repo.unenroll(1, 2) }
+
+        assertEquals(EnrollmentRepository.Unenroll.HasClasses, result)
+        assertEquals(listOf(2L), env.studentDao.getSubjectIds(1))
+        assertEquals(Money.ofMajor(30), repo.priceFor(1, 2)?.amount)
+        assertEquals(history, env.stored().rateHistory)
+    }
+
+    @Test
+    fun `saving subjects keeps a lesson booked before the subject removal commits`() = runTest {
+        repo.enroll(1, 2, Money.ofMajor(30))
+        val history = env.stored().rateHistory
+
+        bookBeforeRemoval { repo.setSubjects(1, emptyMap()) }
+
+        assertEquals(listOf(2L), env.studentDao.getSubjectIds(1))
+        assertEquals(Money.ofMajor(30), repo.priceFor(1, 2)?.amount)
+        assertEquals(history, env.stored().rateHistory)
+    }
+
+    private suspend fun <T> bookBeforeRemoval(remove: suspend () -> T): T = coroutineScope {
+        val gate = env.transactor.pauseNextTransaction()
+        val removal = async { remove() }
+        gate.awaitEntry()
+        try {
+            assertEquals(Money.ofMajor(30), repo.priceFor(1, 2)?.amount)
+            env.fixtures.lesson(2, listOf(1L), Instant.parse("2026-06-20T10:00:00Z"))
+        } finally {
+            gate.release()
+        }
+        removal.await()
     }
 
     @Test
