@@ -1,6 +1,7 @@
 package com.seblful.klas.notifications
 
 import android.content.Intent
+import com.seblful.klas.ACTION_PREFIX
 import kotlinx.datetime.LocalDate
 
 /**
@@ -29,19 +30,19 @@ object TrayNavigation {
      * The action strings ride in `PendingIntent`s that may already be sitting in a tray, so their
      * **values** are not free to change.
      */
-    const val ACTION_OPEN_LESSON = "com.seblful.klas.action.OPEN_LESSON"
-    const val ACTION_OPEN_DEBTS = "com.seblful.klas.action.OPEN_DEBTS"
-    const val ACTION_OPEN_TODAY = "com.seblful.klas.action.OPEN_TODAY"
-    const val ACTION_OPEN_DAY = "com.seblful.klas.action.OPEN_DAY"
-    const val ACTION_SHOW_LESSON = "com.seblful.klas.action.SHOW_LESSON"
-    const val ACTION_BOOK_LESSON = "com.seblful.klas.action.BOOK_LESSON"
-    const val ACTION_OPEN_PEOPLE = "com.seblful.klas.action.OPEN_PEOPLE"
-    const val ACTION_OPEN_HOMEWORK = "com.seblful.klas.action.OPEN_HOMEWORK"
+    const val ACTION_OPEN_LESSON = "${ACTION_PREFIX}OPEN_LESSON"
+    const val ACTION_OPEN_DEBTS = "${ACTION_PREFIX}OPEN_DEBTS"
+    const val ACTION_OPEN_TODAY = "${ACTION_PREFIX}OPEN_TODAY"
+    const val ACTION_OPEN_DAY = "${ACTION_PREFIX}OPEN_DAY"
+    const val ACTION_SHOW_LESSON = "${ACTION_PREFIX}SHOW_LESSON"
+    const val ACTION_BOOK_LESSON = "${ACTION_PREFIX}BOOK_LESSON"
+    const val ACTION_OPEN_PEOPLE = "${ACTION_PREFIX}OPEN_PEOPLE"
+    const val ACTION_OPEN_HOMEWORK = "${ACTION_PREFIX}OPEN_HOMEWORK"
 
     /** The tabs and the page a keyboard chord can open besides the tray's — see `KeyboardShortcuts`. */
-    const val ACTION_OPEN_SCHEDULE = "com.seblful.klas.action.OPEN_SCHEDULE"
-    const val ACTION_OPEN_REPORTS = "com.seblful.klas.action.OPEN_REPORTS"
-    const val ACTION_OPEN_SETTINGS = "com.seblful.klas.action.OPEN_SETTINGS"
+    const val ACTION_OPEN_SCHEDULE = "${ACTION_PREFIX}OPEN_SCHEDULE"
+    const val ACTION_OPEN_REPORTS = "${ACTION_PREFIX}OPEN_REPORTS"
+    const val ACTION_OPEN_SETTINGS = "${ACTION_PREFIX}OPEN_SETTINGS"
 
     /** The scheme of the app's own links: `klas://today`, `klas://lesson/42` — see [destinationForLink]. */
     const val LINK_SCHEME = "klas"

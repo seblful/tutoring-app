@@ -3,6 +3,7 @@ package com.seblful.klas.notifications
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import com.seblful.klas.ACTION_PREFIX
 import com.seblful.klas.di.ApplicationScope
 import com.seblful.klas.di.appGraph
 import com.seblful.klas.launchAsync
@@ -39,6 +40,6 @@ class ReminderReceiver : BroadcastReceiver() {
     }
 
     companion object {
-        const val ACTION_REMIND = "com.seblful.klas.action.REMIND"
+        const val ACTION_REMIND = "${ACTION_PREFIX}REMIND"
     }
 }

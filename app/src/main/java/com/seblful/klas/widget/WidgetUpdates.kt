@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.glance.appwidget.updateAll
+import com.seblful.klas.ACTION_PREFIX
 import com.seblful.klas.data.settings.Privacy
 import com.seblful.klas.data.settings.SettingsRepository
 import com.seblful.klas.di.ApplicationContext
@@ -108,6 +109,6 @@ class WidgetUpdates(
     )
 
     companion object {
-        const val ACTION_NEW_DAY = "com.seblful.klas.action.WIDGET_NEW_DAY"
+        const val ACTION_NEW_DAY = "${ACTION_PREFIX}WIDGET_NEW_DAY"
     }
 }

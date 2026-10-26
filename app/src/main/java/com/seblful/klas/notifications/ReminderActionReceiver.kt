@@ -3,6 +3,7 @@ package com.seblful.klas.notifications
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import com.seblful.klas.ACTION_PREFIX
 import com.seblful.klas.di.ApplicationScope
 import com.seblful.klas.di.appGraph
 import com.seblful.klas.launchAsync
@@ -37,6 +38,6 @@ class ReminderActionReceiver : BroadcastReceiver() {
     }
 
     companion object {
-        const val ACTION_COMPLETE = "com.seblful.klas.action.COMPLETE"
+        const val ACTION_COMPLETE = "${ACTION_PREFIX}COMPLETE"
     }
 }
