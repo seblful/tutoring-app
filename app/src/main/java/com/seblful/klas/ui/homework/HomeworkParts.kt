@@ -58,6 +58,7 @@ import com.seblful.klas.ui.common.SwipeToward
 import com.seblful.klas.ui.common.animateInPlace
 import com.seblful.klas.ui.common.dateTimeText
 import com.seblful.klas.ui.common.insetRowPress
+import com.seblful.klas.ui.common.rememberClipboardCopy
 import com.seblful.klas.ui.common.rememberExternalApps
 import com.seblful.klas.ui.common.rememberRevealedFocus
 import com.seblful.klas.ui.common.swipeAction
@@ -522,15 +523,18 @@ private fun HomeworkTick(row: HomeworkRow, onDone: () -> Unit) {
 }
 
 /**
- * «⋮» with «Отправить» while it is current — the row's one trailing slot. Send puts the homework, worded
- * for the student, into the phone's share sheet: a messenger, in practice, which is where a tutor sends it.
+ * «⋮» with «Отправить» and «Копировать» while it is current — the row's one trailing slot. Send puts the
+ * homework, worded for the student, into the phone's share sheet: a messenger, in practice, which is where a
+ * tutor sends it. Copy puts the same words on the clipboard, for wherever Send does not reach.
  */
 @Composable
 private fun HomeworkMenu(row: HomeworkRow, messages: Messages) {
     if (!row.isCurrent) return
     val externalApps = rememberExternalApps(messages)
+    val clipboard = rememberClipboardCopy(messages)
     val text = homeworkShareText(row)
     val chooserTitle = stringResource(R.string.homework_send)
+    val copyLabel = stringResource(R.string.action_copy)
     val failed = stringResource(R.string.student_contact_failed)
     OverflowMenu { close ->
         MenuItem(
@@ -539,6 +543,14 @@ private fun HomeworkMenu(row: HomeworkRow, messages: Messages) {
             onClick = {
                 close()
                 externalApps.open(ExternalTarget.ShareText(text, chooserTitle), failed)
+            },
+        )
+        MenuItem(
+            text = { Text(copyLabel) },
+            leadingIcon = { Icon(KlasIcons.Outlined.ContentCopy, contentDescription = null) },
+            onClick = {
+                close()
+                clipboard.copy(copyLabel, text)
             },
         )
     }

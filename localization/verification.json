@@ -21,152 +21,152 @@
   "languages": [
     {
       "locale": "en",
-      "resources": 796,
-      "values": 863,
+      "resources": 800,
+      "values": 867,
       "errors": 0
     },
     {
       "locale": "ru",
-      "resources": 796,
-      "values": 939,
+      "resources": 800,
+      "values": 943,
       "errors": 0
     },
     {
       "locale": "uk",
-      "resources": 796,
-      "values": 939,
+      "resources": 800,
+      "values": 943,
       "errors": 0
     },
     {
       "locale": "pl",
-      "resources": 796,
-      "values": 939,
+      "resources": 800,
+      "values": 943,
       "errors": 0
     },
     {
       "locale": "de",
-      "resources": 796,
-      "values": 863,
+      "resources": 800,
+      "values": 867,
       "errors": 0
     },
     {
       "locale": "fr",
-      "resources": 796,
-      "values": 901,
+      "resources": 800,
+      "values": 905,
       "errors": 0
     },
     {
       "locale": "es",
-      "resources": 796,
-      "values": 901,
+      "resources": 800,
+      "values": 905,
       "errors": 0
     },
     {
       "locale": "pt-BR",
-      "resources": 796,
-      "values": 901,
+      "resources": 800,
+      "values": 905,
       "errors": 0
     },
     {
       "locale": "tr",
-      "resources": 796,
-      "values": 863,
+      "resources": 800,
+      "values": 867,
       "errors": 0
     },
     {
       "locale": "it",
-      "resources": 796,
-      "values": 901,
+      "resources": 800,
+      "values": 905,
       "errors": 0
     },
     {
       "locale": "be",
-      "resources": 796,
-      "values": 939,
+      "resources": 800,
+      "values": 943,
       "errors": 0
     },
     {
       "locale": "pt-PT",
-      "resources": 796,
-      "values": 901,
+      "resources": 800,
+      "values": 905,
       "errors": 0
     },
     {
       "locale": "nl",
-      "resources": 796,
-      "values": 863,
+      "resources": 800,
+      "values": 867,
       "errors": 0
     },
     {
       "locale": "el",
-      "resources": 796,
-      "values": 863,
+      "resources": 800,
+      "values": 867,
       "errors": 0
     },
     {
       "locale": "fi",
-      "resources": 796,
-      "values": 863,
+      "resources": 800,
+      "values": 867,
       "errors": 0
     },
     {
       "locale": "da",
-      "resources": 796,
-      "values": 863,
+      "resources": 800,
+      "values": 867,
       "errors": 0
     },
     {
       "locale": "nb",
-      "resources": 796,
-      "values": 863,
+      "resources": 800,
+      "values": 867,
       "errors": 0
     },
     {
       "locale": "sv",
-      "resources": 796,
-      "values": 863,
+      "resources": 800,
+      "values": 867,
       "errors": 0
     },
     {
       "locale": "ar",
-      "resources": 796,
-      "values": 1015,
+      "resources": 800,
+      "values": 1019,
       "errors": 0
     },
     {
       "locale": "kk",
-      "resources": 796,
-      "values": 863,
+      "resources": 800,
+      "values": 867,
       "errors": 0
     },
     {
       "locale": "hi",
-      "resources": 796,
-      "values": 863,
+      "resources": 800,
+      "values": 867,
       "errors": 0
     },
     {
       "locale": "zh-CN",
-      "resources": 796,
-      "values": 825,
+      "resources": 800,
+      "values": 829,
       "errors": 0
     },
     {
       "locale": "zh-TW",
-      "resources": 796,
-      "values": 825,
+      "resources": 800,
+      "values": 829,
       "errors": 0
     },
     {
       "locale": "ja",
-      "resources": 796,
-      "values": 825,
+      "resources": 800,
+      "values": 829,
       "errors": 0
     },
     {
       "locale": "ko",
-      "resources": 796,
-      "values": 825,
+      "resources": 800,
+      "values": 829,
       "errors": 0
     }
   ],

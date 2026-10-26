@@ -102,6 +102,7 @@ internal fun StudentOverflowMenu(
     onCall: (String) -> Unit,
     onMessage: (phone: String, international: String?) -> Unit,
     onEmail: (String) -> Unit,
+    onCopy: (label: String, text: String) -> Unit,
     onArchive: () -> Unit,
     /** A reminder of what is owed, offered while something is. */
     remind: (() -> Unit)? = null,
@@ -129,6 +130,15 @@ internal fun StudentOverflowMenu(
                 icon = KlasIcons.Outlined.Mail,
                 onClick = { close(); onEmail(student.email) },
             )
+        }
+        // The number as kept and the address as typed: what a contacts app or another chat is pasted into.
+        if (phone != null) {
+            val label = stringResource(R.string.student_copy_phone)
+            ContactMenuItem(label, KlasIcons.Outlined.ContentCopy) { close(); onCopy(label, phone) }
+        }
+        if (student.email.isNotBlank()) {
+            val label = stringResource(R.string.student_copy_email)
+            ContactMenuItem(label, KlasIcons.Outlined.ContentCopy) { close(); onCopy(label, student.email) }
         }
         if (phone != null || student.email.isNotBlank()) {
             KlasDivider()

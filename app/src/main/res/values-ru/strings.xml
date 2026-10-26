@@ -471,6 +471,10 @@
     <string name="student_call">Позвонить</string>
     <string name="student_message">Написать</string>
     <string name="student_write_email">Написать письмо</string>
+    <string name="student_copy_phone">Скопировать номер телефона</string>
+    <string name="student_copy_email">Скопировать адрес почты</string>
+    <string name="action_copy">Скопировать</string>
+    <string name="clipboard_copied">Скопировано</string>
     <string name="student_contact_failed">Нет приложения для этого действия</string>
 
     <!-- Subjects -->

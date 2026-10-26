@@ -272,6 +272,10 @@
     <string name="student_call">Κλήση</string>
     <string name="student_message">Μήνυμα</string>
     <string name="student_write_email">Στείλτε ένα email</string>
+    <string name="student_copy_phone">Αντιγραφή αριθμού τηλεφώνου</string>
+    <string name="student_copy_email">Αντιγραφή διεύθυνσης email</string>
+    <string name="action_copy">Αντιγραφή</string>
+    <string name="clipboard_copied">Αντιγράφηκε</string>
     <string name="student_contact_failed">Καμία εφαρμογή σε αυτό το τηλέφωνο δεν μπορεί να το κάνει αυτό</string>
     <string name="subjects_title">Θέματα</string>
     <string name="subjects_empty">Δεν υπάρχουν ακόμη θέματα</string>

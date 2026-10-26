@@ -292,6 +292,10 @@
     <string name="student_call">Тэлефануйце</string>
     <string name="student_message">Напісаць</string>
     <string name="student_write_email">Адправіць ліст</string>
+    <string name="student_copy_phone">Скапіяваць нумар тэлефона</string>
+    <string name="student_copy_email">Скапіяваць адрас электроннай пошты</string>
+    <string name="action_copy">Скапіяваць</string>
+    <string name="clipboard_copied">Скапіявана</string>
     <string name="student_contact_failed">Ні адно прыкладанне на гэтым тэлефоне не можа гэтага зрабіць</string>
     <string name="subjects_title">Прадметы</string>
     <string name="subjects_empty">Тэм пакуль няма</string>

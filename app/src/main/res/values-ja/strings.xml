@@ -262,6 +262,10 @@
     <string name="student_call">コール</string>
     <string name="student_message">メッセージ</string>
     <string name="student_write_email">電子メールを送信する</string>
+    <string name="student_copy_phone">電話番号をコピー</string>
+    <string name="student_copy_email">メールアドレスをコピー</string>
+    <string name="action_copy">コピー</string>
+    <string name="clipboard_copied">コピーしました</string>
     <string name="student_contact_failed">この携帯電話にはそれを実行できるアプリはありません</string>
     <string name="subjects_title">被験者</string>
     <string name="subjects_empty">被験者はまだいません</string>

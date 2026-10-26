@@ -272,6 +272,10 @@
     <string name="student_call">Soita</string>
     <string name="student_message">Kirjoita</string>
     <string name="student_write_email">Lähetä sähköpostia</string>
+    <string name="student_copy_phone">Kopioi puhelinnumero</string>
+    <string name="student_copy_email">Kopioi sähköpostiosoite</string>
+    <string name="action_copy">Kopioi</string>
+    <string name="clipboard_copied">Kopioitu</string>
     <string name="student_contact_failed">Mikään tämän puhelimen sovellus ei pysty siihen</string>
     <string name="subjects_title">Aiheet</string>
     <string name="subjects_empty">Ei aiheita vielä</string>

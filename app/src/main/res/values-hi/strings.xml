@@ -272,6 +272,10 @@
     <string name="student_call">कॉल करें</string>
     <string name="student_message">संदेश भेजें</string>
     <string name="student_write_email">एक ईमेल भेजें</string>
+    <string name="student_copy_phone">फ़ोन नंबर कॉपी करें</string>
+    <string name="student_copy_email">ईमेल पता कॉपी करें</string>
+    <string name="action_copy">कॉपी करें</string>
+    <string name="clipboard_copied">कॉपी किया गया</string>
     <string name="student_contact_failed">इस फ़ोन पर कोई भी ऐप ऐसा नहीं कर सकता</string>
     <string name="subjects_title">विषय</string>
     <string name="subjects_empty">अभी तक कोई विषय नहीं</string>

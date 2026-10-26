@@ -272,6 +272,10 @@
     <string name="student_call">Çağrı</string>
     <string name="student_message">Mesaj gönder</string>
     <string name="student_write_email">Bir e-posta gönder</string>
+    <string name="student_copy_phone">Telefon numarasını kopyala</string>
+    <string name="student_copy_email">E-posta adresini kopyala</string>
+    <string name="action_copy">Kopyala</string>
+    <string name="clipboard_copied">Kopyalandı</string>
     <string name="student_contact_failed">Bu telefondaki hiçbir uygulama bunu yapamaz</string>
     <string name="subjects_title">Konular</string>
     <string name="subjects_empty">Henüz konu yok</string>

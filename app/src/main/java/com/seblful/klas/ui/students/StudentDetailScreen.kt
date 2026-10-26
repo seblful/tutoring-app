@@ -37,6 +37,7 @@ import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.TitleSize
 import com.seblful.klas.ui.common.animateInPlace
 import com.seblful.klas.ui.common.plusInset
+import com.seblful.klas.ui.common.rememberClipboardCopy
 import com.seblful.klas.ui.common.rememberExternalApps
 import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.rememberRejectFeedback
@@ -123,6 +124,7 @@ private fun StudentCard(
     }
 
     val externalApps = rememberExternalApps(messages)
+    val clipboard = rememberClipboardCopy(messages)
     val context = LocalContext.current
     val noAppMsg = stringResource(R.string.student_contact_failed)
 
@@ -181,6 +183,7 @@ private fun StudentCard(
                     onCall = call,
                     onMessage = message,
                     onEmail = { email -> externalApps.open(ExternalTarget.Email(email), noAppMsg) },
+                    onCopy = clipboard::copy,
                     // Whether archiving is worth asking about, and what the question would have to say, are
                     // both `state.archiveIntent`'s — see [ArchiveIntent].
                     onArchive = {

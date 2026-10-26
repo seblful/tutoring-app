@@ -398,6 +398,10 @@
     <string name="student_call">Call</string>
     <string name="student_message">Message</string>
     <string name="student_write_email">Send an email</string>
+    <string name="student_copy_phone">Copy phone number</string>
+    <string name="student_copy_email">Copy email address</string>
+    <string name="action_copy">Copy</string>
+    <string name="clipboard_copied">Copied</string>
     <string name="student_contact_failed">No app on this phone can do that</string>
 
     <!-- Subjects -->

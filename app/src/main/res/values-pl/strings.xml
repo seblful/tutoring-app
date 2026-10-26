@@ -292,6 +292,10 @@
     <string name="student_call">Zadzwoń</string>
     <string name="student_message">Napisz</string>
     <string name="student_write_email">Wyślij e-mail</string>
+    <string name="student_copy_phone">Kopiuj numer telefonu</string>
+    <string name="student_copy_email">Kopiuj adres e-mail</string>
+    <string name="action_copy">Kopiuj</string>
+    <string name="clipboard_copied">Skopiowano</string>
     <string name="student_contact_failed">Żadna aplikacja na tym telefonie nie może tego zrobić</string>
     <string name="subjects_title">Pacjenci</string>
     <string name="subjects_empty">Brak jeszcze tematów</string>

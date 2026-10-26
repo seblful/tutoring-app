@@ -262,6 +262,10 @@
     <string name="student_call">稱呼</string>
     <string name="student_message">傳訊息</string>
     <string name="student_write_email">傳送電子郵件</string>
+    <string name="student_copy_phone">複製電話號碼</string>
+    <string name="student_copy_email">複製電子郵件地址</string>
+    <string name="action_copy">複製</string>
+    <string name="clipboard_copied">已複製</string>
     <string name="student_contact_failed">此手機上沒有應用程式可以執行此操作</string>
     <string name="subjects_title">科目</string>
     <string name="subjects_empty">還沒有科目</string>

@@ -272,6 +272,10 @@
     <string name="student_call">Қоңырау шалу</string>
     <string name="student_message">Жазу</string>
     <string name="student_write_email">Электрондық хат жіберу</string>
+    <string name="student_copy_phone">Телефон нөмірін көшіру</string>
+    <string name="student_copy_email">Электрондық пошта мекенжайын көшіру</string>
+    <string name="action_copy">Көшіру</string>
+    <string name="clipboard_copied">Көшірілді</string>
     <string name="student_contact_failed">Бұл телефондағы ешбір қолданба мұны істей алмайды</string>
     <string name="subjects_title">Тақырыптар</string>
     <string name="subjects_empty">Әлі тақырыптар жоқ</string>

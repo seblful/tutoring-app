@@ -282,6 +282,10 @@
     <string name="student_call">Llamada</string>
     <string name="student_message">Escribir</string>
     <string name="student_write_email">Enviar un correo electrónico</string>
+    <string name="student_copy_phone">Copiar número de teléfono</string>
+    <string name="student_copy_email">Copiar dirección de correo electrónico</string>
+    <string name="action_copy">Copiar</string>
+    <string name="clipboard_copied">Copiado</string>
     <string name="student_contact_failed">Ninguna aplicación en este teléfono puede hacer eso</string>
     <string name="subjects_title">Sujetos</string>
     <string name="subjects_empty">Aún no hay sujetos</string>

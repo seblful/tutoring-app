@@ -272,6 +272,10 @@
     <string name="student_call">Oproep</string>
     <string name="student_message">Bericht</string>
     <string name="student_write_email">Stuur een e-mail</string>
+    <string name="student_copy_phone">Telefoonnummer kopiëren</string>
+    <string name="student_copy_email">E-mailadres kopiëren</string>
+    <string name="action_copy">Kopiëren</string>
+    <string name="clipboard_copied">Gekopieerd</string>
     <string name="student_contact_failed">Geen enkele app op deze telefoon kan dat</string>
     <string name="subjects_title">Onderwerpen</string>
     <string name="subjects_empty">Nog geen onderwerpen</string>

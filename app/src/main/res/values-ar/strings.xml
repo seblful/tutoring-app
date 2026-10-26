@@ -312,6 +312,10 @@
     <string name="student_call">اتصل</string>
     <string name="student_message">رسالة</string>
     <string name="student_write_email">إرسال بريد إلكتروني</string>
+    <string name="student_copy_phone">نسخ رقم الهاتف</string>
+    <string name="student_copy_email">نسخ عنوان البريد الإلكتروني</string>
+    <string name="action_copy">نسخ</string>
+    <string name="clipboard_copied">تم النسخ</string>
     <string name="student_contact_failed">لا يوجد تطبيق على هذا الهاتف يمكنه القيام بذلك</string>
     <string name="subjects_title">المواضيع</string>
     <string name="subjects_empty">لا توجد مواضيع بعد</string>

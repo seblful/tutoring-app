@@ -272,6 +272,10 @@
     <string name="student_call">Ring</string>
     <string name="student_message">Skriv</string>
     <string name="student_write_email">Skicka ett e-postmeddelande</string>
+    <string name="student_copy_phone">Kopiera telefonnummer</string>
+    <string name="student_copy_email">Kopiera e-postadress</string>
+    <string name="action_copy">Kopiera</string>
+    <string name="clipboard_copied">Kopierat</string>
     <string name="student_contact_failed">Ingen app på den här telefonen kan göra det</string>
     <string name="subjects_title">Ämnen</string>
     <string name="subjects_empty">Inga ämnen än</string>
