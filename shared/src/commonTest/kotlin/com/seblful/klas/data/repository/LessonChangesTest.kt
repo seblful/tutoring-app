@@ -28,6 +28,7 @@ import kotlin.test.assertIs
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.days
+import kotlin.time.Duration.Companion.seconds
 import kotlin.time.Instant
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -191,6 +192,26 @@ class LessonChangesTest {
         } finally {
             screen.cancel()
         }
+    }
+
+    @Test
+    fun `an undone change's settlement does not end a later change's hold early`() = runTest {
+        val changes = writer()
+        val lesson = mirroredLesson()
+        val first = changes.setStatus(lesson, LessonStatus.CANCELLED).change()
+        advanceTimeBy(UndoWindow / 4)
+        runCurrent()
+        assertEquals(UndoResult.Restored, changes.undo(first))
+        advanceTimeBy(UndoWindow / 4)
+        runCurrent()
+        val second = changes.setStatus(now(lesson), LessonStatus.CANCELLED).change()
+
+        advanceTimeBy(UndoWindow / 2 + 1.seconds) // past the first change's timer, inside the second's window
+        runCurrent()
+
+        assertTrue(env.calendar.deletes.isEmpty(), "the second change can still be undone")
+        assertEquals(UndoResult.Restored, changes.undo(second))
+        assertTrue(env.calendar.deletes.isEmpty(), "and its guest never saw the lesson called off")
     }
 
     @Test

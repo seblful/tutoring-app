@@ -145,8 +145,15 @@ class GroupDetailViewModel @AssistedInject constructor(
      */
     fun delete(onDeleted: () -> Unit) {
         viewModelScope.launch {
-            appScope.writeAwaited { groups.getById(groupId)?.let { groups.delete(it) } ?: false }
-                .onSuccess { if (it) onDeleted() else events.send(Event.DeleteBlockedHasLessons) }
+            appScope.writeAwaited { groups.getById(groupId)?.let { groups.delete(it) } }
+                .onSuccess { deleted ->
+                    // Null: already gone, as when a second tap lands after the first has deleted it.
+                    when (deleted) {
+                        true -> onDeleted()
+                        false -> events.send(Event.DeleteBlockedHasLessons)
+                        null -> Unit
+                    }
+                }
                 .onFailure { events.send(Event.WriteFailed) }
         }
     }

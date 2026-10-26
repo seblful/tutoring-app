@@ -95,11 +95,15 @@ class SubjectRepository @Inject constructor(
     }
 
     /** Deletes [subject] only while nothing references it, and says what stopped it if something did. */
-    suspend fun delete(subject: Subject): Delete {
-        if (classes.anyForSubject(subject.id)) return Delete.HasClasses
-        if (groups.anyForSubject(subject.id)) return Delete.TaughtToGroup
-        if (students.getStudentIdsForSubject(subject.id).isNotEmpty()) return Delete.TakenByStudents
-        dao.delete(subject.toEntity())
-        return Delete.Ok
+    suspend fun delete(subject: Subject): Delete = transactor.transaction {
+        when {
+            classes.anyForSubject(subject.id) -> Delete.HasClasses
+            groups.anyForSubject(subject.id) -> Delete.TaughtToGroup
+            students.getStudentIdsForSubject(subject.id).isNotEmpty() -> Delete.TakenByStudents
+            else -> {
+                dao.delete(subject.toEntity())
+                Delete.Ok
+            }
+        }
     }
 }

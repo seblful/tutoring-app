@@ -97,6 +97,54 @@ class ArchiveChangesTest {
     }
 
     @Test
+    fun `archiving a student already absent from a group lesson does not hold that lesson's calendar for good`() =
+        runTest {
+            val changes = writer()
+            val s = Seeded().seed()
+            val annsClass = env.classRepo.getById(s.groupLesson.first())!!
+            assertEquals(s.ann, annsClass.studentId)
+            env.classRepo.setAttendance(annsClass, Attended.ABSENT)
+            val events = s.groupLesson.mapNotNull { env.classRepo.getById(it)!!.calendarEventId }
+
+            changes.archive(env.studentRepo.getById(s.ann)!!)
+            changes.setStatus(env.classRepo.getSessionFor(s.groupLesson.first())!!, LessonStatus.CANCELLED)
+            advanceTimeBy(UndoWindow)
+            runCurrent()
+            advanceTimeBy(UndoWindow)
+            runCurrent()
+
+            assertTrue(env.calendar.deletes.containsAll(events), "the cancelled group lesson left the calendar")
+        }
+
+    @Test
+    fun `archiving a student keeps an edit made after the screen read them`() = runTest {
+        val changes = writer()
+        val s = Seeded().seed()
+        val stale = env.studentRepo.getById(s.ann)!!
+        env.studentRepo.upsert(stale.copy(name = "Anna"))
+
+        changes.archive(stale)
+
+        val stored = env.studentRepo.getById(s.ann)!!
+        assertTrue(stored.archived)
+        assertEquals("Anna", stored.name)
+    }
+
+    @Test
+    fun `archiving a group keeps an edit made after the screen read it`() = runTest {
+        val changes = writer()
+        val s = Seeded().seed()
+        val stale = env.groupRepo.getById(s.group)!!
+        env.groupRepo.save(stale.copy(name = "Evening"), env.groupDao.getMemberIds(s.group).toSet())
+
+        changes.archive(stale)
+
+        val stored = env.groupRepo.getById(s.group)!!
+        assertTrue(stored.archived)
+        assertEquals("Evening", stored.name)
+    }
+
+    @Test
     fun `taking a group's archive back re-plans its lessons`() = runTest {
         val changes = writer()
         val s = Seeded().seed()

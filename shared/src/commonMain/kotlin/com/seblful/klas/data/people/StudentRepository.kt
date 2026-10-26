@@ -39,17 +39,26 @@ class StudentRepository @Inject constructor(
     suspend fun getById(id: Long): Student? = dao.getById(id)?.toDomain()
 
     /** Saves [student] and refreshes what their mirrored events say about them. */
-    suspend fun upsert(student: Student): Long {
+    suspend fun upsert(student: Student): Long = writeRow(student).also { it.refreshMirrors() }.id
+
+    /** A student's row as written, for [refreshMirrors] to see what changed. */
+    internal inner class RowWrite(val id: Long, private val before: StudentEntity?, private val row: StudentEntity) {
+        /** Their events show only the name (in the title) and the address (as the guest). */
+        suspend fun refreshMirrors() {
+            val was = before ?: return
+            if (was.name != row.name || was.email != row.email) {
+                calendar.refreshForStudent(id, previousEmail = was.email.takeIf { it != row.email })
+            }
+        }
+    }
+
+    /** The row alone, for a caller that commits it with other writes and refreshes the mirrors after. */
+    internal suspend fun writeRow(student: Student): RowWrite {
         val before = dao.getById(student.id)
         val row = student.toEntity()
         // An edit answers -1 (see [upsertedId]) — and an edit is exactly the case that needs the
         // refresh at all.
-        val saved = upsertedId(dao.upsert(row), student.id)
-        // Their events show only the name (in the title) and the address (as the guest).
-        if (before != null && (before.name != row.name || before.email != row.email)) {
-            calendar.refreshForStudent(saved, previousEmail = before.email.takeIf { it != row.email })
-        }
-        return saved
+        return RowWrite(upsertedId(dao.upsert(row), student.id), before, row)
     }
 
     /**
@@ -58,7 +67,8 @@ class StudentRepository @Inject constructor(
      */
     suspend fun setArchived(student: Student, archived: Boolean): Int {
         val cancelled = if (archived) classes.cancelScheduledFor(student.id).size else 0
-        dao.upsert(student.copy(archived = archived).toEntity())
+        // The stored row, not the caller's copy, so an edit made since the screen read it survives.
+        dao.getById(student.id)?.let { dao.upsert(it.copy(archived = archived)) }
         return cancelled
     }
 
@@ -66,11 +76,10 @@ class StudentRepository @Inject constructor(
      * Archives [student] undoably: their planned lessons are called off as by [setArchived], and the
      * receipts returned take them back through [unarchive]. LessonChanges owns their settlement.
      */
-    internal suspend fun archive(student: Student): List<SessionReceipt> {
-        val cancelled = classes.cancelScheduledForUndoable(student.id)
-        dao.upsert(student.copy(archived = true).toEntity())
-        return cancelled
-    }
+    internal suspend fun archive(student: Student): List<SessionReceipt> =
+        classes.cancelScheduledForUndoable(student.id) {
+            dao.getById(student.id)?.let { dao.upsert(it.copy(archived = true)) }
+        }
 
     /**
      * Takes [archive] back: the student is active again, and each lesson it called off is restored while

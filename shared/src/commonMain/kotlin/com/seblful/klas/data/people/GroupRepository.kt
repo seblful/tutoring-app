@@ -10,7 +10,6 @@ import com.seblful.klas.data.local.upsertedId
 import com.seblful.klas.data.toDomain
 import com.seblful.klas.data.toEntity
 import com.seblful.klas.domain.model.Group
-import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.RateOwner
 import com.seblful.klas.domain.people.NameOrder
 import dev.zacsweers.metro.AppScope
@@ -108,16 +107,16 @@ class GroupRepository @Inject constructor(
      */
     suspend fun setArchived(group: Group, archived: Boolean): Int {
         val cancelled = if (archived) classes.cancelScheduledForGroup(group.id) else 0
-        dao.upsert(group.copy(archived = archived).toEntity())
+        // The stored row, not the caller's copy, so an edit made since the screen read it survives.
+        dao.getById(group.id)?.let { dao.upsert(it.copy(archived = archived)) }
         return cancelled
     }
 
     /** Archives [group] undoably — as [StudentRepository.archive], for [unarchive] to take back. */
-    internal suspend fun archive(group: Group): List<SessionReceipt> {
-        val cancelled = classes.cancelScheduledForGroupUndoable(group.id)
-        dao.upsert(group.copy(archived = true).toEntity())
-        return cancelled
-    }
+    internal suspend fun archive(group: Group): List<SessionReceipt> =
+        classes.cancelScheduledForGroupUndoable(group.id) {
+            dao.getById(group.id)?.let { dao.upsert(it.copy(archived = true)) }
+        }
 
     /** Takes [archive] back — as [StudentRepository.unarchive]; returns how many lessons stayed cancelled. */
     internal suspend fun unarchive(groupId: Long, cancelled: List<SessionReceipt>): Int {
@@ -130,9 +129,12 @@ class GroupRepository @Inject constructor(
      * is `ON DELETE RESTRICT`, so a group with lessons can't be removed — the caller should offer to
      * archive it instead, which keeps the lessons readable.
      */
-    suspend fun delete(group: Group): Boolean {
-        if (classes.anyForGroup(group.id)) return false
-        dao.delete(group.toEntity())
-        return true
+    suspend fun delete(group: Group): Boolean = transactor.transaction {
+        if (classes.anyForGroup(group.id)) {
+            false
+        } else {
+            dao.delete(group.toEntity())
+            true
+        }
     }
 }

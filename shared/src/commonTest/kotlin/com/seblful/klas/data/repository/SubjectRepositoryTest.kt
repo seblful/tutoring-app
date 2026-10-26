@@ -42,6 +42,28 @@ class SubjectRepositoryTest {
     }
 
     @Test
+    fun `deleting a subject rechecks its references inside the write transaction`() = runTest {
+        val student = env.fixtures.student(name = "Аня")
+        val id = env.fixtures.subject(name = "Химия")
+        val subject = Subject(id = id, name = "Химия")
+
+        val gate = env.transactor.pauseNextTransaction()
+        val deleted = async { env.subjectRepo.delete(subject) }
+        gate.awaitEntry()
+        try {
+            env.fixtures.storedClass(
+                studentId = student, subjectId = id, startMillis = 0, durationMinutes = 60,
+                status = LessonStatus.COMPLETED, chargeMinor = 5000,
+            )
+        } finally {
+            gate.release()
+        }
+
+        assertEquals(SubjectRepository.Delete.HasClasses, deleted.await())
+        assertEquals(1, env.stored().subjects.size, "the subject is still there")
+    }
+
+    @Test
     fun `a subject with classes is refused`() = runTest {
         val student = env.fixtures.student(name = "Аня")
         val id = env.fixtures.subject(name = "Химия")

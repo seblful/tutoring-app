@@ -6,7 +6,6 @@ import com.seblful.klas.data.toAttendanceEntity
 import com.seblful.klas.data.toDomain
 import com.seblful.klas.data.toLessonEntity
 import com.seblful.klas.domain.lesson.ClassRules
-import com.seblful.klas.domain.lesson.GroupRules
 import com.seblful.klas.domain.lesson.LessonEdit
 import com.seblful.klas.domain.lesson.SessionEdit
 import com.seblful.klas.domain.lesson.SessionRules
@@ -237,15 +236,16 @@ class ClassRepository @Inject constructor(
      */
     private suspend fun <T> write(
         refreshesReminders: Boolean = true,
-        holding: Boolean = false,
+        holding: ((T) -> List<SessionReceipt>)? = null,
         rows: suspend () -> Committed<T>,
     ): T {
         val written = transactor.transaction { rows() }
         if (!written.changed) return written.value
-        if (holding) {
+        if (holding != null) {
             // An undoable write leaves the calendar alone until it is settled or undone: a cancellation
-            // mirrored at once would delete the event, and its undo re-create it and invite again.
-            written.mirror.map { it.lessonId }.distinct().forEach { hold(it) }
+            // mirrored at once would delete the event, and its undo re-create it and invite again. Each
+            // receipt holds its lesson, so only what can be settled or undone is held.
+            holding(written.value).forEach { hold(it) }
         } else {
             // Leavers' events go before the survivors are mirrored, mirroring the row order inside (2).
             written.drop.forEach { calendar.drop(it) }
@@ -257,25 +257,30 @@ class ClassRepository @Inject constructor(
     }
 
     // ---- Undo ----------------------------------------------------------------------------------
-    // How many undoable writes of each lesson still hold its calendar mirror. The rows are written at
-    // once; only the device calendar waits, for [settle] or [undo].
-    private val held = mutableMapOf<Long, Int>()
+    // The undoable writes of each lesson that still hold its calendar mirror, by receipt instance. The rows
+    // are written at once; only the device calendar waits, for [settle] or [undo]. A receipt releases its own
+    // hold once, so a settlement that comes after its undo cannot end a later write's hold.
+    private val held = mutableMapOf<Long, MutableList<SessionReceipt>>()
     private val heldLock = Mutex()
 
-    private suspend fun hold(lessonId: Long) = heldLock.withLock { held[lessonId] = (held[lessonId] ?: 0) + 1 }
+    private suspend fun hold(receipt: SessionReceipt) =
+        heldLock.withLock { held.getOrPut(receipt.lessonId) { mutableListOf() } += receipt }
 
-    /** Releases one hold on [lessonId]; true when it was the last, so the calendar may catch up. */
-    private suspend fun release(lessonId: Long): Boolean = heldLock.withLock {
-        val left = (held[lessonId] ?: return@withLock false) - 1
-        if (left > 0) held[lessonId] = left else held.remove(lessonId)
-        left <= 0
+    /** Releases [receipt]'s hold; true when it was the lesson's last, so the calendar may catch up. */
+    private suspend fun release(receipt: SessionReceipt): Boolean = heldLock.withLock {
+        val holders = held[receipt.lessonId] ?: return@withLock false
+        val index = holders.indexOfFirst { it === receipt }
+        if (index < 0) return@withLock false
+        holders.removeAt(index)
+        if (holders.isEmpty()) held.remove(receipt.lessonId)
+        holders.isEmpty()
     }
 
     /**
      * The workflow's undo window closed: mirror the lesson as it stands, releasing its hold once.
      */
     internal suspend fun settle(receipt: SessionReceipt) {
-        if (!release(receipt.lessonId)) return
+        if (!release(receipt)) return
         current(receipt.after)?.let { calendar.mirror(it.classes) }
     }
 
@@ -300,7 +305,7 @@ class ClassRepository @Inject constructor(
         }
         // A refused undo leaves the change standing, so the calendar catches up with it now.
         receipts.zip(results).forEach { (receipt, result) ->
-            if (release(receipt.lessonId) && result != UndoResult.Restored) {
+            if (release(receipt) && result != UndoResult.Restored) {
                 current(receipt.after)?.let { calendar.mirror(it.classes) }
             }
         }
@@ -336,12 +341,13 @@ class ClassRepository @Inject constructor(
     private suspend fun undoableAll(
         touched: suspend () -> Collection<Long>,
         rows: suspend () -> List<TutoringClass>,
-    ): List<SessionReceipt> = write(holding = true) {
+    ): List<SessionReceipt> = write(holding = { it }) {
         val before = touched().mapNotNull { lessonById(it) }
         val changed = rows()
         val receipts = before.mapNotNull { was -> lessonById(was.lessonId)?.let { SessionReceipt(was, it) } }
             .filter { it.before != it.after }
-        Committed(receipts, mirror = changed, changed = changed.isNotEmpty())
+        // A row rewritten as it was changes nothing: no receipt, so no hold that nothing could release.
+        Committed(receipts, mirror = changed, changed = receipts.isNotEmpty())
     }
 
     /**
@@ -351,7 +357,9 @@ class ClassRepository @Inject constructor(
     private suspend fun undoable(
         session: ClassSession,
         rows: suspend (ClassSession) -> Committed<LessonWrite<List<TutoringClass>>>,
-    ): LessonWrite<SessionReceipt?> = write<LessonWrite<SessionReceipt?>>(holding = true) {
+    ): LessonWrite<SessionReceipt?> = write<LessonWrite<SessionReceipt?>>(
+        holding = { (it as? LessonWrite.Written)?.value?.let(::listOf).orEmpty() },
+    ) {
         val before = current(session) ?: return@write Committed(LessonWrite.Gone, changed = false)
         val done = rows(before)
         val after = if (done.changed) current(session) else null
@@ -657,12 +665,18 @@ class ClassRepository @Inject constructor(
         }
     }
 
-    /** [cancelScheduledFor], undoably: a receipt per lesson it changed — see [undoAll], [settleAll]. */
-    internal suspend fun cancelScheduledForUndoable(studentId: Long): List<SessionReceipt> {
-        if (dao.scheduledForStudent(studentId).isEmpty()) return emptyList()
+    /**
+     * [cancelScheduledFor], undoably: a receipt per lesson it changed — see [undoAll], [settleAll]. [alongside]
+     * is written in the same transaction, so a student is never archived without their lessons called off.
+     */
+    internal suspend fun cancelScheduledForUndoable(
+        studentId: Long,
+        alongside: suspend () -> Unit,
+    ): List<SessionReceipt> {
+        if (dao.scheduledForStudent(studentId).isEmpty()) return emptyList<SessionReceipt>().also { alongside() }
         return undoableAll(
             touched = { dao.scheduledForStudent(studentId).map { it.lessonId }.distinct() },
-            rows = { cancelRowsFor(studentId) },
+            rows = { cancelRowsFor(studentId).also { alongside() } },
         )
     }
 
@@ -692,12 +706,18 @@ class ClassRepository @Inject constructor(
         }
     }
 
-    /** [cancelScheduledForGroup], undoably: a receipt per lesson it called off — see [undoAll], [settleAll]. */
-    internal suspend fun cancelScheduledForGroupUndoable(groupId: Long): List<SessionReceipt> {
-        if (dao.scheduledForGroup(groupId).isEmpty()) return emptyList()
+    /**
+     * [cancelScheduledForGroup], undoably: a receipt per lesson it called off — see [undoAll], [settleAll].
+     * [alongside] is written in the same transaction, as for [cancelScheduledForUndoable].
+     */
+    internal suspend fun cancelScheduledForGroupUndoable(
+        groupId: Long,
+        alongside: suspend () -> Unit,
+    ): List<SessionReceipt> {
+        if (dao.scheduledForGroup(groupId).isEmpty()) return emptyList<SessionReceipt>().also { alongside() }
         return undoableAll(
             touched = { dao.scheduledForGroup(groupId).map { it.lessonId }.distinct() },
-            rows = { cancelRowsForGroup(groupId) },
+            rows = { cancelRowsForGroup(groupId).also { alongside() } },
         )
     }
 

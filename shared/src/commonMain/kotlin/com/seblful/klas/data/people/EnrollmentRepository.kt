@@ -31,6 +31,7 @@ class EnrollmentRepository @Inject constructor(
     private val classes: ClassRepository,
     private val rateHistory: RateHistoryRepository,
     private val transactor: Transactor,
+    private val students: StudentRepository,
 ) {
     // ---- Reads ---------------------------------------------------------------------------------
     // Prices are read here rather than from a repository of their own. There was one, and every
@@ -112,15 +113,28 @@ class EnrollmentRepository @Inject constructor(
      * unless it has lessons, which keep it, as [unenroll] would.
      */
     suspend fun setSubjects(studentId: Long, pricedSubjects: Map<Long, Money>) {
-        transactor.transaction {
-            val kept = subjectsWithLessons(studentId)
-            (studentDao.getSubjectIds(studentId) - pricedSubjects.keys - kept).forEach { unlink(studentId, it) }
-            pricedSubjects.forEach { (subjectId, price) ->
-                when (priceDao.get(studentId, subjectId)?.toDomain()?.amount) {
-                    null -> link(studentId, subjectId, price)
-                    price -> Unit
-                    else -> record(studentId, subjectId, price)
-                }
+        transactor.transaction { applySubjects(studentId, pricedSubjects) }
+    }
+
+    /**
+     * Saves [student] and makes [pricedSubjects] what they take, as the student form's edit does, in one
+     * transaction: a name or an address never lands without the rates saved with it.
+     */
+    suspend fun updateStudent(student: Student, pricedSubjects: Map<Long, Money>) {
+        val written = transactor.transaction {
+            students.writeRow(student).also { applySubjects(student.id, pricedSubjects) }
+        }
+        written.refreshMirrors()
+    }
+
+    private suspend fun applySubjects(studentId: Long, pricedSubjects: Map<Long, Money>) {
+        val kept = subjectsWithLessons(studentId)
+        (studentDao.getSubjectIds(studentId) - pricedSubjects.keys - kept).forEach { unlink(studentId, it) }
+        pricedSubjects.forEach { (subjectId, price) ->
+            when (priceDao.get(studentId, subjectId)?.toDomain()?.amount) {
+                null -> link(studentId, subjectId, price)
+                price -> Unit
+                else -> record(studentId, subjectId, price)
             }
         }
     }

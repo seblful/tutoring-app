@@ -124,6 +124,25 @@ class GroupDetailViewModelTest {
     }
 
     @Test
+    fun `deleting a group that is already gone says nothing about lessons`() = runTest(mainRule.dispatcher) {
+        val anya = fixtures.student("Аня")
+        val id = fixtures.group("Ошибка", members = setOf(anya), rate = rate)
+        val vm = vm(id)
+        observing(vm.state)
+        runCurrent()
+        assertTrue(env.groupRepo.delete(env.groupRepo.getById(id)!!))
+
+        var deleted = false
+        val events = mutableListOf<GroupDetailViewModel.Event>()
+        backgroundScope.launch { vm.events.stream.collect { events += it } }
+        vm.delete { deleted = true }
+        runCurrent()
+
+        assertFalse(deleted)
+        assertEquals(emptyList<GroupDetailViewModel.Event>(), events)
+    }
+
+    @Test
     fun `deleting is refused while the group has lessons`() = runTest(mainRule.dispatcher) {
         val algebra = fixtures.subject("Алгебра")
         val anya = fixtures.pricedStudent("Аня", algebra)

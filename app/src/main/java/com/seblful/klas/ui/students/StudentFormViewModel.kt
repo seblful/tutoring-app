@@ -23,7 +23,6 @@ import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.common.state.UiEvents
 import com.seblful.klas.ui.common.state.derive
 import com.seblful.klas.ui.common.state.savedDraft
-import com.seblful.klas.ui.common.state.valueOrNull
 import com.seblful.klas.ui.common.state.writeAwaited
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.Assisted
@@ -286,8 +285,7 @@ class StudentFormViewModel @AssistedInject constructor(
                 if (existing == null) {
                     enrollment.createStudent(student, pricedSubjects)
                 } else {
-                    students.upsert(student)
-                    enrollment.setSubjects(existing.id, pricedSubjects)
+                    enrollment.updateStudent(student, pricedSubjects)
                     existing.id
                 }
             }

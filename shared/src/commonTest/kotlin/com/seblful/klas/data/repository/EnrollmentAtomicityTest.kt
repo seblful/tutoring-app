@@ -108,6 +108,30 @@ class EnrollmentAtomicityTest {
     }
 
     @Test
+    fun `saving a student's details with their subjects is one transaction that rolls back together`() = runTest {
+        val f = Fixture()
+        f.seed()
+        f.env.enrollmentRepo.enroll(f.ivan, f.algebra, Money.ofMajor(30))
+        val ivan = f.env.studentRepo.getById(f.ivan)!!.copy(name = "Иван Петров")
+        f.env.transactor.failAt = f.env.transactor.count + 1
+
+        val failure = runCatching { f.env.enrollmentRepo.updateStudent(ivan, mapOf(f.algebra to Money.ofMajor(35))) }
+
+        assertTrue(failure.isFailure, "the caller has to hear about it")
+        assertEquals("Иван", f.env.studentRepo.getById(f.ivan)!!.name, "the rename did not outlive the rate")
+        assertEquals(Money.ofMajor(30), f.env.enrollmentRepo.priceFor(f.ivan, f.algebra)?.amount)
+
+        f.env.transactor.failAt = null
+        val before = f.env.transactor.count
+        f.env.enrollmentRepo.updateStudent(ivan, mapOf(f.algebra to Money.ofMajor(35)))
+
+        assertEquals(1, f.env.transactor.count - before, "the student and their subjects are one write")
+        assertEquals(1, f.env.transactor.maxDepth, "no nesting")
+        assertEquals("Иван Петров", f.env.studentRepo.getById(f.ivan)!!.name)
+        assertEquals(Money.ofMajor(35), f.env.enrollmentRepo.priceFor(f.ivan, f.algebra)?.amount)
+    }
+
+    @Test
     fun `saving a group writes it with its roster in one transaction`() = runTest {
         val f = Fixture()
         f.seed()

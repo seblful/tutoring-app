@@ -5,6 +5,7 @@ import com.seblful.klas.domain.model.ClassMode
 import com.seblful.klas.domain.model.Group
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.testutil.TestEnv
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import kotlin.test.AfterTest
@@ -123,6 +124,31 @@ class GroupRepositoryTest {
 
         assertEquals(null, repo.getById(id))
         assertTrue(env.stored().groupMembers.isEmpty())
+    }
+
+    @Test
+    fun `deleting a group is one transaction that rechecks its lessons`() = runTest {
+        val (ann) = students("Аня")
+        val subject = env.fixtures.subject(name = "Алгебра")
+        val id = repo.save(Group(name = "11 «А»"), setOf(ann))
+        val group = repo.getById(id)!!
+        val before = env.transactor.count
+
+        val gate = env.transactor.pauseNextTransaction()
+        val deleted = async { repo.delete(group) }
+        gate.awaitEntry()
+        try {
+            env.fixtures.storedClass(
+                studentId = ann, subjectId = subject, startMillis = 1, durationMinutes = 60,
+                status = LessonStatus.COMPLETED, groupId = id,
+            )
+        } finally {
+            gate.release()
+        }
+
+        assertFalse(deleted.await(), "a lesson booked while the delete waited keeps the group")
+        assertEquals(1, env.transactor.count - before)
+        assertEquals("11 «А»", repo.getById(id)?.name)
     }
 
     @Test

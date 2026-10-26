@@ -91,9 +91,9 @@ open class RepositoryTestEnv(
 
     val groupRepo = GroupRepository(groupDao, classRepo, studentDao, rateHistoryRepo, transactor, calendarMirror)
     val subjectRepo = SubjectRepository(subjectDao, classRepo, groupRepo, studentDao, calendarMirror, transactor)
-    val enrollmentRepo = EnrollmentRepository(studentDao, priceDao, classRepo, rateHistoryRepo, transactor)
-
     val studentRepo = StudentRepository(studentDao, classRepo, calendarMirror)
+
+    val enrollmentRepo = EnrollmentRepository(studentDao, priceDao, classRepo, rateHistoryRepo, transactor, studentRepo)
 
     val lessonChanges = LessonChanges(classRepo, studentRepo, groupRepo)
     val lessonCompletions = LessonCompletions(classRepo, clock)
