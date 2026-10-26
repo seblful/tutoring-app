@@ -27,6 +27,17 @@ kotlin {
         }
     }
 
+    // Fixtures and tests set lessons up without an undo window; app code goes through LessonChanges.
+    targets.configureEach {
+        compilations.configureEach {
+            if (name != "main") {
+                compileTaskProvider.configure {
+                    compilerOptions.optIn.add("com.seblful.klas.data.lessons.WritesWithoutUndo")
+                }
+            }
+        }
+    }
+
     sourceSets {
         commonMain.dependencies {
             api(project(":domain"))

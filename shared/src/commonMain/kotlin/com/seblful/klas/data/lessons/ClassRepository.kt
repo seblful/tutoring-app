@@ -79,6 +79,14 @@ data class SeriesWrite(
     val wroteNothing: Boolean get() = lessons == 0
 }
 
+/**
+ * Marks a lesson write that mirrors to the calendar at once and returns no receipt, so the tutor has no
+ * undo window. Production code writes through `LessonChanges`; tests and fixtures opt in.
+ */
+@RequiresOptIn("Writes with no undo window; write through LessonChanges", RequiresOptIn.Level.ERROR)
+@Retention(AnnotationRetention.BINARY)
+annotation class WritesWithoutUndo
+
 @SingleIn(AppScope::class)
 class ClassRepository @Inject constructor(
     private val dao: ClassDao,
@@ -506,6 +514,7 @@ class ClassRepository @Inject constructor(
      * way. Moving it to the future re-plans each class (scheduled, charge voided); moving it to the
      * past keeps each status.
      */
+    @WritesWithoutUndo
     suspend fun move(
         session: ClassSession,
         newStart: Instant,
@@ -537,6 +546,7 @@ class ClassRepository @Inject constructor(
     }
 
     /** Marks what became of a whole lesson: it happened, it was called off, or it is planned again. */
+    @WritesWithoutUndo
     suspend fun setStatus(session: ClassSession, to: LessonStatus): LessonWrite<List<TutoringClass>> {
         if (session.status == to) return LessonWrite.Written(emptyList())
         return write {
@@ -601,6 +611,7 @@ class ClassRepository @Inject constructor(
      * Records whether one student was in one lesson — the per-member correction, and the only write that
      * touches a single row of a lesson rather than the lesson.
      */
+    @WritesWithoutUndo
     suspend fun setAttendance(klass: TutoringClass, attended: Attended): List<TutoringClass> = write {
         attendanceRows(klass, attended)
     }

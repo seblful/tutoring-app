@@ -1,5 +1,6 @@
 import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask
 import java.util.Properties
 
 plugins {
@@ -128,6 +129,13 @@ kotlin {
         jvmTarget = JvmTarget.JVM_11
         // Compose Styles (`ui/theme/KlasStyles.kt`) are still experimental in foundation 1.12.
         freeCompilerArgs.add("-opt-in=androidx.compose.foundation.style.ExperimentalFoundationStyleApi")
+    }
+}
+
+// Fixtures and tests set lessons up without an undo window; app code goes through LessonChanges.
+tasks.withType<KotlinCompilationTask<*>>().configureEach {
+    if (name.contains("UnitTest") || name.contains("AndroidTest")) {
+        compilerOptions.optIn.add("com.seblful.klas.data.lessons.WritesWithoutUndo")
     }
 }
 
