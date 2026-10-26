@@ -1,7 +1,6 @@
 package com.seblful.klas.domain.time
 
 import kotlinx.datetime.LocalDate
-import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Clock
@@ -35,9 +34,6 @@ interface WallClock {
 
 /** Today's date by this clock. */
 fun WallClock.today(): LocalDate = now().toLocalDateTime(zone).date
-
-/** The time of day by this clock. */
-fun WallClock.timeOfDay(): LocalTime = now().toLocalDateTime(zone).time
 
 private data class FixedClock(private val instant: Instant, override val zone: TimeZone) : WallClock {
     override fun now(): Instant = instant

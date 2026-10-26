@@ -14,15 +14,11 @@ import androidx.compose.animation.core.spring
 object KlasMotion {
     fun <T> defaultSpatial(): FiniteAnimationSpec<T> = spring(SpatialDamping, stiffness = 700f)
 
-    fun <T> fastSpatial(): FiniteAnimationSpec<T> = spring(SpatialDamping, stiffness = 1400f)
-
     fun <T> slowSpatial(): FiniteAnimationSpec<T> = spring(SpatialDamping, stiffness = 300f)
 
     fun <T> defaultEffects(): FiniteAnimationSpec<T> = spring(EffectsDamping, stiffness = 1600f)
 
     fun <T> fastEffects(): FiniteAnimationSpec<T> = spring(EffectsDamping, stiffness = 3800f)
-
-    fun <T> slowEffects(): FiniteAnimationSpec<T> = spring(EffectsDamping, stiffness = 800f)
 
     /** The expressive scheme's fast spatial spring: a visible bounce, kept for the app's pops. */
     fun <T> bouncySpatial(): FiniteAnimationSpec<T> = spring(dampingRatio = 0.6f, stiffness = 800f)

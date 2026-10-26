@@ -3,13 +3,10 @@ package com.seblful.klas.ui.common
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.indication
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -20,7 +17,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
@@ -345,39 +341,7 @@ fun MoneyTextField(
         modifier = modifier.fillMaxWidth(),
     )
 }
-/**
- * A **shortlist with an escape hatch**, as chips: one per preset, then [customLabel], which asks for
- * anything else — left out where the presets sit beside a stepper that already reaches the rest.
- *
- * @param selected the value in force, or null while there is none.
- */
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-fun <T> PresetChips(
-    presets: List<T>,
-    selected: T?,
-    label: @Composable (T) -> String,
-    onSelect: (T) -> Unit,
-    customLabel: String? = null,
-    onCustom: (() -> Unit)? = null,
-) {
-    FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.inline)) {
-        presets.forEach { preset ->
-            FilterChip(
-                selected = preset == selected,
-                onClick = { onSelect(preset) },
-                label = { Text(label(preset)) },
-            )
-        }
-        if (customLabel != null && onCustom != null) {
-            FilterChip(
-                selected = selected != null && selected !in presets,
-                onClick = onCustom,
-                label = { Text(customLabel) },
-            )
-        }
-    }
-}
+
 /**
  * A [PickerField]'s press inside its rounded border, on a layer of its own: clipping the field itself would cut
  * the floated label, which sits across its top edge.

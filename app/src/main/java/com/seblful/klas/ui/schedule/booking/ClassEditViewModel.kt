@@ -577,9 +577,6 @@ class ClassEditViewModel @AssistedInject constructor(
      */
     fun durationPickerDefault(): Int = currentForm.durationMinutes ?: defaultMinutes.value
 
-    /** What «Другое» opens on for the number of lessons: whatever the form already says. */
-    fun repeatCountPickerDefault(): Int = currentForm.repeatCount
-
     /** One-shot signals from a save that could not go through. */
     enum class Event {
         /** The slot was taken between this form opening and the save — [conflict] names by whom. */
