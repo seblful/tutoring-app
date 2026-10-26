@@ -720,7 +720,7 @@ private fun ColumnScope.ComparisonLine(state: Reports.Report) {
     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = Spacing.tight)) {
         // An arrow only where there is a direction: "the previous period earned nothing" has none,
         // and an upward arrow beside it would be asserting growth the app just declined to measure.
-        if (change is Reports.Change.Percent && change.value != 0) {
+        if (change is Reports.Change.Percent && change.value != 0L) {
             Icon(
                 // AutoMirrored: a trend arrow points *forward in time*, so it flips with the layout
                 // direction. The non-mirrored pair is deprecated for exactly this reason.
@@ -744,7 +744,7 @@ private fun ColumnScope.ComparisonLine(state: Reports.Report) {
 }
 
 @Composable
-private fun signedPercent(value: Int): String = when {
+private fun signedPercent(value: Long): String = when {
     value > 0 -> stringResource(R.string.reports_percent_signed_up, value)
     value < 0 -> stringResource(R.string.reports_percent_signed_down, -value)
     else -> stringResource(R.string.reports_percent_signed_same)

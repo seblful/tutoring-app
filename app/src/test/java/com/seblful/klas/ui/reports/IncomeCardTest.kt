@@ -57,6 +57,17 @@ class IncomeCardTest {
     }
 
     @Test
+    fun `large income growth is displayed as its positive percentage`() {
+        val comparison = report.copy(
+            change = Reports.change(Money.ofMajor(300_000), Money(1)),
+            previousPeriod = report.period.shifted(-1),
+        )
+        compose.setContent { KlasTheme { IncomeCard(comparison) } }
+
+        compose.onNodeWithText("+2999999900%", substring = true).assertExists()
+    }
+
+    @Test
     fun `one export menu offers sending and saving`() {
         var shared = 0
         var saved = 0

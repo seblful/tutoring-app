@@ -489,7 +489,7 @@ object Reports {
         data object NoBaseline : Change
 
         /** Signed: positive for more than last time, negative for less, zero for level. */
-        data class Percent(val value: Int) : Change
+        data class Percent(val value: Long) : Change
     }
 
     /**
@@ -502,7 +502,7 @@ object Reports {
         val delta = current.minor - previous.minor
         // Rounded away from zero at the half, so a 0.5 % rise reads as 1 % rather than as no change.
         val magnitude = (kotlin.math.abs(delta) * 100 + previous.minor / 2) / previous.minor
-        return Change.Percent(if (delta < 0) (-magnitude).toInt() else magnitude.toInt())
+        return Change.Percent(if (delta < 0) -magnitude else magnitude)
     }
 
     /** Students with a positive balance (owe money), largest debt first. */

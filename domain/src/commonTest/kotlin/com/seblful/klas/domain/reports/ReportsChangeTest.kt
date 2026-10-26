@@ -69,4 +69,11 @@ class ReportsChangeTest {
             Reports.change(Money.ofMajor(250), Money.ofMajor(100)),
         )
     }
+
+    @Test
+    fun `growth beyond an Int remains positive and exact`() {
+        val change = Reports.change(Money.ofMajor(300_000), Money(1)) as Reports.Change.Percent
+
+        assertEquals(2_999_999_900L, change.value)
+    }
 }
