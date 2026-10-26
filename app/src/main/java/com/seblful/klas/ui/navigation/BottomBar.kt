@@ -3,8 +3,10 @@ package com.seblful.klas.ui.navigation
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.indication
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsFocusedAsState
+import androidx.compose.foundation.interaction.collectIsHoveredAsState
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -21,14 +23,12 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ProvideTextStyle
 import androidx.compose.material3.Surface
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteItem
-import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.State
@@ -36,7 +36,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.CornerRadius
@@ -171,6 +170,7 @@ private fun DockedTab(dest: TopDestination, selected: Boolean, labelRoom: Dp, on
         KlasMotion.defaultEffects(),
         label = "tab content",
     )
+    val shade = stateLayer(interaction)
     val pill = colors.primaryContainer
     Box(
         Modifier
@@ -184,11 +184,11 @@ private fun DockedTab(dest: TopDestination, selected: Boolean, labelRoom: Dp, on
                 // The tab's own bounds, which grow from the icon's round as the label unfolds: the pill stays
                 // around the icon. Scaled about its middle instead, it drifted off the icon as the tab folded.
                 .drawBehind {
+                    val round = CornerRadius(size.height / 2)
                     val shown = pillAlpha.value
-                    if (shown > 0f) drawRoundRect(pill, cornerRadius = CornerRadius(size.height / 2), alpha = shown)
+                    if (shown > 0f) drawRoundRect(pill, cornerRadius = round, alpha = shown)
+                    if (shade.value > 0f) drawRoundRect(content, cornerRadius = round, alpha = shade.value)
                 }
-                .clip(CircleShape)
-                .indication(interaction, ripple())
                 .padding(horizontal = TabPadding),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -207,6 +207,26 @@ private fun DockedTab(dest: TopDestination, selected: Boolean, labelRoom: Dp, on
             }
         }
     }
+}
+
+/**
+ * Material's state layer, as an alpha to draw at the tab's bounds as they are now. Not a ripple: a ripple takes
+ * its size when the finger lands, on a bare icon, and stayed a grey disc inside the pill that tap had grown.
+ */
+@Composable
+private fun stateLayer(interaction: MutableInteractionSource): State<Float> {
+    val pressed by interaction.collectIsPressedAsState()
+    val focused by interaction.collectIsFocusedAsState()
+    val hovered by interaction.collectIsHoveredAsState()
+    return animateFloatAsState(
+        when {
+            pressed || focused -> PressedShade
+            hovered -> HoveredShade
+            else -> 0f
+        },
+        KlasMotion.defaultEffects(),
+        label = "tab state layer",
+    )
 }
 
 /**
@@ -264,3 +284,5 @@ private const val LabelInDelayMillis = 110
 private const val LabelInMillis = 150
 private const val LabelOutMillis = 50
 private const val PillFadeMillis = 120
+private const val PressedShade = 0.10f
+private const val HoveredShade = 0.08f

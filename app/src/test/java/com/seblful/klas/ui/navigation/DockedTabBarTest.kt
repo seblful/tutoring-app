@@ -6,13 +6,18 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isSelectable
@@ -31,6 +36,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.seblful.klas.testutil.AppLocaleRule
 import com.seblful.klas.ui.theme.KlasTheme
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -103,6 +109,22 @@ class DockedTabBarTest {
     }
 
     @Test
+    fun `held, the marked tab shades its whole pill evenly`() {
+        setBar(TopDestination.HOMEWORK)
+        val tab = compose.onNode(tabOf(TopDestination.HOMEWORK))
+        val idle = pillShades(tab)
+
+        compose.mainClock.autoAdvance = false
+        // At the icon, where a ripple would start: it must not stay a disc there inside the wider pill.
+        tab.performTouchInput { down(Offset(width * 0.15f, centerY)) }
+        compose.mainClock.advanceTimeBy(PRESS_SETTLED_MILLIS)
+        val held = pillShades(tab)
+
+        assertEquals("the held pill shows ${held.toSet().size} shades", 1, held.toSet().size)
+        assertNotEquals("held, the pill is shaded", idle.first(), held.first())
+    }
+
+    @Test
     @Config(qualifiers = "ru-rRU-w320dp-h640dp")
     fun `on the narrowest phone every Russian label is whole once its tab is marked`() {
         setBar(TopDestination.TODAY)
@@ -137,6 +159,13 @@ class DockedTabBarTest {
             .fetchSemanticsNodes().size
     }
 
+    /** A row across [tab]'s pill above its icon and label, short of its round ends. */
+    private fun pillShades(tab: SemanticsNodeInteraction): List<Color> {
+        val image = tab.captureToImage().toPixelMap()
+        val y = with(compose.density) { image.height / 2 - 18.dp.roundToPx() }
+        return (image.width / 4..image.width * 3 / 4).map { image[it, y] }
+    }
+
     private fun layoutOf(label: String): TextLayoutResult {
         val results = mutableListOf<TextLayoutResult>()
         compose.onNodeWithText(label, useUnmergedTree = true).fetchSemanticsNode()
@@ -166,5 +195,7 @@ class DockedTabBarTest {
 
     private companion object {
         const val BAR = "bar"
+
+        const val PRESS_SETTLED_MILLIS = 300L
     }
 }
