@@ -2,7 +2,7 @@
   "status": "active",
   "source": "app/src/main/res/values/strings.xml",
   "totalLanguageVariants": 25,
-  "resourcesPerLanguage": 768,
+  "resourcesPerLanguage": 796,
   "languages": [
     {
       "tag": "en",
