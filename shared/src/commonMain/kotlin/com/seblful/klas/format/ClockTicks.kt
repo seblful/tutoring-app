@@ -1,5 +1,6 @@
 package com.seblful.klas.format
 
+import com.seblful.klas.domain.time.SECONDS_PER_MINUTE
 import com.seblful.klas.domain.time.WallClock
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -47,5 +48,3 @@ fun WallClock.minutes(): Flow<Instant> = flow {
         delay((nextMinute - instant).inWholeMilliseconds.coerceAtLeast(1))
     }
 }
-
-private const val SECONDS_PER_MINUTE = 60L

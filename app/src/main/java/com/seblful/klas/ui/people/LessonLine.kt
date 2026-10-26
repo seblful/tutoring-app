@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
 import com.seblful.klas.R
 import com.seblful.klas.data.lessons.NearestLessons
+import com.seblful.klas.domain.schedule.CalendarLayout
 import com.seblful.klas.format.formatNearDate
 import com.seblful.klas.format.shortDisplayName
 import com.seblful.klas.ui.common.timeText
@@ -69,4 +70,4 @@ fun lessonLineText(line: LessonLine, timeAlways: Boolean = false): String = when
 }
 
 /** Within a week a weekday is unambiguous; past it «Thu» could be either Thursday. */
-private const val DAYS_NAMED = 7
+private const val DAYS_NAMED = CalendarLayout.DAYS_IN_WEEK

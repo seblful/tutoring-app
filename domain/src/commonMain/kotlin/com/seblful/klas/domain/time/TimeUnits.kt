@@ -1,0 +1,7 @@
+package com.seblful.klas.domain.time
+
+const val MINUTES_PER_HOUR = 60
+const val MINUTES_PER_DAY = 24 * MINUTES_PER_HOUR
+const val SECONDS_PER_MINUTE = 60
+const val SECONDS_PER_DAY = MINUTES_PER_DAY * SECONDS_PER_MINUTE
+const val MILLIS_PER_MINUTE = SECONDS_PER_MINUTE * 1000L

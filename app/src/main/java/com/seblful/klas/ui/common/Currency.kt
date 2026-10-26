@@ -21,7 +21,7 @@ import java.util.Locale
  * The [Currency] money is displayed in, chosen in Settings and provided at the app root. UI formats
  * money through [Money.text] so a currency change re-renders everywhere.
  */
-val LocalCurrency = compositionLocalOf { Currency.BYN }
+val LocalCurrency = compositionLocalOf { Currency.LEGACY }
 
 /**
  * Formats this amount in the currency currently provided by [LocalCurrency], with the app language's

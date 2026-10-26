@@ -21,6 +21,8 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import com.seblful.klas.R
+import com.seblful.klas.domain.time.MINUTES_PER_DAY
+import com.seblful.klas.domain.time.MINUTES_PER_HOUR
 import com.seblful.klas.ui.common.ChoiceField
 import com.seblful.klas.ui.common.KlasMenu
 import com.seblful.klas.ui.common.Spacing
@@ -160,8 +162,8 @@ internal enum class ReminderUnit(
     @param:PluralsRes val beforeLabel: Int,
 ) {
     MINUTES(1, R.string.duration_minutes_label, R.plurals.settings_reminder_minutes_before),
-    HOURS(MinutesPerHour, R.string.duration_hours_label, R.plurals.settings_reminder_hours_before),
-    DAYS(MinutesPerDay, R.string.settings_reminder_days, R.plurals.settings_reminder_days_before),
+    HOURS(MINUTES_PER_HOUR, R.string.duration_hours_label, R.plurals.settings_reminder_hours_before),
+    DAYS(MINUTES_PER_DAY, R.string.settings_reminder_days, R.plurals.settings_reminder_days_before),
     ;
 
     val maximum: Int get() = Int.MAX_VALUE / minutes
@@ -173,7 +175,4 @@ internal enum class ReminderUnit(
     }
 }
 
-private val LeadPresets = listOf(30, 60, 120, 24 * 60)
-
-private const val MinutesPerHour = 60
-private const val MinutesPerDay = 24 * MinutesPerHour
+private val LeadPresets = listOf(30, MINUTES_PER_HOUR, 2 * MINUTES_PER_HOUR, MINUTES_PER_DAY)

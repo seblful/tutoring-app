@@ -3,6 +3,7 @@ package com.seblful.klas.domain
 import com.seblful.klas.domain.model.Currency
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNotEquals
 import kotlin.test.assertNull
 
 class CurrencyTest {
@@ -45,5 +46,12 @@ class CurrencyTest {
         assertEquals(Currency.BYN, Currency.parse("XYZ"))
         assertEquals(Currency.BYN, Currency.parse(""))
         assertEquals(Currency.BYN, Currency.parse("$"), "a symbol is not a name")
+    }
+
+    @Test
+    fun `the stored fallback is the app's oldest currency, not the region fallback`() {
+        assertEquals(Currency.BYN, Currency.LEGACY)
+        assertEquals(Currency.LEGACY, Currency.parse("XYZ"))
+        assertNotEquals(Currency.LEGACY, Currency.FALLBACK)
     }
 }

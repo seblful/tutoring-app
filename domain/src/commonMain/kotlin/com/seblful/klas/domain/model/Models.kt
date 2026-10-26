@@ -1,6 +1,6 @@
 package com.seblful.klas.domain.model
 
-import kotlin.time.Duration.Companion.seconds
+import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Instant
 
 /** A subject the tutor teaches, e.g. "Математика". */
@@ -101,7 +101,7 @@ data class TutoringClass(
     val mode: ClassMode = ClassMode.IN_PERSON,
     val calendarEventId: String? = null,
 ) {
-    val end: Instant get() = start.plus((durationMinutes * 60L).seconds)
+    val end: Instant get() = start.plus(durationMinutes.minutes)
 
     /**
      * Whether this student owes for this lesson: **the lesson happened and they were in it** — or were

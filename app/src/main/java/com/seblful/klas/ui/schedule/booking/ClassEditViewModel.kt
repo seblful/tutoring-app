@@ -11,6 +11,7 @@ import com.seblful.klas.data.people.EnrollmentRepository
 import com.seblful.klas.data.people.GroupRepository
 import com.seblful.klas.data.people.StudentRepository
 import com.seblful.klas.data.people.SubjectRepository
+import com.seblful.klas.data.settings.SettingsDefaults
 import com.seblful.klas.data.settings.SettingsRepository
 import com.seblful.klas.di.ApplicationScope
 import com.seblful.klas.di.Computation
@@ -110,7 +111,7 @@ class ClassEditViewModel @AssistedInject constructor(
 
     val isNew: Boolean = classId == 0L
 
-    private val defaultMinutes = MutableStateFlow(DEFAULT_LESSON_MINUTES)
+    private val defaultMinutes = MutableStateFlow(SettingsDefaults.LESSON_MINUTES)
 
     private val session = MutableStateFlow<ClassSession?>(null)
 

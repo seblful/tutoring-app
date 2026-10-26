@@ -2,6 +2,7 @@ package com.seblful.klas.ui.schedule.booking
 
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.schedule.Recurrence
+import com.seblful.klas.domain.time.MINUTES_PER_DAY
 
 /**
  * What one press of a −/+ in the booking form's Length, Repeat and Price rows moves a value to. Null where
@@ -18,7 +19,7 @@ internal object Steps {
      * A minute short of a day: one occurrence of a weekly series then never reaches the next — `Recurrence`
      * relies on it, and `DurationPickerModal` bounds the same way.
      */
-    private const val LONGEST = 24 * 60 - 1
+    private const val LONGEST = MINUTES_PER_DAY - 1
 
     private const val RATE_STEPS_PER_RATE = 5
     private const val MINOR_PER_MAJOR = 100L

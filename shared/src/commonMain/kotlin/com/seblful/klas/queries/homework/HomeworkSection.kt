@@ -1,6 +1,7 @@
 package com.seblful.klas.queries.homework
 
 import com.seblful.klas.domain.homework.HomeworkRules
+import com.seblful.klas.domain.schedule.CalendarLayout
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
@@ -29,11 +30,10 @@ enum class HomeworkSection {
                 HomeworkRules.Due.UNBOOKED -> UNBOOKED
                 HomeworkRules.Due.LATER -> {
                     val day = lessonAt?.toLocalDateTime(zone)?.date
-                    if (day != null && day < today.plus(DatePeriod(days = WEEK_DAYS))) NEXT_7_DAYS else LATER
+                    val weekOn = today.plus(DatePeriod(days = CalendarLayout.DAYS_IN_WEEK))
+                    if (day != null && day < weekOn) NEXT_7_DAYS else LATER
                 }
             }
-
-        private const val WEEK_DAYS = 7
     }
 }
 

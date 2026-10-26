@@ -4,6 +4,7 @@ import com.seblful.klas.domain.lesson.LessonPhase
 import com.seblful.klas.domain.lesson.SessionRules
 import com.seblful.klas.domain.model.TutoringClass
 import com.seblful.klas.domain.people.Captions
+import com.seblful.klas.domain.schedule.CalendarLayout
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.minutes
@@ -37,7 +38,7 @@ object Reminders {
     const val DEFAULT_LEAD_MINUTES: Int = 60
 
     val DEFAULT_LEAD: Duration = (DEFAULT_LEAD_MINUTES.toLong()).minutes
-    val DEFAULT_HORIZON: Duration = 7.days
+    val DEFAULT_HORIZON: Duration = CalendarLayout.DAYS_IN_WEEK.days
 
     /** Read far enough ahead to arm a week's reminders even when the lead itself spans several days. */
     fun planningHorizon(lead: Duration): Duration = DEFAULT_HORIZON + lead

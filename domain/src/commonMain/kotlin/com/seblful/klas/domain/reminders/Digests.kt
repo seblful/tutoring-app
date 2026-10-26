@@ -2,7 +2,10 @@ package com.seblful.klas.domain.reminders
 
 import com.seblful.klas.domain.lesson.LessonPhase
 import com.seblful.klas.domain.model.Money
+import com.seblful.klas.domain.schedule.CalendarLayout
 import com.seblful.klas.domain.schedule.DaySummary
+import com.seblful.klas.domain.time.MINUTES_PER_DAY
+import com.seblful.klas.domain.time.SECONDS_PER_MINUTE
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
@@ -211,7 +214,7 @@ object Digests {
     fun nextWeekly(now: Instant, zone: TimeZone, dayOfWeek: DayOfWeek, minuteOfDay: Int): Instant {
         val at = timeOf(minuteOfDay)
         val today = now.toLocalDateTime(zone).date
-        val daysAhead = (dayOfWeek.isoDayNumber - today.dayOfWeek.isoDayNumber).mod(DAYS_IN_WEEK)
+        val daysAhead = (dayOfWeek.isoDayNumber - today.dayOfWeek.isoDayNumber).mod(CalendarLayout.DAYS_IN_WEEK)
         val thisWeek = today.plus(daysAhead, DateTimeUnit.DAY)
         val candidate = thisWeek.atTime(at).toInstant(zone)
         return if (candidate > now) candidate
@@ -225,13 +228,13 @@ object Digests {
      * digest scheduling.
      */
     fun timeOf(minuteOfDay: Int): LocalTime =
-        LocalTime.fromSecondOfDay(minuteOfDay.coerceIn(0, MINUTES_IN_DAY - 1) * SECONDS_IN_MINUTE)
+        LocalTime.fromSecondOfDay(minuteOfDay.coerceIn(0, MINUTES_PER_DAY - 1) * SECONDS_PER_MINUTE)
 
     /**
      * The stored weekday, falling back to Monday when the value is outside 1..7.
      */
     fun dayOfWeekOf(value: Int): DayOfWeek =
-        if (value in 1..7) DayOfWeek(value) else DayOfWeek.MONDAY
+        if (value in 1..DayOfWeek.entries.size) DayOfWeek(value) else DayOfWeek.MONDAY
 
     /**
      * What the morning digest has to say about a day.
@@ -300,8 +303,4 @@ object Digests {
         /** Nothing owed, nothing to say. The whole point of the digest is the number being non-zero. */
         val isWorthPosting: Boolean get() = students > 0
     }
-
-    private const val MINUTES_IN_DAY = 24 * 60
-    private const val SECONDS_IN_MINUTE = 60
-    private const val DAYS_IN_WEEK = 7
 }

@@ -12,6 +12,7 @@ import com.seblful.klas.domain.reminders.DigestScheduler
 import com.seblful.klas.domain.reminders.Digests
 import com.seblful.klas.domain.reminders.ReminderScheduler
 import com.seblful.klas.domain.reminders.Reminders
+import com.seblful.klas.domain.schedule.CalendarLayout
 import com.seblful.klas.domain.time.WallClock
 import com.seblful.klas.notifications.ReminderAlarms
 import dev.zacsweers.metro.AppScope
@@ -80,7 +81,7 @@ class WorkScheduler @Inject constructor(
     override suspend fun schedule(plan: Digests.Plan) {
         arrange<AgendaWorker>(AGENDA_DIGEST, plan.agendaAt, 1.days)
         arrange<UnfinishedDigestWorker>(UNFINISHED_DIGEST, plan.unfinishedAt, 1.days)
-        arrange<DebtDigestWorker>(DEBT_DIGEST, plan.debtsAt, 7.days)
+        arrange<DebtDigestWorker>(DEBT_DIGEST, plan.debtsAt, CalendarLayout.DAYS_IN_WEEK.days)
     }
 
     private suspend inline fun <reified W : androidx.work.ListenableWorker> arrange(

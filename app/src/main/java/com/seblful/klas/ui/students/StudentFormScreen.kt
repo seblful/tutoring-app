@@ -38,6 +38,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.seblful.klas.R
 import com.seblful.klas.domain.lesson.ClassRules
 import com.seblful.klas.domain.model.Subject
+import com.seblful.klas.domain.time.MINUTES_PER_HOUR
 import com.seblful.klas.format.MoneyField
 import com.seblful.klas.format.bulletJoin
 import com.seblful.klas.format.labelRes
@@ -304,7 +305,7 @@ private fun studentSummary(state: StudentFormViewModel.UiState): String {
  */
 @Composable
 private fun lessonPriceHint(price: MoneyField, lessonMinutes: Int): String? {
-    val hourly = price.amount?.takeIf { lessonMinutes != 60 } ?: return null
+    val hourly = price.amount?.takeIf { lessonMinutes != MINUTES_PER_HOUR } ?: return null
     return stringResource(
         R.string.price_per_lesson_hint,
         ClassRules.chargeFor(hourly, lessonMinutes).text(),

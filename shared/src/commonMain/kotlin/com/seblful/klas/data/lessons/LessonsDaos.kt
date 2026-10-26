@@ -8,6 +8,7 @@ import com.seblful.klas.data.people.StudentRepository
 import com.seblful.klas.domain.model.Attended
 import com.seblful.klas.domain.model.ClassMode
 import com.seblful.klas.domain.model.LessonStatus
+import com.seblful.klas.domain.time.MILLIS_PER_MINUTE
 import kotlinx.coroutines.flow.Flow
 
 /**
@@ -276,7 +277,7 @@ data class LessonSpan(val ownerId: Long, val nextMillis: Long?, val lastMillis: 
 data class RecentlyTaught(val studentId: Long?, val groupId: Long?, val lastMillis: Long)
 
 /** When a lesson (aliased `l`) is over. */
-private const val ENDS: String = "(l.startMillis + l.durationMinutes * 60000)"
+private const val ENDS: String = "(l.startMillis + l.durationMinutes * $MILLIS_PER_MINUTE)"
 
 /** A lesson that happened, or was due to: not cancelled, and over by `:nowMillis`. */
 private const val TAUGHT: String = "l.status != 'CANCELLED' AND $ENDS <= :nowMillis"

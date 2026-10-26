@@ -7,6 +7,7 @@ import com.seblful.klas.domain.model.AppLanguage
 import com.seblful.klas.domain.model.Currency
 import com.seblful.klas.domain.model.ThemeChoice
 import com.seblful.klas.domain.reminders.Reminders
+import kotlinx.datetime.isoDayNumber
 
 /**
  * App-wide settings. A single row (always [SINGLETON_ID]); device-local, so it is intentionally
@@ -53,17 +54,17 @@ data class SettingsEntity(
     val dailyAgendaEnabled: Boolean = false,
 
     @ColumnInfo(defaultValue = "540")
-    val agendaMinuteOfDay: Int = 9 * 60,
+    val agendaMinuteOfDay: Int = SettingsDefaults.AGENDA_MINUTE_OF_DAY,
 
     @ColumnInfo(defaultValue = "0")
     val debtDigestEnabled: Boolean = false,
 
     /** [java.time.DayOfWeek.getValue] — 1 is Monday. */
     @ColumnInfo(defaultValue = "1")
-    val debtDayOfWeek: Int = 1,
+    val debtDayOfWeek: Int = SettingsDefaults.DEBT_DAY.isoDayNumber,
 
     @ColumnInfo(defaultValue = "540")
-    val debtMinuteOfDay: Int = 9 * 60,
+    val debtMinuteOfDay: Int = SettingsDefaults.DEBT_MINUTE_OF_DAY,
     /**
      * Whether the evening digest naming the day's **unfinished** lessons is posted, and at what minute
      * past local midnight (1260 = 21:00).
@@ -80,7 +81,7 @@ data class SettingsEntity(
     val unfinishedDigestEnabled: Boolean = false,
 
     @ColumnInfo(defaultValue = "1260")
-    val unfinishedMinuteOfDay: Int = 21 * 60,
+    val unfinishedMinuteOfDay: Int = SettingsDefaults.UNFINISHED_MINUTE_OF_DAY,
     /**
      * Whether finished classes auto-complete (and bill) without manual confirmation. **Off by
      * default**: billing a class the tutor hasn't confirmed risks over-stating a student's debt, so
@@ -102,7 +103,7 @@ data class SettingsEntity(
     @ColumnInfo(defaultValue = "0")
     val dynamicColorEnabled: Boolean = false,
     /** Pre-fills the end time when booking a class. */
-    val defaultLessonMinutes: Int = 60,
+    val defaultLessonMinutes: Int = SettingsDefaults.LESSON_MINUTES,
     /**
      * Pre-fills the hourly rate of a **newly created group**, in minor units. A tutor's group rate is
      * usually the same for every group, so typing it once here saves repeating it — and nothing else
@@ -115,7 +116,7 @@ data class SettingsEntity(
     @ColumnInfo(defaultValue = "0")
     val defaultGroupPriceMinor: Long = 0,
     /** Currency used to display all money, stored as its code, e.g. "BYN" or "USD". */
-    val currency: Currency = Currency.BYN,
+    val currency: Currency = Currency.LEGACY,
     /**
      * Which language the app is shown in, stored as an [AppLanguage] name — "SYSTEM" follows the phone.
      *

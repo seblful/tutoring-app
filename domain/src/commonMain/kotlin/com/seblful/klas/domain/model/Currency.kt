@@ -34,7 +34,14 @@ enum class Currency(val symbol: String) {
     ;
 
     companion object {
-        fun parse(stored: String): Currency = entries.firstOrNull { it.name == stored } ?: BYN
+        /**
+         * The app's oldest currency: what a stored name nobody can read, a settings row still loading and a
+         * fresh `SettingsEntity` all read as. Not [FALLBACK], which is what a
+         * phone with no recognised region is given.
+         */
+        val LEGACY = BYN
+
+        fun parse(stored: String): Currency = entries.firstOrNull { it.name == stored } ?: LEGACY
 
         val FALLBACK = USD
 

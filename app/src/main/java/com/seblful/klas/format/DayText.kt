@@ -4,6 +4,7 @@ import android.content.res.Resources
 import com.seblful.klas.R
 import com.seblful.klas.domain.model.Currency
 import com.seblful.klas.domain.schedule.DaySummary
+import com.seblful.klas.domain.time.MINUTES_PER_HOUR
 import java.text.DecimalFormatSymbols
 import java.util.Locale
 
@@ -43,5 +44,3 @@ fun hoursAndMinutesText(res: Resources, minutes: Int): String {
     val hoursText = res.getQuantityString(R.plurals.hours_short, hours, hours)
     return if (rest == 0) hoursText else res.getString(R.string.hours_and_minutes, hoursText, minutesText)
 }
-
-private const val MINUTES_PER_HOUR = 60

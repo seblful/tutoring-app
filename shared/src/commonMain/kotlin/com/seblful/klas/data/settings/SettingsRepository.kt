@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.datetime.isoDayNumber
 import kotlin.time.Instant
 
 /** App settings. A missing row maps to defaults. */
@@ -34,16 +35,16 @@ data class AppSettings(
      */
     val dailyAgendaEnabled: Boolean = false,
     /** What time of day the agenda is posted, as **minutes since local midnight** — 540 is 09:00. */
-    val agendaMinuteOfDay: Int = 9 * 60,
+    val agendaMinuteOfDay: Int = SettingsDefaults.AGENDA_MINUTE_OF_DAY,
     /** Whether the weekly summary of who owes money is posted. Off by default, as [dailyAgendaEnabled]. */
     val debtDigestEnabled: Boolean = false,
     /**
      * Which day of the week the debt digest lands on, as [java.time.DayOfWeek.getValue] — 1 is Monday,
      * which is the default and the day a tutor's week is planned on.
      */
-    val debtDayOfWeek: Int = 1,
+    val debtDayOfWeek: Int = SettingsDefaults.DEBT_DAY.isoDayNumber,
     /** What time the debt digest is posted, minutes since local midnight. See [agendaMinuteOfDay]. */
-    val debtMinuteOfDay: Int = 9 * 60,
+    val debtMinuteOfDay: Int = SettingsDefaults.DEBT_MINUTE_OF_DAY,
     /**
      * Whether the evening digest naming the day's **unfinished** lessons is posted — the lessons that
      * have finished and that nobody has said happened or not ([com.seblful.klas.domain.lesson.LessonPhase.OVERDUE]).
@@ -53,7 +54,7 @@ data class AppSettings(
      * What time the evening digest is posted, minutes since local midnight — 1260 is 21:00. See
      * [agendaMinuteOfDay] for why this is an `Int`.
      */
-    val unfinishedMinuteOfDay: Int = 21 * 60,
+    val unfinishedMinuteOfDay: Int = SettingsDefaults.UNFINISHED_MINUTE_OF_DAY,
     val autoCompleteEnabled: Boolean = false,
     val themeMode: ThemeChoice = ThemeChoice.SYSTEM,
     /**
@@ -61,7 +62,7 @@ data class AppSettings(
      * default — see `SettingsEntity.dynamicColorEnabled` for why that is a decision and not a gap.
      */
     val dynamicColorEnabled: Boolean = false,
-    val defaultLessonMinutes: Int = 60,
+    val defaultLessonMinutes: Int = SettingsDefaults.LESSON_MINUTES,
     /** Pre-fills a new group's hourly rate. Null while the tutor has not set one. */
     val defaultGroupPrice: Money? = null,
     /**
@@ -70,7 +71,7 @@ data class AppSettings(
      * [SettingsRepository] where a missing row is mapped to defaults, because it is a fact about the device
      * rather than a constant.
      */
-    val currency: Currency = Currency.BYN,
+    val currency: Currency = Currency.LEGACY,
     /**
      * Which language the app is shown in. [AppLanguage.SYSTEM] — follow the phone — is the default and a
      * real answer, so unlike [currency] there is nothing about the device to substitute: the resolution

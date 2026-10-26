@@ -1,6 +1,7 @@
 package com.seblful.klas.format
 
 import com.seblful.klas.domain.model.Money
+import com.seblful.klas.domain.time.MINUTES_PER_HOUR
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
@@ -125,7 +126,7 @@ fun Money.toAmountInput(): String = amount()
  * The separator is the app language's, the same one money is written with.
  */
 fun formatHours(minutes: Int, decimalSeparator: Char = AppLocale.decimalSeparator): String {
-    val tenths = (minutes * 10 + 30) / 60
+    val tenths = (minutes * 10 + MINUTES_PER_HOUR / 2) / MINUTES_PER_HOUR
     val whole = tenths / 10
     val fraction = tenths % 10
     return if (fraction == 0) "$whole" else "$whole$decimalSeparator$fraction"

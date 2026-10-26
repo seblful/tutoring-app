@@ -8,6 +8,8 @@ import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.schedule.Recurrence
 import com.seblful.klas.domain.schedule.Repeat
 import com.seblful.klas.domain.schedule.Scheduling
+import com.seblful.klas.domain.time.SECONDS_PER_DAY
+import com.seblful.klas.domain.time.SECONDS_PER_MINUTE
 import com.seblful.klas.format.MoneyField
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
@@ -189,6 +191,3 @@ internal data class ValidForm(
         )
     }
 }
-
-private const val SECONDS_PER_MINUTE = 60
-private const val SECONDS_PER_DAY = 24 * 60 * SECONDS_PER_MINUTE

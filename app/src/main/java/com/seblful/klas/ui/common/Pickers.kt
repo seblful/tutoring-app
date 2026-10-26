@@ -28,6 +28,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import com.seblful.klas.R
+import com.seblful.klas.domain.time.MINUTES_PER_HOUR
 import com.seblful.klas.lock.UnlockedWindow
 import com.seblful.klas.ui.designsystem.component.ButtonKind
 import com.seblful.klas.ui.designsystem.component.KlasButton
@@ -143,9 +144,9 @@ fun DurationPickerModal(
     // Settings uses the same hours-and-minutes picker for the default lesson length.
     title: String? = null,
 ) {
-    var hours by rememberSaveable { mutableStateOf((initialMinutes / 60).toString()) }
-    var minutes by rememberSaveable { mutableStateOf((initialMinutes % 60).toString()) }
-    val total = (hours.toIntOrNull() ?: 0) * 60 + (minutes.toIntOrNull() ?: 0)
+    var hours by rememberSaveable { mutableStateOf((initialMinutes / MINUTES_PER_HOUR).toString()) }
+    var minutes by rememberSaveable { mutableStateOf((initialMinutes % MINUTES_PER_HOUR).toString()) }
+    val total = (hours.toIntOrNull() ?: 0) * MINUTES_PER_HOUR + (minutes.toIntOrNull() ?: 0)
     UnlockedWindow { drafts ->
         AlertDialog(
             onDismissRequest = onDismiss,

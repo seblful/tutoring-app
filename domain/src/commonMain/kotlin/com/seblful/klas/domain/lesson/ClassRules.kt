@@ -5,6 +5,7 @@ import com.seblful.klas.domain.model.ClassMode
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.TutoringClass
+import com.seblful.klas.domain.time.MINUTES_PER_HOUR
 import kotlin.time.Instant
 
 /**
@@ -133,7 +134,7 @@ object ClassRules {
      * this is the one line that turns a rate into money owed.
      */
     fun chargeFor(hourlyRate: Money, durationMinutes: Int): Money =
-        Money((hourlyRate.minor * durationMinutes + 30).floorDiv(60L))
+        Money((hourlyRate.minor * durationMinutes + 30).floorDiv(MINUTES_PER_HOUR.toLong()))
 
     /**
      * Reschedules a class to [newStart].

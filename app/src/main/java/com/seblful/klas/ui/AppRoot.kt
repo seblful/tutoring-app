@@ -114,7 +114,7 @@ fun AppRoot(rootViewModel: RootViewModel = metroViewModel(), onUnlock: (title: S
             // The currency while the row is loading is the app's oldest, not the phone's: nothing is drawn
             // in this state (the splash is still up), and `SettingsRepository` is the one place that knows
             // what an unwritten row means on this device.
-            CompositionLocalProvider(LocalCurrency provides (settings?.currency ?: Currency.BYN)) {
+            CompositionLocalProvider(LocalCurrency provides (settings?.currency ?: Currency.LEGACY)) {
                 // Whether the phone counts hours to 12 or 24, asked once for every time printed below.
                 ProvideClockFormat {
                     RootSwitch(rootViewModel.routeFor(settings)) { route ->

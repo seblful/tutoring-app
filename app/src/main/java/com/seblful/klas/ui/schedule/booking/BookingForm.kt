@@ -1,6 +1,7 @@
 package com.seblful.klas.ui.schedule.booking
 
 import com.seblful.klas.data.settings.AppSettings
+import com.seblful.klas.data.settings.SettingsDefaults
 import com.seblful.klas.domain.model.ClassMode
 import com.seblful.klas.domain.model.Group
 import com.seblful.klas.domain.model.Money
@@ -11,14 +12,6 @@ import kotlinx.serialization.Serializable
 import kotlin.time.Duration.Companion.minutes
 
 /**
- * Matches `AppSettings.defaultLessonMinutes`, for the window before settings have loaded.
- *
- * Here rather than on the view model because it is the length [BookingForm] gives a lesson that has a
- * start but no length yet — a rule of the form, not of the screen holding it.
- */
-const val DEFAULT_LESSON_MINUTES = 60
-
-/**
  * What a form transition may need to know that is not in the form itself.
  *
  * These are the picker contents the view model already holds as flows. They are passed in rather than
@@ -27,7 +20,7 @@ const val DEFAULT_LESSON_MINUTES = 60
 data class BookingContext(
     val students: List<Student> = emptyList(),
     val groups: List<Group> = emptyList(),
-    val defaultLessonMinutes: Int = DEFAULT_LESSON_MINUTES,
+    val defaultLessonMinutes: Int = SettingsDefaults.LESSON_MINUTES,
 )
 
 /** Every way the booking form can change — the tutor's edits and the answers the app went to look up. */

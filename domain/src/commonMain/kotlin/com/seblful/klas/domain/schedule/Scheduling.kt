@@ -6,7 +6,7 @@ import com.seblful.klas.domain.model.Subject
 import com.seblful.klas.domain.model.TutoringClass
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.days
-import kotlin.time.Duration.Companion.seconds
+import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Instant
 
 /** Rules for composing a valid class booking. */
@@ -38,7 +38,7 @@ object Scheduling {
             require(durationMinutes > 0) { "A lesson lasts a positive number of minutes, not $durationMinutes" }
         }
 
-        val end: Instant get() = start.plus((durationMinutes * 60L).seconds)
+        val end: Instant get() = start.plus(durationMinutes.minutes)
 
         fun overlaps(other: Slot): Boolean = start < other.end && other.start < end
     }

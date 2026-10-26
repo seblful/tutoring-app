@@ -5,6 +5,7 @@ import com.seblful.klas.domain.guide.PhoneSetup
 import com.seblful.klas.domain.guide.PhoneStep
 import com.seblful.klas.domain.model.Currency
 import com.seblful.klas.domain.model.Money
+import com.seblful.klas.domain.time.MINUTES_PER_DAY
 import kotlinx.serialization.Serializable
 
 /**
@@ -62,5 +63,3 @@ internal fun BackupPreferences?.phoneSetup(): Set<PhoneStep> = this?.let {
         if (weeklyCopyOn) add(PhoneStep.WEEKLY_COPY)
     }
 } ?: PhoneSetup.UNKNOWN
-
-private const val MINUTES_PER_DAY = 24 * 60

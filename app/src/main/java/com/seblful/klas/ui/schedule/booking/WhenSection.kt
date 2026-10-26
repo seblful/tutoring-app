@@ -28,6 +28,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.seblful.klas.R
+import com.seblful.klas.data.settings.SettingsDefaults
 import com.seblful.klas.domain.schedule.DayTimeline
 import com.seblful.klas.domain.schedule.TimeConflict
 import com.seblful.klas.format.bulletJoin
@@ -124,8 +125,11 @@ private fun DayRow(state: ClassFormState, onPrevious: () -> Unit, onNext: () -> 
                 textAlign = TextAlign.Center,
             )
             state.timeline?.let { day ->
+                val minutes = state.form.durationMinutes
+                    ?: state.slot?.durationMinutes
+                    ?: SettingsDefaults.LESSON_MINUTES
                 Text(
-                    dayLine(day, state.form.durationMinutes ?: state.slot?.durationMinutes ?: DEFAULT_MINUTES),
+                    dayLine(day, minutes),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
@@ -161,8 +165,6 @@ private fun dayLine(day: DayTimeline, minutes: Int): String {
 }
 
 private const val SHOWN_WINDOWS = 3
-
-private const val DEFAULT_MINUTES = 60
 
 /**
  * The start and end in large numbers between a step earlier and a step later — see

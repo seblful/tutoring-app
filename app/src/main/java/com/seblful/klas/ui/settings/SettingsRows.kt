@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import com.seblful.klas.R
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.reminders.Digests
+import com.seblful.klas.domain.time.MINUTES_PER_HOUR
 import com.seblful.klas.format.MoneyField
 import com.seblful.klas.format.toAmountInput
 import com.seblful.klas.ui.common.ChoiceRow
@@ -124,7 +125,7 @@ internal fun TimeRow(
         TimePickerModal(
             initial = time,
             onConfirm = {
-                onSet(it.hour * 60 + it.minute)
+                onSet(it.hour * MINUTES_PER_HOUR + it.minute)
                 picking = false
             },
             onDismiss = { picking = false },

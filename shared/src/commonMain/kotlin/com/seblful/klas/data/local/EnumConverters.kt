@@ -25,7 +25,7 @@ import com.seblful.klas.domain.model.ThemeChoice
  * carries money:
  *
  * - **A mode, a currency, a language and a theme do not.** Each falls back — to [ClassMode.IN_PERSON],
- *   [Currency.BYN], [AppLanguage.SYSTEM] and [ThemeChoice.SYSTEM] — and the app carries on: one lesson
+ *   [Currency.LEGACY], [AppLanguage.SYSTEM] and [ThemeChoice.SYSTEM] — and the app carries on: one lesson
  *   reads «Очно» when it was remote, or amounts are captioned in the wrong code, which is a wrong word on a
  *   screen rather than a screen that will not open.
  * - **A payment method does not either**, and has no default to fall back to: it reads as none, as it does on
