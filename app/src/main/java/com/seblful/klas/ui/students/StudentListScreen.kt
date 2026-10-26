@@ -26,9 +26,6 @@ import com.seblful.klas.domain.model.Payment
 import com.seblful.klas.format.bulletJoin
 import com.seblful.klas.format.formatHours
 import com.seblful.klas.format.formatMonth
-import com.seblful.klas.queries.homework.AssigneeChoice
-import com.seblful.klas.queries.homework.HomeworkRow
-import com.seblful.klas.queries.students.ClassRow
 import com.seblful.klas.queries.students.LessonMonth
 import com.seblful.klas.queries.students.StudentDetails
 import com.seblful.klas.queries.students.statusTally
@@ -74,7 +71,7 @@ private fun StudentList(
     onBack: () -> Unit,
     onLessonClick: (Long) -> Unit,
 ) {
-    val history = rememberLessonHistory(state)
+    val history = rememberLessonHistory(state, viewModel.zone.collectAsStateWithLifecycle().value)
     // A value here, not a delegate the list's builder reads — see docs/ui-conventions.md.
     val now = viewModel.minute.collectAsStateWithLifecycle().value
 
@@ -135,13 +132,13 @@ private fun ShowStudentMessages(viewModel: StudentDetailViewModel, messages: Mes
 private class LessonHistory(val filters: LessonHistoryFilters, val months: List<LessonMonth>)
 
 @Composable
-private fun rememberLessonHistory(state: StudentDetails): LessonHistory {
+private fun rememberLessonHistory(state: StudentDetails, zone: TimeZone): LessonHistory {
     var kind by rememberSaveable { mutableStateOf(LessonFilter.ALL) }
     var status by rememberSaveable { mutableStateOf<LessonStatus?>(null) }
     // Filtered and cut into months here rather than in the list's builder, which runs again on every
     // scroll-driven remeasure.
-    val months = remember(state, kind, status) {
-        LessonMonth.of(state.lessonsShown(kind, status), TimeZone.currentSystemDefault())
+    val months = remember(state, kind, status, zone) {
+        LessonMonth.of(state.lessonsShown(kind, status), zone)
     }
     return LessonHistory(LessonHistoryFilters(kind, { kind = it }, status) { status = it }, months)
 }

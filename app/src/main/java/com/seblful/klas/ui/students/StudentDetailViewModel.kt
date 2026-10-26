@@ -12,7 +12,6 @@ import com.seblful.klas.data.people.StudentRepository
 import com.seblful.klas.di.ApplicationScope
 import com.seblful.klas.di.Computation
 import com.seblful.klas.domain.model.Assignee
-import com.seblful.klas.domain.model.ClassMode
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Payment
 import com.seblful.klas.domain.model.PaymentMethod
@@ -20,6 +19,7 @@ import com.seblful.klas.domain.model.Student
 import com.seblful.klas.domain.time.WallClock
 import com.seblful.klas.domain.time.today
 import com.seblful.klas.format.minutes
+import com.seblful.klas.format.zones
 import com.seblful.klas.lessons.ArchiveChange
 import com.seblful.klas.lessons.LessonChanges
 import com.seblful.klas.print.Sheet
@@ -51,6 +51,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
 import kotlin.time.Instant
 
 /** The student's card. */
@@ -137,6 +138,9 @@ class StudentDetailViewModel @AssistedInject constructor(
      * not «Запланировано». See `lessonBadgeLabel`.
      */
     val minute: StateFlow<Instant> = clock.minutes().derive(this, computation, clock.now())
+
+    /** The zone the lesson history is cut into months in; a timezone change regroups it. */
+    val zone: StateFlow<TimeZone> = clock.zones().derive(this, computation, clock.zone)
 
     /** Prints [sheet] — the statement — and hands it to another app as [filename], through the share sheet. */
     fun shareStatement(filename: String, subject: String, sheet: Sheet) {

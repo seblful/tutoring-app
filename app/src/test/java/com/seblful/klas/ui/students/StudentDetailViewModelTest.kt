@@ -4,12 +4,9 @@ import com.seblful.klas.data.people.StudentSubjectCrossRef
 import com.seblful.klas.data.toDomain
 import com.seblful.klas.domain.homework.HomeworkRules
 import com.seblful.klas.domain.model.Assignee
-import com.seblful.klas.domain.model.ClassMode
-import com.seblful.klas.domain.model.Currency
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Payment
-import com.seblful.klas.domain.people.Phone
 import com.seblful.klas.print.Sheet
 import com.seblful.klas.queries.homework.AssigneeChoice
 import com.seblful.klas.testutil.current
@@ -40,6 +37,15 @@ import kotlin.time.Instant
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
 class StudentDetailViewModelTest : StudentDetailTestFixture() {
+
+    @Test
+    fun `the lesson history is cut into months in the clock's zone, not the system's`() = runTest(mainRule.dispatcher) {
+        val vm = vm(seedStudent())
+        observing(vm.zone)
+        runCurrent()
+
+        assertEquals(zone, vm.zone.value)
+    }
 
     @Test
     fun `addSubject links and prices the subject together`() = runTest(mainRule.dispatcher) {
