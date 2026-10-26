@@ -1,5 +1,6 @@
 package com.seblful.klas.preview
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -7,12 +8,15 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.layout
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.offset
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.TickedMenuItem
@@ -29,6 +33,7 @@ import com.seblful.klas.ui.designsystem.component.FilterOption
 import com.seblful.klas.ui.designsystem.component.FormBar
 import com.seblful.klas.ui.designsystem.component.FormSaveBar
 import com.seblful.klas.ui.designsystem.component.HeaderedCard
+import com.seblful.klas.ui.designsystem.component.InkCentredText
 import com.seblful.klas.ui.designsystem.component.KlasButton
 import com.seblful.klas.ui.designsystem.component.KlasDivider
 import com.seblful.klas.ui.designsystem.component.KlasFab
@@ -101,6 +106,18 @@ private fun Actions() {
         // At 1.5× text the expanded one folds to its icon too: the label would not fit beside a long list.
         Captioned("Expanded") { KlasFab("Book", onClick = {}) }
         Captioned("Scrolled") { KlasFab("Book", onClick = {}, expanded = false) }
+    }
+    // Day numbers, centred by their ink: «1» and «28» sit alike in their discs.
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sectionGap)) {
+        listOf("1", "14", "28").forEach { day ->
+            Box(
+                Modifier.size(DayDisc).background(MaterialTheme.colorScheme.primary, CircleShape),
+                contentAlignment = Alignment.Center,
+            ) {
+                val ink = MaterialTheme.colorScheme.onPrimary
+                InkCentredText(day, MaterialTheme.typography.bodyMedium, color = { ink })
+            }
+        }
     }
     FilterBar(
         listOf(FilterOption("Owes · 3", selected = true, onClick = {}), FilterOption("Archived", false, {})),
@@ -195,6 +212,8 @@ private fun Captioned(caption: String, content: @Composable () -> Unit) {
         Text(caption, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
+
+private val DayDisc = 28.dp
 
 /** The kinds drawn as a word alone, with no container. */
 private val TextKinds = listOf(ButtonKind.Text, ButtonKind.Quiet, ButtonKind.Destructive)

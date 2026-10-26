@@ -56,7 +56,8 @@ Build screens from shared state and controls. Feature rules belong in the domain
   `RowStart`/`RowEnd`, so a row leads with an icon or the mark-done button and nothing of its own making,
   and has one trailing thing: an `Amount`, a value, a chevron, a switch or one named icon action), `Amount` (an `AmountText` worded with its meaning), `HeaderedCard` (title, count or
   summary and one `SectionAction` inside the card), `KlasButton` (`ButtonKind`), `KlasFab` (labelled,
-  icon-only from 1.5× text, named once for TalkBack), `KlasDivider`, `FormDialog`/`ChoiceDialog`,
+  icon-only from 1.5× text, named once for TalkBack), `InkCentredText` (a number in a disc, centred by its
+  drawn glyphs: a centred line box held Golos's figures low and left), `KlasDivider`, `FormDialog`/`ChoiceDialog`,
   `AccentCard` and `KlasSheet`. detekt's `ForbiddenImport` keeps the Material components they wrap out
   of features; a wrapper file says `@file:Suppress("ForbiddenImport")` and why. New lists use `KlasRow`;
   older ones move to it one list per change, reviewed in the goldens.

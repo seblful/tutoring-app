@@ -11,10 +11,10 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.text.BasicText
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -36,6 +36,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.seblful.klas.R
 import com.seblful.klas.domain.schedule.CalendarLayout
@@ -50,6 +51,7 @@ import com.seblful.klas.ui.common.rememberPlaceholderShown
 import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.common.state.map
 import com.seblful.klas.ui.common.state.valueOrNull
+import com.seblful.klas.ui.designsystem.component.InkCentredText
 import com.seblful.klas.ui.theme.KlasMotion
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
@@ -71,8 +73,11 @@ private const val DiscToLineHeight = 1.4f
 private val TallyRowHeight = 16.dp
 
 private val TallySpacing = Spacing.tight
-// Disc, gap and tallies: 28 + 4 + 16, the 48 dp a cell is.
-private val DiscToTally = Spacing.tight
+/**
+ * How far a day's tallies tuck up into the empty foot of its disc. With a gap below the disc instead,
+ * they sat nearer the next week's number than their own and read as its.
+ */
+private val TallyTuck = 2.dp
 
 private val TallyPlaceholderWidth = 10.dp
 private val TallyPlaceholderHeight = 4.dp
@@ -227,10 +232,7 @@ private fun DayCell(
             },
         contentAlignment = Alignment.Center,
     ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(DiscToTally),
-        ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Box(
                 Modifier
                     .size(discSize)
@@ -248,23 +250,27 @@ private fun DayCell(
                     .indication(interactionSource, ripple(color = numberColor)),
                 contentAlignment = Alignment.Center,
             ) {
-                BasicText(
+                InkCentredText(
                     text = date.day.toString(),
                     style = MaterialTheme.typography.bodyMedium,
                     color = { ink.value },
                 )
             }
-            DayTallies(load, placeholderShown)
+            DayTallies(load, placeholderShown, Modifier.offset { IntOffset(0, -TallyTuck.roundToPx()) })
         }
     }
 }
 
 @Composable
-private fun DayTallies(load: Loadable<CalendarLayout.DayLoad?>, placeholderShown: State<Boolean>) {
+private fun DayTallies(
+    load: Loadable<CalendarLayout.DayLoad?>,
+    placeholderShown: State<Boolean>,
+    modifier: Modifier = Modifier,
+) {
     if (load is Loadable.Loading) {
         val placeholderTint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = TallyPlaceholderAlpha)
         Row(
-            Modifier.fillMaxWidth().heightIn(min = TallyRowHeight),
+            modifier.fillMaxWidth().heightIn(min = TallyRowHeight),
             horizontalArrangement = Arrangement.spacedBy(TallySpacing, Alignment.CenterHorizontally),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -282,7 +288,7 @@ private fun DayTallies(load: Loadable<CalendarLayout.DayLoad?>, placeholderShown
         // two-digit tallies at a large font scale measured wider than a seventh of a phone and drew
         // over the neighbouring day. Centred within the cell, so a one-tally day still sits under its
         // own number.
-        Modifier.fillMaxWidth().heightIn(min = TallyRowHeight),
+        modifier.fillMaxWidth().heightIn(min = TallyRowHeight),
         horizontalArrangement = Arrangement.spacedBy(TallySpacing, Alignment.CenterHorizontally),
         verticalAlignment = Alignment.CenterVertically,
     ) {
