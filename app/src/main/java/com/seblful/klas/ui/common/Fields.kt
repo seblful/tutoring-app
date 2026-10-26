@@ -163,9 +163,8 @@ fun <T> ChoiceField(
  *
  * @param items the menu's contents, given the [dismiss] that closes it — a menu item that selects
  * without closing would leave the tutor tapping outside to get rid of it.
- * @param supportingText what qualifies the choice, in the field's own slot. The group form used to put
- * this in a standalone `Text` under the subject picker while the rate field beside it used its own
- * `supportingText` — 20 dp apart, indented differently, on the same form.
+ * @param supportingText what qualifies the choice, in the field's own slot, so it is spaced and indented
+ * like the neighbouring fields' rather than as a standalone `Text` under the picker.
  * @param isError whether that supporting line is a **refusal** rather than a note. It has to be
  * separable: the booking form's subject picker says either «Предмет задан группой» (a fact) or «У
  * ученика нет предметов с ценой» (the reason nothing can be saved), and folding those two into one
@@ -228,9 +227,9 @@ internal fun MenuField(
  *
  * Drawn by the outlined text field's own decoration, so it is the same field as the dropdowns and the
  * money input beside it: the label sits inside while there is no value and floats into the border once
- * there is one. It was a box of its own with the label always on top, which put two kinds of field on
- * the booking form, a few dp apart, that did not even space alike. It never takes focus — a picker
- * opens instead — so it never wears the accent outline of a field being typed into.
+ * there is one, so two kinds of field never sit a few dp apart on a form spaced unlike each other. It
+ * never takes focus — a picker opens instead — so it never wears the accent outline of a field being
+ * typed into.
  */
 @Composable
 fun PickerField(

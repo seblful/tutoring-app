@@ -34,9 +34,8 @@ class EnrollmentRepository @Inject constructor(
     private val students: StudentRepository,
 ) {
     // ---- Reads ---------------------------------------------------------------------------------
-    // Prices are read here rather than from a repository of their own. There was one, and every
-    // method on it was `dao.x().map { it.toDomain() }` — so the fact a student's subjects *are*
-    // their priced subjects was written here while the way to look it up lived somewhere else.
+    // Prices are read here rather than from a repository of their own: a student's subjects *are*
+    // their priced subjects, so the way to look them up lives beside the rule that says so.
 
     /** The student's priced subjects — which is to say, the subjects they take. */
     fun observePricesFor(studentId: Long): Flow<List<Price>> =

@@ -18,7 +18,8 @@ object Scheduling {
      * The span is **half-open** — [end] is the first instant that is free again — so two lessons back
      * to back, one ending exactly as the next starts, do not collide.
      *
-     * A slot must have a **positive** length, and this is the one place in the app that insists on it.
+     * A slot must have a **positive** length; this constructor enforces it for every caller, as
+     * `SessionEdit`, `ClassRepository.bookSeries` and `BackupIntegrity` do at their own boundaries.
      * The reason is that [overlaps] stops being a coherent question otherwise. A zero-length slot has
      * `end == start`, so it collides with a lesson that strictly *contains* it (10:30 inside 10:00–11:00)
      * but **not** with one starting at the same instant (10:00 against 10:00–11:00) — the half-open
@@ -91,10 +92,8 @@ object Scheduling {
      * The union of the per-slot windows is a superset of each, and [conflicts] applies the real overlap
      * test to every one, so handing it more classes than a given slot needs is the safe direction.
      *
-     * Here rather than at the call site because that is where [windowFor]'s single-slot shape was being
-     * restated by hand — and restated on the **write** path, so every booking in the app checked its hour
-     * against a hand-rolled window while only the read path used the tested one. They agreed on the
-     * figure; what they did not share was the shape, which is the half a later change would break.
+     * Here rather than at the call site so the **write** path checks its hour against the same tested
+     * window shape as the read path, not a hand-rolled copy that could drift from it.
      */
     fun windowFor(slots: List<Slot>): Window {
         require(slots.isNotEmpty()) { "A window covers at least one slot" }

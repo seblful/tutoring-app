@@ -56,10 +56,8 @@ object GroupRules {
      * Filtered out of [everyone] rather than concatenated, so the union keeps the caller's name ordering
      * instead of listing the strays at the end.
      *
-     * This set algebra was spelled five times inside one view model — twice as a flow, twice as a
-     * suspend read, once as its complement — while every other roster rule lived here. Two of the copies
-     * had already drifted: one applied [bookableMembers] to a list that was already active-only, so the
-     * archiving half of the rule was really being applied at exactly one of them.
+     * Callers use this rather than re-spelling the set algebra, so the archiving half of the rule is
+     * applied the same way everywhere.
      */
     fun offeredRoster(
         everyone: List<Student>,

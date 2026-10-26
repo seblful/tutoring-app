@@ -44,8 +44,8 @@ class RestoreViewModel @Inject constructor(
     private val _importing = MutableStateFlow(false)
 
     /**
-     * Whether a restore is under way. A large one takes seconds, and a screen with nothing moving read as
-     * a tap that had not taken — so the tutor pressed back, or tapped «Импорт» again.
+     * Whether a restore is under way. A large one takes seconds, and a screen with nothing moving reads as
+     * a tap that had not taken — so the tutor presses back, or taps «Импорт» again.
      */
     val importing: StateFlow<Boolean> = _importing.asStateFlow()
 

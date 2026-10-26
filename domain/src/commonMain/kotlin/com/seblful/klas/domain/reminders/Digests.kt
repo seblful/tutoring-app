@@ -68,8 +68,9 @@ object Digests {
      *
      * The parameters are the settings fields rather than the settings object, on the rule that keeps this
      * package free of Android and of the data layer (`Reminders.plan` takes a lead and a horizon the same
-     * way). It is eight of them because that is genuinely how many facts decide this; naming them at the
-     * call site is what stops the three minutes-past-midnight values being passed in each other's place.
+     * way). Seven of the nine are settings fields, because that is how many facts decide this; naming them
+     * at the call site is what stops the three minutes-past-midnight values being passed in each other's
+     * place.
      */
     fun plan(
         now: Instant,
@@ -94,18 +95,15 @@ object Digests {
     )
 
     /**
-     * How long from [now] until [at] — what an adapter arranging a [Plan] has to hand its platform, and
-     * therefore the last piece of *when* that was living outside this module.
+     * How long from [now] until [at] — what an adapter arranging a [Plan] has to hand its platform.
      *
      * **Clamped at zero**, which is a decision rather than defensiveness: an instant already past means
      * "this one is due now". [plan] cannot produce one (it only ever looks forward), but a caller acting on
      * a plan it read some moments ago can, and a negative delay is not a thing to hand a scheduler.
      *
-     * It exists because the alternative was the adapter computing `(at - (Instant.now()))` —
-     * a **second clock read**, some moments after the one the plan was decided from, and the exact mistake
-     * `Plan` carries instants to avoid (see the class KDoc, and `Reminders.Plan.fireAt`). That read was
-     * also the app's only remaining `Instant.now()`, which is to say the one place the shipped path could
-     * not be the tested one.
+     * It exists so the adapter never computes the delay from a **second clock read**, some moments after
+     * the one the plan was decided from — the mistake `Plan` carries instants to avoid (see the class KDoc,
+     * and `Reminders.Plan.fireAt`).
      */
     fun delayUntil(at: Instant, now: Instant): Duration =
         (at - now).coerceAtLeast(Duration.ZERO)
@@ -115,17 +113,15 @@ object Digests {
      * and replaced by [planned] — the "a digest may be late" rule, stated where the rest of *when* lives.
      *
      * True exactly when the arrangement is **due and has not happened yet** (at or before [now]) and the
-     * plan has merely rolled past it. That is the whole of it, and it is the case the app was getting
-     * wrong: [plan] looks strictly forward, and [Maintenance] re-plans on every app start, every thirty
-     * minutes, after a reboot and behind every write — so a 09:00 agenda that WorkManager had not run yet
-     * at 09:12 (Doze, or a restricted battery bucket) was re-planned for *tomorrow*, and the policy that
-     * applies a new plan cancelled the pending run on its way. Today's agenda then never arrived, nothing
-     * recorded that it was owed, and the most likely trigger was the tutor opening the app. For the debt
-     * digest it lost a whole week.
+     * plan has merely rolled past it. [plan] looks strictly forward, and `Maintenance` re-plans on every
+     * app start, every six hours, after a reboot and behind every write — so a 09:00 agenda that WorkManager
+     * had not run yet at 09:12 (Doze, or a restricted battery bucket) would be re-planned for *tomorrow*,
+     * and the policy that applies a new plan would cancel the pending run on its way. Today's agenda would
+     * never arrive and nothing would record that it was owed; for the debt digest it would cost a whole
+     * week.
      *
-     * That inverts this module's own argument. These are workers precisely because «сегодня 4 занятия» is
-     * still true at twenty past; turning *late* into *never* is the one outcome the choice was made to
-     * avoid.
+     * Turning *late* into *never* is the one outcome that choosing workers over alarms was meant to avoid,
+     * since «сегодня 4 занятия» is still true at twenty past.
      *
      * Two consequences worth stating, because both are deliberate:
      * - **Switching a digest off still cancels a due one.** [planned] is null then, so this is false.
@@ -140,15 +136,11 @@ object Digests {
     /**
      * What should become of one digest's arrangement — the whole of the decision, in one value.
      *
-     * The scheduler adapter used to make three of these calls itself, under a KDoc asserting that
-     * "**nothing here is a decision**": that a null instant means *take down what is enqueued*, that
-     * [stillOwed] means *do not touch it*, and — implicitly, by being the only remaining path — that
-     * anything else is a re-enqueue. Two of those three are the branches that have already produced a
-     * defect (see [stillOwed]), and none of them had a test, because the module they lived in is 160 lines
-     * of WorkManager that no JVM test can reach.
-     *
-     * They are named here instead. The adapter is left with a `when` that turns each answer into the
-     * platform call for it and decides nothing.
+     * The three answers — a null instant means *take down what is enqueued*, [stillOwed] means *do not
+     * touch it*, anything else is a re-enqueue — are named here rather than in the scheduler adapter,
+     * because the adapter is WorkManager code that no JVM test can reach and two of the branches have
+     * already produced a defect (see [stillOwed]). The adapter is left with a `when` that turns each answer
+     * into the platform call for it and decides nothing.
      *
      * @param planned when this digest should next fire, or null when it is switched off.
      * @param arranged when the run already enqueued is next due, or null when nothing is waiting. Only
@@ -190,8 +182,7 @@ object Digests {
          * Replace what is enqueued with a run in [delay], repeating every [every].
          *
          * A delay rather than an instant because that is what a scheduler takes, and it is computed here
-         * from the one clock read the caller made — the adapter reading its own `Instant.now()` a few
-         * moments later was the mistake [delayUntil] exists to prevent.
+         * from the one clock read the caller made — see [delayUntil].
          */
         data class Enqueue(val delay: Duration, val every: Duration) : Arrangement
     }
@@ -273,8 +264,7 @@ object Digests {
      * "Unfinished" is [LessonPhase.OVERDUE] — finished and still `SCHEDULED` — which is the same question
      * auto-completion asks (`ClassRules.shouldAutoComplete`). The two are the app's two answers to it: with
      * auto-completion on the app assumes the lesson happened and bills it, and with it off the lesson sits
-     * there being neither taught nor called off, which is money the reports do not yet know about. Until
-     * now nothing ever mentioned that; the tutor had to notice.
+     * there being neither taught nor called off, which is money the reports do not yet know about.
      *
      * **A count and the lessons, not a summary.** [Agenda] prints `DaySummary` because the morning
      * question is "how big is today"; this one is a to-do list, and a total of what the day *would* come

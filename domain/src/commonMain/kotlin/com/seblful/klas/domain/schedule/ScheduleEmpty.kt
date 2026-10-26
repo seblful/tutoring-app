@@ -3,13 +3,10 @@ package com.seblful.klas.domain.schedule
 /**
  * **Why the schedule has nothing to show** — and therefore what, if anything, to offer instead.
  *
- * One answer for every view, because the two that ask were answering it separately and had already
- * drifted: the day and month views weighed three cases and the week view two, so a tutor with no students
- * met «Добавить ученика» on «День» and a dead end on «Неделя». An empty list carrying no way out of
- * itself is the defect `EmptyState` exists to prevent, and it was shipping on one of the app's three
- * busiest surfaces.
- *
- * Both copies lived in composables, so neither could be tested; this can be, and is.
+ * One answer for every view, so the views cannot drift apart — a tutor with no students must meet
+ * «Добавить ученика» on «День» and «Неделя» alike, never a dead end on one of them. An empty list
+ * carrying no way out of itself is the defect `EmptyState` exists to prevent. Decided here rather than
+ * in composables so it can be tested.
  */
 enum class ScheduleEmpty {
     /**
@@ -33,7 +30,7 @@ enum class ScheduleEmpty {
     ;
 
     companion object {
-        /** @param filtered whether the schedule is narrowed to one student — see `StudentFilter` in the schedule. */
+        /** @param filtered whether the schedule is narrowed to one student or group — see `ScheduleWho`. */
         fun of(filtered: Boolean, canAddClass: Boolean): ScheduleEmpty = when {
             filtered -> FILTERED
             canAddClass -> QUIET

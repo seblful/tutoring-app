@@ -216,8 +216,7 @@ class SettingsRepository @Inject constructor(
             themeMode = themeMode,
             dynamicColorEnabled = dynamicColorEnabled,
             defaultLessonMinutes = defaultLessonMinutes,
-            // The column's 0-means-not-set sentinel is spelled here, at the row's edge, once —
-            // it used to be restated by every reader of the raw minor units.
+            // The column's 0-means-not-set sentinel is spelled here, at the row's edge, once.
             defaultGroupPrice = Money(defaultGroupPriceMinor).takeIf { defaultGroupPriceMinor != 0L },
             currency = currency,
             language = language,

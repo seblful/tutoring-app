@@ -32,8 +32,6 @@ class ReminderReceiver : BroadcastReceiver() {
         context.appGraph.inject(this)
         if (intent.action != ACTION_REMIND) return
         // Which ids are real is `TrayNavigation`'s, not this receiver's — see [TrayNavigation.lessonIdOrNull].
-        // This used to read a `-1L` default and refuse `< 0`, so lesson **zero** passed the guard here and
-        // was refused one layer up: two rules for one question, in the place a notification arrives.
         val classId = TrayNavigation.lessonIdOrNull(intent.getLongExtra(TrayNavigation.EXTRA_CLASS_ID, 0L))
             ?: return
 

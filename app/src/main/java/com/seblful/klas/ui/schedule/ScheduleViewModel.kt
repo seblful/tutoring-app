@@ -259,9 +259,9 @@ class ScheduleViewModel @Inject constructor(
                 }
                 if (range == null) {
                     // The day view draws no calendar, so it queries none — and says **Loading** rather
-                    // than "no markers", which is a claim about a month nobody asked it about. That claim
-                    // used to survive the switch back: `Ready(emptyMap())` from the day view was still
-                    // there when «Месяц» re-appeared, so the grid drew a free month for a frame.
+                    // than "no markers", which is a claim about a month nobody asked it about: a
+                    // `Ready(emptyMap())` would still be there when «Месяц» re-appears, and the grid
+                    // would draw a free month for a frame.
                     flowOf(Loadable.Loading)
                 } else {
                     val bounds = DayBounds.of(range.first, range.second, zone)
@@ -325,9 +325,8 @@ class ScheduleViewModel @Inject constructor(
                     // a week that does not hold it, and a day's heading names the day its content carries.
                     .readyOrLoadingAfter()
             }
-            // `ScheduleContent.Day(emptyList())` used to be the initial value, which is a *day with
-            // no lessons* — so a cold open drew «Нет занятий» over the tutor's actual morning, with
-            // the book-a-lesson button under it, until the query returned. See [Loadable].
+            // Starts as Loading, never an empty week: an empty week is *no lessons*, and a cold open would
+            // draw «Нет занятий» over the tutor's actual morning until the query returned. See [Loadable].
             .derive(this, computation, Loadable.Loading)
 
     /**

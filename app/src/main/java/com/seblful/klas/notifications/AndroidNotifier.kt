@@ -111,9 +111,8 @@ class AndroidNotifier @Inject constructor(
         if (!mayPost()) return
 
         // 12- or 24-hour from the phone, like every other time the tutor is shown. A reminder is read
-        // *on* the phone — it is only "not a screen" in the sense that this class draws it, and the
-        // first pass at following the system clock drew the line there and missed this. A lesson booked
-        // at 9:00 PM was announced as «21:00»: one clock to set it on and another to be reminded of it.
+        // *on* the phone, so a lesson booked at 9:00 PM must not be announced as «21:00»: one clock to
+        // set it on and another to be reminded of it.
         val time = klass.start.formatTime(hour12 = hour12(), locale = displayLocale.current)
         val headline = bulletJoin(time, subjectName, whoName)
         // In the expanded text only: the collapsed line stays the lesson, which is what the tray is sorted by

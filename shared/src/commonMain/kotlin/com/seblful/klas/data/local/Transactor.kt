@@ -31,7 +31,7 @@ interface Transactor {
  * connection in their coroutine context and join it.
  *
  * Not `withTransaction`: that one is built on `SupportSQLiteDatabase.beginTransaction` and throws
- * outright once a `SQLiteDriver` is set — which the app does (`di/DatabaseModule`, the bundled driver),
+ * outright once a `SQLiteDriver` is set — which the app does (`buildDatabase`, the bundled driver),
  * and the JVM tests with it (`testutil/TestDatabase`). `useWriterConnection` + `immediateTransaction` is
  * Room's driver-era form, the one that also compiles for iOS.
  */

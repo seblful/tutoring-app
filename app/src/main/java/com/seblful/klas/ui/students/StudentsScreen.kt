@@ -132,8 +132,8 @@ internal fun StudentCard(
         selected = selected,
         position = position,
     ) {
-        // Only a balance that is something — a debt or a credit. «Нет задолженности» on most rows was the same
-        // news repeated, and it drowned out the rows that differ.
+        // Only a balance that is something — a debt or a credit. «Нет задолженности» on most rows would be the same
+        // news repeated, drowning out the rows that differ.
         Row(horizontalArrangement = Arrangement.spacedBy(Spacing.inline)) {
             if (row.student.archived) ArchivedBadge(Modifier.alignByBaseline())
             if (row.state != Balance.Settled) {

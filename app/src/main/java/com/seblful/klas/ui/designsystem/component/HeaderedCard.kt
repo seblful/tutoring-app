@@ -23,8 +23,7 @@ import com.seblful.klas.ui.common.sectionSurface
 
 /**
  * A section **with its header inside the card**: the title (a heading for TalkBack), then a count or summary,
- * then at most one text action. This replaces headers drawn above cards in some places and titles without
- * counts in others.
+ * then at most one text action.
  */
 @Composable
 fun HeaderedCard(

@@ -88,8 +88,8 @@ class SubjectRepository @Inject constructor(
 
         /**
          * Refused: a student takes it, with no lesson in it yet. Their price for it cascades with the
-         * subject, so the delete used to succeed and quietly take the subject off the student — for one
-         * whose only subject it was, leaving a student nothing could be booked for.
+         * subject, so deleting would quietly take the subject off the student — for one whose only
+         * subject it was, leaving a student nothing could be booked for.
          */
         data object TakenByStudents : Delete
     }

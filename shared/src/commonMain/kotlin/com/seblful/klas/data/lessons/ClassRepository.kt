@@ -47,7 +47,8 @@ sealed interface LessonWrite<out T> {
 
     /**
      * The written value, insisting the hour was free — for a caller that has already made a clash
-     * impossible (a fixture booking into an empty hour), never for the app, which words the refusal.
+     * impossible (a fixture booking into an empty hour, or [ClassRepository.complete], which only completes
+     * a lesson that already holds its hour), never for one that has to word the refusal.
      */
     fun written(): T = when (this) {
         is Written -> value
@@ -164,9 +165,9 @@ class ClassRepository @Inject constructor(
     suspend fun getAll(): List<TutoringClass> = dao.getAll().map { it.toDomain() }
 
     /**
-     * The whole lesson [classId] belongs to: its group's classes at that start time, or just the one
-     * class when it is individual. Editing a group lesson starts here, so the form always works from
-     * every member's class rather than from whichever one the tutor happened to tap.
+     * The whole lesson [classId] belongs to: every class sharing its lesson id — the group's members, or
+     * the one class of an individual lesson. Editing a group lesson starts here, so the form always works
+     * from every member's class rather than from whichever one the tutor happened to tap.
      */
     suspend fun getSessionFor(classId: Long): ClassSession? {
         val klass = dao.getById(classId)?.toDomain() ?: return null
@@ -178,12 +179,11 @@ class ClassRepository @Inject constructor(
     // "Is anything still taught here?" — asked by whoever is about to remove the thing being pointed
     // at. It is a question about classes, so it is answered here.
     //
-    // Three repositories used to ask the database instead, each injecting [ClassDao] for a single
-    // `countFor*` and nothing else. That handed the whole class table — including `deleteAll` — to
-    // three modules that only wanted a yes or no, and it put the reason for the refusal ("those
-    // classes are billed history and must keep referencing this") in the module doing the deleting
-    // rather than the module that knows it. It also let the answers drift: each caller wrote its own
-    // `> 0`, and a count is not what any of them wanted.
+    // Callers do not inject [ClassDao] for a single `countFor*`: that would hand the whole class table —
+    // including `deleteAll` — to modules that only want a yes or no, put the reason for the refusal
+    // ("those classes are billed history and must keep referencing this") in the module doing the
+    // deleting rather than the module that knows it, and let each caller write its own `> 0` when a
+    // count is not what any of them wants.
 
     /** Whether any class is taught on [subjectId] — the guard behind deleting a subject. */
     suspend fun anyForSubject(subjectId: Long): Boolean = lessons.countForSubject(subjectId) > 0
@@ -211,12 +211,12 @@ class ClassRepository @Inject constructor(
 
     // ---- Writes --------------------------------------------------------------------------------
     // Every write below takes a **lesson**, never a bare class. A group lesson is n classes sharing a
-    // group id and a start; an individual class is the same thing with one member ([ClassSession.of]).
+    // lesson row; an individual class is the same thing with one member ([ClassSession.of]).
     // Treating them as one shape means there is a single implementation per operation instead of a
     // single-class form and a batch form drifting apart.
     //
-    // Every one of them also goes through [write], which is the three phases themselves — so what
-    // follows is a statement about that function, not a convention each write below has to remember.
+    // Every one of them also goes through [write], which owns the order — so it is a property of that
+    // function, not a convention each write below has to remember.
 
     private class Committed<T>(
         val value: T,
@@ -228,8 +228,11 @@ class ClassRepository @Inject constructor(
     }
 
     /**
-     * The three phases of a lesson write, in the one order they may happen in:
+     * A lesson write in the one order it may happen: the pure rules have already run in `:domain`; [rows]
+     * writes the database in one transaction; the calendar and reminders follow only after it commits.
      *
+     * @param holding for an undoable write: the receipts of the lessons whose calendar mirror waits for
+     * [settle] or [undo] instead of being mirrored at once.
      * @param refreshesReminders false only where the caller owns what follows — see [autoCompleteDue],
      * whose caller re-derives the plan itself. Opting out is an argument here rather than a missing
      * line there, so it has to be justified at the point it is taken.
@@ -247,7 +250,7 @@ class ClassRepository @Inject constructor(
             // receipt holds its lesson, so only what can be settled or undone is held.
             holding(written.value).forEach { hold(it) }
         } else {
-            // Leavers' events go before the survivors are mirrored, mirroring the row order inside (2).
+            // Leavers' events go before the survivors are mirrored, as their rows do inside the transaction.
             written.drop.forEach { calendar.drop(it) }
             // Deleted lessons can move homework onto a surviving lesson's invitation.
             calendar.mirror(written.mirror, removed = written.drop)
@@ -483,8 +486,6 @@ class ClassRepository @Inject constructor(
         roster: Set<Long>? = null,
     ): LessonWrite<List<TutoringClass>> {
         // The rules are one call, and the sequence they compose in is theirs — see [SessionRules.lessonEdit].
-        // This used to assemble three of them here and read the lesson's own new fields out of the
-        // surviving classes, which is how swapping a roster whole kept the lesson at its old time.
         // Leavers are dropped inside the same transaction as the edit, which is what stops a member being
         // billed on their way out: the delete and the re-bill cannot half-happen.
         return write {
@@ -630,7 +631,7 @@ class ClassRepository @Inject constructor(
      */
     suspend fun delete(session: ClassSession) = write {
         // The lesson row, and its students go with it — `attendance.lessonId` is ON DELETE CASCADE, the
-        // lesson being the unit of deletion. Deleting per class was the only way to say this before.
+        // lesson being the unit of deletion.
         lessons.deleteById(session.lessonId)
         Committed(Unit, drop = session.classes)
     }
@@ -639,9 +640,8 @@ class ClassRepository @Inject constructor(
         // Leavers go first, so the updates below have nobody left to re-bill on their way out.
         edit.dropped.forEach { attendance.deleteById(it.id) }
         // The lesson's own row **once**, and from the edit's own statement of it rather than from
-        // whichever class happens to be first in the list — a roster swapped whole leaves that list empty
-        // and used to leave the lesson at its old time. Writing it per class is what stored a status n
-        // times and let the copies drift.
+        // whichever class happens to be first in the list — a roster swapped whole leaves that list empty.
+        // Writing it per class would store a status n times and let the copies drift.
         rewrite(lesson = edit.lesson, classes = edit.updated)
         val joined = edit.joining.map { ClassRules.rebill(it) }.map { klass ->
             klass.copy(id = attendance.upsert(klass.toAttendanceEntity()))
@@ -682,9 +682,8 @@ class ClassRepository @Inject constructor(
 
     private suspend fun cancelRowsFor(studentId: Long): List<TutoringClass> {
         val theirs = dao.scheduledForStudent(studentId).map { it.toDomain() }
-        // Their own lessons are called off; a group's is not, because it goes ahead without them. That
-        // distinction is what the split makes expressible: before, both were "cancel their class",
-        // which left the group lesson holding a cancelled member and no status of its own.
+        // Their own lessons are called off; a group's is not, because it goes ahead without them — they
+        // are marked absent, so the group lesson never holds a cancelled member and no status of its own.
         val (mine, groups) = theirs.partition { it.groupId == null }
         val cancelled = mine.map { ClassRules.applyStatus(it, LessonStatus.CANCELLED) }
         val excused = groups.map { ClassRules.applyAttendance(it, Attended.ABSENT) }
@@ -740,8 +739,7 @@ class ClassRepository @Inject constructor(
      */
     suspend fun autoCompleteDue(now: Instant): List<TutoringClass> {
         // Asked of the lessons, then read back as classes: a lesson is what finishes, and its members are
-        // who it bills. `dueForCompletion` used to return a row per member of the same finished hour.
-        // The cheap question first, outside a transaction, so a pass with nothing due opens none.
+        // who it bills. The cheap question first, outside a transaction, so a pass with nothing due opens none.
         if (lessons.countDueForCompletion(now.toEpochMilliseconds()) == 0) return emptyList()
         // One pass, one transaction: an upkeep run that recognized half of an evening's income and
         // then failed would leave a group lesson billing some of its members and not the rest. The rows

@@ -72,7 +72,7 @@ class ReportsViewModel @Inject constructor(
     val state: StateFlow<Loadable<Reports.Report>> = reports.observe(_period, _scope)
         .ready()
         // The heaviest derivation in the app — every class against every payment and every student,
-        // re-run on each write anywhere — and it used to run on the main thread. See [Computation].
+        // re-run on each write anywhere — so it runs off the main thread. See [Computation].
         .derive(this, computation, Loadable.Loading)
 
     /** Reads the same period at another width, keeping where the tutor was looking. */

@@ -170,7 +170,7 @@ private fun StudentCard(
         actions = {
             // Booking is the next lesson's «+», in the card it books into.
             NamedIconButton(KlasIcons.Outlined.Edit, stringResource(R.string.action_edit), onClick = navigation.edit)
-            // Archiving is behind the overflow: as a bare text button in the bar it put the most consequential
+            // Archiving is behind the overflow: as a bare text button in the bar it would put the most consequential
             // thing on the screen beside the pencil, next to a name that had to ellipsize to make room for it.
             if (student != null) {
                 StudentOverflowMenu(

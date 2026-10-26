@@ -93,8 +93,8 @@ object Routes {
 
     /**
      * A group's **card** — who is in it, what it has been taught, what its rate has been. Editing it
-     * is [GroupEdit], reached from the card's pencil: tapping a group used to open the form directly,
-     * which answered how to change a group and nothing about how one is going.
+     * is [GroupEdit], reached from the card's pencil: tapping a group answers how one is going, not how
+     * to change it.
      */
     @Serializable
     data class GroupDetail(val id: Long, val setHomework: Boolean = false) : Route
@@ -132,17 +132,15 @@ object Routes {
 /**
  * The top-level tabs of the bottom bar, **in the order they appear**: the working day first («Сегодня», where
  * the app opens), then the week around it («Расписание»), then who is taught («Люди»), what they were set
- * («Задания») and the money («Отчёты»). Settings — with the subjects, the backup and the app's own pages that
- * «Ещё» used to hold — is the gear on every tab's bar, not a tab: it is visited, not worked in.
+ * («Задания») and the money («Отчёты»). Settings — with the subjects, the backup and the app's own pages — is the
+ * gear on every tab's bar, not a tab: it is visited, not worked in.
  *
  * `TabLabel` holds a label to one line and shrinks it where «Расписание» would not fit a fifth of a 360dp
  * screen, and `BottomBarLabelTest` is what proves that on a device.
  *
- * **Every entry is a tab, always.** There used to be five, one of which («Группы») could be switched
- * off in Settings — which meant the bar, the route set and «Ещё» all had to be derived from a boolean
- * so that hiding the tab did not also hide the section or leave the bar with nothing selected. That
- * whole apparatus existed because two tabs were showing one idea; now they are one tab with a
- * segmented control inside it, and the list is simply [entries].
+ * **Every entry is a tab, always.** No tab can be switched off, so the bar and the route set are simply
+ * [entries], with nothing derived from a setting. People and groups are one tab with a segmented control
+ * inside it.
  */
 @Serializable
 enum class TopDestination(
@@ -151,8 +149,7 @@ enum class TopDestination(
     /** Drawn while this is the current tab. */
     val icon: ImageVector,
     /**
-     * Drawn while it is not — Material's pair, and the second signal the bar was missing. With one
-     * filled glyph for both states the tinted pill was the only thing marking where you were.
+     * Drawn while it is not — Material's pair, so the glyph is a second signal beside the tinted pill.
      */
     val iconOutlined: ImageVector,
 ) {

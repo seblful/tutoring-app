@@ -15,10 +15,10 @@ import kotlin.time.Instant
 /**
  * The slice of time a report covers — one month, one year, or everything there is.
  *
- * Reports used to sum the whole database, which answers "how am I doing?" only for a tutor who has
- * just started: after a few years the total is dominated by history and no line on the screen can
- * say whether this spring earned more than last. A period makes every number on the screen mean the
- * same thing at once — the total, each breakdown and its percentages all read *within* it.
+ * Summing the whole database answers "how am I doing?" only for a tutor who has just started: after a
+ * few years the total is dominated by history and no line on the screen can say whether this spring
+ * earned more than last. A period makes every number on the screen mean the same thing at once — the
+ * total, each breakdown and its percentages all read *within* it.
  *
  * The anchor is a [YearMonth] for both widths, so switching between them keeps where the tutor was
  * looking rather than jumping to today: «Март 2025» widened to a year is *2025*, not the year in
@@ -77,8 +77,8 @@ data class ReportPeriod(val kind: Kind, val anchor: YearMonth) {
      * of it, or it is all time, which has no days to count.
      *
      * What a comparison with the period before has to measure while this one is **still going**: the
-     * screen opens on the year in progress, and on 24 September its income so far was set against the
-     * whole of the year before — so a tutor earning more every month read «−25 %» with a falling arrow.
+     * screen opens on the year in progress, and on 24 September its income so far set against the whole
+     * of the year before would show a tutor earning more every month «−25 %» with a falling arrow.
      */
     fun daysElapsed(today: LocalDate): Long? {
         val b = bounds ?: return null

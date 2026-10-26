@@ -11,11 +11,9 @@ import com.seblful.klas.domain.model.TutoringClass
  * The names a lesson is captioned with, looked up once.
  *
  * A lesson is stored as ids — a student, a subject, sometimes a group — and every screen that lists one
- * has to turn those back into words. Three view models did it for themselves, in three shapes: two built
- * `associateBy` maps and one ran a linear `firstOrNull { it.id == … }` **per emission**. The rule that goes
- * with it is small but real and was written out each time: **a group lesson is titled by its group and an
- * individual one by its student**, which is the difference between «11 «А», 18:00» and «Иван, 18:00» on
- * the busiest screen in the app.
+ * has to turn those back into words. The rule that goes with it is small but real: **a group lesson is
+ * titled by its group and an individual one by its student**, which is the difference between
+ * «11 «А», 18:00» and «Иван, 18:00» on the busiest screen in the app.
  *
  * Built once per emission from whole-table lists and then asked per lesson, which is what the maps were
  * for; the construction is [of].
@@ -80,9 +78,8 @@ class Captions private constructor(
          *
          * Over names rather than ids, because two of its readers hold no [Captions]: a reminder names its
          * lesson from rows read as it fires (`Reminders.announcedBy`), and the booking form names the lesson
-         * standing in its way. Each spelled the rule for itself, and they disagreed about a group with no
-         * known name — the schedule titled it with nothing where the reminder named a student. A name says
-         * something about who is coming; a blank says nothing.
+         * standing in its way. A group with no known name falls back to the student: a name says something
+         * about who is coming; a blank says nothing.
          */
         fun title(groupName: String?, studentName: String?): String =
             groupName?.takeIf { it.isNotBlank() } ?: studentName.orEmpty()

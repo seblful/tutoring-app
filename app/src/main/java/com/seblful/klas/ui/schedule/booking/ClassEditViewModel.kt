@@ -122,8 +122,8 @@ class ClassEditViewModel @AssistedInject constructor(
 
     /**
      * Whether the lesson this form was opened for is no longer there — deleted since the reminder, card
-     * or list that opened it was drawn. It used to open as a blank «Изменить занятие», and a save from it
-     * went down the booking path and wrote a new lesson.
+     * or list that opened it was drawn. The form must not open blank as «Изменить занятие»: a save from it
+     * would go down the booking path and write a new lesson.
      */
     val gone: StateFlow<Boolean> = _gone.asStateFlow()
 
@@ -404,10 +404,9 @@ class ClassEditViewModel @AssistedInject constructor(
         }
         viewModelScope.launch {
             defaultMinutes.value = settingsRepo.get().defaultLessonMinutes
-            // A new lesson shows the tutor's usual length from the start. It was left unchosen until a
-            // start was picked and then filled in quietly, so the form opened with no chip lit and the
-            // length it was about to book was nowhere on screen. Whether a chip picked meanwhile wins is
-            // the form's — see [BookingIntent.DefaultLength].
+            // A new lesson shows the tutor's usual length from the start, so a chip is lit and the length it
+            // is about to book is on screen. Whether a chip picked meanwhile wins is the form's — see
+            // [BookingIntent.DefaultLength].
             if (isNew) change(BookingIntent.DefaultLength(defaultMinutes.value))
         }
         // Auto-select the only student there is (a new class, before any choice). With several
@@ -555,15 +554,14 @@ class ClassEditViewModel @AssistedInject constructor(
     /**
      * What the date picker opens on: the date already chosen, else the day the schedule was showing when
      * the booking was opened (paged to next Thursday, the add button books into next Thursday), else
-     * today — by the injected clock, like the two time defaults below it. This was the one picker default
-     * left reading the platform in a composable.
+     * today — by the injected clock, like the two time defaults below it.
      */
     fun datePickerDefault(today: LocalDate = clock.today()): LocalDate =
         currentForm.date ?: openedOnDay ?: today
 
     /**
      * What the time dialog opens on: the start already chosen, else the first free time the stepper would
-     * take, else the hour every day used to be drawn from.
+     * take, else the hour the day timeline starts at.
      */
     fun timePickerDefault(): LocalTime =
         currentForm.timeFrom
@@ -686,8 +684,8 @@ class ClassEditViewModel @AssistedInject constructor(
                 SaveOutcome.Saved -> {
                     // Nothing is unsaved any more, so leaving must not ask about it.
                     booking.value = booking.value.copy(touched = false)
-                    // The lesson is written, so the reminder it earns is a real one — ask now, while the
-                    // screen is still up to host the dialog, and leave only once it has been answered.
+                    // The lesson is written, so the reminder it earns is a real one: queue the permission
+                    // prompt, then leave without waiting for the answer.
                     if (wouldBeFirst) askToBeAllowedToRemind()
                     onDone()
                 }

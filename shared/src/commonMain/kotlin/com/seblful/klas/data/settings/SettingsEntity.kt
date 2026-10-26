@@ -117,7 +117,7 @@ data class SettingsEntity(
     /** Currency used to display all money, stored as its code, e.g. "BYN" or "USD". */
     val currency: Currency = Currency.BYN,
     /**
-     * Which language the app is shown in, stored as its name — "SYSTEM" | "RUSSIAN" | "ENGLISH".
+     * Which language the app is shown in, stored as an [AppLanguage] name — "SYSTEM" follows the phone.
      *
      * Added by the v5 → v6 migration, whose `DEFAULT 'SYSTEM'` this `defaultValue` must match exactly or
      * Room's schema validation fails the moment the upgrade finishes. The two agree on purpose, as

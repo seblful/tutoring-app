@@ -6,13 +6,12 @@ import com.seblful.klas.domain.reminders.Digests
  * What a tray entry shows, decided where a JVM test can reach it.
  *
  * [Notifier]'s own contract says that "which lessons a digest names, whose names those are and whether it
- * is worth posting at all are decisions, and decisions live where a JVM test can reach them" — and then
- * left out the last mile. How many of those lessons actually fit in the notification, and what it says
- * about the ones it could not name, were arithmetic inside `AndroidNotifier`: 355 lines behind a `Context`,
- * with no test in either source set.
+ * is worth posting at all are decisions, and decisions live where a JVM test can reach them". This is the
+ * last mile of that: how many lessons actually fit in the notification, and what it says about the ones
+ * it could not name.
  *
- * This is that last mile. The adapter keeps `NotificationCompat`, the channels, the pending intents and
- * the phone's clock face — things that genuinely need Android — and asks here for what to put in them.
+ * The adapter keeps `NotificationCompat`, the channels, the pending intents and the phone's clock face —
+ * things that genuinely need Android — and asks here for what to put in them.
  */
 object TrayContent {
 

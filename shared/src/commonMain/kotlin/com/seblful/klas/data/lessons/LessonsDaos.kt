@@ -11,17 +11,16 @@ import com.seblful.klas.domain.model.LessonStatus
 import kotlinx.coroutines.flow.Flow
 
 /**
- * One student's class: their [AttendanceEntity] row with its lesson's facts alongside it — what the app has
- * always meant by "a class", and what [ClassDao] reads.
+ * One student's class: their [AttendanceEntity] row with its lesson's facts alongside it — what the app
+ * means by "a class", and what [ClassDao] reads.
  *
  * **A query result, not a table or a view.** Writes go to the two tables (`LessonDao`, `AttendanceDao`), the
  * point of the split being that each fact has one home; every read joins them with [CLASS_ROWS].
  *
- * It was a `@DatabaseView` (`classes`) until v10. Room validates a view after every migration and never
- * recreates one, so each step that changed a column it projected had to drop and rebuild it with that
- * version's exact `SELECT` — and got it wrong twice (see `Migrations.MIGRATION_6_7`). A join written into the
- * queries asks nothing of a migration: the schema holds tables only, and a column the join stops reading
- * is simply not read.
+ * It is not a `@DatabaseView`: Room validates a view after every migration and never recreates one, so each
+ * step that changed a column it projected would have to drop and rebuild it with that version's exact
+ * `SELECT` (see the frozen view definitions in `Migrations`). A join written into the queries asks nothing
+ * of a migration: the schema holds tables only, and a column the join stops reading is simply not read.
  */
 data class ClassRow(
     val id: Long = 0,
@@ -85,11 +84,8 @@ interface ClassDao {
      * rather than for as long as a screen is open: the conflict check a save makes, the reminder plan,
      * homework's reminder text and the two lesson-listing digests.
      *
-     * They used to get there the long way round. The conflict check and the digests collected
-     * [observeBetween] and took its first value, which registers an invalidation observer and opens a
-     * channel per read, only to tear all of it down again; the reminder plan read *every class ever
-     * taught* to decide about the next week. A `suspend` query over the window is what they actually
-     * asked for.
+     * A `suspend` query over the window is what they ask for: taking [observeBetween]'s first value
+     * registers an invalidation observer and opens a channel per read, only to tear all of it down again.
      */
     @Query("$CLASS_ROWS WHERE l.startMillis >= :fromMillis AND l.startMillis < :toMillis ORDER BY l.startMillis")
     suspend fun getBetween(fromMillis: Long, toMillis: Long): List<ClassRow>
@@ -147,8 +143,7 @@ interface ClassDao {
 
     /**
      * The classes making up one lesson — its `lessonId`, which is the whole of what makes them one
-     * lesson. It used to be `groupId` **and** `startMillis`: a pair no schema could hold together, so a
-     * member's class moved on its own left the session by definition, and the lesson quietly became two.
+     * lesson.
      */
     @Query("$CLASS_ROWS WHERE a.lessonId = :lessonId ORDER BY a.id")
     suspend fun getSession(lessonId: Long): List<ClassRow>
@@ -188,9 +183,8 @@ interface ClassDao {
 /**
  * The lesson itself: its hour, its subject, and whether it happened.
  *
- * Small on purpose. A lesson's facts are written **once** here, where the old table wrote them once per
- * member — which is why a status change to a group lesson is now one row's update rather than *n*, and
- * why nothing has to keep those *n* copies agreeing.
+ * Small on purpose. A lesson's facts are written **once** here, not once per member — so a status change
+ * to a group lesson is one row's update rather than *n*, and nothing has to keep *n* copies agreeing.
  */
 @Dao
 interface LessonDao {
@@ -212,7 +206,7 @@ interface LessonDao {
      *
      * A whole-table read in the sense that it names no id, but not one in the sense `SnapshotDao` owns —
      * it returns a single scalar and no rows, so nothing here can void an invariant the way a
-     * `deleteAll()` on this DAO would. See *Two interfaces onto the same tables*.
+     * `deleteAll()` on this DAO would. See `SnapshotDao`, the *second interface onto the same tables*.
      */
     @Query("SELECT EXISTS(SELECT 1 FROM lessons LIMIT 1)")
     suspend fun anyExist(): Boolean

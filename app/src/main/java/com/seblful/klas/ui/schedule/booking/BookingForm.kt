@@ -56,7 +56,7 @@ sealed interface BookingIntent {
 
     /**
      * How long the lesson runs — from a chip or from «Другая», which is the only way the form takes a
-     * length. There is no `EndAt`: an end time was a second way of saying this, and the way that could
+     * length. There is no `EndAt`: an end time would be a second way of saying this, and the way that could
      * say something impossible.
      */
     data class LastsFor(val minutes: Int) : BookingIntent
@@ -98,7 +98,7 @@ sealed interface BookingIntent {
     data class PriceLoaded(val studentId: Long, val subjectId: Long, val amount: Money?) : Answer
 
     /**
-     * The single subject the current target can be booked for — there was nothing to pick.
+     * The single subject the current target can be booked for — there is nothing to pick.
      *
      * @param askedFor the target this was looked up for. A fast second choice must not have the first
      *   one's subject land on it.
@@ -146,9 +146,8 @@ data class BookingForm(
         // changes nothing (re-picking the target already chosen, the length it already has) leaves the
         // form exactly as it was, and back must not then ask about work nobody did.
         //
-        // The old mutators disagreed with each other here: `setDuration` checked for a start *before*
-        // marking, while `setTarget` marked and only then found it had nothing to do. `touched` never
-        // goes back to false, so a form the tutor has edited stays edited even if a lookup answers after.
+        // `touched` never goes back to false, so a form the tutor has edited stays edited even if a lookup
+        // answers after.
         val changed = moved.form.form != form
         val marked = if (intent.isEdit && changed) moved.form.copy(touched = true) else moved.form
         return moved.copy(form = marked)

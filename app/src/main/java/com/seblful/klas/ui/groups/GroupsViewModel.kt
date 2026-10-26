@@ -104,9 +104,8 @@ class GroupsViewModel @Inject constructor(
                 // groups and leave the tutor to work out why — the students tab beside this one is where a
                 // person is looked up.
                 PeopleSearch.filter(groupList, query) { it.name }.map { group ->
-                    // Through NameOrder, like every other listing of people: this used to be
-                    // `sortedBy { it.name }`, which does not case-fold at all, so a roster sorted
-                    // every Cyrillic capital before every lower-case name.
+                    // Through NameOrder, like every other listing of people: `sortedBy { it.name }` does not
+                    // case-fold, so a roster would sort every Cyrillic capital before every lower-case name.
                     val members = NameOrder.sorted(
                         rosters[group.id].orEmpty().mapNotNull { studentsById[it] },
                     ) { it.name }

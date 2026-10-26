@@ -60,9 +60,9 @@ data class StudentRow(
 /**
  * How the students list is ordered.
  *
- * Two orders because the tutor asks two questions of this screen, and only one of them was answerable
- * before: "where is Аня" (by name) and "who owes me money" (by debt). The second used to be the
- * reports screen's alone, which meant reading a name there and then hunting for it here.
+ * Two orders because the tutor asks two questions of this screen: "where is Аня" (by name) and "who owes
+ * me money" (by debt). Answering the second here spares reading a name on the reports screen and then
+ * hunting for it.
  */
 enum class StudentSort { NAME, DEBT }
 
@@ -149,8 +149,8 @@ class StudentsViewModel @Inject constructor(
                         )
                     }
                     // The archive after everyone taught now, as the groups list keeps it: sorting by name
-                    // alone threaded the retired through the list, and «Показать архив» turned the page
-                    // into one where the current students had to be picked out.
+                    // alone would thread the retired through the list, and «Показать архив» would turn the
+                    // page into one where the current students had to be picked out.
                     .sortedWith(compareBy<StudentRow> { it.student.archived }.then(sort.comparator))
             }
         }

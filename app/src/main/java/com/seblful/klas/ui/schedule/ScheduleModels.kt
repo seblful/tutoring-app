@@ -38,9 +38,9 @@ data class ScheduleRow(
 
     /**
      * The statuses this lesson may be moved to — what the sheet's segmented control enables, and
-     * what [canSwipeComplete] is gated on. [SessionRules.sessionTransitions] asked once, here, where
-     * a test can reach it; it used to be asked by two composables, so the rule gating the product's
-     * highest-frequency gesture could be exercised only by swiping a card on a phone.
+     * what [canSwipeComplete] is gated on. [SessionRules.sessionTransitions] is asked once, here, where
+     * a test can reach it, so the rule gating the product's highest-frequency gesture needs no swiped
+     * card on a phone.
      */
     val statusChoices: Set<LessonStatus> get() = SessionRules.sessionTransitions(session)
 

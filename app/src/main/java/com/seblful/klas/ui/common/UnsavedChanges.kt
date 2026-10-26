@@ -21,9 +21,9 @@ import com.seblful.klas.ui.designsystem.component.KlasButton
 /**
  * What leaving a form should do — the rule behind the back arrow and the system back gesture.
  *
- * Leaving used to be unconditional: a filled-in form was thrown away without a word, which is the
- * one mistake a form can make that the tutor cannot undo. So back now asks. It asks *differently*
- * depending on whether there is anything to offer, and that is the whole of this decision: offering
+ * Throwing away a filled-in form without a word is the one mistake a form can make that the tutor cannot
+ * undo, so back asks. It asks *differently* depending on whether there is anything to offer, and that
+ * is the whole of this decision: offering
  * «Сохранить» on a half-filled form would be an offer the save then refuses (every form's save is a
  * no-op while it is invalid), and asking anything at all about an untouched form would put a dialog
  * between the tutor and the back button for nothing.

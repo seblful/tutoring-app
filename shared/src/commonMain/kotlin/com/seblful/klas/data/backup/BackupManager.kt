@@ -22,8 +22,7 @@ import kotlin.time.Instant
  *
  * What it knows is the **file format** — the version, the JSON, and which of them this build will
  * accept. What tables there are, and the order they may be emptied and filled in, is the schema's and
- * lives with it ([SnapshotDao]). This used to hold seven DAOs and both foreign-key orderings itself,
- * which put a wipe of every table in reach of every repository that shared those DAOs.
+ * lives with it ([SnapshotDao]).
  */
 @SingleIn(AppScope::class)
 class BackupManager @Inject constructor(
@@ -79,8 +78,8 @@ class BackupManager @Inject constructor(
      * envelope shared by every supported export, rejecting unrelated JSON before any replacement.
      */
     fun parse(text: String): BackupData {
-        // Decoded straight from the text both times: a whole `JsonElement` tree of a large backup was its
-        // biggest copy in memory. Anything [Header] cannot read is left to the decode to refuse.
+        // Decoded straight from the text both times: a whole `JsonElement` tree of a large backup would be
+        // its biggest copy in memory. Anything [Header] cannot read is left to the decode to refuse.
         val header = runCatching { json.decodeFromString<Header>(text) }.getOrNull()
         if (header?.klasSealed != null) throw PasswordNeededException()
         val version = (header?.version as? JsonPrimitive)?.intOrNull

@@ -203,9 +203,9 @@ object HomeworkRules {
  * Whether [klass] is one of this assignee's lessons — a student's own class, in a lesson of their own or a
  * group's, or any class of the group's.
  *
- * Public because the repository asks it too, narrowing the homework that could be attached to a lesson
- * before reading lessons for it (`HomeworkRepository.candidatesFor`): a second spelling of "whose lesson
- * is this" there could disagree with the rule that attaches it here.
+ * Public because the homework query asks it too, narrowing the homework that could be attached to a
+ * lesson before reading lessons for it (`candidatesFor` in `HomeworkQuery`): a second spelling of "whose
+ * lesson is this" there could disagree with the rule that attaches it here.
  */
 fun Assignee.takes(klass: TutoringClass): Boolean = when (this) {
     is Assignee.Student -> klass.studentId == studentId

@@ -75,8 +75,8 @@ class GroupRepository @Inject constructor(
         val previousName = dao.getById(group.id)?.name
         val wanted = eligible(group, memberIds)
         val id = transactor.transaction {
-            // An edit answers -1 (see [upsertedId]); trusting it blindly once pointed every member
-            // insert at group -1 and failed the group_members foreign key.
+            // An edit answers -1 (see [upsertedId]); trusting it blindly would point every member
+            // insert at group -1 and fail the group_members foreign key.
             val id = upsertedId(dao.upsert(group.toEntity()), group.id)
             // Logged after the upsert, so the row the log's foreign key points at already exists — and
             // only when the amount moved, since a rename or a roster edit comes through here too
@@ -87,7 +87,7 @@ class GroupRepository @Inject constructor(
             (current - wanted).forEach { dao.removeMember(id, it) }
             id
         }
-        // Phase 3, outside the transaction like every other calendar write: a group's name is what
+        // After the commit, like every other calendar write: a group's name is what
         // makes n overlapping events read as one lesson, so a rename makes every mirrored event of
         // its lessons wrong — and is the only part of a save they show. See [CalendarMirror].
         if (previousName != null && previousName != group.name) calendar.refreshForGroup(id)

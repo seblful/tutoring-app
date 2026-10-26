@@ -137,8 +137,8 @@ class GroupFormViewModel @AssistedInject constructor(
 
         /**
          * How many of the roster the save would take off it, for want of a price for the subject — asked
-         * about **before** the save, not reported after it. The report was a snackbar sent as the form
-         * closed, so it went with the screen and the roster shrank in silence after all.
+         * about **before** the save, not reported after it: a snackbar sent as the form closes goes with
+         * the screen, and the roster would shrink in silence.
          */
         val leavingOnSave: Int get() = pricedIds?.let { (form.memberIds - it).size } ?: 0
 

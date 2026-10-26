@@ -5,13 +5,11 @@ package com.seblful.klas.notifications
  *
  * A port for the reason `CrashLogStore` is one: everything worth getting wrong about reminders is the
  * *replacement discipline* — arming a new plan means disarming exactly what was armed before, and
- * `AlarmManager` has no "cancel everything of mine" — and that discipline used to sit in the same class as
- * the `PendingIntent` building, so it could only be exercised by waiting on a device. It now sits above this
- * line, where a JVM test drives it.
+ * `AlarmManager` has no "cancel everything of mine" — so that discipline sits above this line, where a JVM
+ * test drives it, and the `PendingIntent` building stays here.
  *
  * **Exact versus inexact is not this port's choice.** Which one to use is [ExactAlarmPermission]'s answer,
- * read by [ReminderAlarms]; a port that decided it would be a second definition of a question the app
- * already had two copies of once.
+ * read by [ReminderAlarms]; a port that decided it would be a second definition of the same question.
  *
  * Alarms are addressed by **class id**, which is the whole reason one lesson's can be taken back on its own:
  * the id is the `PendingIntent`'s request code, and rebuilding that intent is the only way to cancel it.

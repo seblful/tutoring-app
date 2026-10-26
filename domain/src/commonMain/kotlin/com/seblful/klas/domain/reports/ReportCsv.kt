@@ -7,10 +7,9 @@ import kotlinx.datetime.number
 /**
  * The visible report as a spreadsheet.
  *
- * The app could already write a **backup**, and that is a different thing for a different purpose: it
- * is JSON, it is the whole database, and it exists to be read back by this app. What it cannot do is
- * be opened — by a tutor totalling their year, or by an accountant. Those two exports look alike from
- * a distance and share nothing but the file picker.
+ * Not a **backup**, which is a different thing for a different purpose: JSON, the whole database, there
+ * to be read back by this app. This export exists to be opened — by a tutor totalling their year, or by
+ * an accountant. The two look alike from a distance and share nothing but the file picker.
  *
  * Pure, and separate from the screen, so the format is testable without a `Uri`, a `Context` or a
  * composable — the same rule the rest of the domain follows.
@@ -20,8 +19,7 @@ import kotlinx.datetime.number
  * - **The delimiter follows the decimal separator** ([Dialect]). Excel's list separator is `;` in every
  *   locale that writes `1500,50` and `,` in every locale that writes `1500.50`, and it silently mangles a
  *   file that uses the other one into a single column. So the two travel together: `;` and `,` for a
- *   Russian reader, `,` and `.` for an English one. This was a fixed pair of constants while the app had one
- *   language, with the Russian argument written out beside them.
+ *   Russian reader, `,` and `.` for an English one.
  * - **A byte-order mark.** Excel reads a BOM-less file as the system's legacy 8-bit code page, which
  *   turns every Cyrillic label into mojibake — the one failure that makes the export worthless while
  *   looking like the app's fault. Anything else that reads CSV tolerates the BOM.
@@ -36,9 +34,9 @@ object ReportCsv {
      * What a shared report is **called**: `klas-report-2026-06.csv`, `klas-report-2026.csv`,
      * `klas-report-all.csv`.
      *
-     * The period is in the name because the file leaves the app. Every share was `klas-report.csv`, so an
-     * accountant sent twelve months received twelve files with one name and no way to tell them apart — and
-     * the subject line that does name the period belongs to the message rather than to the attachment.
+     * The period is in the name because the file leaves the app: with one fixed name, an accountant sent
+     * twelve months would receive twelve files with no way to tell them apart — and the subject line that
+     * does name the period belongs to the message rather than to the attachment.
      *
      * Not localized: it is a filename, read by whatever the receiving app is, and `klas-report-2026-06`
      * sorts and is typed the same everywhere. The screen's own «Выгрузить в CSV» dialog keeps its plain
@@ -112,7 +110,7 @@ object ReportCsv {
      * and leaving out the one section that says who owes money would make it the least useful export
      * possible; the heading says so, as the card on screen does. That, and the fact that the debts
      * section is skipped entirely when nobody owes anything rather than printing a bare total of zero,
-     * is what the export *is* — and it was decided in a `@Composable`, so no test could open the file.
+     * is what the export *is* — decided here, where a test can open the file.
      */
     fun linesFor(report: Reports.Report, headings: Headings): List<Line> = buildList {
         add(Line(headings.total, headings.period, report.totalIncome))

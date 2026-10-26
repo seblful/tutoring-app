@@ -25,8 +25,8 @@ interface NotificationPermission {
      * there is no runtime permission and only the app-wide switch in system settings can be off.
      *
      * A yes or no rather than what to ask for: showing the prompt needs a screen, so that is
-     * [rememberNotificationPermissionRequest]'s. The port used to hand out the Android permission names
-     * for the screen to launch, which put `Manifest.permission`s into two view models.
+     * [rememberNotificationPermissionRequest]'s; this port keeps `Manifest.permission` names out of view
+     * models.
      */
     val canAsk: Boolean
 }

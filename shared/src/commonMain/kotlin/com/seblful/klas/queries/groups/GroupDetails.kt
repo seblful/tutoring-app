@@ -51,7 +51,7 @@ data class GroupDetails(
 ) {
     /**
      * Whether «Удалить» is offered at all. A group is archive-only once it has lessons — they are billed
-     * history — so the menu used to ask «Удалить группу?» and then refuse the answer it had asked for.
+     * history — so the menu must not ask «Удалить группу?» only to refuse the answer it had asked for.
      */
     val canDelete: Boolean get() = lessons.isEmpty()
 

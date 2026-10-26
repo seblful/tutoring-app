@@ -56,7 +56,7 @@ import kotlin.math.abs
  * @param label how a value reads to the tutor. Drawn through [SegmentLabel], so every segmented control
  * in the app shrinks its text the same way instead of only the one that happened to need it first.
  * @param enabled whether a particular option may be chosen. The default lets everything be picked; the
- * lesson-status row uses it, since which statuses a lesson may move to is `GroupRules`'.
+ * selected option stays enabled regardless.
  * @param onReselect a tap on the segment already selected, for the one kind of segment that is a door
  * rather than a value — Settings' «Другое», which opens a picker. Without it a custom reminder lead
  * could not be changed to another custom one: the tap on the segment showing «20 мин» did nothing.
@@ -74,8 +74,8 @@ fun <T> SegmentedChoice(
     colors: SegmentedButtonColors = SegmentedButtonDefaults.colors(),
     label: @Composable (T) -> String,
 ) {
-    // Here rather than at the eight call sites, which is the point of this composable existing: the tick is
-    // a property of "picking a segment" and not of any one row that happens to be made of segments. It fires
+    // Here rather than at each call site: the tick is a property of "picking a segment" and not of any one
+    // row that happens to be made of segments. It fires
     // only where the selection **moves** — the `if (!isSelected)` below is the one place that decides that,
     // so a tutor re-tapping the segment they are already on gets the silence they should.
     val segmentTick = rememberSegmentTickFeedback()

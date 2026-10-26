@@ -7,17 +7,11 @@ import kotlin.jvm.JvmInline
  *
  * Ids are plain `Long`s everywhere else in the app on purpose, and this is not the start of changing
  * that. They are typed here because the reports are the one place where ids stop being arguments and
- * become *keys*: `Reports.incomeByStudent`, `incomeBySubject` and `incomeByGroup` all used to hand back
- * a `Map<Long, Money>`, which `ReportsViewModel` then paired by hand with one of three equally-shaped
- * `Map<Long, String>` name tables. Nothing about
- *
- * ```
- * bySubject = Reports.incomeBySubject(inPeriod).toSortedLines(total) { studentNames[it] }
- * ```
- *
- * is a type error, and nothing about the result looks wrong either: a subject id looked up among
- * student names simply misses, `orEmpty()` turns the miss into `""`, and the report draws a real amount
- * against a blank label. Silence is what makes it worth a type — a crash would have been findable.
+ * become *keys*: `Reports.incomeByStudent`, `incomeBySubject` and `incomeByGroup` return maps keyed by
+ * id, to be paired with one of three equally-shaped name tables. With plain `Long`s, looking a subject id
+ * up among student names is not a type error and the result does not look wrong either: the lookup simply
+ * misses, `orEmpty()` turns the miss into `""`, and the report draws a real amount against a blank label.
+ * Silence is what makes it worth a type — a crash would have been findable.
  *
  * Elsewhere an id is passed as a named parameter to a function that takes exactly one kind
  * (`priceFor(studentId, subjectId)`, `getMemberIds(groupId)`), where the name and the signature

@@ -191,9 +191,8 @@ private fun LazyListScope.identityItems(state: GroupFormViewModel.UiState, viewM
         // option rather than a hidden state, because a group legitimately has none and the
         // tutor needs to see that rather than guess.
         //
-        // Its hint is the field's own `supportingText`. It was a standalone `Text` 20 dp below,
-        // indented differently from the rate field's hint directly underneath it — two hint
-        // mechanisms, one after the other, on the same form.
+        // Its hint is the field's own `supportingText`, so it is indented like the rate field's hint
+        // directly underneath it.
         DropdownField(
             label = stringResource(R.string.group_subject_label),
             selectedText = state.subjects.firstOrNull { it.id == form.subjectId }?.name

@@ -10,10 +10,9 @@ import com.seblful.klas.domain.lesson.ClassRules
  *
  * Rescheduling changes the lesson's start time and may change its status; see [ClassRules.move].
  *
- * **Whether one student was there is [Attended], not this.** The two used to be one enum on one row per
- * student, so a group lesson whose absentee was cancelled had no status of its own and had to derive one
- * by precedence; a no-show could only be recorded by voiding that student's charge, and "called off for
- * everyone" was the same rows as "nobody came".
+ * **Whether one student was there is [Attended], not this**: a group lesson whose absentee is cancelled
+ * still has a status of its own, a no-show is recorded without voiding that student's charge, and
+ * "called off for everyone" is not the same as "nobody came".
  */
 enum class LessonStatus {
     SCHEDULED,
@@ -37,28 +36,25 @@ enum class LessonStatus {
          *
          * A total function, unlike `valueOf`, because the caller is always reading somebody else's
          * text: the `lessons.status` column. `valueOf` throws, and it throws on the *read* path — inside a
-         * `Flow` the schedule collects — so one unrecognized row used to take down every screen that
+         * `Flow` the schedule collects — so one unrecognized row would take down every screen that
          * lists a lesson, permanently and with no way back short of clearing the app's data. Returning
          * null lets the caller decide: `EnumConverters` fails loudly, naming the text, on a row a backup
-         * can no longer have let through (a file naming an unknown status is refused as it is parsed).
+         * cannot have let through (a file naming an unknown status is refused as it is parsed).
          */
         fun parse(stored: String): LessonStatus? = entries.firstOrNull { it.name == stored }
 
         /**
          * The order a lesson's status is decided in when **only its members' statuses are known**:
-         * scheduled if any member still is, else completed if any is, else cancelled. Nothing in the app
-         * derives a status this way any more — the lesson holds its own — except the one remaining reader of
-         * the *pre-v2* model, where it was the only answer there was: `splitIntoLessons`, over a v1–v5
-         * backup **file**. (Its SQL twin in `MIGRATION_1_2` went with the migration squash; a file on
-         * somebody's disk outlives the schema it came from, which is why this half stays.)
+         * scheduled if any member still is, else completed if any is, else cancelled. The lesson holds its
+         * own status, so only the reader of the *pre-v2* model uses this: `splitIntoLessons`, over a v1–v5
+         * backup **file**, which outlives the schema it came from.
          *
-         * **Stated as a list because it was the enum's declaration order.** `entries.firstOrNull { … }`
-         * reproduced the SQL only by accident of how the constants happen to be written down, and
-         * `StoredEnumNamesTest` — the acknowledgement list built for exactly "renaming one of these is a
-         * migration" — compares them as a **set**, so it is order-insensitive by construction. Reordering
-         * an enum is an ordinary refactor that no test here would have failed, and it would have made
-         * every old backup import a mixed group lesson as **completed**: income the app never recognised,
-         * arriving silently, on the one path a tutor reaches for after losing a phone.
+         * **Stated as a list, not read off the enum's declaration order.** `StoredEnumNamesTest` — the
+         * acknowledgement list built for exactly "renaming one of these is a migration" — compares names
+         * as a **set**, so it is order-insensitive by construction. Reordering an enum is an ordinary
+         * refactor that no test here would fail, and it would make every old backup import a mixed group
+         * lesson as **completed**: income the app never recognised, arriving silently, on the one path a
+         * tutor reaches for after losing a phone.
          */
         val PRECEDENCE: List<LessonStatus> = listOf(SCHEDULED, COMPLETED, CANCELLED)
     }
@@ -67,13 +63,11 @@ enum class LessonStatus {
 /**
  * Whether one student was in one lesson — their `attendance` row's state.
  *
- * The lesson says whether the hour happened ([LessonStatus]); this says who was there for it, and it is
- * the reason both can now be true at once: a lesson taught with somebody missing, rather than a lesson
- * with no status.
+ * The lesson says whether the hour happened ([LessonStatus]); this says who was there for it, so a
+ * lesson can be taught with somebody missing.
  *
- * [ABSENT_BILLED] is the state the old model could not hold at all. A student who does not turn up under
- * a late-cancellation policy still owes for the hour, and the only way to express that before was to
- * record them as having been there.
+ * [ABSENT_BILLED] is for a student who does not turn up under a late-cancellation policy and still owes
+ * for the hour: it records the absence without recording them as having been there.
  */
 enum class Attended {
     /** The default while a lesson is still to come: they are meant to be there. */

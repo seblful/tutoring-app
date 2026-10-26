@@ -9,7 +9,7 @@ import kotlin.time.Instant
  *
  * [refreshNow] is the *request* — "something changed, work the plan out again" — made by writers that
  * have no idea what the new plan is. [schedule] is the *result*, handed over once by whatever
- * recomputed it. Keeping both on the port is what lets the recomputation itself (`work/Maintenance`)
+ * recomputed it. Keeping both on the port is what lets the recomputation itself (`maintenance/Maintenance`)
  * be ordinary code rather than something only a device can run.
  */
 interface ReminderScheduler {
@@ -22,9 +22,8 @@ interface ReminderScheduler {
      *
      * The standing form of [refreshNow]: the same pass, on a timer, so a phone whose owner does not open
      * the app still auto-completes finished lessons and re-derives the reminder plan. It is on the port
-     * for the reason the other two are — `KlasApp` was injecting the WorkManager adapter by its concrete
-     * class to reach it, which made the app's entry point the one place naming a `work/` implementation.
-     * The daily look at whether the weekly backup is due is arranged beside it.
+     * for the reason the other two are: the app's entry point reaches it without naming a `work/`
+     * implementation. The daily look at whether the weekly backup is due is arranged beside it.
      */
     fun ensurePeriodicMaintenance()
 

@@ -64,9 +64,9 @@ object ClassRules {
      * The app cannot see attendance, so a finished class is assumed to have happened.
      *
      * **Which is [LessonPhase.OVERDUE], and is asked that way.** "Finished, and still scheduled" is also
-     * exactly what the evening digest counts (`Digests.Unfinished`), and the two used to be two
-     * hand-written boundary comparisons: one of them off by an instant would have the notification
-     * naming lessons the upkeep pass had already settled, or staying silent about ones it had not.
+     * exactly what the evening digest counts (`Digests.Unfinished`); a second hand-written boundary
+     * comparison off by an instant would have the notification naming lessons the upkeep pass had already
+     * settled, or staying silent about ones it had not.
      */
     fun shouldAutoComplete(c: TutoringClass, now: Instant): Boolean =
         LessonPhase.of(c, now).isUnfinished
@@ -87,7 +87,7 @@ object ClassRules {
      *
      * The attendance moves with it, because the app cannot see who was in the room:
      * - completing turns everyone still merely **expected** into **present** — the tutor then corrects
-     *   whoever was not there, which is the one thing the old model could not hold;
+     *   whoever was not there;
      * - un-completing (to scheduled or cancelled) turns **present** back into **expected**: an hour that
      *   is not recorded as having happened cannot have had anybody in it.
      *
@@ -116,8 +116,7 @@ object ClassRules {
      * Records whether one student was in a lesson, and rebills them for it.
      *
      * This is the per-member correction — the absentee of a lesson that went ahead — and it is a change
-     * to *their* row alone. It used to be expressible only as a status change to a session of one, which
-     * left the lesson itself holding several statuses and no way to say "absent, and charged anyway".
+     * to *their* row alone, leaving the lesson's own status untouched.
      */
     fun applyAttendance(c: TutoringClass, attended: Attended): TutoringClass =
         rebill(c.copy(attended = attended))

@@ -151,15 +151,14 @@ fun ScheduleScreen(
     val picked by viewModel.batch.selected.collectAsStateWithLifecycle()
     val pickedCancelled by viewModel.pickedAllCancelled.collectAsStateWithLifecycle()
 
-    /** *A change of view is a new page, and a page starts at the top.** */
     val listState = rememberLazyListState()
     val listScope = rememberCoroutineScope()
     ScrollsToTopOnReselect(listState)
     val cancelDayLabel = stringResource(R.string.schedule_cancel_day)
     val openDay = { viewModel.setViewMode(ScheduleViewMode.DAY) }
-    // Keyed on the view the list was last put at the top *for*, and saved with it: an effect keyed on the
-    // mode alone also ran on every return to the screen, so scrolling the week to Friday, editing a lesson
-    // and coming back landed on Monday again.
+    // A change of view is a new page, and a page starts at the top. Keyed on the view the list was last put
+    // at the top *for*, and saved with it: an effect keyed on the mode alone would also run on every return
+    // to the screen, sending a week scrolled to Friday back to Monday after a lesson edit.
     var topFor by rememberSaveable { mutableStateOf(viewMode) }
     LaunchedEffect(viewMode) {
         if (viewMode != topFor) {
@@ -219,9 +218,9 @@ fun ScheduleScreen(
     val rejectFeedback = rememberRejectFeedback()
 
     // **The app's one hard "no", felt.** One tutor, one lesson at a time: an overlapping hour is refused
-    // outright rather than warned about, and until now that arrived as a dialog and nothing else. Keyed on
-    // the conflict rather than fired from the action, because `timeConflict` is *state* — it has to survive
-    // a rotation — so the buzz belongs to the refusal arriving and not to each recomposition that draws it.
+    // outright rather than warned about, so the refusal buzzes as well as shows. Keyed on the conflict
+    // rather than fired from the action, because `timeConflict` is *state* — it has to survive a
+    // rotation — so the buzz belongs to the refusal arriving and not to each recomposition that draws it.
     LaunchedEffect(timeConflict) {
         if (timeConflict != null) rejectFeedback()
     }
@@ -283,17 +282,14 @@ fun ScheduleScreen(
                 SettingsGear(onSettings)
             },
             floatingActionButton = {
-                // **It stays put, and says why instead.** It was hidden while nothing could be booked, which
-                // solved the wrong half of the problem: the version before that popped a toast naming what
-                // was missing and left the tutor to go and find it — a control whose only behaviour is to
-                // decline — so it was removed. But a button that comes and goes on the app's busiest screen
-                // is its own defect: the tutor's thumb learns where it is, and on the one day it is absent
-                // the schedule reads as broken rather than as unready.
+                // **It stays put, and says why instead.** A button that comes and goes on the app's busiest
+                // screen is a defect of its own: the tutor's thumb learns where it is, and on the one day it
+                // is absent the schedule reads as broken rather than as unready.
                 //
-                // What was actually wrong with the toast is that it was a dead end. This is not: the message
-                // carries «Добавить ученика», which is the step that unblocks booking, so the refusal and the
-                // way out arrive together. The empty state below still offers the same step for a tutor who
-                // reads the page instead of reaching for the button.
+                // Tapped while nothing can be booked, it must not be a dead end: the message carries
+                // «Добавить ученика», the step that unblocks booking, so the refusal and the way out arrive
+                // together. The empty state below offers the same step for a tutor who reads the page
+                // instead of reaching for the button.
                 KlasFab(
                     label = stringResource(R.string.class_book),
                     onClick = {
@@ -313,11 +309,9 @@ fun ScheduleScreen(
             // that lesson taught and one begun in the space around them turns the page. The two never arbitrate,
             // because they never meet.
             //
-            // Which view, said out loud. It used to hide behind an unlabelled calendar icon that opened a menu —
-            // two taps to switch, and the icon never told you which of the three you were in. A segmented control
-            // is one tap and is its own label; the app already picks this way in Settings. The view, the filter
-            // and the pager are painted with the bar, so they and it tint as one block when the agenda scrolls
-            // beneath — see [SegmentedPage].
+            // Which view, said out loud: a segmented control is one tap and is its own label, and the app
+            // picks this way in Settings too. The view, the filter and the pager are painted with the bar,
+            // so they and it tint as one block when the agenda scrolls beneath — see [SegmentedPage].
             SegmentedPage(
                 options = ScheduleViewMode.entries,
                 selected = viewMode,
@@ -435,8 +429,8 @@ fun ScheduleScreen(
                     Modifier.fillMaxSize(),
                     state = listState,
                     // The gutter is the list's, not each row's — see [Spacing]. The calendar items in here
-                    // are laid out inside it too, which is why `MonthCalendar` and `WeekStrip` no longer
-                    // carry a narrower one of their own.
+                    // are laid out inside it too, so `MonthCalendar` and `WeekStrip` carry no gutter of
+                    // their own.
                     contentPadding = FabListPadding.plusInset(bottomInset),
                     // The Day view's lessons are cards with a gap between; Week's and Month's are the slices of
                     // a day's section and touch, the gap before each day being its header's own.
@@ -489,8 +483,7 @@ fun ScheduleScreen(
                                 item(key = "loading", contentType = "loading") { LessonsSkeleton() }
                             } else if (weekContent.sections.isEmpty()) {
                                 item(key = "empty", contentType = "empty") {
-                                    // The same three answers the day list gets, from the same place — this
-                                    // branch used to weigh two of them itself and offer nothing either way.
+                                    // The same three answers the day list gets, from the same place.
                                     ScheduleEmptyState(
                                         reason = emptyReason,
                                         whole = ScheduleEmptySpan.WEEK,
@@ -658,8 +651,7 @@ fun ScheduleScreen(
 
     deletingRow?.let { row ->
         // Which warning applies is `row.deleteWarning`'s — see [DeleteWarning]. This `when` maps a named
-        // case to a string and combines nothing, which is the difference between drawing and deciding: it
-        // used to weigh the two facts itself, four ways, with the picking untestable in here.
+        // case to a string and combines nothing, which is the difference between drawing and deciding.
         val warning = row.deleteWarning
         val count = warning.classes
         val confirmText = when (warning.kind) {

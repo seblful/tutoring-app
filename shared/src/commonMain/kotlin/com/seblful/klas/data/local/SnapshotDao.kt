@@ -52,10 +52,10 @@ data class DatabaseSnapshot(
  * This is a **second interface onto the same tables**, and a deliberately separate one. The DAOs beside
  * it answer the questions a rule needs — the classes in this window, is this subject still taught, this
  * student's prices — and every repository is handed one. Backup and restore need something else
- * entirely: whole tables, ids preserved, no rule applied. Those 25 methods used to live on the same
- * eight DAOs, so every repository was also handed `deleteAll()` for its table. A module that exists to
- * hold an invariant should not be able to empty the table the invariant is about, and nothing but the
- * *type* of what it was injected with stood in the way.
+ * entirely: whole tables, ids preserved, no rule applied. Kept off the rule DAOs, every repository would
+ * otherwise also be handed `deleteAll()` for its table. A module that exists to hold an invariant should
+ * not be able to empty the table the invariant is about, and nothing but the *type* of what it is
+ * injected with would stand in the way.
  *
  * The per-table methods are `protected` for the same reason. Both orders below — children before
  * parents on the way out, parents before children on the way in — are properties of the schema's

@@ -68,7 +68,7 @@ data class ClassForm(
 
     /**
      * This booking writing [count] lessons. One is a lesson that does not repeat; more keep the frequency
-     * already chosen, weekly when there was none.
+     * already chosen, weekly when there is none.
      */
     fun withLessons(count: Int): ClassForm =
         if (count <= 1) {

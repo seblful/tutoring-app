@@ -94,9 +94,9 @@ data class StudentDetails(
         CardLessons.preview(classes, now, limit) { it.klass }
 
     /**
-     * When they last paid, or null if they never have — the line under the balance. It used to repeat the
-     * balance in words («Долг 45 BYN» under «Долг / 45 BYN»); when the money last came in is the thing the
-     * number does not say, and what a tutor deciding whether to chase it wants next.
+     * When they last paid, or null if they never have — the line under the balance. When the money last
+     * came in is the thing the balance does not say, and what a tutor deciding whether to chase it wants
+     * next.
      */
     val lastPaymentAt: Instant? get() = payments.maxOfOrNull { it.date }
 

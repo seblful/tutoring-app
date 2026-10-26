@@ -13,14 +13,13 @@ import com.seblful.klas.domain.model.ThemeChoice
  * How every enum column is stored: as the constant's **name**, in a `TEXT` column, and read back by a
  * **total parse** — never `valueOf`, and never Room's own enum handling, which is `valueOf` underneath.
  *
- * The entities used to hold these as `String` and leave the reading to `Mappers.kt` and the repositories,
- * which put the same name ⇄ constant step in every reader. Typing the columns moves it here, once, and
- * changes nothing on disk: the text written is exactly what was written before, so neither the schema
- * (`shared/schemas/`), nor the version, nor a backup file differs. Renaming a constant is therefore still a
- * migration (`StoredEnumNamesTest`, which runs every constant through these).
+ * Typing the columns puts the name ⇄ constant step here, once, instead of in every reader. The text
+ * stored is the constant's name, so the schema (`shared/schemas/`), the version and a backup file do not
+ * depend on it, and renaming a constant is a migration (`StoredEnumNamesTest`, which runs every constant
+ * through these).
  *
  * **What an unreadable name becomes.** A column holding an enum's name is a column that can hold something
- * else — a hand-edited database is the only route left now that a backup's rows are typed on the way in —
+ * else — a hand-edited database is the only route, since a backup's rows are typed on the way in —
  * and this runs inside the `Flow`s every screen collects, so *throwing* here reports an error to nobody: it
  * kills the collector, and the screen simply never draws. So the answer differs by whether the column
  * carries money:

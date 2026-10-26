@@ -48,9 +48,8 @@ object Taught {
          *
          * **Lessons still to come beat lessons that fell through**, and neither is said when it is zero:
          * «впереди 3» is something to act on, «отменено 3» is not, and only one line fits under the count.
-         * That precedence was an `if/else if/else` inside a `@Composable` (`ui/common/LessonsStat.kt`),
-         * shared by the student and the group card — so the one rule the two cards genuinely agree on was
-         * the one neither could test.
+         * The precedence lives here rather than in a `@Composable`, so the one rule the student and the
+         * group card genuinely agree on can be tested.
          *
          * A card is free to put something else in the slot when this is null; the student's puts the hours
          * there and the group's deliberately does not. That choice is the card's, not this rule's.
@@ -126,8 +125,8 @@ object Taught {
      * A separate name rather than an overload: both take a `List`, which erases to the same JVM
      * signature.
      *
-     * The group card had both: it collapsed the sessions to list the lessons, then handed the raw
-     * classes to [byGroup], which collapsed the same list again — twice per emission of one screen.
+     * Lets the group card, which collapses the sessions to list the lessons, avoid collapsing the same
+     * list again through [byGroup] on every emission.
      */
     fun bySessions(sessions: List<ClassSession>): Totals {
         val taught = sessions.filter { s -> Billing.billable(s.classes).isNotEmpty() }

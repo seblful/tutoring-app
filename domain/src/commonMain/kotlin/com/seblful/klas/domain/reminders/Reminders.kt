@@ -16,8 +16,7 @@ object Reminders {
      * A planned reminder: which class, the **instant** it fires, and whether that instant has already
      * arrived.
      *
-     * An absolute instant, not a delay. The delay was WorkManager's shape (`setInitialDelay`), kept
-     * after reminders became alarms — and it made the only adapter reconstruct the firing time
+     * An absolute instant, not a delay: a delay would make the adapter reconstruct the firing time
      * against a second clock read of its own, some moments after the one the plan was derived from.
      * When a reminder fires is this module's decision; an adapter arms what it is handed.
      *
@@ -31,9 +30,9 @@ object Reminders {
      * How long before a lesson its reminder fires, until the tutor picks otherwise — in minutes, because
      * that is how the setting is stored and how the calendar's email reminder is written.
      *
-     * A `const` so the settings row, the settings model and the calendar port can all default to it: the
-     * figure was written out four times, and a default changed in one of them would have left a fresh
-     * install's in-app and email reminders disagreeing about when "an hour before" is.
+     * A `const` so the settings row, the settings model and the calendar port all default to it: a default
+     * changed in only one of them would leave a fresh install's in-app and email reminders disagreeing
+     * about when "an hour before" is.
      */
     const val DEFAULT_LEAD_MINUTES: Int = 60
 

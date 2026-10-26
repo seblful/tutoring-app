@@ -254,9 +254,7 @@ fun OnboardingScreen(
         ) { shown ->
             val leaving = transition.targetState == EnterExitState.PostExit
             Column(Modifier.fillMaxSize().predictiveBack(backState, following = !leaving)) {
-                // Which step, and how many are left. Without it the setup was a sequence of screens with
-                // no visible end, which is the difference between "this takes a minute" as a claim and as
-                // something the tutor can see.
+                // Which step, and how many are left: "this takes a minute" as something the tutor can see.
                 if (shown.number > 0) {
                     Text(
                         stringResource(R.string.onboarding_step, shown.number, Step.total),
@@ -274,10 +272,8 @@ fun OnboardingScreen(
                 }
                 when (shown) {
                     Step.WELCOME -> {
-                        // The first thing a new tutor sees, and it used to be a grey paragraph of
-                        // instructions with the buttons pushed to the bottom by a spacer — the app
-                        // explaining its setup before saying what it was. The mark and three lines of
-                        // value proposition come first now; the setup is offered underneath them.
+                        // The first thing a new tutor sees: the mark and three lines of value proposition
+                        // come first, and the setup is offered underneath them.
                         //
                         // Centred while it fits, scrolled when it does not: at a large font scale, or on a phone
                         // turned sideways, the mark and the three lines drew over the buttons below them.
@@ -424,14 +420,12 @@ fun OnboardingScreen(
                         } else {
                             LazyColumn(Modifier.weight(1f)) {
                                 items(added, key = { it.id }, contentType = { "subject" }) { subject ->
-                                    // Each one can be taken back. The list was read-only, so a typo in the
-                                    // step whose only gate is "at least one subject" could be *finished
-                                    // with* but not fixed — the tutor had to skip setup to reach the screen
-                                    // that deletes one. Removal is undone from the snackbar rather than
-                                    // guarded by a dialog: nothing references a subject added here (see
-                                    // [OnboardingViewModel.removeSubject]), so there is nothing to warn
-                                    // about, and «Вернуть» costs a mis-tap one tap instead of costing every
-                                    // deliberate delete a confirmation.
+                                    // Each one can be taken back: a typo in the step whose only gate is
+                                    // "at least one subject" must be fixable without leaving setup. Removal
+                                    // is undone from the snackbar rather than guarded by a dialog: nothing
+                                    // references a subject added here (see [OnboardingViewModel.removeSubject]),
+                                    // so there is nothing to warn about, and «Вернуть» costs a mis-tap one tap
+                                    // instead of costing every deliberate delete a confirmation.
                                     ListItem(
                                         headlineContent = { Text(subject.name) },
                                         trailingContent = {

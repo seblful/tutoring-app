@@ -9,8 +9,7 @@ import kotlin.time.Instant
  * Rules for every lesson, group or individual: how its classes collapse into one lesson, what one edit
  * does to each of them, and which statuses it may move to.
  *
- * These lived in [GroupRules] because group lessons were where a lesson first had several classes; an
- * individual lesson is a session of one and goes through exactly the same rules.
+ * An individual lesson is a session of one and goes through exactly the same rules as a group's.
  */
 object SessionRules {
 
@@ -41,11 +40,10 @@ object SessionRules {
      * The whole of what one edit does to one lesson: its own row's new fields, and what becomes of every
      * member — [GroupRules.rosterChange], [editsFor] and [ClassRules.edit] composed in the one order they compose in.
      *
-     * **The composition is this module's, not its caller's.** These three used to be assembled at the one
-     * call site that needs them, and the assembly is where the rule went wrong: the lesson's own fields
-     * were read out of the surviving classes, so a total roster swap left no class to read them from. See
-     * [LessonEdit] for what that cost. Naming the sequence here is also what makes it testable at all —
-     * the parts each had tests, and the thing between them had none.
+     * **The composition is this module's, not its caller's.** The assembly is where the rule can go wrong:
+     * the lesson's own fields must not be read out of the surviving classes, since a total roster swap
+     * leaves no class to read them from (see [LessonEdit]). Naming the sequence here also makes it
+     * testable — the parts each have tests, and the thing between them needs one.
      *
      * [roster] says who the lesson covers afterwards; null leaves it exactly as it is, which is all an
      * individual lesson can mean. [now] is the caller's clock, as everywhere in the domain: whether the
@@ -74,15 +72,13 @@ object SessionRules {
     }
 
     /**
-     * Collapses [classes] into the lessons they belong to — **by `lessonId`**, which is what makes them
-     * one lesson and is now a column rather than a coincidence. Sessions come out ordered by start, then
-     * by the id of their first class, so the schedule's order is stable across re-emissions.
+     * Collapses [classes] into the lessons they belong to — **by `lessonId`**, a column, which is what
+     * makes them one lesson. Sessions come out ordered by start, then by the id of their first class, so
+     * the schedule's order is stable across re-emissions.
      *
-     * This used to group by `(groupId, start)` and fall back to the class's own id for an individual one.
-     * The key being the *time* meant a class whose time was edited on its own left its session by
-     * construction — described at the time as there being "no membership flag to go stale", which is true
-     * and was the problem: two rows of one lesson could disagree about when it was, and then they were
-     * two lessons, each holding the same hour.
+     * Grouping by *time* instead would let a class whose time is edited on its own leave its session:
+     * two rows of one lesson could disagree about when it is, and then they would be two lessons, each
+     * holding the same hour.
      */
     fun sessions(classes: List<TutoringClass>): List<ClassSession> =
         classes
@@ -113,11 +109,8 @@ object SessionRules {
     }
 
     /**
-     * The statuses offered for a whole lesson — simply what its own status may become.
-     *
-     * It used to be the *union* over its classes, with an `applicableTo` beside it picking out the ones
-     * the change was legal for and leaving the rest alone: machinery for a lesson whose members held
-     * different statuses, which cannot happen now that the status is the lesson's. Both went with it.
+     * The statuses offered for a whole lesson — simply what its own status may become, since its members
+     * cannot hold different statuses.
      */
     fun sessionTransitions(session: ClassSession): Set<LessonStatus> =
         ClassRules.availableTransitions(session.status)

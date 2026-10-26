@@ -5,18 +5,11 @@ package com.seblful.klas.domain.model
  *
  * A balance is one [Money] whose sign carries a meaning ([Billing]: charges minus payments, so positive is
  * debt and negative is over-payment). Every surface that shows one has to ask the same three-way question,
- * and until this existed each asked it for itself, out of `isZero` and `isNegative`, **inside a
- * `@Composable`** — which is to say in the one place this app cannot unit-test. There were four askers and
- * three different answers:
+ * and asking it per surface out of `isZero` and `isNegative` — in a `@Composable`, the one place this app
+ * cannot unit-test — lets the answers drift (a two-way ask files a settled balance under «Долг»). It is
+ * decided once, here.
  *
- * - `balanceDescription` picked the sentence,
- * - `balanceColor` picked the tint,
- * - a student card's hero picked the *label* two-way (`isNegative` or not) and so filed a settled balance
- *   under «Долг», which is right and was an accident of the missing third arm rather than a decision,
- * - and the archive warning asked only «is it zero», in the view model, in a fourth spelling.
- *
- * The sign flip that turns a negative balance into a positive «Переплата» was written out twice,
- * independently, as `Money.ZERO - balance`. It happens once now, here, in [Credit]'s construction — so an
+ * The sign flip that turns a negative balance into a positive «Переплата» happens once, in [of] — so an
  * over-payment cannot be printed as a negative debt by a caller that forgot, and **the amount every arm
  * carries is already the amount to print.**
  *

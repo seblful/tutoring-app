@@ -6,10 +6,9 @@ import kotlinx.serialization.Serializable
 /**
  * A money text field: what the tutor has typed, and every answer a form or a screen needs about it.
  *
- * Every money input in the app used to restate the same three rules at its own call site — is this
- * parseable ([amount]), should the box go red ([isError]), may I fill it in for them
- * ([prefilledWith]) — in six different spellings, three of them inside composables where no JVM
- * test could reach them. They differ in exactly one respect, which is [kind].
+ * One home for the three rules every money input shares — is this parseable ([amount]), should the box
+ * go red ([isError]), may I fill it in for them ([prefilledWith]) — where a JVM test can reach them.
+ * Inputs differ in exactly one respect, which is [kind].
  *
  * Holding the raw [text] rather than a parsed amount is deliberate: input like `"1,"` already
  * parses as one major unit, but the tutor may still be typing the fraction. Its spelling must

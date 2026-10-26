@@ -10,11 +10,9 @@ import com.seblful.klas.domain.model.TutoringClass
  * classes has **billed**, because deleting a completed lesson takes recognized income with it, and
  * whether it is a group's, because then it is several students' classes at once.
  *
- * **[kind] is the decision; the four strings are the screen's.** This type used to publish the two facts
- * instead, and the four-armed `when` combining them stayed in the composable — so what had moved out was
- * the two extractions, not the *picking*, which is the part that can be got wrong and the part no test
- * could reach. Named cases make the screen's `when` exhaustive over an answer somebody else gave, which
- * is the shape `SaveIntent` and `SubjectNotice` already have.
+ * **[kind] is the decision; the four strings are the screen's.** The *picking* — the part that can be got
+ * wrong — lives here, where a test can reach it. Named cases make the screen's `when` exhaustive over an
+ * answer somebody else gave, which is the shape `SaveIntent` and `SubjectNotice` have.
  */
 data class DeleteWarning(val kind: Kind, val classes: Int) {
 

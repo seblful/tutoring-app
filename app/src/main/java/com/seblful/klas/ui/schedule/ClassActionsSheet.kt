@@ -284,7 +284,7 @@ private fun AttachedHomework(items: List<SheetHomework>, onDone: (Homework, Bool
                             role = Role.Checkbox,
                         ) { toggleFeedback(it); onDone(item.homework, it) }
                     }
-                    // A thumb's height, like every other row the app ticks — it was the checkbox's own 24 dp.
+                    // A thumb's height, like every other row the app ticks, not the checkbox's own 24 dp.
                     .heightIn(min = MinTouchTarget)
                     .padding(vertical = Spacing.tight),
                 verticalAlignment = Alignment.CenterVertically,

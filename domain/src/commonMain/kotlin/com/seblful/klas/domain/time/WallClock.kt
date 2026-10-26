@@ -9,10 +9,10 @@ import kotlin.time.Instant
 /**
  * The wall clock, and the zone it is read in.
  *
- * `java.time.Clock` was both, and the code leans on that: "today" is a date, and a date only exists in a
- * zone. `kotlin.time.Clock` is only the instant, so the zone travels beside it here. Injected rather than
- * read from the system for the reason `di/TimeModule` gives — a test has to be able to move the time and
- * name the zone, and a midnight rollover is only assertable against a clock the test controls.
+ * "Today" is a date, and a date only exists in a zone; `kotlin.time.Clock` is only the instant, so the zone
+ * travels beside it here. Injected rather than read from the system for the reason `di/TimeModule` gives —
+ * a test has to be able to move the time and name the zone, and a midnight rollover is only assertable
+ * against a clock the test controls.
  */
 interface WallClock {
 

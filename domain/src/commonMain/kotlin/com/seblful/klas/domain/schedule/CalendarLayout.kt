@@ -28,9 +28,8 @@ object CalendarLayout {
     /**
      * How many of a day's lessons sit in one status — one tinted number in its calendar cell.
      *
-     * Every lesson lands in one of the three, [ClassSession.status] having an answer for a group whose
-     * members were corrected apart. There used to be a fourth, null bucket for that lesson, which is
-     * how a cell came to print a count of something no class can be.
+     * Every lesson lands in one of the three, [ClassSession.status] being always an answer — so a cell
+     * never prints a count of something no class can be.
      */
     data class Tally(val status: LessonStatus, val count: Int)
 
@@ -104,9 +103,9 @@ object CalendarLayout {
      * are absent from the map, so a cell can just look itself up.
      *
      * Counted in **lessons**, not classes: a group lesson is stored as one class per member, so a
-     * group of two used to print «2» in its cell — two of something the tutor teaches once. The cell
-     * has to agree with the list under it, which has always shown one row per lesson, so both collapse
-     * through the same [SessionRules.sessions].
+     * group of two would print «2» in its cell — two of something the tutor teaches once. The cell
+     * has to agree with the list under it, which shows one row per lesson, so both collapse through the
+     * same [SessionRules.sessions].
      */
     fun dayLoads(classes: List<TutoringClass>, zone: TimeZone): Map<LocalDate, DayLoad> =
         SessionRules.sessions(classes)

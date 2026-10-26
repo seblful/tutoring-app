@@ -7,16 +7,12 @@ import kotlinx.datetime.LocalDate
  * Where a tap in the notification tray puts the tutor — **one rule for every notification the app posts**,
  * and for the home-screen widgets (`widget/`), which open the app the same way.
  *
- * It began as `ReminderNavigation`, about the single thing a reminder can ask the app to open: a lesson,
- * because «Перенести» needs a screen a notification cannot draw. The weekly debt digest is the second
- * such ask and the evening digest the third, and neither is a reminder at all — so the name and the
- * answer are the tray's now rather than one notification kind's. What a *move* is remains unencoded: the
- * tutor is simply put in front of the lesson, where a date and time are changed and where a clash on the
- * new hour is already refused.
+ * What a *move* is stays unencoded: «Перенести» needs a screen a notification cannot draw, so the tutor
+ * is put in front of the lesson, where a date and time are changed and where a clash on the new hour is
+ * already refused.
  *
- * **Every entry asks for somewhere.** A reminder, the morning agenda and the auto-completion report used
- * to open the app and nothing more, on whatever tab it had been left on — so a tap on «занятие через час»
- * could land on the reports, and the tutor had to go and find the lesson the tray had just named.
+ * **Every entry asks for somewhere.** A tap on «занятие через час» must land on that lesson, not on
+ * whatever tab the app was left on.
  *
  * [destinationFor] is a function of plain values rather than of an `Intent`, and that is the whole
  * point of it: an `Intent` can only be built on a device, so "which intents mean go somewhere" is exactly
@@ -31,7 +27,7 @@ object TrayNavigation {
 
     /**
      * The action strings ride in `PendingIntent`s that may already be sitting in a tray, so their
-     * **values** are not free to change even though the object holding them was renamed.
+     * **values** are not free to change.
      */
     const val ACTION_OPEN_LESSON = "com.seblful.klas.action.OPEN_LESSON"
     const val ACTION_OPEN_DEBTS = "com.seblful.klas.action.OPEN_DEBTS"
@@ -56,9 +52,8 @@ object TrayNavigation {
     /**
      * The extra every notification intent carries its lesson in — **declared once**.
      *
-     * It was declared three times with the same literal, here and in the two receivers, which is the shape
-     * a wire format should never have: the value is inside `PendingIntent`s already sitting in people's
-     * trays, so it is not free to change, and three copies is three places to fail to not change it.
+     * The value is inside `PendingIntent`s already sitting in people's trays, so it is not free to change;
+     * the activity and both receivers read it from here.
      */
     const val EXTRA_CLASS_ID = "classId"
 
@@ -67,9 +62,8 @@ object TrayNavigation {
      * class id", for the activity and both `BroadcastReceiver`s.
      *
      * Row ids are positive `AUTOINCREMENT` values, so anything else is a missing extra arriving as whatever
-     * default its reader happened to pass. The three readers had two different rules: the receivers read a
-     * `-1L` default and refused `< 0`, so **zero passed both of them**, while this object refused it. Zero
-     * is precisely the value the booking form reads as "a new lesson", which is why it is the one to refuse.
+     * default its reader happened to pass. Zero must be refused too: it is the value the booking form reads
+     * as "a new lesson". Readers pass the raw extra here rather than testing `< 0` themselves.
      */
     fun lessonIdOrNull(raw: Long): Long? = raw.takeIf { it > 0 }
 

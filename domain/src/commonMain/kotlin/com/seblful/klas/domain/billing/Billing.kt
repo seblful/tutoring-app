@@ -16,11 +16,9 @@ object Billing {
      * Of [classes], the ones that count as income — the lesson happened **and** this student owes for it
      * ([TutoringClass.isBillable]).
      *
-     * `filter { it.status.isBillable }` was written out at ten sites across four modules and two view
-     * models, so "what counts as income" was a convention rather than a definition — and one of the ten
-     * (a group lesson's charge on its card) folded the charges without it, relying on cancelling having
-     * zeroed them while the other nine did not trust that. Having one definition is also what let the
-     * second half of the question — was this student in the room — be added in one place.
+     * The single definition of "what counts as income": callers do not filter on status themselves, so
+     * nobody folds charges without it by relying on cancelling having zeroed them, and the second half of
+     * the question — was this student in the room — lives in one place.
      *
      * A **list**, not a sum, because several callers need to group or count the billable classes before
      * adding anything up: filtering after grouping would invent a zero-earning month for a month whose
@@ -37,9 +35,8 @@ object Billing {
      *
      * Null rather than zero, because "billed nothing" and "billed zero" are different rows: a lesson still
      * to come, a cancelled one, or one this student missed unbilled earned nothing and shows no amount,
-     * while a taught lesson at a zero rate did earn — zero — and says so. The student and group cards
-     * spelled this two ways (`status == COMPLETED` and `!charge.isZero`), and each was wrong in one of
-     * those cases.
+     * while a taught lesson at a zero rate did earn — zero — and says so. Neither `status == COMPLETED`
+     * nor `!charge.isZero` tells these apart.
      */
     fun billedOrNull(classes: List<TutoringClass>): Money? =
         billable(classes).takeIf { it.isNotEmpty() }?.let(::charged)

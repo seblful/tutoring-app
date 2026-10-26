@@ -42,10 +42,8 @@ import com.seblful.klas.ui.theme.KlasIcons
  * @param compact for an empty state **inside** something — a detail card's tab — rather than one owning
  * the screen. Smaller icon, no `fillMaxSize`, a quieter line, an outlined action.
  *
- * The tabs used to draw a bare grey `Text` instead, through a private `TabEmptyState` that was
- * defined **twice, identically**, in the two card files. So a tutor met a designed empty state on five
- * screens and an unstyled sentence on five tabs — and the sentence had nowhere to put an action, which
- * is the part of this component that matters.
+ * Tabs use this too rather than a bare grey `Text`, which would have nowhere to put an action — the part
+ * of this component that matters.
  */
 @Composable
 fun EmptyState(

@@ -30,12 +30,11 @@ val md_onErrorContainer = Color(0xFF410002)
  * The green a **taught lesson** is said in — a role Material's scheme has no slot for, so it is carried
  * beside it (see [KlasColors]) rather than borrowed from one of the three accents.
  *
- * Borrowed is what it was: «Проведено» was `tertiary`, and the panel the schedule's swipe reveals was
- * `tertiaryContainer` — which, this palette's teal being a cyan hue, is the pale blue #A9EDFF. Blue is
- * what a lesson *still to come* is written in here (`primary`), so the gesture that marks one taught was
- * revealing the colour of one that had not been. Green is what "done" means outside this app, and it is
- * a colour nothing else in the app claims: the teal it replaces is also the individual lesson's icon
- * (`LessonKindUi`), so a taught lesson and a one-to-one lesson used to be the same colour.
+ * Borrowing is the trap: this palette's teal is a cyan hue, so `tertiaryContainer` is the pale blue
+ * #A9EDFF. Blue is what a lesson *still to come* is written in here (`primary`), so the swipe that marks
+ * one taught would reveal the colour of one that had not been. Green is what "done" means outside this
+ * app, and it is a colour nothing else in the app claims: the teal is also the individual lesson's icon
+ * (`LessonKindUi`), so teal would make a taught lesson and a one-to-one lesson the same colour.
  *
  * A tonal pair, because the green is used two ways: the strong tone for a *word* (the «Проведено» badge,
  * which tints its own pill from it), the container tone for a *panel* that has words on it.
@@ -93,10 +92,10 @@ val md_onTertiaryFixedVariant = Color(0xFF004E5B)
  * The tonal ladder — the surfaces a card is drawn on, from the page upward.
  *
  * Left undefined, every one of these falls back to a Material default derived from a palette that is
- * not this one, which is why every card in the app was reaching for `surfaceVariant` and landing on
- * the same grey: a lesson row, the stat strip above it and the report section holding it were three
- * different *kinds* of thing painted one colour, so the screen had no hierarchy to read. Stated here,
- * they give one: items sit on `surfaceContainerHigh`, the sections that hold them on `surfaceContainerHighest`
+ * not this one, so every card would reach for `surfaceVariant` and land on the same grey: a lesson row,
+ * the stat strip above it and the report section holding it are three different *kinds* of thing, and
+ * one colour leaves the screen no hierarchy to read. Stated here, they give one: items sit on
+ * `surfaceContainerHigh`, the sections that hold them on `surfaceContainerHighest`
  * (`itemSurface`/`sectionSurface`), clear of the `surfaceContainer` the bar tints to on scroll.
  */
 val md_surfaceDim = Color(0xFFDBD9E0)
@@ -112,8 +111,8 @@ val md_primary_d = Color(0xFFBCC2FF)
 val md_onPrimary_d = Color(0xFF1A2691)
 /*
  * Tone 30 at the dark accents' chroma (HCT 281/36/30), not the seed's. At the seed's chroma 57 (#3340AA)
- * the add button and the income card were a saturated royal blue among lavender accents of chroma 35 —
- * the loudest thing on every dark screen, and from another palette.
+ * the add button and the income card would be a saturated royal blue among lavender accents of chroma
+ * 35 — the loudest thing on every dark screen, and from another palette.
  */
 val md_primaryContainer_d = Color(0xFF3C4279)
 val md_onPrimaryContainer_d = Color(0xFFDFE0FF)

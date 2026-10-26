@@ -70,7 +70,7 @@ fun PeopleScreen(
         page = tab,
         // One search box for two lists. Typing goes to whichever side is on top, so switching tab keeps
         // each side's own search — but **closing clears both**, because the shut box can only speak for
-        // one of them: searching «ан» on Students, switching to Groups and closing used to leave the
+        // one of them: searching «ан» on Students, switching to Groups and closing would leave the
         // students list filtered with nothing on screen to say why, or to undo it.
         search = ScreenSearch(
             query = query,

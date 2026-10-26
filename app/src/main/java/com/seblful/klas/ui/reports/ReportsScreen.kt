@@ -197,18 +197,17 @@ fun ReportsScreen(
         messages = messages,
         maxContentWidth = if (twoPane) SupportingPaneMaxWidth else MaxContentWidth,
         actions = {
-            // A backup is JSON meant to be read back by this app. What a tutor totalling their
-            // year — or an accountant — needs is a file that opens in a spreadsheet, and there was
-            // nothing here that produced one.
+            // A backup is JSON meant to be read back by this app; a tutor totalling their year — or an
+            // accountant — needs a file that opens in a spreadsheet.
             if (report?.hasData == true) {
-                // **Send comes before save**, and it is the one that was missing. Saving a CSV puts it in
-                // a folder the tutor then has to go and find in a second app; the thing they were
-                // actually doing with a month is sending it — to an accountant, or to their own mail so
-                // it is somewhere other than this phone. Both stay: a file kept and a file sent are
-                // different acts, and the share sheet cannot put one on the SD card.
+                // **Send comes before save.** Saving a CSV puts it in a folder the tutor then has to go and
+                // find in a second app; what they do with a month is send it — to an accountant, or to
+                // their own mail so it is somewhere other than this phone. Both stay: a file kept and a
+                // file sent are different acts, and the share sheet cannot put one on the SD card.
                 // Kept on screen while a new period assembles, so they don't blink with every arrow tap;
                 // a tap inside that frame or two sends nothing rather than the previous period's file.
-                // One Export menu (R1): two look-alike icons left the tutor to guess which sent and which saved.
+                // One Export menu, not two look-alike icons that leave the tutor to guess which sent and
+                // which saved.
                 ReportExportMenu(
                     files = files,
                     period = period,
@@ -224,8 +223,8 @@ fun ReportsScreen(
         },
     ) { modifier, bottomInset ->
         // «Нет данных» says the tutor has earned nothing, which is a claim about their year — so it
-        // waits for the report to actually arrive. Before [Loadable] the initial value was an empty
-        // report, and every cold open of this screen made that claim for a frame or two.
+        // waits for the report to actually arrive: an empty initial report would make that claim on
+        // every cold open for a frame or two. See [Loadable].
         if (report == null) {
             Column(modifier.padding(bottomInset)) { ReportsSkeleton() }
             return@KlasScreen
@@ -974,12 +973,11 @@ private fun LazyListScope.debtsSection(state: Reports.Report, onStudentClick: (L
             )
         }
     }
-    // Every row opens the person who owes. Reading a name here and then going to find them by
-    // hand — through a list that could not be searched or sorted by debt — was the longest
-    // journey in the app, between two screens that are one tap apart.
+    // Every row opens the person who owes: reading a name here and then going to find them by hand would
+    // be the longest journey in the app, between two screens that are one tap apart.
     //
-    // No gap between the rows: each is already a full touch target, and an item gap on top of that spaced
-    // the debts twice as far apart as any other rows on the screen.
+    // No gap between the rows: each is already a full touch target, and an item gap on top of that would
+    // space the debts twice as far apart as any other rows on the screen.
     itemsIndexed(state.debts, key = { _, debt -> "debt/${debt.id}" }, contentType = { _, _ -> "debt" }) { index, debt ->
         CardSlice(last = index == state.debts.lastIndex, gapAbove = if (index == 0) Spacing.itemGap else 0.dp) {
             AmountRow(

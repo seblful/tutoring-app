@@ -142,7 +142,7 @@ internal fun PageNavigator(
         Text(
             title,
             // A heading, so a screen reader can jump between the page's title and its days. A tap picks any
-            // date: paging a day or a month at a time was the only way to reach one weeks away.
+            // date: paging a day or a month at a time is the slow way to reach one weeks away.
             modifier = Modifier
                 .weight(1f, fill = false)
                 .clip(MaterialTheme.shapes.small)

@@ -137,11 +137,9 @@ fun formatHours(minutes: Int, decimalSeparator: Char = AppLocale.decimalSeparato
  * Blank parts are dropped rather than leaving a stranded separator, which is what makes it safe to hand it
  * everything that *might* be known — a lesson with no group name, a day with nothing called off.
  *
- * Here rather than in the notification adapter that used to own it (`AndroidNotifier.joined`, applied at
- * four sites): the schedule's day summary joins its clauses the same way, so a separator chosen in two
- * places is a separator that can differ between the screen and the tray entry summarising it. Language
- * plays no part — the bullet is the same in both — so this is a plain function and not one of the
- * locale-aware formats above.
+ * Shared by the notification adapter and the schedule's day summary, so the separator cannot differ between
+ * the screen and the tray entry summarising it. Language plays no part — the bullet is the same in both —
+ * so this is a plain function and not one of the locale-aware formats above.
  */
 fun bulletJoin(parts: List<String>): String = parts.filter { it.isNotBlank() }.joinToString(BULLET)
 

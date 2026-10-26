@@ -36,7 +36,7 @@ class Messages(
      */
     fun undoable(text: String, undo: () -> Unit) = show(text, undoLabel, undo)
 
-    /** Shows [text] with something to do about it — «Показать», «Отменить». */
+    /** Shows [text] with something to do about it — «Показать», «Вернуть». */
     fun show(text: String, actionLabel: String, onAction: () -> Unit) {
         scope.launch {
             hostState.currentSnackbarData?.dismiss()

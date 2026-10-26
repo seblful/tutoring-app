@@ -26,9 +26,8 @@ import java.util.Locale
 /**
  * Which of the three things the app is showing at the very top.
  *
- * `AppRoot` used to decide this in a `when` over a nullable settings row: still loading, not onboarded,
- * or the tabs. Naming it makes "settings are null" mean *loading* rather than merely being a null check
- * that the two arms below it happen to be ordered around.
+ * Naming it makes "settings are null" mean *loading* rather than merely being a null check that the two
+ * arms below it happen to be ordered around.
  */
 enum class RootRoute {
 

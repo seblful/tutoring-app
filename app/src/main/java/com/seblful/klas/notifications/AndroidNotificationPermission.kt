@@ -19,7 +19,7 @@ import dev.zacsweers.metro.SingleIn
  * Two things have to be true, and the runtime permission is only one of them: notifications can also be
  * switched off for the whole app in system settings, on **every** Android version — including the ones
  * with no `POST_NOTIFICATIONS` to grant. A tutor who turned them off there and then wondered why no
- * reminder arrived would get the same silence the missing permission used to produce, so both are asked.
+ * reminder arrived would get the same silence a missing permission produces, so both are asked.
  */
 @ContributesBinding(AppScope::class)
 @SingleIn(AppScope::class)

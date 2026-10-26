@@ -20,11 +20,10 @@ class MalformedBackupException(val reason: String, cause: Throwable? = null) :
  *
  * **Why this exists at all.** The import writes rows verbatim — it deserializes them, it never
  * interprets them. The interpreting happens much later, on the **read** path, inside the `Flow`s the
- * screens collect. So a file carrying a lesson of zero minutes, or (before the entities' enum columns were
- * typed) `"status": "MISSED"`, used to import *successfully* and then break the app: every read of that
- * row threw, the schedule and the reports could not be drawn, and no amount of reopening helped because
- * the bad row was now the saved data. The tutor's own backup had become the thing that broke the app,
- * with nothing on screen to say so.
+ * screens collect. So a file carrying a lesson of zero minutes would import *successfully* and then
+ * break the app: every read of that row would throw, the schedule and the reports could not be drawn, and
+ * no amount of reopening would help because the bad row was now the saved data. The tutor's own backup
+ * would have become the thing that broke the app, with nothing on screen to say so.
  *
  * Checking here turns that into an ordinary refusal. It has to happen **before** the transaction
  * rather than inside it, because "the import threw halfway and rolled back" is the same outcome only
@@ -34,8 +33,9 @@ class MalformedBackupException(val reason: String, cause: Throwable? = null) :
  * What is checked is exactly the set of columns that a read can *fail* on, no more: this is not a
  * validator for plausible data. **An enum column is not among them**: it is typed, so a name this build
  * has no constant for is refused as the file is parsed (`BackupManager.parse` — classified as
- * [BackupFailure.Malformed] all the same), and no row that reaches this check can hold one. A backup is allowed to be strange (a lesson at 4 a.m., a rate of 0, a
- * student with no subjects); it is not allowed to be unreadable. Referential integrity is left to the
+ * [BackupFailure.Malformed] all the same), and no row that reaches this check can hold one. A backup is
+ * allowed to be strange (a lesson at 4 a.m., a rate of 0, a student with no subjects); it is not allowed
+ * to be unreadable. Referential integrity is left to the
  * database's own foreign keys, which the import's transaction already enforces.
  *
  * "Unreadable" includes an amount the money arithmetic cannot survive, which is not obvious and is

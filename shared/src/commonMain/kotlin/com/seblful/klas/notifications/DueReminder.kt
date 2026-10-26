@@ -18,9 +18,8 @@ import kotlin.time.Instant
  * Everything a reminder does when it comes due, except the firing: decide whether it is still owed,
  * work out who it names, and post it.
  *
- * These decisions used to live in a `CoroutineWorker`, coupled to a `Context` and
- * `WorkerParameters`, with no direct test of the posting rules. Here they are ordinary code
- * over the repositories and the [Notifier] port, so a JVM test drives them.
+ * These decisions are ordinary code over the repositories and the [Notifier] port, not a worker coupled
+ * to a `Context`, so a JVM test drives them.
  *
  * [ReminderReceiver] is the current adapter: it receives the alarm and calls [post].
  */

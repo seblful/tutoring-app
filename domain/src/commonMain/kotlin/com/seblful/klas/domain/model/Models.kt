@@ -63,13 +63,12 @@ data class Price(
  * One student's class: their place in one lesson, with that lesson's own facts alongside it.
  *
  * **A joined read model, not a row.** Storage keeps the lesson once (`lessons`) and the student's part in
- * it once (`attendance`); this is the two of them together, which is what the app has always meant by "a
- * class" and what every rule below the UI reads. `ClassDao`'s queries are where the join happens, so
+ * it once (`attendance`); this is the two of them together, which is what the app means by "a class"
+ * and what every rule below the UI reads. `ClassDao`'s queries are where the join happens, so
  * nothing above storage assembles it by hand.
  *
  * @param lessonId the lesson this belongs to. Its members are exactly the classes sharing it — see
- *   `SessionRules.sessions`, which used to have to group by `(groupId, start)` and could be fooled by a
- *   member being moved on their own.
+ *   `SessionRules.sessions`.
  * @param status the **lesson's** — whether the hour happened. Shared by every class of one lesson,
  *   because it is one fact about one hour.
  * @param attended whether *this student* was in it. Independent of [status] on purpose: a lesson can be
@@ -84,8 +83,8 @@ data class Price(
  * @param calendarEventId id of the mirrored Google Calendar event, if synced. Per student: a group
  *   lesson mirrors as one event each, so each keeps their own invitation.
  *
- * No text of the tutor's rides on a lesson: the note is gone and homework is its own thing ([Homework]),
- * attached to a lesson by rule rather than stored on one.
+ * No text of the tutor's rides on a lesson: homework is its own thing ([Homework]), attached to a lesson
+ * by rule rather than stored on one.
  */
 data class TutoringClass(
     val id: Long = 0,
@@ -108,9 +107,8 @@ data class TutoringClass(
      * Whether this student owes for this lesson: **the lesson happened and they were in it** — or were
      * not, under a policy that charges anyway ([Attended.ABSENT_BILLED]).
      *
-     * The two halves are the whole point of the model. It used to be one enum's `isBillable`, so the
-     * only way to record a no-show was to cancel their class, and the only way to charge one was to
-     * record them as present.
+     * The two halves are the whole point of the model: a no-show is recorded as absent rather than by
+     * cancelling their class, and one can still be charged without being recorded as present.
      */
     val isBillable: Boolean get() = status.isBillable && attended.bills
 }
@@ -125,10 +123,8 @@ data class Payment(
 )
 
 /**
- * A student's money position.
- *
- * @param balance positive means the student owes the tutor; negative means the student
- *   has credit from over-payment.
+ * A student's money position: [balance] is positive when the student owes the tutor, negative when they
+ * have credit from over-payment.
  */
 data class StudentBalance(
     val studentId: Long,

@@ -22,8 +22,8 @@ import com.seblful.klas.ui.theme.klasColors
 /*
  * How the app says what state a thing is in: a pill, never a font style.
  *
- * «в архиве» used to be an italic grey word — the one place a state was said in emphasis rather than in the
- * shape the lesson statuses use, and emphasis carries nothing to a screen reader.
+ * «в архиве» is a pill too, in the shape the lesson statuses use: emphasis carries nothing to a screen
+ * reader.
  */
 
 /**

@@ -275,7 +275,7 @@ object Migrations {
         }
     }
 
-    /** Everything above, in the order Room should be handed it. See `di/DatabaseModule`. */
+    /** Everything above, in the order Room should be handed it. See [buildDatabase]. */
     val ALL: Array<Migration> = arrayOf(
         MIGRATION_5_6,
         MIGRATION_6_7,

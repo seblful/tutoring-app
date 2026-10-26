@@ -239,9 +239,8 @@ class StudentFormViewModel @AssistedInject constructor(
 
     /**
      * Makes a subject from inside the form and ticks it, ready for its price — the way out of «Сначала
-     * добавьте предметы», and of a new student taking a subject nobody has been taught yet. The form used
-     * to offer no road to a subject but back out of it, so a fresh install's «Добавить ученика» on the
-     * schedule led to a refusal.
+     * добавьте предметы», and of a new student taking a subject nobody has been taught yet. Without it a
+     * fresh install's «Добавить ученика» on the schedule would end in a refusal.
      */
     fun addSubject(name: String) {
         val trimmed = name.trim()

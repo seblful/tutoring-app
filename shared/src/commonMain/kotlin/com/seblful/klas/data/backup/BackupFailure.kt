@@ -17,11 +17,9 @@ class UnsupportedBackupVersionException(
  * Why an export or an import could not go through — the distinctions that change what the tutor
  * should *do* about it.
  *
- * This used to be one boolean: every failure became `ERROR` and one message, «Не удалось — проверьте
- * файл», which is advice that only fits one of the three cases. A file from a newer build is not a
- * file to check, it is an app to update; a file that is not a backup at all is not a permission
- * problem. [BackupManager] already knew which had happened and the information was discarded on the
- * way out.
+ * One message («Не удалось — проверьте файл») only fits one of the cases: a file from a newer build is
+ * not a file to check, it is an app to update; a file that is not a backup at all is not a permission
+ * problem.
  *
  * Classification is pure and lives in [of], so which exception means what is decided in one testable
  * place rather than inside a view model's `catch`.

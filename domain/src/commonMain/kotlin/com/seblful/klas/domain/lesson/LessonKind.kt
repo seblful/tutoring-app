@@ -6,12 +6,9 @@ import com.seblful.klas.domain.model.TutoringClass
 /**
  * Which of the two kinds of teaching a lesson is: one-to-one, or one of a group's.
  *
- * The distinction has always been in the data — a class either names a group or it doesn't — but it
- * was only ever read as a `groupId != null` check at the point of use, so each screen decided for
- * itself whether to mention it and most of them said nothing at all. That left the two kinds
- * indistinguishable exactly where they mix: a student's lesson list, and the income totals. Naming
- * the kind gives the app one vocabulary for it, and makes "which kind is this" a value that can be
- * shown, filtered and summed rather than a condition re-derived per composable.
+ * A class either names a group or it doesn't; naming the kind gives the app one vocabulary for it where
+ * the two mix (a student's lesson list, the income totals), and makes "which kind is this" a value that
+ * can be shown, filtered and summed rather than a condition re-derived per composable.
  *
  * Reads the class's own `groupId`, where the lesson kind is stored. [ClassSession.of] keeps
  * that id when it wraps a group member in a session of one, but does not recover the other

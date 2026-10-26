@@ -5,10 +5,10 @@ import kotlin.time.Instant
 /**
  * One lesson and the students in it: one class for an individual lesson, one per member for a group's.
  *
- * The lesson is a **row** now (`lessons`), so a session is that row's classes and nothing else has to be
- * inferred — [status] is read, not derived. It used to be the classes sharing a `(groupId, start)` pair,
- * an invariant no schema could hold: moving one member's class on its own left the session by definition,
- * and one lesson quietly became two competing for the same hour.
+ * The lesson is a **row** (`lessons`), so a session is that row's classes and nothing else has to be
+ * inferred — [status] is read, not derived. Classes sharing a `(groupId, start)` pair would be an
+ * invariant no schema can hold: moving one member's class on its own would leave the session by
+ * definition, and one lesson would quietly become two competing for the same hour.
  *
  * [classes] is never empty and is ordered by class id, so [first] is stable.
  */
@@ -36,10 +36,9 @@ data class ClassSession(
      * Every class id of the lesson — what an overlap check has to skip so a lesson cannot be found
      * standing in its own way (`Scheduling.conflicts`, and every write that re-occupies time).
      *
-     * Here rather than at each call site because it was derived by hand at four of them, each also
-     * choosing its own start-and-length pair to ask about. Three of those hand copies shipped as a
-     * double booking, and the fourth way in shipped as another: a group lesson has to exclude *every*
-     * member's class, not just the one the tutor tapped, and "every member" is a fact about the session.
+     * Here rather than derived at each call site: a group lesson has to exclude *every* member's class,
+     * not just the one the tutor tapped, and "every member" is a fact about the session. A hand-derived
+     * copy that misses one ships as a double booking.
      */
     val ids: Set<Long> get() = classes.mapTo(mutableSetOf()) { it.id }
 
@@ -48,11 +47,7 @@ data class ClassSession(
     /**
      * **The lesson's own status** — the hour's, held once in its own row and shared by every class of it.
      *
-     * It was a derivation twice over before. First an enum on each student's row answered both "did this
-     * hour happen" and "was this student in it", so a group lesson whose absentee had been cancelled had
-     * *no* status and was badged «Разные» — a fact about the roster, in a word no class can be set to.
-     * Then it was that badge's replacement: the strictest status any member was in. Now who missed the
-     * lesson is [TutoringClass.attended]'s to say, and this is simply read.
+     * Who missed the lesson is [TutoringClass.attended]'s to say, not a status, so this is simply read.
      */
     val status: LessonStatus get() = first.status
 
@@ -64,18 +59,18 @@ data class ClassSession(
      *
      * The rule is that «N из M» is only ever said about a lesson that **happened**: before then nobody has
      * missed anything and everybody is merely expected, so a count of who "came" would just be the roster
-     * with a smaller-looking number next to it. It was two facts (`present`, `size`) published side by side
-     * and combined by an `if` inside a `LazyColumn` item lambda, which is the shape `DeleteWarning` exists
-     * to replace: the combining is the part that can be wrong, and there it had no test.
+     * with a smaller-looking number next to it. The combining of `present` and `size` lives here rather
+     * than in a composable, for the reason `DeleteWarning` does: it is the part that can be wrong, and a
+     * composable cannot be tested.
      */
     val attendance: Attendance
         get() = if (status.isBillable && present < size) Attendance.Some(present, size) else Attendance.All(size)
 
     /**
-     * The rate every class in the session was booked at, or null when they differ. One lesson now
-     * has one rate (a group's own, or the student's), so this is normally just "the lesson's rate" —
-     * it can only come back null for a lesson booked before groups had a rate of their own, whose
-     * members were billed individually. A form showing one price field then has nothing truthful to
+     * The rate every class in the session was booked at, or null when they differ. One lesson has one
+     * rate (a group's own, or the student's), so this is normally just "the lesson's rate" — it can only
+     * come back null for a lesson booked before groups had a rate of their own, whose members were
+     * billed individually. A form showing one price field then has nothing truthful to
      * put in it and falls back to the group's current rate.
      */
     val sharedPrice: Money? get() = classes.map { it.price }.distinct().singleOrNull()

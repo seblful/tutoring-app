@@ -82,8 +82,8 @@ val Typography = Typography(
         letterSpacing = 0.1.sp,
     ),
     // Semi-bold like the two titles above it. This is the style the section headings are drawn in —
-    // the report cards, the settings groups, the schedule's day headers — so leaving it at the
-    // platform's regular weight was the single most visible place the scale contradicted itself.
+    // the report cards, the settings groups, the schedule's day headers — so the platform's regular
+    // weight would be the most visible place the scale contradicted itself.
     titleSmall = TextStyle(
         fontFamily = AppFontFamily,
         fontWeight = FontWeight.SemiBold,

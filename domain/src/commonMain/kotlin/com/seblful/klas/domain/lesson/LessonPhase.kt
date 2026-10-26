@@ -22,11 +22,10 @@ import kotlin.time.Instant
  *
  * ### Why [OVERDUE] is here and not only in the upkeep pass
  *
- * "The lesson has finished and nobody has said what became of it" was written twice: once as
- * `ClassRules.shouldAutoComplete` and once as whatever the evening digest would have counted. They are
- * the same sentence, and two copies of it could disagree about the boundary — which would mean the
- * notification naming lessons auto-completion had already settled, or missing ones it had not. Both read
- * this now.
+ * "The lesson has finished and nobody has said what became of it" is one sentence that both
+ * `ClassRules.shouldAutoComplete` and the evening digest need, and two copies of it could disagree about
+ * the boundary — the notification naming lessons auto-completion had already settled, or missing ones it
+ * had not. Both read this.
  *
  * ### The boundaries
  *

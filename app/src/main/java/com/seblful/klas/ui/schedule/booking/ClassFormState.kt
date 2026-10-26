@@ -29,10 +29,9 @@ enum class SubjectNotice {
 /**
  * Everything the booking screen draws, with every decision already made.
  *
- * The screen used to receive seven separate flows and work out the answers itself — whether the
- * subject picker is live, whether everyone has been unticked, whether the save may proceed. Those are
- * rules about booking a lesson, not about drawing one, and none of them could be tested where they
- * were. Here they are ordinary properties over ordinary data.
+ * The screen draws answers rather than working them out — whether the subject picker is live, whether
+ * everyone has been unticked, whether the save may proceed. Those are rules about booking a lesson, not
+ * about drawing one, so they are ordinary properties over ordinary data, testable without a screen.
  */
 // Keep `isNew` in the view model: the app bar needs it before this state has loaded.
 data class ClassFormState(
@@ -73,8 +72,8 @@ data class ClassFormState(
 ) : LeavableForm {
     /**
      * Where one press of the When section's stepper puts the lesson: [STEP_MINUTES] [later] or earlier, on
-     * past a lesson in the way ([DayTimeline.shifted]), anywhere in the day rather than only the hours a
-     * timeline used to draw. With no start yet, the first free time ([suggestion]). Null when that way
+     * past a lesson in the way ([DayTimeline.shifted]), anywhere in the day rather than only the hours the
+     * timeline draws. With no start yet, the first free time ([suggestion]). Null when that way
      * holds no free time, or before the day's lessons are read.
      */
     fun stepped(later: Boolean): Instant? {

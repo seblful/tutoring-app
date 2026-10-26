@@ -58,13 +58,12 @@ data class RosterChange(
  *
  * **[lesson] is its own field rather than "the first of [updated]", and that is the whole point of the
  * type.** A roster can be swapped *whole* — every member unticked, different ones ticked — and then
- * there is no updated class left to read the lesson's new hour off. The write that projected the lesson
- * row out of that list therefore stored the roster and silently kept the **old time**, while the hour
- * check had already reserved the new one and the calendar had already mirrored it there; the joiners
- * were re-billed from the new length against the stored old one, so a day's takings and the report
- * disagreed. Any class of the lesson is a truthful carrier of these fields (they are all shared, and
- * [ClassRules.edit] derives the status from the move alone), so there is always one to name — which is
- * exactly why leaving it implied was possible.
+ * there is no updated class left to read the lesson's new hour off. Projecting the lesson row out of that
+ * list would store the roster and silently keep the **old time**, while the hour check had already
+ * reserved the new one and the calendar had already mirrored it there; the joiners would be re-billed
+ * from the new length against the stored old one, so a day's takings and the report would disagree. Any
+ * class of the lesson is a truthful carrier of these fields (they are all shared, and [ClassRules.edit]
+ * derives the status from the move alone), so there is always one to name.
  */
 data class LessonEdit(
     val lesson: TutoringClass,

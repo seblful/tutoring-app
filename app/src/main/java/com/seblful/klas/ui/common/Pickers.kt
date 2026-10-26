@@ -40,10 +40,9 @@ import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Instant
 
 /*
- * All three modals in this file confirm with «Готово» (`action_done`), never «Сохранить». A picker
+ * Every modal in this file confirms with «Готово» (`action_done`), never «Сохранить». A picker
  * hands a value back to the form that opened it and writes nothing; the form's own «Сохранить» is
- * what commits. They all said «Сохранить» once, which put two of them in a row on the booking
- * form — see the note at `action_done` in `strings.xml`.
+ * what commits. See the note at `action_done` in `strings.xml`.
  */
 
 /**

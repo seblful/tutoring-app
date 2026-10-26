@@ -37,8 +37,8 @@ import com.seblful.klas.ui.theme.KlasIcons
  * The two surfaces the tonal ladder is made of, and which nesting depth each belongs to.
  *
  * A **top-level browsable** list uses [ContentCard]; a list *inside* a card or a settings surface uses
- * `ListItem`. The old rule was by screen genre ("settings-style lists stay plain") and decided neither of the
- * two cases that were actually wrong — see `docs/ui-conventions.md`, *card vs. row is by nesting depth*.
+ * `ListItem`. The rule is nesting depth, not screen genre — see `docs/ui-conventions.md`, *card vs. row
+ * is by nesting depth*.
  */
 
 /**

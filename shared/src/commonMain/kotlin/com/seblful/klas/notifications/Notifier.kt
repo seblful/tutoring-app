@@ -21,7 +21,7 @@ import kotlinx.datetime.LocalDate
  *
  * Amounts are printed in a [Currency] passed **in**, not read here. Currency is a display setting, and an
  * adapter that reached into `SettingsRepository` for it would have `notifications/` depending on
- * `data/repository/` for a label — the UI has the same rule the other way round (`Money.text` reads
+ * `data/settings/` for a label — the UI has the same rule the other way round (`Money.text` reads
  * `LocalCurrency` rather than the row).
  */
 interface Notifier {
@@ -87,7 +87,7 @@ interface Notifier {
      * Says that an unattended upkeep pass completed — and therefore **billed** — [lessons] lessons.
      *
      * The one notification the app posts about something it did on its own initiative, which is exactly
-     * why it exists: auto-completion recognises income, and a background pass had been doing that in
+     * why it exists: auto-completion recognises income, and a background pass would otherwise do that in
      * total silence. A pass the tutor asked for reports through the screen they are standing in front of
      * (`SettingsViewModel.swept`); this is the same courtesy for the pass nobody was watching.
      *

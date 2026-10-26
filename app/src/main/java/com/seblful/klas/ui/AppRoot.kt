@@ -89,9 +89,6 @@ fun AppRoot(rootViewModel: RootViewModel = metroViewModel(), onUnlock: (title: S
     // [RootViewModel.catchUp] for why this is not `Application.onCreate`'s to do.
     LaunchedEffect(Unit) { rootViewModel.catchUp() }
 
-    // Read into a plain local rather than a `by` delegate: a delegated property is a getter call each
-    // time it is read, so Kotlin cannot smart-cast it and the branches below had to re-assert with
-    // `settings!!` what `settings == null` had just ruled out.
     val settings = rootViewModel.settings.collectAsStateWithLifecycle().value
 
     // A row that has not loaded follows the system, like a tutor who chose to; only resolving «follow
@@ -217,20 +214,20 @@ private fun MainApp(firstLesson: FirstLesson) {
 
     // **The chrome leaves with the screen, not ahead of it.** Whether the tabs apply is settled the
     // instant `navigate` is called, but the screen they belong to takes the length of a fade to go
-    // (`ui/navigation/Transitions.kt`). Deciding this by swapping `layoutType` to `None` cut the bar
-    // away on the transition's *first* frame, so the schedule — still fading out, still the only thing
-    // on screen — was drawn reflowed into the space the bar had just left, and only then did the form
-    // arrive. What the tutor watched disappear was part of the screen they were still looking at, which
-    // is the whole of why it read as a glitch rather than as the chrome going away.
+    // (`ui/navigation/Transitions.kt`). Swapping `layoutType` to `None` would cut the bar away on the
+    // transition's *first* frame, so the schedule — still fading out, still the only thing on screen —
+    // would be drawn reflowed into the space the bar had just left, and only then would the form
+    // arrive. What the tutor watched disappear would be part of the screen they were still looking at,
+    // which reads as a glitch rather than as the chrome going away.
     //
     // `hide()` is a suspending transition, so the bar holds its place for the length of the change and
-    // goes once the new screen has landed: the removal now happens under a screen that has arrived
-    // rather than beneath one that is leaving. Measured on a 120Hz device it does **not** slide out —
-    // it holds and then goes in one step — so this is a matter of *when* rather than of added motion.
-    // Worth knowing before anyone tries to make it prettier.
+    // goes once the new screen has landed: the removal happens under a screen that has arrived rather
+    // than beneath one that is leaving. Measured on a 120Hz device it does **not** slide out — it holds
+    // and then goes in one step — so this is a matter of *when* rather than of added motion. Worth
+    // knowing before anyone tries to make it prettier.
     //
     // It also leaves the suite's type to be *only* about the window's width — bar on a phone, rail once
-    // there is room — which is the question it was always meant to answer.
+    // there is room.
     //
     // The phone's floating bar is past all this: laid over the screens, its going reflows nothing, so it
     // simply fades on the screen change's own beat (`chromeEnter`/`chromeExit`). The state below is the rail's.

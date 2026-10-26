@@ -112,8 +112,8 @@ internal fun SettingsIndex(
             NotificationsBlockedBanner(onAllowNotifications, Modifier.padding(horizontal = Spacing.gutter))
         }
         SettingsGroup { SettingsCategories(settings, notifications, reminders, calendar, navigation, open) }
-        // Its own card: the app's data and the app itself, which «Ещё» held when it was a tab. Secondary to
-        // the settings above, and the break between them says so.
+        // Its own card: the app's data and the app itself. Secondary to the settings above, and the break
+        // between them says so.
         SettingsGroup {
             SettingsCategoryRow(
                 KlasIcons.Outlined.MenuBook,

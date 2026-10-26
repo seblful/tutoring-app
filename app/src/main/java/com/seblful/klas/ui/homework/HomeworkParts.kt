@@ -118,8 +118,8 @@ fun LazyListScope.homeworkItems(
     }
     if (lists.archive.isNotEmpty()) {
         item(key = HomeworkItemKeys.DONE, contentType = HomeworkItemKeys.DONE) {
-            // A section of the tab, so a section title — and a heading a reader can jump to, which it
-            // was not while it was a `Text` styled to look like one.
+            // A section of the tab, so a section title — a heading a reader can jump to, which a `Text`
+            // styled to look like one is not.
             SectionTitle(
                 stringResource(R.string.student_homework_done),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -389,8 +389,8 @@ fun HomeworkDialog(
         )
     }
     var text by rememberSaveable { mutableStateOf(editing?.text.orEmpty()) }
-    // Only a correction opens in the text. A new one opens on nothing: who it is for comes first, and the
-    // keyboard it used to raise asked for the homework before that and covered the dialog doing it.
+    // Only a correction opens in the text. A new one opens on nothing: who it is for comes first, and a
+    // keyboard raised at once would ask for the homework before that and cover the dialog doing it.
     val focus = if (editing != null) rememberRevealedFocus() else null
     val chosen = choices.firstOrNull { it.assignee.editorKey() == selectedKey }
     FormDialog(
@@ -439,7 +439,7 @@ fun HomeworkDialog(
 
 /**
  * The two homework writes every list of it lets the tutor take back — a swipe between current and done,
- * and a delete — each followed by the message that carries «Отменить».
+ * and a delete — each followed by the message that carries «Вернуть».
  */
 class HomeworkUndo internal constructor(
     private val messages: Messages,

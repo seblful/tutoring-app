@@ -201,10 +201,10 @@ private fun ScheduleCard(
                     if (row.isGroup) {
                         LessonKindIcon(LessonKind.GROUP, Modifier.padding(end = Spacing.inline))
                     }
-                    // **One line.** A name long enough to wrap — «Группа Биология» — used to break
+                    // **One line.** A name long enough to wrap — «Группа Биология» — would break
                     // across two, and because the time on the left is centred against the whole card
-                    // it then sat beside the *second* line with a hole above it. Rows also stopped
-                    // being a uniform height, which is what a scannable list is for.
+                    // it would then sit beside the *second* line with a hole above it. Rows would also
+                    // stop being a uniform height, which is what a scannable list is for.
                     Text(
                         row.title,
                         style = MaterialTheme.typography.titleMedium,

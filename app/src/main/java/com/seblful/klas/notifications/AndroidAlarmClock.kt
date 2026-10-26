@@ -38,9 +38,9 @@ class AndroidAlarmClock @Inject constructor(
     /**
      * `FLAG_NO_CREATE`, so cancelling an alarm nothing armed does nothing.
      *
-     * This is the cancel-side flag and it was `FLAG_UPDATE_CURRENT`, which *creates* the `PendingIntent` it
-     * is about to cancel — a no-op with a stray allocation in it, and a way to be handed a live intent for a
-     * lesson that never had one. Every re-arm cancels the whole previously armed set, so this runs often.
+     * `FLAG_UPDATE_CURRENT` would *create* the `PendingIntent` it is about to cancel — a stray allocation,
+     * and a live intent for a lesson that never had one. Every re-arm cancels the whole previously armed
+     * set, so this runs often.
      */
     override fun cancel(classId: Long) {
         val armed = PendingIntent.getBroadcast(
@@ -65,7 +65,7 @@ class AndroidAlarmClock @Inject constructor(
             .putExtra(TrayNavigation.EXTRA_CLASS_ID, classId)
 }
 
-/** [ArmedReminders] in `SharedPreferences` — the one line of the old `ReminderAlarms` that needed a device. */
+/** [ArmedReminders] in `SharedPreferences` — the one part of `ReminderAlarms`' bookkeeping that needs a device. */
 @ContributesBinding(AppScope::class)
 @SingleIn(AppScope::class)
 class PrefsArmedReminders @Inject constructor(

@@ -47,9 +47,9 @@ data class LegacyClass(
  * A lesson as a file of **v6 and later** carries it: [LessonEntity]'s columns, under the same keys — plus
  * [homework], which only a v8 file holds and the table no longer has.
  *
- * A type of its own rather than the entity, which `lessons` was until v10: the entity follows the schema,
- * and v10 dropped `lessons.homework` from it, while a v8 file on somebody's disk still holds the text and
- * has to restore it ([legacyHomework]). The note a v7 or v8 file holds (`notes`) is not declared at all —
+ * A type of its own rather than the entity: the entity follows the schema, and v10 dropped
+ * `lessons.homework` from it, while a v8 file on somebody's disk still holds the text and has to restore
+ * it ([legacyHomework]). The note a v7 or v8 file holds (`notes`) is not declared at all —
  * it is not restored, and the parser ignores a key it does not know.
  *
  * @param homework what a v8 lesson set. **Read, never written**: blank in everything this build exports,
@@ -245,9 +245,8 @@ private fun attendedOf(own: LessonStatus, lesson: LessonStatus): Attended = when
  * The two shapes hold the same lists and are still separate types, because they answer to different
  * masters: the field names here are **JSON keys in files already on somebody's phone**, and so may never
  * be renamed, while the snapshot follows the schema. Nesting one inside the other to save the mapping
- * would have made the file format a projection of the database, and the next table added would have
- * changed the JSON shape of every backup ever written. This is where that pays for itself: the schema
- * split one table into two, and the old files did not change at all.
+ * would make the file format a projection of the database, and the next table added would change the
+ * JSON shape of every backup ever written.
  *
  * A version older than [BackupData.CURRENT_VERSION] simply arrives with its newer lists empty — a
  * restore reproduces the file rather than inventing rows it does not contain. The exception is
@@ -264,7 +263,7 @@ fun BackupData.toSnapshot(): DatabaseSnapshot {
         prices = prices,
         rateHistory = rateHistory,
         // A v8 file's homework is read into its own rows below, and leaves the lesson as the table holds
-        // it; an older file's note is not the app's any more and is never read at all.
+        // it; an older file's note is not the app's and is never read at all.
         lessons = lessons.map { it.toEntity() } + splitLessons,
         // Calendar ids belong to the exporting device, not to the lesson. Never let a file choose
         // which of this device's appointments the mirror may update or delete.

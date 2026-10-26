@@ -21,8 +21,7 @@ object CalendarChoice {
      * The lowest access level that may insert events — `CalendarContract.Calendars.CAL_ACCESS_CONTRIBUTOR`.
      *
      * The platform's constant, restated here so the rule that uses it is reachable without Android. It is
-     * public API and has held this value since the provider existed; the reason it is spelled out is the
-     * bug above, which was a matter of picking the *wrong* level rather than of the number changing.
+     * public API and its value is stable.
      */
     const val MIN_ACCESS_LEVEL = 500
 

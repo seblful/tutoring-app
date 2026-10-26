@@ -15,14 +15,14 @@ import kotlinx.serialization.Serializable
 /**
  * One lesson: an hour of the tutor's time, for one student or for a group.
  *
- * **The lesson is a row.** It used to be a *grouping* — the classes sharing a `(groupId, startMillis)`
- * pair — which made "these rows are one lesson" an invariant no schema could state and every write path
- * had to maintain: move one member's row and the lesson silently split in two, each then competing for
- * the same hour. Here a lesson has an id, [AttendanceEntity] points at it, and moving one is one update.
+ * **The lesson is a row**, not a *grouping* of the classes sharing a `(groupId, startMillis)` pair — that
+ * would make "these rows are one lesson" an invariant no schema can state and every write path has to
+ * maintain: move one member's row and the lesson silently splits in two, each then competing for the same
+ * hour. A lesson has an id, [AttendanceEntity] points at it, and moving one is one update.
  *
  * **[status] is the lesson's, and only the lesson's.** Whether the hour happened is a fact about the
- * hour; whether a given student was in it is [AttendanceEntity.state]. One enum answered both before,
- * which is why a group lesson had no status of its own and had to derive one.
+ * hour; whether a given student was in it is [AttendanceEntity.state]. One enum answering both would
+ * leave a group lesson with no status of its own.
  *
  * `RESTRICT` on both parents: a lesson is history, so the schema itself refuses to delete a subject or
  * a group that still has lessons. The rate is not here — see [AttendanceEntity.priceMinor].
@@ -56,8 +56,8 @@ data class LessonEntity(
  * members at differing rates; keeping the rate per student is what lets that history stay true.
  *
  * [state] is the attendance: expected, present, absent, or absent-and-billed-anyway. It is what makes a
- * no-show a fact the app can hold — the previous model could only express it by cancelling the student's
- * class, which zeroed the charge and, on a group lesson, left the lesson itself with no single status.
+ * no-show a fact the app can hold without cancelling the student's class, which would zero the charge and,
+ * on a group lesson, leave the lesson itself with no single status.
  *
  * `CASCADE` on the lesson (a lesson's members go with it — the lesson is the unit of deletion) and
  * `RESTRICT` on the student, who cannot be deleted while any lesson still bills them.

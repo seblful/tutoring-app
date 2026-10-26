@@ -20,7 +20,7 @@ import androidx.window.core.layout.WindowSizeClass
  *
  * Beside `Spacing`, which owns the *rhythm*. These are the three figures that are not a rhythm but a floor
  * or a ceiling, and each is cited from more than one place — `Spacing`'s own KDoc names two of them as peers
- * of the scale, which they now are rather than being buried in a bucket of components.
+ * of the scale.
  */
 
 /**

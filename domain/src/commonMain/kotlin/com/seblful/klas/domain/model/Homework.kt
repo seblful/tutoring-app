@@ -19,9 +19,8 @@ sealed interface Assignee {
 /**
  * One piece of homework: what was set, for whom, and whether it is done.
  *
- * **Done or not, and nothing in between.** The first version kept a verdict per student — done, partly,
- * not done — at the lesson it was set at, and split the list into «Проверить» and «Выдано»; that was more
- * to decide than the tutor wanted. Now it is current until it is swiped done, and done is the archive.
+ * **Done or not, and nothing in between**: it is current until it is swiped done, and done is the archive.
+ * There is no per-student verdict.
  *
  * @param givenAt when it was set — what "the next lesson" is counted from. The lesson it is attached to is
  *   derived from this, never stored (`domain/homework/HomeworkRules`).

@@ -47,8 +47,7 @@ fun RateHistoryList(changes: List<RateChange>, modifier: Modifier = Modifier, ma
 /**
  * «История цены» over its [RateHistoryList] — the block both places a rate is typed carry under the field:
  * the student's reprice dialog and the group's form. History is context for the number being typed, so it
- * sits where the typing is and nowhere else; the two used to title it apart, a step further from the list
- * on one than on the other.
+ * sits where the typing is and nowhere else, titled the same in both.
  */
 @Composable
 fun RateHistory(changes: List<RateChange>, modifier: Modifier = Modifier) {

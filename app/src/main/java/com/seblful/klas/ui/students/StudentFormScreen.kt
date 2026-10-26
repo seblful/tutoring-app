@@ -177,8 +177,8 @@ private fun SubjectPrices(
 ) {
     val form = state.form
     // The way out of «Сначала добавьте предметы», and of a new student taking a subject not taught before:
-    // made here, it arrives ticked. It used to be a refusal with nowhere to go — the schedule's «Добавить
-    // ученика» led to it on a fresh install, and the only road to a subject was back out of the form.
+    // made here, it arrives ticked. Without it the schedule's «Добавить ученика» on a fresh install would
+    // end in a refusal with nowhere to go.
     var addingSubject by rememberSaveable { mutableStateOf(false) }
     if (subjects.isEmpty()) {
         Text(
