@@ -1,11 +1,7 @@
 package com.seblful.klas.ui.common
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
@@ -20,12 +16,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.seblful.klas.R
 import com.seblful.klas.domain.people.AvatarPalette
 import com.seblful.klas.ui.theme.klasColors
 
@@ -54,7 +48,7 @@ fun Avatar(name: String, studentId: Long, modifier: Modifier = Modifier, size: D
         contentAlignment = Alignment.Center,
     ) {
         Text(
-            text = name.trim().firstOrNull()?.uppercase() ?: "?",
+            text = monogram(name),
             // Scaled with the circle, so a small monogram is not a full-size letter cropped by a smaller ring.
             style = if (size >= 40.dp) {
                 MaterialTheme.typography.titleMedium
@@ -65,6 +59,13 @@ fun Avatar(name: String, studentId: Long, modifier: Modifier = Modifier, size: D
         )
     }
 }
+/** The first character of [name], in capitals — a whole code point, so an emoji or a rare ideograph is not halved. */
+internal fun monogram(name: String): String {
+    val trimmed = name.trim()
+    if (trimmed.isEmpty()) return "?"
+    return String(Character.toChars(trimmed.codePointAt(0))).uppercase()
+}
+
 /**
  * The 40dp disc a top-level list row leads with, holding a glyph rather than a monogram — a group, a
  * subject.
