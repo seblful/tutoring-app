@@ -453,6 +453,11 @@
     <string name="hours_one">1 Std</string>
     <string name="hours_one_and_half">1,5 Std</string>
     <string name="hours_two">2 Std</string>
+    <plurals name="hours_short">
+        <item quantity="one">%1$d&#160;Std</item>
+        <item quantity="other">%1$d&#160;Std</item>
+    </plurals>
+    <string name="hours_and_minutes">%1$s %2$s</string>
     <string name="onboarding_tagline">Unterricht, Zahlungen und Schulden Ihrer Schüler an einem Ort</string>
     <string name="onboarding_value_schedule">Lektionen nach Tag, Woche und Monat, mit Erinnerungen</string>
     <string name="onboarding_value_money">Wer bezahlt hat und wer noch etwas schuldet – automatisch berechnet</string>

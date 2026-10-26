@@ -453,6 +453,11 @@
     <string name="hours_one">1 sa</string>
     <string name="hours_one_and_half">1,5 sa</string>
     <string name="hours_two">2 sa</string>
+    <plurals name="hours_short">
+        <item quantity="one">%1$d&#160;sa</item>
+        <item quantity="other">%1$d&#160;sa</item>
+    </plurals>
+    <string name="hours_and_minutes">%1$s %2$s</string>
     <string name="onboarding_tagline">Öğrencilerinizin dersleri, ödemeleri ve borçları tek bir yerde</string>
     <string name="onboarding_value_schedule">Hatırlatıcılarla birlikte güne, haftaya ve aya göre dersler</string>
     <string name="onboarding_value_money">Kimin ödediği ve kimin borcu olduğu otomatik hesaplanır</string>

@@ -489,6 +489,13 @@
     <string name="hours_one">1 godz</string>
     <string name="hours_one_and_half">1,5 godz</string>
     <string name="hours_two">2 godz</string>
+    <plurals name="hours_short">
+        <item quantity="one">%1$d&#160;godz</item>
+        <item quantity="few">%1$d&#160;godz</item>
+        <item quantity="many">%1$d&#160;godz</item>
+        <item quantity="other">%1$d&#160;godz</item>
+    </plurals>
+    <string name="hours_and_minutes">%1$s %2$s</string>
     <string name="onboarding_tagline">Lekcje, płatności i długi Twoich uczniów w jednym miejscu</string>
     <string name="onboarding_value_schedule">Lekcje według dnia, tygodnia i miesiąca, z przypomnieniami</string>
     <string name="onboarding_value_money">Kto zapłacił i kto ma zaległości — obliczymy to za Ciebie</string>

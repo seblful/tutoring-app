@@ -435,6 +435,10 @@
     <string name="hours_one">1 小時</string>
     <string name="hours_one_and_half">1.5 小時</string>
     <string name="hours_two">2 小時</string>
+    <plurals name="hours_short">
+        <item quantity="other">%1$d&#160;小時</item>
+    </plurals>
+    <string name="hours_and_minutes">%1$s %2$s</string>
     <string name="onboarding_tagline">您學生的課程、付款和債務集中在一處</string>
     <string name="onboarding_value_schedule">按天、按周、按月的課程，並帶有提醒</string>
     <string name="onboarding_value_money">誰已付款、誰還欠費——自動為您計算</string>

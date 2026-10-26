@@ -489,6 +489,13 @@
     <string name="hours_one">1 год</string>
     <string name="hours_one_and_half">1,5 год</string>
     <string name="hours_two">2 год</string>
+    <plurals name="hours_short">
+        <item quantity="one">%1$d&#160;год</item>
+        <item quantity="few">%1$d&#160;год</item>
+        <item quantity="many">%1$d&#160;год</item>
+        <item quantity="other">%1$d&#160;год</item>
+    </plurals>
+    <string name="hours_and_minutes">%1$s %2$s</string>
     <string name="onboarding_tagline">Уроки, платежі та борги ваших учнів в одному місці</string>
     <string name="onboarding_value_schedule">Уроки по днях, тижнях і місяцях з нагадуваннями</string>
     <string name="onboarding_value_money">Хто заплатив і хто має борг — розраховано автоматично</string>

@@ -642,6 +642,11 @@
     <string name="hours_one">1&#160;h</string>
     <string name="hours_one_and_half">1.5&#160;h</string>
     <string name="hours_two">2&#160;h</string>
+    <plurals name="hours_short">
+        <item quantity="one">%1$d&#160;h</item>
+        <item quantity="other">%1$d&#160;h</item>
+    </plurals>
+    <string name="hours_and_minutes">%1$s %2$s</string>
 
     <!-- Onboarding -->
     <!-- The first screen says what the app is *for* before it asks for anything. -->

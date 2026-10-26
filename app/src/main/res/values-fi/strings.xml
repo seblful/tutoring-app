@@ -453,6 +453,11 @@
     <string name="hours_one">1 h</string>
     <string name="hours_one_and_half">1,5 tuntia</string>
     <string name="hours_two">2 tuntia</string>
+    <plurals name="hours_short">
+        <item quantity="one">%1$d&#160;h</item>
+        <item quantity="other">%1$d&#160;h</item>
+    </plurals>
+    <string name="hours_and_minutes">%1$s %2$s</string>
     <string name="onboarding_tagline">Oppilaittesi tunnit, maksut ja velat yhdessä paikassa</string>
     <string name="onboarding_value_schedule">Oppitunnit päivä-, viikko- ja kuukausikohtaisesti muistutuksineen</string>
     <string name="onboarding_value_money">Kuka on maksanut ja kuka on velkaa — laskettu puolestasi</string>

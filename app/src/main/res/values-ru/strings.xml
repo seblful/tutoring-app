@@ -751,6 +751,13 @@
     <string name="hours_one">1&#160;ч</string>
     <string name="hours_one_and_half">1,5&#160;ч</string>
     <string name="hours_two">2&#160;ч</string>
+    <plurals name="hours_short">
+        <item quantity="one">%1$d&#160;ч</item>
+        <item quantity="few">%1$d&#160;ч</item>
+        <item quantity="many">%1$d&#160;ч</item>
+        <item quantity="other">%1$d&#160;ч</item>
+    </plurals>
+    <string name="hours_and_minutes">%1$s %2$s</string>
 
     <!-- Onboarding -->
     <!--

@@ -453,6 +453,11 @@
     <string name="hours_one">1 घंटा</string>
     <string name="hours_one_and_half">1.5 घंटे</string>
     <string name="hours_two">2 घंटे</string>
+    <plurals name="hours_short">
+        <item quantity="one">%1$d&#160;घंटा</item>
+        <item quantity="other">%1$d&#160;घंटे</item>
+    </plurals>
+    <string name="hours_and_minutes">%1$s %2$s</string>
     <string name="onboarding_tagline">आपके छात्रों के पाठ, भुगतान और ऋण एक ही स्थान पर</string>
     <string name="onboarding_value_schedule">अनुस्मारक के साथ दिन, सप्ताह और महीने के अनुसार पाठ</string>
     <string name="onboarding_value_money">किसने भुगतान किया और किसका भुगतान बाकी है — अपने आप हिसाब होता है</string>

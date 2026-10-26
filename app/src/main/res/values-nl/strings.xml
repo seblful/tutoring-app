@@ -453,6 +453,11 @@
     <string name="hours_one">1 uur</string>
     <string name="hours_one_and_half">1,5 uur</string>
     <string name="hours_two">2 uur</string>
+    <plurals name="hours_short">
+        <item quantity="one">%1$d&#160;uur</item>
+        <item quantity="other">%1$d&#160;uur</item>
+    </plurals>
+    <string name="hours_and_minutes">%1$s %2$s</string>
     <string name="onboarding_tagline">De lessen, betalingen en schulden van uw leerlingen op één plek</string>
     <string name="onboarding_value_schedule">Lessen per dag, week en maand, met herinneringen</string>
     <string name="onboarding_value_money">Wie heeft betaald en wie nog moet betalen — automatisch berekend</string>

@@ -435,6 +435,10 @@
     <string name="hours_one">1시간</string>
     <string name="hours_one_and_half">1.5시간</string>
     <string name="hours_two">2시간</string>
+    <plurals name="hours_short">
+        <item quantity="other">%1$d시간</item>
+    </plurals>
+    <string name="hours_and_minutes">%1$s %2$s</string>
     <string name="onboarding_tagline">학생의 수업, 결제 및 미수금을 한곳에서 관리하세요</string>
     <string name="onboarding_value_schedule">알림과 함께 일별, 주별, 월별 수업을 확인하세요</string>
     <string name="onboarding_value_money">납부한 금액과 미납 금액을 자동으로 계산합니다</string>

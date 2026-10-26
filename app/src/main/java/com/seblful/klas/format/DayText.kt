@@ -33,3 +33,15 @@ private fun DaySummary.Part.text(res: Resources, currency: Currency, locale: Loc
     is DaySummary.Part.Earned -> money.money(currency, locale)
     is DaySummary.Part.Cancelled -> res.getString(R.string.schedule_summary_cancelled, count)
 }
+
+/** A stretch of time as it is said: «55 min», «2 h», «4 h 15 min». */
+fun hoursAndMinutesText(res: Resources, minutes: Int): String {
+    val hours = minutes / MINUTES_PER_HOUR
+    val rest = minutes % MINUTES_PER_HOUR
+    val minutesText = res.getString(R.string.minutes_short, rest)
+    if (hours == 0) return minutesText
+    val hoursText = res.getQuantityString(R.plurals.hours_short, hours, hours)
+    return if (rest == 0) hoursText else res.getString(R.string.hours_and_minutes, hoursText, minutesText)
+}
+
+private const val MINUTES_PER_HOUR = 60

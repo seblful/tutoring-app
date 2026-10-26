@@ -471,6 +471,12 @@
     <string name="hours_one">1 ora</string>
     <string name="hours_one_and_half">1,5 ore</string>
     <string name="hours_two">2 ore</string>
+    <plurals name="hours_short">
+        <item quantity="one">%1$d&#160;ora</item>
+        <item quantity="many">%1$d&#160;ore</item>
+        <item quantity="other">%1$d&#160;ore</item>
+    </plurals>
+    <string name="hours_and_minutes">%1$s %2$s</string>
     <string name="onboarding_tagline">Lezioni, pagamenti e debiti dei tuoi studenti in un unico posto</string>
     <string name="onboarding_value_schedule">Lezioni per giorno, settimana e mese, con promemoria</string>
     <string name="onboarding_value_money">Chi ha pagato e chi deve ancora pagare: calcolato per te</string>

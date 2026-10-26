@@ -471,6 +471,12 @@
     <string name="hours_one">1 h</string>
     <string name="hours_one_and_half">1h30</string>
     <string name="hours_two">2 heures</string>
+    <plurals name="hours_short">
+        <item quantity="one">%1$d&#160;h</item>
+        <item quantity="many">%1$d&#160;h</item>
+        <item quantity="other">%1$d&#160;h</item>
+    </plurals>
+    <string name="hours_and_minutes">%1$s %2$s</string>
     <string name="onboarding_tagline">Les cours, les paiements et les dettes de vos élèves en un seul endroit</string>
     <string name="onboarding_value_schedule">Cours par jour, semaine et mois, avec rappels</string>
     <string name="onboarding_value_money">Qui a payé et qui doit encore de l’argent — calculé pour vous</string>

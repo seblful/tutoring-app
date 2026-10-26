@@ -453,6 +453,11 @@
     <string name="hours_one">1 t</string>
     <string name="hours_one_and_half">1,5 t</string>
     <string name="hours_two">2 t</string>
+    <plurals name="hours_short">
+        <item quantity="one">%1$d&#160;t</item>
+        <item quantity="other">%1$d&#160;t</item>
+    </plurals>
+    <string name="hours_and_minutes">%1$s %2$s</string>
     <string name="onboarding_tagline">Dine elevers lektioner, betalinger og gæld på ét sted</string>
     <string name="onboarding_value_schedule">Lektioner efter dag, uge og måned, med påmindelser</string>
     <string name="onboarding_value_money">Hvem har betalt, og hvem skylder — beregnet for dig</string>

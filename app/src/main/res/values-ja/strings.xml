@@ -435,6 +435,10 @@
     <string name="hours_one">1時間</string>
     <string name="hours_one_and_half">1.5 時間</string>
     <string name="hours_two">2時間</string>
+    <plurals name="hours_short">
+        <item quantity="other">%1$d時間</item>
+    </plurals>
+    <string name="hours_and_minutes">%1$s %2$s</string>
     <string name="onboarding_tagline">生徒のレッスン、支払い、未払い金を 1 か所で管理</string>
     <string name="onboarding_value_schedule">日、週、月ごとのレッスン、リマインダー付き</string>
     <string name="onboarding_value_money">支払済みと未払いの金額を自動で計算</string>

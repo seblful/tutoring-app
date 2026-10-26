@@ -453,6 +453,11 @@
     <string name="hours_one">1 сағ</string>
     <string name="hours_one_and_half">1,5 сағ</string>
     <string name="hours_two">2 сағ</string>
+    <plurals name="hours_short">
+        <item quantity="one">%1$d&#160;сағ</item>
+        <item quantity="other">%1$d&#160;сағ</item>
+    </plurals>
+    <string name="hours_and_minutes">%1$s %2$s</string>
     <string name="onboarding_tagline">Студенттеріңіздің сабақтары, төлемдері мен қарыздары бір жерде</string>
     <string name="onboarding_value_schedule">Еске салғыштары бар күн, апта және ай бойынша сабақтар</string>
     <string name="onboarding_value_money">Кім төледі, кімнің қарызы бар — автоматты түрде есептеледі</string>

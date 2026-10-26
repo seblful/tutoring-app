@@ -525,6 +525,15 @@
     <string name="hours_one">1 ساعة</string>
     <string name="hours_one_and_half">1.5 ساعة</string>
     <string name="hours_two">2 ساعة</string>
+    <plurals name="hours_short">
+        <item quantity="zero">%1$d&#160;ساعة</item>
+        <item quantity="one">%1$d&#160;ساعة</item>
+        <item quantity="two">%1$d&#160;ساعة</item>
+        <item quantity="few">%1$d&#160;ساعات</item>
+        <item quantity="many">%1$d&#160;ساعة</item>
+        <item quantity="other">%1$d&#160;ساعة</item>
+    </plurals>
+    <string name="hours_and_minutes">%1$s و%2$s</string>
     <string name="onboarding_tagline">دروس طلابك ومدفوعاتهم وديونهم في مكان واحد</string>
     <string name="onboarding_value_schedule">الدروس باليوم والأسبوع والشهر مع التذكير</string>
     <string name="onboarding_value_money">من دفع ومن عليه مستحقات — نحسبها لك تلقائيًا</string>

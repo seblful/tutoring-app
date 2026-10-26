@@ -27,6 +27,7 @@ import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.format.bulletJoin
 import com.seblful.klas.format.daySummaryText
 import com.seblful.klas.format.formatDate
+import com.seblful.klas.format.hoursAndMinutesText
 import com.seblful.klas.format.toLocalDate
 import com.seblful.klas.queries.homework.HomeworkRow
 import com.seblful.klas.ui.common.FabClearance
@@ -205,7 +206,7 @@ private fun BackupBanner(at: Instant?, onBackup: () -> Unit) {
 }
 
 /**
- * The lesson now or next, leading the day: when it is — «Next · in 55 min» — what and who, and «Open» for its
+ * The lesson now or next, leading the day: when it is — «Next · in 4 h 15 min» — what and who, and «Open» for its
  * sheet. The whole card opens it too.
  */
 @Composable
@@ -220,7 +221,10 @@ private fun NextCard(row: TodayLessonRow, onOpen: (Long) -> Unit) {
                     if (row.phase.isRunning) {
                         stringResource(R.string.today_now)
                     } else {
-                        stringResource(R.string.today_next_in, durationLabel(row.minutesAway.toInt().coerceAtLeast(1)))
+                        stringResource(
+                            R.string.today_next_in,
+                            hoursAndMinutesText(LocalResources.current, row.minutesAway.toInt().coerceAtLeast(1)),
+                        )
                     },
                     style = MaterialTheme.typography.labelMedium,
                     modifier = Modifier.weight(1f),

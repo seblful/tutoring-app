@@ -253,7 +253,7 @@ Build screens from shared state and controls. Feature rules belong in the domain
   Students/Groups share People. Settings is a gear (`SettingsGear`) last among every tab's actions, pushed over
   that tab, not a tab: it is visited, not worked in. Today links out rather than repeating a tab: a lesson
   opens its sheet on the schedule and the debts open on Reports, both the way a tray tap does (`Arrival`).
-  Today leads with the lesson now or next («Next · in 55 min», «Open»), then what is over and unmarked, then
+  Today leads with the lesson now or next («Next · in 4 h 15 min», «Open»), then what is over and unmarked, then
   marks made outside the app (widget, reminder) in the last ten minutes with their Undo (`RecentMarks`),
   then the day as one card — count · hours · billed, «Schedule» — whose lessons lead with the round
   mark-done button (`DoneButton`, `RowStart.Done`): named per lesson, off until it has begun, a spent tick
