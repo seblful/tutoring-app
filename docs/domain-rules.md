@@ -7,7 +7,7 @@ mirrors and [database and backup](database-and-backup.md) for persistence contra
 
 - Money uses integer minor units, never floats. Typed rates/payments stop at `Money.MAX`; duration-based
   charges can exceed that input ceiling.
-- Currency is a display label (`BYN|RUB|USD|EUR`), never a conversion; display its symbol. A fresh install
+- Currency is a display label (one of the 28 in `Currency`), never a conversion; display its symbol. A fresh install
   uses the phone's region. Decimal separators follow app language, not currency. Money input accepts
   dot, comma and Arabic decimal separators, plus Arabic-Indic, Eastern Arabic-Indic, Devanagari and
   full-width digits; changing language does not invalidate a prefilled amount.
