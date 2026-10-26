@@ -1,0 +1,49 @@
+{
+  "language": "PORTUGUESE_PORTUGAL",
+  "locale": "pt-PT",
+  "currency": "EUR",
+  "scale": 1,
+  "subjects": {
+    "math": "Matemática",
+    "physics": "Física",
+    "language": "Inglês"
+  },
+  "students": [
+    "Beatriz Silva",
+    "Tiago Santos",
+    "Leonor Ferreira",
+    "Rodrigo Costa",
+    "Matilde Oliveira",
+    "Duarte Pereira"
+  ],
+  "phones": [
+    "+351 912 345 678",
+    "+351 936 765 432",
+    "+351 962 555 019"
+  ],
+  "emails": [
+    "beatriz.silva@example.com",
+    "leonor.ferreira@example.com",
+    "duarte.pereira@example.com"
+  ],
+  "homework": [
+    "Cap. 4, ex. 12–20: equações do 2.º grau",
+    "Leis de Newton: problemas 5.12–5.20",
+    "Present perfect: ex. 4–7, pág. 52",
+    "Pêndulo: redigir o relatório"
+  ],
+  "group": "Exame Nacional Mat. A",
+  "members": [
+    "Carolina Sousa",
+    "Gonçalo Rodrigues",
+    "Inês Martins",
+    "Afonso Gomes"
+  ],
+  "groupHomework": "Exame de 2024, 1.ª fase: itens 1–8",
+  "doneHomework": [
+    "Revisão cap. 3: inequações lineares",
+    "Vocabulário da unidade 6 e uma redação",
+    "Momento linear: ex. 4.1–4.9"
+  ],
+  "typedHomework": "Past simple: ex. 1–6, p. 58"
+}

@@ -147,4 +147,4 @@ body { font-family: Golos, sans-serif; -webkit-font-smoothing: antialiased; colo
   border-radius: 999px; background: #fff; color: #2f3a9a; font-weight: 600; font-size: 38px;
   box-shadow: 0 24px 60px rgba(8, 10, 48, .4); }
 .brand .cta svg { width: 46px; height: 46px; }
-#intro .tagline { text-align: left; }
+#intro .tagline { text-align: start; }

@@ -1,0 +1,46 @@
+{
+  "tagline": "Tunnit, maksut ja velat yksityisopettajalle",
+  "cta": "Saatavana Google Playssa",
+  "captions": {
+    "today": {
+      "title": "Opetuspäivä\nyhdellä silmäyksellä",
+      "subtitle": "Mikä on käynnissä, mitä on merkitsemättä ja kuka on velkaa"
+    },
+    "lesson-sheet": {
+      "title": "Tunnit merkitty\nyhdellä napautuksella",
+      "subtitle": "Pidetty, siirretty tai muokattu suoraan tunnilta",
+      "film": {
+        "title": "Tunnit merkitty\nnapauttamalla tai pyyhkäisten",
+        "subtitle": "Pyyhkäise tunti pidetyksi tai avaa se muuta varten"
+      }
+    },
+    "people": {
+      "title": "Näe heti,\nkuka on velkaa",
+      "subtitle": "Saldot lasketaan jokaisesta tunnista ja maksusta"
+    },
+    "reports": {
+      "title": "Katso tulojesi\nkasvavan",
+      "subtitle": "Kuukausittain, aineittain, oppilaittain ja ryhmittäin — CSV-vienti"
+    },
+    "widgets": {
+      "title": "Päiväsi\naloitusnäytöllä",
+      "subtitle": "Merkitse tunti pidetyksi avaamatta sovellusta"
+    },
+    "reminders": {
+      "title": "Ei enää\nunohtuneita tunteja",
+      "subtitle": "Muistutus ennen tuntia, aamun ohjelma ja viikoittainen velkakooste"
+    },
+    "homework": {
+      "title": "Läksyt löytävät\nseuraavan tunnin",
+      "subtitle": "Anna kerran — ne siirtyvät oppilaan seuraavalle tunnille"
+    },
+    "today-dark": {
+      "title": "Ei tiliä.\nEi pilveä. Sinun.",
+      "subtitle": "Toimii offline — tietosi pysyvät puhelimessa"
+    },
+    "settings-calendar": {
+      "title": "Tunnit puhelimen\nkalenterissa",
+      "subtitle": "Synkronoituvat itsestään, ja oppilaat saavat sähköpostikutsut"
+    }
+  }
+}

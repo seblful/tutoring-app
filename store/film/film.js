@@ -364,7 +364,7 @@
     const spaces = [...text.matchAll(/ /g)].map((m) => m.index);
     const widest = (i) => Math.max(ctx.measureText(text.slice(0, i)).width, ctx.measureText(text.slice(i + 1)).width);
     const at = spaces.reduce((best, i) => (widest(i) < widest(best) ? i : best), spaces[0]);
-    if (at === undefined || widest(at) > most) fail("The tagline does not fit the frame even on two lines; shorten it in listing.json");
+    if (at === undefined || widest(at) > most) fail("The tagline does not fit the frame even on two lines; shorten it in store/text/<locale>/captions.json");
     return `${text.slice(0, at)}\n${text.slice(at + 1)}`;
   }
 
@@ -464,8 +464,13 @@
     const g = LG, k = g.k;
     const m = (s.m = mark(s.before, "swipe"));
     const [l, top, r, bottom, corner] = m;
-    s.unarmed = mark(`${s.shot}-unarmed`, "swipe")[0] - l;
-    Object.assign(s, swiping({ unarmed: s.unarmed, armed: mark(`${s.shot}-armed`, "swipe")[0] - l, drag: s.drag, release: s.release, ease: E.inOut }));
+    // Leftward where the app runs right to left: the captures say which way the row went.
+    const armed = mark(`${s.shot}-armed`, "swipe")[0] - l;
+    s.toEnd = Math.sign(armed);
+    s.unarmed = (mark(`${s.shot}-unarmed`, "swipe")[0] - l) * s.toEnd;
+    Object.assign(s, swiping({ unarmed: s.unarmed, armed: armed * s.toEnd, drag: s.drag, release: s.release, ease: E.inOut }));
+    /** The panel the row has uncovered, once it has moved [d] along its way: behind its start edge. */
+    s.uncovered = (d) => (s.toEnd > 0 ? `inset(0 ${(CW - l - d) * k}px 0 0)` : `inset(0 0 0 ${(r - d) * k}px)`);
     const piece = (cls, src, from, style) => {
       const el = document.createElement("div");
       el.className = cls;
@@ -478,7 +483,7 @@
     const reveal = { inset: "0" };
     s.armedReveal = piece("reveal", F.shots[`${s.shot}-armed`].src, [0, top], reveal);
     // Short of the mark the capture shows only as much of the panel as the row had uncovered.
-    s.unarmedReveal = piece("reveal", F.shots[`${s.shot}-unarmed`].src, [0, top], { ...reveal, clipPath: `inset(0 ${(CW - l - s.unarmed) * k}px 0 0)` });
+    s.unarmedReveal = piece("reveal", F.shots[`${s.shot}-unarmed`].src, [0, top], { ...reveal, clipPath: s.uncovered(s.unarmed) });
     s.row = piece("row", F.shots[s.before].src, [l, top], { left: `${l * k}px`, width: `${(r - l) * k}px`, borderRadius: `${Math.max(corner, ROW_CORNER) * k}px` });
     s.band.append(s.armedReveal, s.unarmedReveal, s.row);
     s.finger = document.createElement("div");
@@ -541,7 +546,7 @@
     const from = 1.3, until = 3.25, chars = [...F.words.tagline];
     const gaps = chars.map((ch) => (ch === " " ? 0.07 : 0.04) + next() * 0.022);
     const pace = Math.min(1, (until - from) / gaps.reduce((a, b) => a + b, 0));
-    if ((until - from) / chars.length < 0.025) fail("The tagline is too long to type in two seconds; shorten it in listing.json");
+    if ((until - from) / chars.length < 0.025) fail("The tagline is too long to type in two seconds; shorten it in store/text/<locale>/captions.json");
     let t = from;
     chars.forEach((ch, i) => {
       taglineAt.push(t);
@@ -859,20 +864,20 @@
   /** A row being swiped: the thumb down on it, the row dragged off its panel, and what the lift leaves. */
   function swipe(s, t) {
     const [l, top, r, bottom] = s.m;
-    const x = s.at(t);
+    const d = s.at(t), x = d * s.toEnd;
     const on = t > s.down - 0.2 && t < s.release;
     s.band.classList.toggle("hidden", !on);
     if (on) {
       s.row.style.transform = `translateX(${x * LG.k}px)`;
-      // Only what the row has uncovered: right of it, the capture shot past the mark has the row itself.
-      s.armedReveal.style.clipPath = `inset(0 ${(CW - l - x) * LG.k}px 0 0)`;
+      // Only what the row has uncovered: beyond it, the capture shot past the mark has the row itself.
+      s.armedReveal.style.clipPath = s.uncovered(d);
       // The glyph grows at the mark: the panel short of it fades into the one past it.
       s.unarmedReveal.style.opacity = String(1 - span(t, s.crossing, s.crossing + 0.15, E.linear));
     }
     const thumb = t > s.down - 0.2 && t < s.release + 0.25;
     s.finger.classList.toggle("hidden", !thumb);
     if (thumb) {
-      const p = local(LG, l + THUMB * (r - l) + x, (top + bottom) / 2);
+      const p = local(LG, (s.toEnd > 0 ? l + THUMB * (r - l) : r - THUMB * (r - l)) + x, (top + bottom) / 2);
       const down = span(t, s.down - 0.2, s.down, E.out), lift = span(t, s.release, s.release + 0.25, E.linear);
       Object.assign(s.finger.style, { left: `${p.x}px`, top: `${p.y}px` });
       $(".finger", s.finger).style.opacity = String(down * (1 - lift));
@@ -1009,11 +1014,11 @@
     setUpTaps();
     tagline = taglineLines(F.words.tagline);
     $(".tagline", outro).textContent = tagline;
-    // Typed from the left of where the whole line will end up, not grown out of the middle.
+    // Typed from the start of where the whole line will end up — its right, in Arabic — not grown out of the middle.
     const typed = $(".tagline", intro);
     $(".typed", typed).textContent = tagline;
     const box = typed.getBoundingClientRect();
-    Object.assign(typed.style, { width: `${box.width}px`, height: `${box.height}px`, textAlign: "left" });
+    Object.assign(typed.style, { width: `${box.width}px`, height: `${box.height}px`, textAlign: "start" });
     $(".typed", typed).textContent = "";
     setUpMotion();
     // The music's shape: an opening, the groove, a quieter bar pair under the reminders' chimes, the

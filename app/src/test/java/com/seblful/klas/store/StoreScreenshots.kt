@@ -5,6 +5,9 @@ import android.app.Application
 import android.app.Notification
 import android.app.NotificationManager
 import android.content.Context
+import android.text.TextUtils
+import android.text.format.DateFormat
+import android.view.View
 import androidx.annotation.StringRes
 import androidx.compose.foundation.shape.CornerBasedShape
 import androidx.compose.ui.geometry.Offset
@@ -21,6 +24,7 @@ import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isRoot
 import androidx.compose.ui.test.isSelectable
 import androidx.compose.ui.test.isSelected
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
@@ -64,7 +68,7 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.robolectric.RobolectricTestRunner
+import org.robolectric.ParameterizedRobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
@@ -78,15 +82,18 @@ import javax.imageio.ImageIO
 import kotlin.time.Duration.Companion.seconds
 
 @OptIn(ExperimentalRoborazziApi::class)
-@RunWith(RobolectricTestRunner::class)
+@RunWith(ParameterizedRobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(application = StoreApp::class, qualifiers = StoreScreenshots.PHONE)
-class StoreScreenshots {
+class StoreScreenshots(play: String) {
 
     @get:Rule
     val compose = createEmptyComposeRule()
 
-    private var tutor: DemoTutor = DemoTutor.english
+    private val tutor: DemoTutor = DemoTutor.all.single { it.play == play }
+
+    /** Right to left, as Arabic is: the row swipes the other way. */
+    private val rtl = TextUtils.getLayoutDirectionFromLocale(tutor.locale) == View.LAYOUT_DIRECTION_RTL
 
     private lateinit var graph: StoreGraph
 
@@ -118,19 +125,14 @@ class StoreScreenshots {
     }
 
     @Test
-    fun english() = shoot(DemoTutor.english, "en-rUS")
-
-    @Test
-    fun russian() = shoot(DemoTutor.russian, "ru-rRU")
-
-    private fun shoot(tutor: DemoTutor, qualifier: String) {
+    fun shoot() {
         val root = System.getProperty(OUT_PROPERTY)
         assumeTrue("Store screenshots are taken only with -PstoreScreenshots", root != null)
-        out = File(root!!, tutor.locale.toLanguageTag()).apply { deleteRecursively(); mkdirs() }
+        out = File(root!!, tutor.play).apply { deleteRecursively(); mkdirs() }
 
-        this.tutor = tutor
         Locale.setDefault(tutor.locale)
-        RuntimeEnvironment.setQualifiers("+$qualifier")
+        val region = tutor.locale.country.takeIf { it.isNotEmpty() }?.let { "-r$it" }.orEmpty()
+        RuntimeEnvironment.setQualifiers("+${tutor.locale.language}$region${if (rtl) "-ldrtl" else ""}")
         graph = createGraphFactory<StoreGraph.Factory>().create(
             context = ApplicationProvider.getApplicationContext(),
             clock = DemoTutor.CLOCK,
@@ -163,11 +165,16 @@ class StoreScreenshots {
 
     private fun scrollToTop(text: String) {
         val list = compose.onNode(hasScrollAction())
-        val listTop = list.fetchSemanticsNode().boundsInRoot.top
+        val bounds = list.fetchSemanticsNode().boundsInRoot
+        // A row the list has composed past its end but not placed yet measures at 0: further down than the
+        // list is tall, as the reports' «By student» is in Arabic, whose longer lines push it down.
         val rowTop = compose.onNode(hasText(text)).fetchSemanticsNode().boundsInRoot.top
+            .takeIf { it > bounds.top } ?: Float.MAX_VALUE
         val breathingRoom = with(compose.density) { ROW_TOP_MARGIN.toPx() }
+        // The video joins the screen before and after into one list, so the two must overlap above the bar.
+        val most = bounds.height - with(compose.density) { KEEP_IN_VIEW.toPx() }
         list.performSemanticsAction(SemanticsActions.ScrollBy) { scroll ->
-            scroll(0f, rowTop - listTop - breathingRoom)
+            scroll(0f, minOf(rowTop - bounds.top - breathingRoom, most))
         }
         settle()
     }
@@ -195,6 +202,7 @@ class StoreScreenshots {
         tab(R.string.nav_people)
         waitFor(student)
         val credit = tutor.inCredit.name
+        liftUp(student)
         capture("people", marks = mapOf("debtor" to row(student), "credit" to row(credit)))
 
         click(student)
@@ -368,12 +376,14 @@ class StoreScreenshots {
         val row = compose.onNode(matcher)
         val home = row.fetchSemanticsNode().positionOnScreen.x
         val width = row.fetchSemanticsNode().size.width
-        fun dragged() = compose.onNode(matcher).fetchSemanticsNode().positionOnScreen.x - home
+        // Toward the row's end: rightward, or leftward right to left.
+        val toEnd = if (rtl) -1f else 1f
+        fun dragged() = (compose.onNode(matcher).fetchSemanticsNode().positionOnScreen.x - home) * toEnd
         fun dragTo(fraction: Float, step: Float) {
             // Bounded, so a row that stops following the finger fails the capture rather than hanging it.
             repeat((width / step).toInt()) {
                 if (dragged() >= width * fraction) return
-                row.performTouchInput { moveBy(Offset(step, 0f)) }
+                row.performTouchInput { moveBy(Offset(step * toEnd, 0f)) }
             }
             val seen = File(out, "_failed.png")
             captureScreenRoboImage(seen, RoborazziOptions(taskType = RoborazziTaskType.Record))
@@ -382,8 +392,8 @@ class StoreScreenshots {
         // Pressed and dragged past the touch slop in one batch: between batches the test's clock runs on, and a
         // press held that long picks the row (long-press picking) instead of swiping it.
         row.performTouchInput {
-            down(Offset(width * SWIPE_FROM, height / 2f))
-            moveBy(Offset(viewConfiguration.touchSlop + SWIPE_STEP, 0f))
+            down(Offset(if (rtl) width * (1 - SWIPE_FROM) else width * SWIPE_FROM, height / 2f))
+            moveBy(Offset((viewConfiguration.touchSlop + SWIPE_STEP) * toEnd, 0f))
         }
         dragTo(SWIPE_MARK - SHORT_OF_MARK, SWIPE_STEP)
         capture("$name-unarmed", marks = mapOf("swipe" to matcher))
@@ -444,12 +454,14 @@ class StoreScreenshots {
         val lockTime = reminderAt.toLocalDateTime(DemoTutor.ZONE).time
         val date = now.toJavaLocalDateTime().format(DateTimeFormatter.ofPattern("EEEE, d MMMM", tutor.locale))
             .replaceFirstChar { it.titlecase(tutor.locale) }
-        val clockText = lockTime.toJavaLocalTime().format(
-            DateTimeFormatter.ofPattern(if (tutor.locale.language == "en") "h:mm" else "HH:mm", tutor.locale),
-        )
+        // The phone's clock, 12- or 24-hour as the app reads it (as do [StoreWidgets]): the lock screen's at
+        // the reminder, the status bar's at [DemoTutor.NOW].
+        val clock = DateTimeFormatter.ofPattern(if (DateFormat.is24HourFormat(app)) "HH:mm" else "h:mm", tutor.locale)
         File(out, "notifications.json").writeText(
             "{\n  \"app\": \"Klas\", \"now\": ${json(string(R.string.schedule_now))}, \"date\": ${json(date)}, " +
-                "\"clock\": ${json(clockText)},\n  \"notifications\": [\n$entries\n  ]\n}\n",
+                "\"clock\": ${json(lockTime.toJavaLocalTime().format(clock))}, " +
+                "\"statusClock\": ${json(now.time.toJavaLocalTime().format(clock))},\n" +
+                "  \"notifications\": [\n$entries\n  ]\n}\n",
         )
     }
 
@@ -536,23 +548,32 @@ class StoreScreenshots {
 
     private fun checkAmounts(name: String) {
         val symbols = DecimalFormatSymbols.getInstance(tutor.locale)
+        val limit = MAX_AMOUNT * tutor.scale
         val group = "\\" + symbols.groupingSeparator
         val decimal = "\\" + symbols.decimalSeparator
         val currency = Regex.escape(tutor.currency.symbol)
-        val amount = Regex("""(-?\d[\d\s$group]*(?:$decimal\d+)?)\s$currency""")
+        // On either side of the sign, as the language writes it: "$90", «90 Br». (?U): every script's digits.
+        val number = """-?\d[\d\s$group]*(?:$decimal\d+)?"""
+        val amount = Regex("""(?U)$currency\s?($number)|($number)\s?$currency""")
         val texts = compose.onAllNodes(SemanticsMatcher.keyIsDefined(SemanticsProperties.Text), useUnmergedTree = true)
             .fetchSemanticsNodes()
             .flatMap { node -> node.config[SemanticsProperties.Text].map { it.text } }
         val tooLarge = texts.flatMap { text ->
             amount.findAll(text).mapNotNull { match ->
-                val value = match.groupValues[1]
-                    .filterNot { it.isWhitespace() || it == symbols.groupingSeparator }
-                    .replace(symbols.decimalSeparator, '.')
+                val value = match.groupValues.drop(1).first { it.isNotEmpty() }
+                    .mapNotNull { c ->
+                        when {
+                            c.isDigit() -> '0' + Character.digit(c, DECIMAL)
+                            c == symbols.decimalSeparator -> '.'
+                            else -> null
+                        }
+                    }
+                    .joinToString("")
                     .toBigDecimal()
-                match.value.takeIf { value.abs() > MAX_AMOUNT.toBigDecimal() }
+                match.value.takeIf { value > limit.toBigDecimal() }
             }
         }
-        assertTrue("«$name» shows amounts over $MAX_AMOUNT: $tooLarge", tooLarge.isEmpty())
+        assertTrue("«$name» shows amounts over $limit: $tooLarge", tooLarge.isEmpty())
     }
 
     private fun writeManifest() {
@@ -578,7 +599,27 @@ class StoreScreenshots {
     }
 
     private fun click(text: String) {
+        liftUp(text)
         firstClickable(text).performClick()
+    }
+
+    /**
+     * Scrolls [text]'s row up its list when it is low on the screen: sorted in another script, the row can
+     * come last, under the floating tab bar, which hides it and takes a tap meant for it. The bar floats over
+     * the list, so the list counts the row as shown and `performScrollTo` would leave it there.
+     */
+    private fun liftUp(text: String) {
+        val row = firstClickable(text).fetchSemanticsNode()
+        val list = generateSequence(row.parent) { it.parent }.firstOrNull { SemanticsActions.ScrollBy in it.config }
+        val screen = compose.onAllNodes(isRoot()).onFirst().fetchSemanticsNode().size.height
+        if (list != null && row.boundsInRoot.center.y > screen * LOW_ON_SCREEN) {
+            val margin = with(compose.density) { ROW_TOP_MARGIN.toPx() }
+            compose.onNode(SemanticsMatcher("the row's list") { it.id == list.id })
+                .performSemanticsAction(SemanticsActions.ScrollBy) { scroll ->
+                    scroll(0f, row.boundsInRoot.top - list.boundsInRoot.top - margin)
+                }
+            settle()
+        }
     }
 
     private fun firstClickable(text: String): SemanticsNodeInteraction {
@@ -637,6 +678,7 @@ class StoreScreenshots {
 
         /** Set by `-PstoreScreenshots` (app/build.gradle.kts); where the raw shots are written. */
         const val OUT_PROPERTY = "klas.store.out"
+        const val LOCALES_PROPERTY = "klas.store.locales"
 
         const val TIMEOUT_MS = 60_000L
 
@@ -646,6 +688,15 @@ class StoreScreenshots {
 
         /** Room left above a row [scrollToTop] brings up, so a section title is not flush with the bar. */
         val ROW_TOP_MARGIN = 12.dp
+
+        /**
+         * How much of the list [scrollToTop] keeps on screen: the tab bar over its foot, and rows above it the
+         * video can join the captures before and after at (store/lib/scroll.mjs).
+         */
+        val KEEP_IN_VIEW = 112.dp
+
+        /** How far down the screen a row may be before [click] scrolls it up: below, the tab bar can cover it. */
+        const val LOW_ON_SCREEN = 0.75f
         const val SETTLE_MS = 2_000L
 
         /**
@@ -666,7 +717,17 @@ class StoreScreenshots {
         /** When the morning agenda is posted, as in the app's default. */
         const val AGENDA_HOUR = 9L
 
-        /** The largest amount a store screenshot may show, in whichever currency. */
-        const val MAX_AMOUNT = 1_000
+        /** The largest amount a store screenshot may show, times the tutor's [DemoWords.scale]. */
+        const val MAX_AMOUNT = 1_000L
+        const val DECIMAL = 10
+
+        /** Each language's tutor, by Play code; `-PstoreLocales=de-DE,ja-JP` picks some. */
+        @JvmStatic
+        @ParameterizedRobolectricTestRunner.Parameters(name = "{0}")
+        fun languages(): List<Array<Any>> {
+            val picked = System.getProperty(LOCALES_PROPERTY)?.split(',')?.map { it.trim() }
+            picked?.forEach { code -> require(DemoTutor.all.any { it.play == code }) { "No demo tutor for $code" } }
+            return DemoTutor.all.map { it.play }.filter { picked == null || it in picked }.map { arrayOf(it) }
+        }
     }
 }

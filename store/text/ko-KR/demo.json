@@ -1,0 +1,49 @@
+{
+  "language": "KOREAN",
+  "locale": "ko-KR",
+  "currency": "KRW",
+  "scale": 1000,
+  "subjects": {
+    "math": "수학",
+    "physics": "물리",
+    "language": "영어"
+  },
+  "students": [
+    "김서연",
+    "이민준",
+    "박지우",
+    "최도윤",
+    "정하은",
+    "강시우"
+  ],
+  "phones": [
+    "+82 10-1234-5678",
+    "+82 10-8765-4321",
+    "+82 10-5550-0119"
+  ],
+  "emails": [
+    "seoyeon.kim@example.com",
+    "jiwoo.park@example.com",
+    "siwoo.kang@example.com"
+  ],
+  "homework": [
+    "4단원 12–20번: 이차방정식",
+    "뉴턴의 운동 법칙: 문제 5.12–5.20",
+    "현재완료: 연습 4–7, 52쪽",
+    "진자 실험: 보고서 작성"
+  ],
+  "group": "수능 수학 대비반",
+  "members": [
+    "윤지아",
+    "임준서",
+    "한예린",
+    "오지호"
+  ],
+  "groupHomework": "수능 모의고사 3회: 1–15번",
+  "doneHomework": [
+    "3단원 복습: 일차부등식",
+    "6과 단어와 짧은 에세이",
+    "운동량: 문제 4.1–4.9"
+  ],
+  "typedHomework": "과거시제: 연습 1–6, 58쪽"
+}

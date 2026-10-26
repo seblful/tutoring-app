@@ -1,0 +1,46 @@
+{
+  "tagline": "Lezioni, pagamenti e debiti per chi dà ripetizioni",
+  "cta": "Disponibile su Google Play",
+  "captions": {
+    "today": {
+      "title": "La tua giornata\nin un colpo d'occhio",
+      "subtitle": "Cosa c'è ora, cosa resta da segnare e chi deve pagare"
+    },
+    "lesson-sheet": {
+      "title": "Lezioni segnate\ncon un tocco",
+      "subtitle": "Svolta, spostata o modificata dalla lezione stessa",
+      "film": {
+        "title": "Lezioni segnate\ncon un tocco o uno swipe",
+        "subtitle": "Scorri una lezione per segnarla, o aprila per il resto"
+      }
+    },
+    "people": {
+      "title": "Vedi subito\nchi deve pagare",
+      "subtitle": "Saldi calcolati da ogni lezione e ogni pagamento"
+    },
+    "reports": {
+      "title": "Guarda crescere\ni tuoi guadagni",
+      "subtitle": "Per mese, materia, studente e gruppo — con export CSV"
+    },
+    "widgets": {
+      "title": "La tua giornata\nnella schermata Home",
+      "subtitle": "Segna una lezione svolta senza aprire l'app"
+    },
+    "reminders": {
+      "title": "Mai più\nuna lezione persa",
+      "subtitle": "Promemoria prima di ogni lezione, agenda mattutina e riepilogo debiti"
+    },
+    "homework": {
+      "title": "I compiti trovano\nla prossima lezione",
+      "subtitle": "Assegnali una volta: seguono la prossima lezione dello studente"
+    },
+    "today-dark": {
+      "title": "Niente account.\nNiente cloud. Tuo.",
+      "subtitle": "Funziona offline: i tuoi dati restano sul telefono"
+    },
+    "settings-calendar": {
+      "title": "Lezioni nel calendario\ndel telefono",
+      "subtitle": "Sincronizzate da sole, con inviti via email agli studenti"
+    }
+  }
+}

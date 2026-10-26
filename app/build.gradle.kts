@@ -104,8 +104,16 @@ android {
         unitTests.all {
             // Match device rendering for screenshot tests.
             it.systemProperty("robolectric.pixelCopyRenderMode", "hardware")
+            // The demo tutors' words, one demo.json per language (DemoTutor).
+            it.systemProperty("klas.store.text", rootProject.file("store/text").absolutePath)
+            it.inputs.files(rootProject.fileTree("store/text") { include("*/demo.json") })
+                .withPathSensitivity(PathSensitivity.RELATIVE)
             if (project.hasProperty("storeScreenshots")) {
                 it.systemProperty("klas.store.out", rootProject.file("store/build/raw").absolutePath)
+                // -PstoreLocales=de-DE,ja-JP captures just those (Play codes); every language by default.
+                project.findProperty("storeLocales")?.let { locales ->
+                    it.systemProperty("klas.store.locales", locales)
+                }
                 it.outputs.upToDateWhen { false }
             }
             // Robolectric needs these JDK 17+ reflective accesses.

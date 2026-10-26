@@ -1,0 +1,49 @@
+{
+  "language": "JAPANESE",
+  "locale": "ja-JP",
+  "currency": "JPY",
+  "scale": 100,
+  "subjects": {
+    "math": "数学",
+    "physics": "物理",
+    "language": "英語"
+  },
+  "students": [
+    "佐藤美咲",
+    "鈴木大翔",
+    "高橋結衣",
+    "田中蓮",
+    "伊藤さくら",
+    "渡辺悠真"
+  ],
+  "phones": [
+    "+81 90-1234-5678",
+    "+81 80-8765-4321",
+    "+81 70-5550-0119"
+  ],
+  "emails": [
+    "misaki.sato@example.com",
+    "yui.takahashi@example.com",
+    "yuma.watanabe@example.com"
+  ],
+  "homework": [
+    "4章 問12–20：二次方程式",
+    "ニュートンの法則：問題5.12–5.20",
+    "現在完了：練習4–7、p.52",
+    "振り子の実験：レポートを書く"
+  ],
+  "group": "共通テスト数学対策",
+  "members": [
+    "山本陽菜",
+    "中村湊",
+    "小林葵",
+    "加藤颯太"
+  ],
+  "groupHomework": "共通テスト模試3：数学IA 第1–2問",
+  "doneHomework": [
+    "3章の復習：一次不等式",
+    "第6課の単語と短い作文",
+    "運動量：問題4.1–4.9"
+  ],
+  "typedHomework": "過去形：練習1–6、p.58"
+}

@@ -1,0 +1,49 @@
+{
+  "language": "SPANISH",
+  "locale": "es-ES",
+  "currency": "EUR",
+  "scale": 1,
+  "subjects": {
+    "math": "Matemáticas",
+    "physics": "Física",
+    "language": "Inglés"
+  },
+  "students": [
+    "Lucía García",
+    "Hugo Martínez",
+    "Martina López",
+    "Pablo Sánchez",
+    "Sofía Romero",
+    "Daniel Navarro"
+  ],
+  "phones": [
+    "+34 612 345 678",
+    "+34 699 765 432",
+    "+34 655 501 119"
+  ],
+  "emails": [
+    "lucia.garcia@example.com",
+    "martina.lopez@example.com",
+    "daniel.navarro@example.com"
+  ],
+  "homework": [
+    "Tema 4, ej. 12–20: ecuaciones de 2.º grado",
+    "Leyes de Newton: problemas 5.12–5.20",
+    "Present perfect: ej. 4–7, pág. 52",
+    "Práctica del péndulo: redactar el informe"
+  ],
+  "group": "Preparación EBAU Mates",
+  "members": [
+    "Valeria Ruiz",
+    "Álvaro Díaz",
+    "Paula Torres",
+    "Mario Gil"
+  ],
+  "groupHomework": "Simulacro EBAU 3: ejercicios 1–4",
+  "doneHomework": [
+    "Repaso tema 3: inecuaciones lineales",
+    "Vocabulario unidad 6 y redacción breve",
+    "Momento lineal: problemas 4.1–4.9"
+  ],
+  "typedHomework": "Past simple: ej. 1–6, p. 58"
+}

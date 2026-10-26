@@ -1,0 +1,49 @@
+{
+  "language": "DANISH",
+  "locale": "da-DK",
+  "currency": "DKK",
+  "scale": 10,
+  "subjects": {
+    "math": "Matematik",
+    "physics": "Fysik",
+    "language": "Engelsk"
+  },
+  "students": [
+    "Freja Nielsen",
+    "William Jensen",
+    "Ida Hansen",
+    "Oscar Pedersen",
+    "Clara Andersen",
+    "Noah Larsen"
+  ],
+  "phones": [
+    "+45 21 23 45 67",
+    "+45 40 76 54 32",
+    "+45 50 55 01 19"
+  ],
+  "emails": [
+    "freja.nielsen@example.com",
+    "ida.hansen@example.com",
+    "noah.larsen@example.com"
+  ],
+  "homework": [
+    "Kap. 4, opg. 12–20: andengradsligninger",
+    "Newtons love: opg. 5.12–5.20",
+    "Present perfect: øv. 4–7, s. 52",
+    "Pendulforsøg: skriv rapporten"
+  ],
+  "group": "STX-eksamen i matematik",
+  "members": [
+    "Alma Christensen",
+    "Lucas Sørensen",
+    "Ella Rasmussen",
+    "Victor Poulsen"
+  ],
+  "groupHomework": "Prøveeksamen 3: delprøve uden hjælpemidler",
+  "doneHomework": [
+    "Repetition kap. 3: lineære uligheder",
+    "Gloser til lektion 6 og et kort essay",
+    "Impuls: opg. 4.1–4.9"
+  ],
+  "typedHomework": "Past simple: øv. 1–6, s. 58"
+}

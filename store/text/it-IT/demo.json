@@ -1,0 +1,49 @@
+{
+  "language": "ITALIAN",
+  "locale": "it-IT",
+  "currency": "EUR",
+  "scale": 1,
+  "subjects": {
+    "math": "Matematica",
+    "physics": "Fisica",
+    "language": "Inglese"
+  },
+  "students": [
+    "Giulia Rossi",
+    "Lorenzo Russo",
+    "Sofia Ferrari",
+    "Matteo Esposito",
+    "Aurora Bianchi",
+    "Leonardo Romano"
+  ],
+  "phones": [
+    "+39 333 123 4567",
+    "+39 347 765 4321",
+    "+39 320 555 0119"
+  ],
+  "emails": [
+    "giulia.rossi@example.com",
+    "sofia.ferrari@example.com",
+    "leonardo.romano@example.com"
+  ],
+  "homework": [
+    "Cap. 4, es. 12–20: equazioni di 2° grado",
+    "Leggi di Newton: problemi 5.12–5.20",
+    "Present perfect: es. 4–7, p. 52",
+    "Pendolo: scrivere la relazione"
+  ],
+  "group": "Preparazione maturità",
+  "members": [
+    "Alice Colombo",
+    "Francesco Ricci",
+    "Ginevra Marino",
+    "Tommaso Greco"
+  ],
+  "groupHomework": "Simulazione seconda prova n. 3",
+  "doneHomework": [
+    "Ripasso cap. 3: disequazioni lineari",
+    "Vocaboli unità 6 e un breve tema",
+    "Quantità di moto: es. 4.1–4.9"
+  ],
+  "typedHomework": "Past simple: es. 1–6, p. 58"
+}

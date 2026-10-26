@@ -1,0 +1,49 @@
+{
+  "language": "GERMAN",
+  "locale": "de-DE",
+  "currency": "EUR",
+  "scale": 1,
+  "subjects": {
+    "math": "Mathe",
+    "physics": "Physik",
+    "language": "Englisch"
+  },
+  "students": [
+    "Lena Schmidt",
+    "Jonas Becker",
+    "Mia Wagner",
+    "Leon Hoffmann",
+    "Emilia Schulz",
+    "Paul Fischer"
+  ],
+  "phones": [
+    "+49 151 23456789",
+    "+49 170 7654321",
+    "+49 160 5550119"
+  ],
+  "emails": [
+    "lena.schmidt@example.com",
+    "mia.wagner@example.com",
+    "paul.fischer@example.com"
+  ],
+  "homework": [
+    "Kap. 4, Aufg. 12–20: quadratische Gleichungen",
+    "Newtonsche Gesetze: Aufg. 5.12–5.20",
+    "Present Perfect: Üb. 4–7, S. 52",
+    "Pendel-Versuch: Protokoll schreiben"
+  ],
+  "group": "Abi-Vorbereitung Mathe",
+  "members": [
+    "Hannah Weber",
+    "Luca Meyer",
+    "Marie Koch",
+    "Felix Richter"
+  ],
+  "groupHomework": "Probeabi 3, Teil A: ohne Taschenrechner",
+  "doneHomework": [
+    "Wiederholung Kap. 3: lineare Ungleichungen",
+    "Vokabeln Unit 6 und ein kurzer Aufsatz",
+    "Impuls: Aufg. 4.1–4.9"
+  ],
+  "typedHomework": "Simple Past: Üb. 1–6, S. 58"
+}

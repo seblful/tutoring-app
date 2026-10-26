@@ -1,0 +1,46 @@
+{
+  "tagline": "Lekcje, płatności i długi uczniów w jednym miejscu",
+  "cta": "Pobierz z Google Play",
+  "captions": {
+    "today": {
+      "title": "Cały dzień pracy\nw jednym miejscu",
+      "subtitle": "Co trwa teraz, co zostało do odhaczenia i kto zalega"
+    },
+    "lesson-sheet": {
+      "title": "Lekcja odhaczona\njednym dotknięciem",
+      "subtitle": "Odbyta, przełożona lub zmieniona — prosto z lekcji",
+      "film": {
+        "title": "Lekcja odhaczona\ndotknięciem lub gestem",
+        "subtitle": "Przesuń lekcję, by ją odhaczyć, albo otwórz po resztę"
+      }
+    },
+    "people": {
+      "title": "Od razu widać,\nkto zalega",
+      "subtitle": "Salda liczone z każdej lekcji i każdej płatności"
+    },
+    "reports": {
+      "title": "Patrz, jak rośnie\ntwój dochód",
+      "subtitle": "Według miesięcy, przedmiotów, uczniów i grup — z eksportem CSV"
+    },
+    "widgets": {
+      "title": "Twój dzień\nna ekranie głównym",
+      "subtitle": "Odhacz lekcję bez otwierania aplikacji"
+    },
+    "reminders": {
+      "title": "Żadnej\nzapomnianej lekcji",
+      "subtitle": "Przypomnienie przed lekcją, poranny plan i tygodniowe podsumowanie długów"
+    },
+    "homework": {
+      "title": "Zadanie samo\nznajdzie lekcję",
+      "subtitle": "Zadaj raz — trafi na najbliższe zajęcia ucznia"
+    },
+    "today-dark": {
+      "title": "Bez konta.\nBez chmury. Twoje.",
+      "subtitle": "Działa offline — dane zostają na telefonie"
+    },
+    "settings-calendar": {
+      "title": "Lekcje w kalendarzu\ntelefonu",
+      "subtitle": "Synchronizowane same, z zaproszeniami e-mail dla uczniów"
+    }
+  }
+}

@@ -1,0 +1,49 @@
+{
+  "language": "SWEDISH",
+  "locale": "sv-SE",
+  "currency": "SEK",
+  "scale": 10,
+  "subjects": {
+    "math": "Matematik",
+    "physics": "Fysik",
+    "language": "Engelska"
+  },
+  "students": [
+    "Alice Andersson",
+    "Elias Johansson",
+    "Maja Karlsson",
+    "William Nilsson",
+    "Ebba Eriksson",
+    "Hugo Larsson"
+  ],
+  "phones": [
+    "+46 70 174 01 43",
+    "+46 70 174 01 78",
+    "+46 70 174 01 19"
+  ],
+  "emails": [
+    "alice.andersson@example.com",
+    "maja.karlsson@example.com",
+    "hugo.larsson@example.com"
+  ],
+  "homework": [
+    "Kap. 4, uppg. 12–20: andragradsekvationer",
+    "Newtons lagar: uppg. 5.12–5.20",
+    "Present perfect: övn. 4–7, s. 52",
+    "Pendellabb: skriv labbrapporten"
+  ],
+  "group": "Nationella provet Ma3c",
+  "members": [
+    "Vera Svensson",
+    "Oscar Persson",
+    "Selma Gustafsson",
+    "Liam Olsson"
+  ],
+  "groupHomework": "Gamla nationella prov: del B, 1–12",
+  "doneHomework": [
+    "Repetition kap. 3: linjära olikheter",
+    "Glosor kapitel 6 och en kort essä",
+    "Rörelsemängd: uppg. 4.1–4.9"
+  ],
+  "typedHomework": "Past simple: övn. 1–6, s. 58"
+}

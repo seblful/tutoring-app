@@ -1,0 +1,46 @@
+{
+  "tagline": "Stunden, Zahlungen und Schulden für Nachhilfelehrer",
+  "cta": "Jetzt bei Google Play",
+  "captions": {
+    "today": {
+      "title": "Dein Unterrichtstag\nauf einen Blick",
+      "subtitle": "Was gerade läuft, was offen ist und wer schuldet"
+    },
+    "lesson-sheet": {
+      "title": "Stunden abhaken\nmit einem Tipp",
+      "subtitle": "Gehalten, verschoben oder bearbeitet – direkt in der Stunde",
+      "film": {
+        "title": "Stunden abhaken\nper Tipp oder Wisch",
+        "subtitle": "Wisch eine Stunde zum Abhaken oder öffne sie für den Rest"
+      }
+    },
+    "people": {
+      "title": "Sofort sehen,\nwer schuldet",
+      "subtitle": "Salden aus jeder Stunde und jeder Zahlung berechnet"
+    },
+    "reports": {
+      "title": "Sieh dein\nEinkommen wachsen",
+      "subtitle": "Nach Monat, Fach, Schüler und Gruppe – mit CSV-Export"
+    },
+    "widgets": {
+      "title": "Dein Tag auf dem\nStartbildschirm",
+      "subtitle": "Stunde abhaken, ohne die App zu öffnen"
+    },
+    "reminders": {
+      "title": "Keine Stunde\nmehr vergessen",
+      "subtitle": "Erinnerung vor jeder Stunde, Tagesplan am Morgen, Schulden pro Woche"
+    },
+    "homework": {
+      "title": "Hausaufgaben finden\ndie nächste Stunde",
+      "subtitle": "Einmal aufgeben – sie hängt an der nächsten Stunde des Schülers"
+    },
+    "today-dark": {
+      "title": "Kein Konto.\nKeine Cloud. Deins.",
+      "subtitle": "Funktioniert offline – deine Daten bleiben auf dem Handy"
+    },
+    "settings-calendar": {
+      "title": "Stunden im Kalender\ndeines Handys",
+      "subtitle": "Automatisch synchron, mit E-Mail-Einladungen für Schüler"
+    }
+  }
+}

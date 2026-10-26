@@ -1,0 +1,46 @@
+{
+  "tagline": "家教專用的課程、收款與欠費管理",
+  "cta": "立即前往 Google Play 下載",
+  "captions": {
+    "today": {
+      "title": "一天的課程\n一目了然",
+      "subtitle": "正在上的課、待標記的課與誰欠費"
+    },
+    "lesson-sheet": {
+      "title": "輕點一下\n標記課程",
+      "subtitle": "已上、改期或編輯，在課程中直接完成",
+      "film": {
+        "title": "輕點或滑動\n即可標記",
+        "subtitle": "滑動課程即標為已上，點開可做更多"
+      }
+    },
+    "people": {
+      "title": "誰欠費\n一目了然",
+      "subtitle": "依每堂課與每筆付款自動結算"
+    },
+    "reports": {
+      "title": "看著收入\n一點一點成長",
+      "subtitle": "依月份、科目、學生與班級統計，可匯出 CSV"
+    },
+    "widgets": {
+      "title": "今日課程\n就在主畫面",
+      "subtitle": "不必開啟應用程式，就能標記已上課"
+    },
+    "reminders": {
+      "title": "再也不會\n忘記上課",
+      "subtitle": "課前提醒、早晨行程與每週欠費摘要"
+    },
+    "homework": {
+      "title": "作業自動對應\n下一堂課",
+      "subtitle": "出一次作業，自動掛到學生的下一堂課"
+    },
+    "today-dark": {
+      "title": "免帳號\n免雲端",
+      "subtitle": "離線可用，資料只存在你的手機裡"
+    },
+    "settings-calendar": {
+      "title": "課程同步到\n手機行事曆",
+      "subtitle": "自動同步，並以電子郵件邀請學生"
+    }
+  }
+}

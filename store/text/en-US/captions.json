@@ -1,0 +1,46 @@
+{
+  "tagline": "Lessons, payments and debts for a private tutor",
+  "cta": "Get it on Google Play",
+  "captions": {
+    "today": {
+      "title": "Your teaching day,\nat a glance",
+      "subtitle": "What's on now, what's left to mark and who owes"
+    },
+    "lesson-sheet": {
+      "title": "Lessons marked\nin one tap",
+      "subtitle": "Taught, rescheduled or edited from the lesson itself",
+      "film": {
+        "title": "Lessons marked\nin a tap or a swipe",
+        "subtitle": "Swipe a lesson to mark it taught, or open it for the rest"
+      }
+    },
+    "people": {
+      "title": "See who owes\nat a glance",
+      "subtitle": "Balances worked out from every lesson and payment"
+    },
+    "reports": {
+      "title": "Watch your\nincome grow",
+      "subtitle": "By month, subject, student and group — with CSV export"
+    },
+    "widgets": {
+      "title": "Your day on the\nhome screen",
+      "subtitle": "Tick a lesson taught without opening the app"
+    },
+    "reminders": {
+      "title": "Never miss\na lesson",
+      "subtitle": "A reminder before each lesson, a morning agenda and a weekly debt summary"
+    },
+    "homework": {
+      "title": "Homework that finds\nthe next lesson",
+      "subtitle": "Set it once — it rides on the student's next class"
+    },
+    "today-dark": {
+      "title": "No account.\nNo cloud. Yours.",
+      "subtitle": "Works offline — your data stays on your phone"
+    },
+    "settings-calendar": {
+      "title": "Lessons in your\nphone's calendar",
+      "subtitle": "Kept in sync for you, with email invites for students"
+    }
+  }
+}

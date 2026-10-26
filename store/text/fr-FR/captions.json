@@ -1,0 +1,46 @@
+{
+  "tagline": "Cours, paiements et dettes pour les profs particuliers",
+  "cta": "Disponible sur Google Play",
+  "captions": {
+    "today": {
+      "title": "Votre journée de cours\nen un coup d'œil",
+      "subtitle": "Ce qui se passe, ce qu'il reste à pointer et qui vous doit"
+    },
+    "lesson-sheet": {
+      "title": "Cours validés\nen un geste",
+      "subtitle": "Donné, reporté ou modifié depuis le cours lui-même",
+      "film": {
+        "title": "Cours validés\nd'un appui ou d'un glissé",
+        "subtitle": "Glissez un cours pour le valider, ou ouvrez-le pour le reste"
+      }
+    },
+    "people": {
+      "title": "Voyez qui vous doit\nen un coup d'œil",
+      "subtitle": "Soldes calculés à partir de chaque cours et paiement"
+    },
+    "reports": {
+      "title": "Regardez vos\nrevenus grandir",
+      "subtitle": "Par mois, matière, élève et groupe — avec export CSV"
+    },
+    "widgets": {
+      "title": "Votre journée sur\nl'écran d'accueil",
+      "subtitle": "Validez un cours sans ouvrir l'appli"
+    },
+    "reminders": {
+      "title": "Plus jamais\nun cours oublié",
+      "subtitle": "Rappel avant chaque cours, programme du matin, bilan hebdo des dettes"
+    },
+    "homework": {
+      "title": "Les devoirs trouvent\nle prochain cours",
+      "subtitle": "Donnés une fois, ils suivent le prochain cours de l'élève"
+    },
+    "today-dark": {
+      "title": "Sans compte.\nSans cloud. À vous.",
+      "subtitle": "Fonctionne hors ligne — vos données restent sur le téléphone"
+    },
+    "settings-calendar": {
+      "title": "Vos cours dans l'agenda\ndu téléphone",
+      "subtitle": "Synchronisés pour vous, avec invitations e-mail aux élèves"
+    }
+  }
+}

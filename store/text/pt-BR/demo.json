@@ -1,0 +1,49 @@
+{
+  "language": "PORTUGUESE_BRAZIL",
+  "locale": "pt-BR",
+  "currency": "BRL",
+  "scale": 4,
+  "subjects": {
+    "math": "Matemática",
+    "physics": "Física",
+    "language": "Inglês"
+  },
+  "students": [
+    "Ana Souza",
+    "Lucas Oliveira",
+    "Júlia Santos",
+    "Gabriel Lima",
+    "Larissa Costa",
+    "Pedro Almeida"
+  ],
+  "phones": [
+    "+55 11 91234-5678",
+    "+55 21 98765-4321",
+    "+55 31 95550-0119"
+  ],
+  "emails": [
+    "ana.souza@example.com",
+    "julia.santos@example.com",
+    "pedro.almeida@example.com"
+  ],
+  "homework": [
+    "Cap. 4, ex. 12–20: equações do 2º grau",
+    "Leis de Newton: exercícios 5.12–5.20",
+    "Present perfect: ex. 4–7, pág. 52",
+    "Pêndulo: escrever o relatório"
+  ],
+  "group": "Turma ENEM Matemática",
+  "members": [
+    "Beatriz Rocha",
+    "Rafael Ferreira",
+    "Mariana Dias",
+    "Felipe Ribeiro"
+  ],
+  "groupHomework": "Simulado ENEM 3: questões 136–150",
+  "doneHomework": [
+    "Revisão cap. 3: inequações do 1º grau",
+    "Vocabulário da unidade 6 e uma redação",
+    "Quantidade de movimento: ex. 4.1–4.9"
+  ],
+  "typedHomework": "Simple past: ex. 1–6, p. 58"
+}

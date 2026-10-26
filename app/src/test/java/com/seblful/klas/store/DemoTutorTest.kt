@@ -5,22 +5,42 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.File
 
 class DemoTutorTest {
 
-    private val tutors = listOf(DemoTutor.english, DemoTutor.russian)
+    private val tutors = DemoTutor.all
 
     @Test
-    fun `both languages tell the same week`() {
+    fun `every language tells the same week`() {
         fun week(t: DemoTutor) = Pair(
             t.students.map { s ->
                 listOf(s.subject, s.rate, s.from, s.slots, s.mode, s.homework != null, s.paysUntil, s.prepaysLessons)
             },
             with(t.group) { listOf(subject, rate, from, slots, members.size, owing in members) },
         )
-        assertEquals(week(DemoTutor.english), week(DemoTutor.russian))
         fun done(t: DemoTutor) = t.doneHomework.map { (name, _) -> t.students.indexOfFirst { it.name == name } }
-        assertEquals(done(DemoTutor.english), done(DemoTutor.russian))
+        val english = DemoTutor.english
+        for (t in tutors) {
+            // The same week at the language's own prices.
+            val priced = english.copy(
+                students = english.students.map { it.copy(rate = it.rate * t.scale) },
+                group = english.group.copy(rate = english.group.rate * t.scale),
+            )
+            assertEquals(t.play, week(priced), week(t))
+            assertEquals(t.play, done(english), done(t))
+        }
+    }
+
+    @Test
+    fun `every language in the store listing has a demo tutor, with ten different people`() {
+        val listed = File(System.getProperty(DemoTutor.TEXT_PROPERTY)).listFiles()!!
+            .filter { File(it, "title.txt").isFile }.map { it.name }.sorted()
+        assertEquals(listed, tutors.map { it.play })
+        for (t in tutors) {
+            val people = t.students.map { it.name } + t.group.members
+            assertEquals("${t.play}: $people", 10, people.toSet().size)
+        }
     }
 
     @Test

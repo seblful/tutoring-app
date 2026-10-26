@@ -1,0 +1,49 @@
+{
+  "language": "NORWEGIAN_BOKMAL",
+  "locale": "nb-NO",
+  "currency": "NOK",
+  "scale": 10,
+  "subjects": {
+    "math": "Matematikk",
+    "physics": "Fysikk",
+    "language": "Engelsk"
+  },
+  "students": [
+    "Nora Hansen",
+    "Jakob Johansen",
+    "Emma Olsen",
+    "Filip Berg",
+    "Ingrid Larsen",
+    "Lukas Haugen"
+  ],
+  "phones": [
+    "+47 412 34 567",
+    "+47 987 65 432",
+    "+47 455 50 119"
+  ],
+  "emails": [
+    "nora.hansen@example.com",
+    "emma.olsen@example.com",
+    "lukas.haugen@example.com"
+  ],
+  "homework": [
+    "Kap. 4, oppg. 12–20: andregradslikninger",
+    "Newtons lover: oppg. 5.12–5.20",
+    "Present perfect: oppg. 4–7, s. 52",
+    "Pendelforsøk: skriv rapporten"
+  ],
+  "group": "Eksamenskurs matte R1",
+  "members": [
+    "Sara Kristiansen",
+    "Henrik Dahl",
+    "Maja Solberg",
+    "Aksel Bakken"
+  ],
+  "groupHomework": "Eksamen R1 V24: del 1, oppg. 1–8",
+  "doneHomework": [
+    "Repetisjon kap. 3: lineære ulikheter",
+    "Gloser til kapittel 6 og en kort tekst",
+    "Bevegelsesmengde: oppg. 4.1–4.9"
+  ],
+  "typedHomework": "Past simple: oppg. 1–6"
+}

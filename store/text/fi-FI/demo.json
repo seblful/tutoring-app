@@ -1,0 +1,49 @@
+{
+  "language": "FINNISH",
+  "locale": "fi-FI",
+  "currency": "EUR",
+  "scale": 1,
+  "subjects": {
+    "math": "Matematiikka",
+    "physics": "Fysiikka",
+    "language": "Englanti"
+  },
+  "students": [
+    "Aino Virtanen",
+    "Eetu Korhonen",
+    "Ella Mäkinen",
+    "Onni Nieminen",
+    "Sofia Järvinen",
+    "Leo Heikkinen"
+  ],
+  "phones": [
+    "+358 40 123 4567",
+    "+358 50 765 4321",
+    "+358 44 555 0119"
+  ],
+  "emails": [
+    "aino.virtanen@example.com",
+    "ella.makinen@example.com",
+    "leo.heikkinen@example.com"
+  ],
+  "homework": [
+    "Luku 4, teht. 12–20: toisen asteen yhtälöt",
+    "Newtonin lait: teht. 5.12–5.20",
+    "Present perfect: harj. 4–7, s. 52",
+    "Heiluri-työ: kirjoita työselostus"
+  ],
+  "group": "Yo-kokeen kertauskurssi",
+  "members": [
+    "Venla Lehtonen",
+    "Elias Laine",
+    "Iida Salminen",
+    "Veeti Koskinen"
+  ],
+  "groupHomework": "Vanha yo-koe K24: tehtävät 1–6",
+  "doneHomework": [
+    "Kertaus luku 3: lineaariset epäyhtälöt",
+    "Kappaleen 6 sanasto ja lyhyt essee",
+    "Liikemäärä: teht. 4.1–4.9"
+  ],
+  "typedHomework": "Past simple: harj. 1–6"
+}

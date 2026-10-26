@@ -1,0 +1,49 @@
+{
+  "language": "CHINESE_SIMPLIFIED",
+  "locale": "zh-CN",
+  "currency": "CNY",
+  "scale": 5,
+  "subjects": {
+    "math": "数学",
+    "physics": "物理",
+    "language": "英语"
+  },
+  "students": [
+    "王思雨",
+    "李浩然",
+    "张欣怡",
+    "刘子轩",
+    "陈雨桐",
+    "杨一鸣"
+  ],
+  "phones": [
+    "+86 138 1234 5678",
+    "+86 139 8765 4321",
+    "+86 137 5550 0119"
+  ],
+  "emails": [
+    "wang.siyu@example.com",
+    "zhang.xinyi@example.com",
+    "yang.yiming@example.com"
+  ],
+  "homework": [
+    "第4章 第12–20题：一元二次方程",
+    "牛顿运动定律：习题5.12–5.20",
+    "现在完成时：练习4–7，第52页",
+    "单摆实验：写实验报告"
+  ],
+  "group": "高考数学冲刺班",
+  "members": [
+    "赵梓涵",
+    "黄俊杰",
+    "周佳怡",
+    "吴宇航"
+  ],
+  "groupHomework": "高考模拟卷3：选择题1–12",
+  "doneHomework": [
+    "复习第3章：一元一次不等式",
+    "第6课单词和一篇短文",
+    "动量：习题4.1–4.9"
+  ],
+  "typedHomework": "一般过去时：练习1–6，第58页"
+}

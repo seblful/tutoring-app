@@ -1,0 +1,46 @@
+{
+  "tagline": "Özel ders öğretmenleri için dersler, ödemeler ve borçlar",
+  "cta": "Google Play'den alın",
+  "captions": {
+    "today": {
+      "title": "Ders gününüz\ntek bakışta",
+      "subtitle": "Şu an ne var, neyi işaretlemek kaldı ve kim borçlu"
+    },
+    "lesson-sheet": {
+      "title": "Dersler tek\ndokunuşla işaretli",
+      "subtitle": "Yapıldı, ertelendi ya da düzenlendi — dersin kendisinden",
+      "film": {
+        "title": "Dokunun ya da kaydırın,\nders işaretlensin",
+        "subtitle": "Yapıldı demek için dersi kaydırın, gerisi için açın"
+      }
+    },
+    "people": {
+      "title": "Kim borçlu,\nhemen görün",
+      "subtitle": "Bakiyeler her ders ve ödemeden hesaplanır"
+    },
+    "reports": {
+      "title": "Gelirinizin\nbüyümesini izleyin",
+      "subtitle": "Aya, derse, öğrenciye ve gruba göre — CSV dışa aktarımıyla"
+    },
+    "widgets": {
+      "title": "Gününüz\nana ekranda",
+      "subtitle": "Uygulamayı açmadan dersi yapıldı olarak işaretleyin"
+    },
+    "reminders": {
+      "title": "Hiçbir dersi\nkaçırmayın",
+      "subtitle": "Her dersten önce hatırlatma, sabah programı ve haftalık borç özeti"
+    },
+    "homework": {
+      "title": "Ödev bir sonraki\ndersi kendi bulur",
+      "subtitle": "Bir kez verin — öğrencinin bir sonraki dersine eklenir"
+    },
+    "today-dark": {
+      "title": "Hesap yok.\nBulut yok. Sizin.",
+      "subtitle": "Çevrimdışı çalışır — verileriniz telefonunuzda kalır"
+    },
+    "settings-calendar": {
+      "title": "Dersler telefonun\ntakviminde",
+      "subtitle": "Kendiliğinden eşitlenir, öğrencilere e-posta daveti gider"
+    }
+  }
+}

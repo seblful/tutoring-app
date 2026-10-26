@@ -1,0 +1,46 @@
+{
+  "tagline": "Clases, pagos y deudas para profesores particulares",
+  "cta": "Disponible en Google Play",
+  "captions": {
+    "today": {
+      "title": "Tu día de clases\nde un vistazo",
+      "subtitle": "Qué hay ahora, qué falta por marcar y quién debe"
+    },
+    "lesson-sheet": {
+      "title": "Clases marcadas\ncon un toque",
+      "subtitle": "Impartida, aplazada o editada desde la propia clase",
+      "film": {
+        "title": "Clases marcadas\ncon un toque o un gesto",
+        "subtitle": "Desliza una clase para marcarla o ábrela para lo demás"
+      }
+    },
+    "people": {
+      "title": "Ve quién debe\nde un vistazo",
+      "subtitle": "Saldos calculados con cada clase y cada pago"
+    },
+    "reports": {
+      "title": "Mira crecer\ntus ingresos",
+      "subtitle": "Por mes, asignatura, alumno y grupo — con exportación CSV"
+    },
+    "widgets": {
+      "title": "Tu día en la\npantalla de inicio",
+      "subtitle": "Marca una clase como impartida sin abrir la app"
+    },
+    "reminders": {
+      "title": "Nunca olvides\nuna clase",
+      "subtitle": "Aviso antes de cada clase, agenda matinal y resumen semanal de deudas"
+    },
+    "homework": {
+      "title": "Deberes que encuentran\nla próxima clase",
+      "subtitle": "Asígnalos una vez y van a la próxima clase del alumno"
+    },
+    "today-dark": {
+      "title": "Sin cuenta.\nSin nube. Tuyo.",
+      "subtitle": "Funciona sin conexión: tus datos se quedan en el móvil"
+    },
+    "settings-calendar": {
+      "title": "Clases en el\ncalendario del móvil",
+      "subtitle": "Sincronizadas solas, con invitaciones por email para alumnos"
+    }
+  }
+}

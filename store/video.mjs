@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// The promo video: the real app's captures in motion, with music and sound, per locale in listing.json —
+// The promo video: the real app's captures in motion, with music and sound, per language in store/text/ —
 // 46 seconds, wide (16:9) or tall (9:16). No npm dependencies and no ffmpeg — a
 // headless Chrome lays out each frame (store/film/film.js), draws it on the GPU (store/film/gpu.js),
 // synthesises the soundtrack (store/film/sound.js) and encodes both with its own WebCodecs encoders
@@ -24,6 +24,7 @@ import { HOME, ICON_MARK, LOGO, PHONE_CSS, RES, fontFaces, homeScreen, lockScree
 import { blur, decode, write } from "./lib/png.mjs";
 import { difference } from "./lib/compare.mjs";
 import { joinScroll } from "./lib/scroll.mjs";
+import { direction, languages, readWords } from "./lib/words.mjs";
 
 const STORE = dirname(fileURLToPath(import.meta.url));
 const RAW = join(STORE, "build", "raw");
@@ -79,8 +80,8 @@ const CAPTION_SIDES = {
 const soundtracks = new Map();
 
 const options = parseArgs(process.argv.slice(2));
-const listing =JSON.parse(readFileSync(join(STORE, "listing.json"), "utf8"));
-const locales = options.locale ? [options.locale] : Object.keys(listing.locales);
+const listing = JSON.parse(readFileSync(join(STORE, "listing.json"), "utf8"));
+const locales = options.locale ? [options.locale] : languages(STORE);
 let browser, send;
 /** Whether frames are drawn on the GPU, until a page says this Chrome cannot (see [load]). */
 let onGpu = !options.software;
@@ -167,7 +168,8 @@ async function checkGpu(name, moments, width, height) {
 }
 
 async function film(locale, layout) {
-  const words = listing.locales[locale] ?? fail(`No locale ${locale} in listing.json`);
+  let words;
+  try { words = readWords(STORE, locale, listing); } catch (e) { fail(e.message); }
   const raw = join(RAW, locale);
   for (const file of ["shots.json", "notifications.json", "film.json"]) {
     if (!existsSync(join(raw, file))) {
@@ -355,13 +357,13 @@ function softened(raw, locale) {
 function page({ locale, layout, stage, words, raw, images, shots, tray, typed }) {
   const strings = appStrings(locale);
   const caption = (entry) => {
-    const still = entry[locale] ?? fail(`${locale}: no caption for «${entry.shot}» in listing.json`);
+    const still = words.captions[entry.shot];
     // The video's own wording where it shows more than the still: the lesson sheet's scene swipes too.
     const copy = still.film ?? still;
     const title = copy.title.split("\n").map((line) => `<span class="line">${text(line)}</span>`).join("");
     return `
     <div class="caption ${CAPTION_SIDES[entry.shot] ?? "left"}" data-shot="${entry.shot}">
-      <div class="bar"></div><h1>${title}</h1><p>${text(copy.subtitle)}</p>
+      <div class="bar"></div><h1 dir="auto">${title}</h1><p dir="auto">${text(copy.subtitle)}</p>
     </div>`;
   };
   const used = [...listing.screenshots, ...(listing.filmOnly ?? [])].filter((entry) => entry.shot in CAPTION_SIDES);
@@ -370,7 +372,7 @@ function page({ locale, layout, stage, words, raw, images, shots, tray, typed })
     const s = shot(name);
     return `
         <div class="layer" data-shot="${name}">
-          ${statusBar(s.top, s.dark ? "#e4e1e9" : "#1b1b21", AFTER_REMINDER.includes(name) ? tray.clock : words.clock)}
+          ${statusBar(s.top, s.dark ? "#e4e1e9" : "#1b1b21", AFTER_REMINDER.includes(name) ? tray.clock : tray.statusClock)}
           <img class="app" src="${url(join(images, `${name}.png`))}">
         </div>`;
   };
@@ -421,7 +423,7 @@ function page({ locale, layout, stage, words, raw, images, shots, tray, typed })
       <div class="face"></div>
       <div class="screen"><div class="stack">
         ${SHOTS.map(layer).join("")}
-        <div class="layer" data-shot="homescreen">${homeScreen(images, { ...tray, homeClock: words.clock })}</div>
+        <div class="layer" data-shot="homescreen">${homeScreen(images, { ...tray, homeClock: tray.statusClock })}</div>
         <div class="layer" data-shot="lockscreen">${lockScreen(tray)}</div>
       </div></div>
       <div class="glass"></div>
@@ -439,11 +441,11 @@ function page({ locale, layout, stage, words, raw, images, shots, tray, typed })
       <div class="events">${events}</div>
     </div>
     <div class="brand" id="intro">${lockup}
-      <div class="tagline"><span class="typed"></span><span class="caret"></span></div>
+      <div class="tagline" dir="${direction(locale)}"><span class="typed"></span><span class="caret"></span></div>
     </div>
     <div class="brand hidden" id="outro">${lockup}
-      <div class="tagline">${text(words.tagline)}</div>
-      <div class="cta">${DOWNLOAD_ICON}<span>${text(words.cta ?? fail(`${locale}: no «cta» in listing.json`))}</span></div>
+      <div class="tagline" dir="auto">${text(words.tagline)}</div>
+      <div class="cta">${DOWNLOAD_ICON}<span>${text(words.cta)}</span></div>
     </div>
     <div id="fade"></div>
   </div>

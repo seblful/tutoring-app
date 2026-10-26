@@ -1,0 +1,49 @@
+{
+  "language": "FRENCH",
+  "locale": "fr-FR",
+  "currency": "EUR",
+  "scale": 1,
+  "subjects": {
+    "math": "Maths",
+    "physics": "Physique",
+    "language": "Anglais"
+  },
+  "students": [
+    "Léa Martin",
+    "Hugo Bernard",
+    "Chloé Dubois",
+    "Louis Moreau",
+    "Manon Laurent",
+    "Jules Lefèvre"
+  ],
+  "phones": [
+    "+33 6 39 98 01 43",
+    "+33 6 39 98 01 78",
+    "+33 6 39 98 01 19"
+  ],
+  "emails": [
+    "lea.martin@example.com",
+    "chloe.dubois@example.com",
+    "jules.lefevre@example.com"
+  ],
+  "homework": [
+    "Chap. 4, ex. 12–20 : second degré",
+    "Lois de Newton : ex. 5.12 à 5.20",
+    "Present perfect : ex. 4 à 7, p. 52",
+    "TP pendule : rédiger le compte rendu"
+  ],
+  "group": "Prépa bac maths",
+  "members": [
+    "Inès Petit",
+    "Nathan Roux",
+    "Camille Girard",
+    "Théo Fontaine"
+  ],
+  "groupHomework": "Bac blanc n° 3 : exercices 1 à 4",
+  "doneHomework": [
+    "Révision chap. 3 : inéquations",
+    "Vocabulaire leçon 6 et court essai",
+    "Quantité de mouvement : ex. 4.1–4.9"
+  ],
+  "typedHomework": "Prétérit : ex. 1 à 6, p. 58"
+}

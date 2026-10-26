@@ -1,0 +1,46 @@
+{
+  "tagline": "Lektioner, betalningar och skulder för privatlärare",
+  "cta": "Ladda ned på Google Play",
+  "captions": {
+    "today": {
+      "title": "Din lektionsdag\npå ett ögonblick",
+      "subtitle": "Vad som pågår nu, vad som återstår att markera och vem som är skyldig"
+    },
+    "lesson-sheet": {
+      "title": "Lektioner markerade\nmed ett tryck",
+      "subtitle": "Hållen, flyttad eller ändrad direkt från lektionen",
+      "film": {
+        "title": "Lektioner markerade\nmed tryck eller svep",
+        "subtitle": "Svep en lektion för att markera den, eller öppna den för resten"
+      }
+    },
+    "people": {
+      "title": "Se vem som är\nskyldig direkt",
+      "subtitle": "Saldon räknas ut från varje lektion och betalning"
+    },
+    "reports": {
+      "title": "Se din inkomst\nväxa",
+      "subtitle": "Per månad, ämne, elev och grupp — med CSV-export"
+    },
+    "widgets": {
+      "title": "Din dag på\nhemskärmen",
+      "subtitle": "Markera en lektion som hållen utan att öppna appen"
+    },
+    "reminders": {
+      "title": "Missa aldrig\nen lektion",
+      "subtitle": "Påminnelse före varje lektion, morgonschema och veckans skulder"
+    },
+    "homework": {
+      "title": "Läxor som hittar\nnästa lektion",
+      "subtitle": "Ge den en gång — den följer elevens nästa lektion"
+    },
+    "today-dark": {
+      "title": "Inget konto.\nInget moln. Ditt.",
+      "subtitle": "Fungerar offline — din data stannar på telefonen"
+    },
+    "settings-calendar": {
+      "title": "Lektioner i\ntelefonens kalender",
+      "subtitle": "Synkas automatiskt, med e-postinbjudningar till elever"
+    }
+  }
+}

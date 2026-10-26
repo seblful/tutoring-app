@@ -1,0 +1,49 @@
+{
+  "language": "DUTCH",
+  "locale": "nl-NL",
+  "currency": "EUR",
+  "scale": 1,
+  "subjects": {
+    "math": "Wiskunde",
+    "physics": "Natuurkunde",
+    "language": "Engels"
+  },
+  "students": [
+    "Emma de Vries",
+    "Daan Jansen",
+    "Sophie Bakker",
+    "Sem Visser",
+    "Julia Smit",
+    "Lucas Mulder"
+  ],
+  "phones": [
+    "+31 6 12345678",
+    "+31 6 87654321",
+    "+31 6 55501190"
+  ],
+  "emails": [
+    "emma.devries@example.com",
+    "sophie.bakker@example.com",
+    "lucas.mulder@example.com"
+  ],
+  "homework": [
+    "H4, opg. 12–20: kwadratische vergelijkingen",
+    "Wetten van Newton: opg. 5.12–5.20",
+    "Present perfect: oef. 4–7, blz. 52",
+    "Slingerproef: verslag uitwerken"
+  ],
+  "group": "Examentraining wiskunde",
+  "members": [
+    "Tess Meijer",
+    "Finn de Boer",
+    "Lotte Bos",
+    "Milan Peters"
+  ],
+  "groupHomework": "Oefenexamen 3: opgaven 1–18",
+  "doneHomework": [
+    "Herhaling H3: lineaire ongelijkheden",
+    "Woordjes les 6 en een kort opstel",
+    "Impuls: opg. 4.1–4.9"
+  ],
+  "typedHomework": "Past simple, blz. 58: 1–6"
+}

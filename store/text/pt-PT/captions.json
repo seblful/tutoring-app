@@ -1,0 +1,46 @@
+{
+  "tagline": "Aulas, pagamentos e dívidas para explicadores",
+  "cta": "Disponível no Google Play",
+  "captions": {
+    "today": {
+      "title": "O seu dia de aulas\nnum relance",
+      "subtitle": "O que decorre agora, o que falta marcar e quem deve"
+    },
+    "lesson-sheet": {
+      "title": "Aulas marcadas\ncom um toque",
+      "subtitle": "Dada, adiada ou editada a partir da própria aula",
+      "film": {
+        "title": "Aulas marcadas\ncom um toque ou deslize",
+        "subtitle": "Deslize uma aula para a marcar, ou abra-a para o resto"
+      }
+    },
+    "people": {
+      "title": "Veja quem deve\nnum relance",
+      "subtitle": "Saldos calculados a partir de cada aula e pagamento"
+    },
+    "reports": {
+      "title": "Veja os seus\nganhos a crescer",
+      "subtitle": "Por mês, disciplina, aluno e grupo — com exportação CSV"
+    },
+    "widgets": {
+      "title": "O seu dia no\necrã principal",
+      "subtitle": "Marque uma aula como dada sem abrir a app"
+    },
+    "reminders": {
+      "title": "Nunca mais\nesqueça uma aula",
+      "subtitle": "Lembrete antes de cada aula, agenda da manhã e resumo semanal de dívidas"
+    },
+    "homework": {
+      "title": "TPC que encontram\na próxima aula",
+      "subtitle": "Marque uma vez — fica na próxima aula do aluno"
+    },
+    "today-dark": {
+      "title": "Sem conta.\nSem nuvem. Seu.",
+      "subtitle": "Funciona offline — os seus dados ficam no telemóvel"
+    },
+    "settings-calendar": {
+      "title": "Aulas no calendário\ndo telemóvel",
+      "subtitle": "Sincronizadas por si, com convites por email para alunos"
+    }
+  }
+}

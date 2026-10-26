@@ -1,0 +1,46 @@
+{
+  "tagline": "Timer, betalinger og gjeld for privatlærere",
+  "cta": "Tilgjengelig på Google Play",
+  "captions": {
+    "today": {
+      "title": "Undervisningsdagen\npå et øyeblikk",
+      "subtitle": "Hva som pågår nå, hva som gjenstår å markere og hvem som skylder"
+    },
+    "lesson-sheet": {
+      "title": "Timer markert\nmed ett trykk",
+      "subtitle": "Holdt, flyttet eller redigert rett fra timen",
+      "film": {
+        "title": "Timer markert\nmed trykk eller sveip",
+        "subtitle": "Sveip en time for å markere den, eller åpne den for resten"
+      }
+    },
+    "people": {
+      "title": "Se hvem som skylder\npå et øyeblikk",
+      "subtitle": "Saldo regnet ut fra hver time og hver betaling"
+    },
+    "reports": {
+      "title": "Se inntekten\ndin vokse",
+      "subtitle": "Per måned, fag, elev og gruppe — med CSV-eksport"
+    },
+    "widgets": {
+      "title": "Dagen din på\nstartskjermen",
+      "subtitle": "Marker en time som holdt uten å åpne appen"
+    },
+    "reminders": {
+      "title": "Glem aldri\nen time",
+      "subtitle": "Påminnelse før hver time, morgenoversikt og ukentlig gjeldsoversikt"
+    },
+    "homework": {
+      "title": "Lekser som finner\nneste time",
+      "subtitle": "Gi dem én gang — de følger elevens neste time"
+    },
+    "today-dark": {
+      "title": "Ingen konto.\nIngen sky. Ditt.",
+      "subtitle": "Fungerer offline — dataene dine blir på telefonen"
+    },
+    "settings-calendar": {
+      "title": "Timer i telefonens\nkalender",
+      "subtitle": "Synkroniseres automatisk, med e-postinvitasjoner til elever"
+    }
+  }
+}

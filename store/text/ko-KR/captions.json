@@ -1,0 +1,46 @@
+{
+  "tagline": "과외 선생님을 위한 수업·결제·미수금 관리",
+  "cta": "Google Play에서 다운로드",
+  "captions": {
+    "today": {
+      "title": "오늘 수업을\n한눈에",
+      "subtitle": "지금 진행 중인 수업, 체크할 수업, 미수금까지"
+    },
+    "lesson-sheet": {
+      "title": "탭 한 번으로\n수업 체크",
+      "subtitle": "완료, 일정 변경, 수정을 수업에서 바로",
+      "film": {
+        "title": "탭이나 스와이프로\n수업 체크",
+        "subtitle": "스와이프하면 완료, 열면 다른 작업도 할 수 있어요"
+      }
+    },
+    "people": {
+      "title": "미수금이\n한눈에 보여요",
+      "subtitle": "모든 수업과 결제로 잔액을 자동 계산"
+    },
+    "reports": {
+      "title": "수입이 느는 게\n보여요",
+      "subtitle": "월·과목·학생·그룹별 통계, CSV 내보내기 지원"
+    },
+    "widgets": {
+      "title": "오늘 일정을\n홈 화면에서",
+      "subtitle": "앱을 열지 않고도 수업을 완료로 체크"
+    },
+    "reminders": {
+      "title": "수업을 더는\n잊지 않아요",
+      "subtitle": "수업 전 알림, 아침 일정, 주간 미수금 요약"
+    },
+    "homework": {
+      "title": "숙제가 다음 수업을\n알아서 찾아가요",
+      "subtitle": "한 번만 내주면 학생의 다음 수업에 연결돼요"
+    },
+    "today-dark": {
+      "title": "계정 없이,\n클라우드 없이",
+      "subtitle": "오프라인으로 작동하고 데이터는 휴대폰에만 남아요"
+    },
+    "settings-calendar": {
+      "title": "수업이 휴대폰\n캘린더에",
+      "subtitle": "자동으로 동기화하고 학생에게 이메일 초대를 보내요"
+    }
+  }
+}

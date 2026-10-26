@@ -1,0 +1,49 @@
+{
+  "language": "CHINESE_TRADITIONAL",
+  "locale": "zh-TW",
+  "currency": "TWD",
+  "scale": 25,
+  "subjects": {
+    "math": "數學",
+    "physics": "物理",
+    "language": "英文"
+  },
+  "students": [
+    "陳怡君",
+    "林冠宇",
+    "黃詩涵",
+    "張家豪",
+    "李佳穎",
+    "王柏翰"
+  ],
+  "phones": [
+    "+886 912 345 678",
+    "+886 987 654 321",
+    "+886 955 501 119"
+  ],
+  "emails": [
+    "chen.yijun@example.com",
+    "huang.shihan@example.com",
+    "wang.pohan@example.com"
+  ],
+  "homework": [
+    "第4章 第12–20題：一元二次方程式",
+    "牛頓運動定律：習題5.12–5.20",
+    "現在完成式：練習4–7，第52頁",
+    "單擺實驗：撰寫實驗報告"
+  ],
+  "group": "學測數學衝刺班",
+  "members": [
+    "吳宜蓁",
+    "劉承恩",
+    "蔡欣妤",
+    "楊宗翰"
+  ],
+  "groupHomework": "學測模擬考3：選擇題1–12",
+  "doneHomework": [
+    "複習第3章：一元一次不等式",
+    "第6課單字和一篇短文",
+    "動量：習題4.1–4.9"
+  ],
+  "typedHomework": "過去簡單式：練習1–6，第58頁"
+}

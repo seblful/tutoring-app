@@ -1,0 +1,46 @@
+{
+  "tagline": "私人家教的课程、收款与欠费管理",
+  "cta": "下载应用，请到 Google Play",
+  "captions": {
+    "today": {
+      "title": "一天的课程\n一目了然",
+      "subtitle": "正在上的课、待标记的课和谁欠费"
+    },
+    "lesson-sheet": {
+      "title": "一点即可\n标记课程",
+      "subtitle": "已上、改期或编辑，在课程里直接完成",
+      "film": {
+        "title": "点一下或滑一下\n即可标记",
+        "subtitle": "滑动课程即标记为已上，点开可做更多"
+      }
+    },
+    "people": {
+      "title": "谁欠费\n一目了然",
+      "subtitle": "根据每节课和每笔付款自动结算"
+    },
+    "reports": {
+      "title": "看着收入\n一点点增长",
+      "subtitle": "按月份、科目、学生和班级统计，可导出 CSV"
+    },
+    "widgets": {
+      "title": "今日课程\n就在桌面",
+      "subtitle": "无需打开应用，即可标记已上课"
+    },
+    "reminders": {
+      "title": "再也不会\n忘记上课",
+      "subtitle": "课前提醒、早间日程和每周欠费汇总"
+    },
+    "homework": {
+      "title": "作业自动关联\n下一节课",
+      "subtitle": "布置一次，自动挂到学生的下一节课"
+    },
+    "today-dark": {
+      "title": "无需账号\n无需云端",
+      "subtitle": "离线可用，数据只保存在你的手机上"
+    },
+    "settings-calendar": {
+      "title": "课程同步到\n手机日历",
+      "subtitle": "自动同步，并向学生发送邮件邀请"
+    }
+  }
+}

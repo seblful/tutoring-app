@@ -1,0 +1,46 @@
+{
+  "tagline": "Aulas, pagamentos e dívidas para professor particular",
+  "cta": "Disponível no Google Play",
+  "captions": {
+    "today": {
+      "title": "Seu dia de aulas\nnum piscar de olhos",
+      "subtitle": "O que acontece agora, o que falta marcar e quem deve"
+    },
+    "lesson-sheet": {
+      "title": "Aulas marcadas\ncom um toque",
+      "subtitle": "Dada, remarcada ou editada pela própria aula",
+      "film": {
+        "title": "Aulas marcadas\ncom toque ou deslize",
+        "subtitle": "Deslize uma aula para marcá-la, ou abra para o resto"
+      }
+    },
+    "people": {
+      "title": "Veja quem deve\nnum relance",
+      "subtitle": "Saldos calculados a partir de cada aula e pagamento"
+    },
+    "reports": {
+      "title": "Veja sua renda\ncrescer",
+      "subtitle": "Por mês, matéria, aluno e grupo — com exportação CSV"
+    },
+    "widgets": {
+      "title": "Seu dia na\ntela inicial",
+      "subtitle": "Marque uma aula como dada sem abrir o app"
+    },
+    "reminders": {
+      "title": "Nunca esqueça\numa aula",
+      "subtitle": "Lembrete antes de cada aula, agenda da manhã e resumo semanal de dívidas"
+    },
+    "homework": {
+      "title": "Lição de casa que acha\na próxima aula",
+      "subtitle": "Passe uma vez — ela vai para a próxima aula do aluno"
+    },
+    "today-dark": {
+      "title": "Sem conta.\nSem nuvem. Seu.",
+      "subtitle": "Funciona offline — seus dados ficam no celular"
+    },
+    "settings-calendar": {
+      "title": "Aulas na agenda\ndo celular",
+      "subtitle": "Sincronizadas para você, com convites por e-mail aos alunos"
+    }
+  }
+}

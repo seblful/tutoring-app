@@ -10,12 +10,26 @@ Generate listing assets from the real app; rerun after UI changes. `store/build/
 node store/render.mjs
 ```
 
-Capture uses the Android project's JDK/SDK setup; rendering needs Node and Chrome (`CHROME=<path>`
-for a nonstandard installation). Upload per language in Play Console → Store presence → Main store listing.
+`-PstoreLocales=de-DE,ja-JP` captures only those languages, and `render.mjs --locale de-DE` renders only
+that one. A full capture takes about a minute per language.
 
-`store/text/<locale>/` holds the listing's words for all 25 app languages, by Play's codes (`de-DE`, `no-NO`,
-`ar`). Graphics are rendered only for the locales in `listing.json` (`en-US`, `ru-RU`), as each needs its own
-`DemoTutor` data; for the rest, paste the words and Play shows the default language's graphics.
+Capture uses the Android project's JDK/SDK setup; rendering needs Node and Chrome (`CHROME=<path>`
+for a nonstandard installation). Commit the result and [publish](#publish) it.
+
+Each of the 25 app languages has a folder `store/text/<locale>/`, named by Play's code (`de-DE`, `no-NO`,
+`ar`), which holds everything that language says:
+
+| File | Holds | Read by |
+|---|---|---|
+| `title.txt`, `short_description.txt`, `full_description.txt` | The Play listing's texts | `render.mjs`, `publish.mjs` |
+| `captions.json` | Tagline, store-button words (`cta`), and a title and subtitle for each shot in `listing.json`, keyed by `shot`; `film` holds the video's own wording | `render.mjs`, `video.mjs` |
+| `demo.json` | The demo tutor: app language, phone locale, currency and `scale` (rates × this, so an hour costs what it does there), subjects, people, homework | `DemoTutor` |
+| `video.txt` | The YouTube link Play shows | `publish.mjs` |
+
+`listing.json` holds only the layout every language shares. Every language tells the same week
+(`DemoTutor.of`): the same days, times, debts and credit, with names and prices of its own. The phone's
+region in `demo.json` sets the dates, money and first day of the week. Arabic is captured right to left;
+its swipes go leftward.
 
 | Output | Play slot / limits |
 |---|---|
@@ -28,7 +42,8 @@ for a nonstandard installation). Upload per language in Play Console → Store p
 and `DemoTutor` data. Device clock/locale/calendar/schedulers are replaced; time stops mid-lesson on
 14 October 2026, 15:20, with one earlier lesson left unmarked (Today's «Over and not marked») and a backup
 two days old (no backup banner). It writes raw captures, geometry/colors (`shots.json`) and actual
-notification content (`notifications.json`) to `store/build/raw/<locale>/`. Film-only captures run last
+notification content (`notifications.json`, with the phone's 12- or 24-hour clocks) to
+`store/build/raw/<locale>/`. Film-only captures run last
 because they change data. Without `-PstoreScreenshots`, capture is skipped by ordinary tests/CI.
 
 The tour opens on Today, as the app does. At the end of the film captures, after the video's swipe,
@@ -54,9 +69,10 @@ resolution and downsample. Lock-screen entries use recorded notifications; descr
 
 | Change | Edit |
 |---|---|
-| Captions, order, screen choice, tagline/CTA | `store/listing.json`; `film` overrides a caption for video; `filmOnly` holds captions shown only in the video (calendar sync). |
+| Order, screen choice | `store/listing.json`; `filmOnly` holds shots shown only in the video (calendar sync). |
+| Captions, tagline/CTA | `store/text/<locale>/captions.json`; `film` overrides a caption for the video. |
 | Highlighted rows / composition | `callout` mark names, `layout: "tilted"`, or `layout: "pair"` with `behind`. Pixel finders handle `status`/`income-card`; drawn screens (`kind: "lockscreen"`/`"homescreen"`) lift `reminder`/`widget`. |
-| Demo data | `DemoTutor.kt`; Russian uses BYN/Belarusian names, English USD. Keep both in the same week (`DemoTutorTest`); select roles like `onNow`/`debtor`, never list positions. |
+| Demo data | `store/text/<locale>/demo.json`; the shared week is `DemoTutor.of` (`DemoTutorTest` checks every language). Select roles like `onNow`/`debtor`, never list positions. |
 | New screen / geometry / redrawn text | `StoreScreenshots.tour()` and `capture(...)`'s `marks`/`texts` (`firsts` for a mark that matches more than once), then reference in `listing.json`. |
 | Widgets on the home screen | `StoreWidgets` (sizes, rows) and `HOME`/`homeScreen` in `store/lib/phone.mjs`. |
 | Description | `store/text/<locale>/*.txt`; claim only implemented features. |
@@ -71,12 +87,13 @@ for Play's video button. The video close uses words rather than a custom Play-lo
 ```bash
 node store/video.mjs                                  # both formats, each language
 node store/video.mjs --format landscape               # Play listing format only
-node store/video.mjs --4k                             # double width/height
+node store/video.mjs --4k                             # double width/height (not in the release set)
 node store/video.mjs --locale ru-RU --stills 6.2,7.5    # inspect specific moments
 node store/video.mjs --software                       # screenshot fallback; slower
 ```
 
-Release set: plain for the 1080p files and `--4k` for YouTube, both on the GPU.
+Release set: the plain 1080p files on the GPU, both formats for every language; the wide one goes to
+YouTube. Each takes about half a minute.
 
 Reuse the captures above; Node/Chrome suffice, with no ffmpeg or npm dependencies. Generated files in
 `store/build/video/` are uncommitted: H.264/AAC, 60 fps, 46 seconds.
@@ -87,12 +104,10 @@ screen, homework swiped and typed, calendar sync, and the dark theme ending on T
 
 | File | Dimensions | Use |
 |---|---|---|
-| `klas-<locale>.mp4` | 1920 × 1080 | Sharing the file directly |
+| `klas-<locale>.mp4` | 1920 × 1080 | YouTube (linked from Play) and sharing the file directly |
 | `klas-<locale>-vertical.mp4` | 1080 × 1920 | Shorts/Reels/stories |
-| `klas-<locale>-4k.mp4` (`--4k`) | 3840 × 2160 | YouTube, linked from Play |
 
-Play accepts a YouTube URL: upload the 4K landscape file public/unlisted, disable ads, then paste its URL.
-YouTube streams a 4K upload at a higher bitrate at every size.
+Play takes a YouTube link, not a file: `store/youtube.mjs` uploads the wide 1080p file ([Publish](#publish)).
 
 The film draws frames by time, with scenes on the music's 2-second bars. Tall captions stay above the
 phone. Motion blur blends up to twelve exposures; `JUMPS` prevents blending across swipe releases.
@@ -121,6 +136,42 @@ Sound is deterministic synthesis in `sound.js`, with no sampled recordings.
   the stage's own styles are ignored. Don't butt two boxes edge to edge on the screen, such as the status bar
   and a capture. Both edges are antialiased against what lies behind them, and as the phone moves the seam
   blinks. Let one box's colour run over the other instead.
+
+## Publish
+
+```bash
+node store/video.mjs                          # if the video changed
+node store/youtube.mjs                        # languages without video.txt; --replace to upload again
+git add store/text/*/video.txt && git commit  # the links Play will show
+```
+
+Then run **Actions → Store listing** on `main` (tick *validate* to only check), or locally
+`PLAY_SERVICE_ACCOUNT_JSON="$(cat key.json)" node store/publish.mjs [--validate]`.
+
+`publish.mjs` sends each language's words from `store/text/<locale>/`, its `video.txt` link, and the graphics in
+`store/listing/<locale>/`. Languages without rendered graphics get only words; Play shows them the default
+language's graphics. It compares with Play first and sends only what differs. A graphic type (icon,
+feature graphic, screenshots) is replaced whole when any image differs, including the screenshots'
+order. An unchanged listing creates nothing for review. A missing `video.txt` keeps Play's video, never
+clears it. Listing changes go through Play review. Under managed publishing, the edit is saved, and you
+send it from Publishing overview. The service account needs the store-listing permission
+([releasing](releasing.md#set-up-the-pipeline-once)).
+
+`youtube.mjs` runs on your computer, not in CI. YouTube needs the channel owner signed in, and an
+unverified app's sign-in lasts 7 days. It uploads unlisted, embeddable and not made for kids, then reads
+the video back. If YouTube made it private, which can happen to uploads from apps that haven't passed
+YouTube's API audit, it stops without writing `video.txt`. Play also needs ads off: if the channel is
+monetised, turn them off for the video in YouTube Studio. `--replace` leaves the old video on the
+channel; delete it once Play shows the new one.
+
+YouTube setup (once), in the Google Cloud project that holds Play's service account:
+
+1. Enable **YouTube Data API v3**.
+2. Google Auth Platform: an **External** app in testing, with your Google account as a test user.
+3. Clients → create an OAuth client of type **Desktop app**; download its JSON to
+   `~/keystores/youtube-client.json`, beside the upload key (or point `YOUTUBE_CLIENT` at it).
+4. On the first run, sign in with the account that owns the channel and pick the channel. The sign-in is
+   kept beside it in `youtube-token.json`; both are secrets, like the upload key.
 
 ## When generation fails
 

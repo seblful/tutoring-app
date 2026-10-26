@@ -1,0 +1,49 @@
+{
+  "language": "POLISH",
+  "locale": "pl-PL",
+  "currency": "PLN",
+  "scale": 4,
+  "subjects": {
+    "math": "Matematyka",
+    "physics": "Fizyka",
+    "language": "Angielski"
+  },
+  "students": [
+    "Zuzanna Nowak",
+    "Jakub Wiśniewski",
+    "Julia Kowalczyk",
+    "Kacper Lewandowski",
+    "Maja Zielińska",
+    "Antoni Wójcik"
+  ],
+  "phones": [
+    "+48 512 345 678",
+    "+48 601 765 432",
+    "+48 698 555 019"
+  ],
+  "emails": [
+    "zuzanna.nowak@example.com",
+    "julia.kowalczyk@example.com",
+    "antoni.wojcik@example.com"
+  ],
+  "homework": [
+    "Rozdz. 4, zad. 12–20: równania kwadratowe",
+    "Zasady dynamiki: zad. 5.12–5.20",
+    "Present Perfect: ćw. 4–7, s. 52",
+    "Wahadło: opracować sprawozdanie"
+  ],
+  "group": "Matura z matematyki",
+  "members": [
+    "Oliwia Kamińska",
+    "Szymon Mazur",
+    "Lena Dąbrowska",
+    "Filip Krawczyk"
+  ],
+  "groupHomework": "Arkusz maturalny 3: zadania 1–18",
+  "doneHomework": [
+    "Powtórka rozdz. 3: nierówności liniowe",
+    "Słówka z lekcji 6 i krótki esej",
+    "Pęd: zadania 4.1–4.9"
+  ],
+  "typedHomework": "Past Simple: ćw. 1–6, s. 58"
+}

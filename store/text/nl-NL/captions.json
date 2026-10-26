@@ -1,0 +1,46 @@
+{
+  "tagline": "Lessen, betalingen en schulden voor bijlesdocenten",
+  "cta": "Ontdek het op Google Play",
+  "captions": {
+    "today": {
+      "title": "Je lesdag\nin één oogopslag",
+      "subtitle": "Wat nu loopt, wat nog af te vinken is en wie moet betalen"
+    },
+    "lesson-sheet": {
+      "title": "Lessen afvinken\nmet één tik",
+      "subtitle": "Gegeven, verzet of bewerkt vanuit de les zelf",
+      "film": {
+        "title": "Lessen afvinken\nmet een tik of veeg",
+        "subtitle": "Veeg een les om af te vinken, of open hem voor de rest"
+      }
+    },
+    "people": {
+      "title": "Zie meteen\nwie moet betalen",
+      "subtitle": "Saldo's berekend uit elke les en elke betaling"
+    },
+    "reports": {
+      "title": "Zie je inkomen\ngroeien",
+      "subtitle": "Per maand, vak, leerling en groep — met CSV-export"
+    },
+    "widgets": {
+      "title": "Je dag op het\nstartscherm",
+      "subtitle": "Vink een les af zonder de app te openen"
+    },
+    "reminders": {
+      "title": "Mis nooit\nmeer een les",
+      "subtitle": "Herinnering voor elke les, ochtendplanning en wekelijks schuldenoverzicht"
+    },
+    "homework": {
+      "title": "Huiswerk dat de\nvolgende les vindt",
+      "subtitle": "Eén keer opgeven — het hoort bij de volgende les van de leerling"
+    },
+    "today-dark": {
+      "title": "Geen account.\nGeen cloud. Van jou.",
+      "subtitle": "Werkt offline — je gegevens blijven op je telefoon"
+    },
+    "settings-calendar": {
+      "title": "Lessen in de agenda\nvan je telefoon",
+      "subtitle": "Vanzelf gesynchroniseerd, met e-mailuitnodigingen voor leerlingen"
+    }
+  }
+}

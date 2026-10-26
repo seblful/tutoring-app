@@ -1,0 +1,25 @@
+{
+  "language": "ENGLISH",
+  "locale": "en-US",
+  "currency": "USD",
+  "scale": 1,
+  "subjects": { "math": "Math", "physics": "Physics", "language": "Spanish" },
+  "students": ["Emma Wilson", "Liam Carter", "Olivia Brooks", "Noah Bennett", "Ava Thompson", "Ethan Hughes"],
+  "phones": ["+1 202 555 0143", "+1 202 555 0178", "+1 202 555 0119"],
+  "emails": ["emma.wilson@example.com", "olivia.brooks@example.com", "ethan.hughes@example.com"],
+  "homework": [
+    "Ch. 4, problems 12–20: quadratic equations",
+    "Newton's laws: problems 5.12–5.20",
+    "Preterite vs imperfect: ex. 4–7, p. 52",
+    "Pendulum lab: write up the report"
+  ],
+  "group": "SAT Math Prep",
+  "members": ["Mia Foster", "Lucas Reed", "Chloe Adams", "Jack Morgan"],
+  "groupHomework": "Practice test 3, section 3: no calculator",
+  "doneHomework": [
+    "Ch. 3 review: linear inequalities",
+    "Vocabulary list 6 and a short essay",
+    "Momentum: problems 4.1–4.9"
+  ],
+  "typedHomework": "Ser vs estar: ex. 1–6, p. 58"
+}

@@ -1,96 +1,36 @@
 {
-  "$comment": "What the Play listing's graphics say, per language. Order = order on the store page (Play shows up to 8). `shot` names a raw capture from StoreScreenshots (spares: schedule-day, student, schedule-week, schedule-month, group, settings, settings-calendar, reports-dark); `kind: lockscreen` draws the notifications it recorded instead, `kind: homescreen` the widgets on a home screen; `theme` picks the backdrop. Titles break at \n. The promo video (video.mjs) reuses the captions — and shows `filmOnly`'s, which are not stills — the tagline and `cta`; a caption's `film` is its wording in the video instead, where the video shows more than the still. See docs/store-listing.md.",
-  "locales": {
-    "en-US": {
-      "clock": "3:20",
-      "tagline": "Lessons, payments and debts for a private tutor",
-      "cta": "Get it on Google Play"
-    },
-    "ru-RU": {
-      "clock": "15:20",
-      "tagline": "Расписание, оплаты и долги учеников — в одном месте",
-      "cta": "Доступно в Google Play"
-    }
-  },
+  "$comment": "How the Play listing's graphics are laid out; their words are each language's store/text/<locale>/captions.json, keyed by `shot`. Order = order on the store page (Play shows up to 8). `shot` names a raw capture from StoreScreenshots (spares: schedule-day, student, schedule-week, schedule-month, group, settings, settings-calendar, reports-dark); `kind: lockscreen` draws the notifications it recorded instead, `kind: homescreen` the widgets on a home screen; `theme` picks the backdrop. Titles break at \\n. The promo video (video.mjs) reuses the captions — and shows `filmOnly`'s, which are not stills — the tagline and `cta`; a caption's `film` is its wording in the video instead, where the video shows more than the still. See docs/store-listing.md.",
   "screenshots": [
     {
       "shot": "today",
       "callout": [
         "next"
-      ],
-      "en-US": {
-        "title": "Your teaching day,\nat a glance",
-        "subtitle": "What's on now, what's left to mark and who owes"
-      },
-      "ru-RU": {
-        "title": "Весь рабочий день —\nна одном экране",
-        "subtitle": "Что идёт сейчас, что осталось отметить и кто должен"
-      }
+      ]
     },
     {
       "shot": "lesson-sheet",
       "callout": [
         "taught"
-      ],
-      "en-US": {
-        "title": "Lessons marked\nin one tap",
-        "subtitle": "Taught, rescheduled or edited from the lesson itself",
-        "film": {
-          "title": "Lessons marked\nin a tap or a swipe",
-          "subtitle": "Swipe a lesson to mark it taught, or open it for the rest"
-        }
-      },
-      "ru-RU": {
-        "title": "Отметить урок —\nв одно касание",
-        "subtitle": "Проведён, перенос или правка — прямо из урока",
-        "film": {
-          "title": "Отметить урок —\nкасанием или свайпом",
-          "subtitle": "Смахните урок, чтобы отметить, или откройте его для остального"
-        }
-      }
+      ]
     },
     {
       "shot": "people",
       "callout": [
         "debtor"
-      ],
-      "en-US": {
-        "title": "See who owes\nat a glance",
-        "subtitle": "Balances worked out from every lesson and payment"
-      },
-      "ru-RU": {
-        "title": "Сразу видно,\nкто должен",
-        "subtitle": "Долги и переплаты считаются сами — по урокам и оплатам"
-      }
+      ]
     },
     {
       "shot": "reports",
       "callout": [
         "income-card"
-      ],
-      "en-US": {
-        "title": "Watch your\nincome grow",
-        "subtitle": "By month, subject, student and group — with CSV export"
-      },
-      "ru-RU": {
-        "title": "Доход растёт —\nи это видно",
-        "subtitle": "По месяцам, предметам, ученикам и группам. Экспорт в CSV"
-      }
+      ]
     },
     {
       "shot": "widgets",
       "kind": "homescreen",
       "callout": [
         "widget"
-      ],
-      "en-US": {
-        "title": "Your day on the\nhome screen",
-        "subtitle": "Tick a lesson taught without opening the app"
-      },
-      "ru-RU": {
-        "title": "Уроки — на главном\nэкране",
-        "subtitle": "Отметьте урок проведённым, не открывая приложение"
-      }
+      ]
     },
     {
       "shot": "reminders",
@@ -98,56 +38,24 @@
       "callout": [
         "reminder"
       ],
-      "layout": "tilted",
-      "en-US": {
-        "title": "Never miss\na lesson",
-        "subtitle": "A reminder before each lesson, a morning agenda and a weekly debt summary"
-      },
-      "ru-RU": {
-        "title": "Ни одного\nзабытого урока",
-        "subtitle": "Напоминание перед уроком, расписание на утро и сводка долгов раз в неделю"
-      }
+      "layout": "tilted"
     },
     {
       "shot": "homework",
       "callout": [
         "first"
-      ],
-      "en-US": {
-        "title": "Homework that finds\nthe next lesson",
-        "subtitle": "Set it once — it rides on the student's next class"
-      },
-      "ru-RU": {
-        "title": "Задание само\nнайдёт урок",
-        "subtitle": "Задайте один раз — оно привяжется к ближайшему занятию"
-      }
+      ]
     },
     {
       "shot": "today-dark",
       "theme": "dark",
       "layout": "pair",
-      "behind": "schedule-day",
-      "en-US": {
-        "title": "No account.\nNo cloud. Yours.",
-        "subtitle": "Works offline — your data stays on your phone"
-      },
-      "ru-RU": {
-        "title": "Без регистрации\nи интернета",
-        "subtitle": "Никаких аккаунтов и облака — данные остаются на телефоне"
-      }
+      "behind": "schedule-day"
     }
   ],
   "filmOnly": [
     {
-      "shot": "settings-calendar",
-      "en-US": {
-        "title": "Lessons in your\nphone's calendar",
-        "subtitle": "Kept in sync for you, with email invites for students"
-      },
-      "ru-RU": {
-        "title": "Уроки — в календаре\nтелефона",
-        "subtitle": "Синхронизируются сами, а ученикам приходит приглашение на почту"
-      }
+      "shot": "settings-calendar"
     }
   ],
   "featureGraphic": {

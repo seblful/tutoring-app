@@ -1,12 +1,13 @@
 #!/usr/bin/env node
 // Turns the raw captures from StoreScreenshots into the Google Play listing's graphics: framed,
-// captioned phone screenshots, the feature graphic and the 512 px icon, for every locale in
-// listing.json. No npm dependencies — each image is an HTML page drawn by a headless Chrome, driven over
+// captioned phone screenshots, the feature graphic and the 512 px icon, for every language with a
+// store/text/<locale>/captions.json; listing.json lays them out. No npm dependencies — each image is an HTML page drawn by a headless Chrome, driven over
 // the DevTools protocol so a page is captured only once its fonts and images have painted.
 //
 //   ./gradlew :app:testDebugUnitTest --tests "*StoreScreenshots*" -PstoreScreenshots   # captures
 //   node store/render.mjs                                                              # graphics
 //   node store/render.mjs --software                                                   # without the GPU
+//   node store/render.mjs --locale de-DE                                               # one language
 //
 // Writes store/listing/<locale>/{phoneScreenshots/NN-<shot>.png, featureGraphic.png, icon.png} and copies
 // the listing's words from store/text/<locale>/ beside them, checked against Play's length limits.
@@ -19,6 +20,7 @@ import { evaluate, openChrome } from "./lib/chrome.mjs";
 import { ICON_MARK, LOGO, PHONE_CSS, appScreen, fontFaces, homeScreen, lines, lockScreen, text, url } from "./lib/phone.mjs";
 import { cardAround, outlinedRow } from "./lib/find.mjs";
 import { decode, encode } from "./lib/png.mjs";
+import { languages, readWords } from "./lib/words.mjs";
 
 const STORE = dirname(fileURLToPath(import.meta.url));
 const RAW = join(STORE, "build", "raw");
@@ -96,7 +98,10 @@ browser = await openChrome(join(STORE, "build", "chrome-profile-listing"), { gpu
 rmSync(WORK, { recursive: true, force: true });
 mkdirSync(WORK, { recursive: true });
 
-for (const [locale, words] of Object.entries(listing.locales)) {
+const only = process.argv.includes("--locale") ? process.argv[process.argv.indexOf("--locale") + 1] : null;
+for (const locale of languages(STORE).filter((l) => !only || l === only)) {
+  let words;
+  try { words = readWords(STORE, locale, listing); } catch (e) { fail(e.message); }
   const raw = join(RAW, locale);
   const manifest = join(raw, "shots.json");
   if (!existsSync(manifest)) {
@@ -104,6 +109,8 @@ for (const [locale, words] of Object.entries(listing.locales)) {
       `  ./gradlew :app:testDebugUnitTest --tests "*StoreScreenshots*" -PstoreScreenshots`);
   }
   const shots = JSON.parse(readFileSync(manifest, "utf8"));
+  // The phone's clocks as the capture read them, 12- or 24-hour: the lock screen's and the status bar's.
+  const tray = JSON.parse(readFileSync(join(raw, "notifications.json"), "utf8"));
   const out = join(OUT, locale);
   rmSync(out, { recursive: true, force: true });
   mkdirSync(join(out, "phoneScreenshots"), { recursive: true });
@@ -112,21 +119,20 @@ for (const [locale, words] of Object.entries(listing.locales)) {
   for (const [i, entry] of listing.screenshots.entries()) {
     const drawn = isDrawn(entry);
     const shot = drawn ? null : shots[entry.shot] ?? fail(`${locale}: no capture named "${entry.shot}"`);
-    const copy = entry[locale] ?? fail(`${locale}: no caption for "${entry.shot}"`);
+    const copy = words.captions[entry.shot];
     const name = `${String(i + 1).padStart(2, "0")}-${entry.shot}`;
-    const tray = () => JSON.parse(readFileSync(join(raw, "notifications.json"), "utf8"));
-    const screen = entry.kind === "lockscreen" ? lockScreen(tray())
-      : entry.kind === "homescreen" ? homeScreen(raw, { ...tray(), homeClock: words.clock })
-      : appScreen(raw, entry.shot, shot ?? {}, words.clock);
+    const screen = entry.kind === "lockscreen" ? lockScreen(tray)
+      : entry.kind === "homescreen" ? homeScreen(raw, { ...tray, homeClock: tray.statusClock })
+      : appScreen(raw, entry.shot, shot ?? {}, tray.statusClock);
     const behind = entry.behind &&
-      appScreen(raw, entry.behind, shots[entry.behind] ?? fail(`${locale}: no capture named "${entry.behind}"`), words.clock);
+      appScreen(raw, entry.behind, shots[entry.behind] ?? fail(`${locale}: no capture named "${entry.behind}"`), tray.statusClock);
     const lifts = drawn ? "" : callouts(raw, entry, shot, `${locale} ${entry.shot}`);
     await draw(screenshotPage({ screen, behind, lifts, entry, copy, index: i, themes }), SHOT,
       join(out, "phoneScreenshots", `${name}.png`), `${locale}-${name}`);
   }
 
   const feature = listing.featureGraphic.shot;
-  await draw(featurePage({ raw, shot: feature, colors: shots[feature], tagline: words.tagline, clock: words.clock }),
+  await draw(featurePage({ raw, shot: feature, colors: shots[feature], tagline: words.tagline, clock: tray.statusClock }),
     FEATURE, join(out, "featureGraphic.png"), `${locale}-feature`);
   await draw(iconPage(), ICON, join(out, "icon.png"), `${locale}-icon`, { opaque: false });
   copyText(locale, out);
@@ -198,8 +204,8 @@ function screenshotPage({ screen, behind, lifts, entry, copy, index, themes }) {
     <div class="backdrop">
       ${panorama(themes, index)}
       <header>
-        <h1>${lines(copy.title)}</h1>
-        <p>${text(copy.subtitle)}</p>
+        <h1 dir="auto">${lines(copy.title)}</h1>
+        <p dir="auto">${text(copy.subtitle)}</p>
       </header>
       ${phones[layout] ?? fail(`No screenshot layout «${layout}»`)}
     </div>
@@ -303,7 +309,7 @@ function featurePage({ raw, shot, colors, tagline, clock }) {
           <div class="mark"><img src="${url(LOGO)}"></div>
           <div class="wordmark">Klas</div>
         </div>
-        <div class="tagline">${text(tagline)}</div>
+        <div class="tagline" dir="auto">${text(tagline)}</div>
       </div>
       <div class="phone" style="--phone: 400px; left: ${FEATURE_PHONE_LEFT}px; top: 62px;">
         ${phoneBody()}${appScreen(raw, shot, colors, clock)}
@@ -426,7 +432,7 @@ async function draw(html, size, out, name, { opaque = true } = {}) {
       wait();
     })`,
   });
-  if (result.value === "false") fail(`${name}: the words run into the phone; shorten the caption or tagline in listing.json`);
+  if (result.value === "false") fail(`${name}: the words run into the phone; shorten the caption or tagline in store/text/<locale>/captions.json`);
   await checkContrast(name);
 
   const { data } = await send("Page.captureScreenshot", { format: "png", fromSurface: true });
