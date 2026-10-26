@@ -27,31 +27,57 @@ export async function openChrome(profile, { gpu = false } = {}) {
     "--allow-file-access-from-files", "--remote-debugging-port=0", `--user-data-dir=${profile}`, "about:blank",
   ], { stdio: "ignore" });
 
-  let port;
-  for (let tries = 0; !port && tries < 200; tries++) {
-    await new Promise((wake) => setTimeout(wake, 50));
-    if (existsSync(portFile)) port = readFileSync(portFile, "utf8").split("\n")[0].trim() || undefined;
-  }
-  if (!port) {
+  const pending = new Map();
+  const abort = new AbortController();
+  let socket, closed = false, failure, rejectOpening;
+  const stop = (error) => {
+    if (closed) return;
+    closed = true;
+    failure = error;
+    abort.abort(error);
+    rejectOpening?.(error);
+    for (const call of pending.values()) call.broken(error);
+    pending.clear();
+    try { socket?.close(); } catch {
+      // A broken socket must not prevent the child from being stopped.
+    }
     chrome.kill();
-    throw new Error("Chrome did not open its DevTools port");
-  }
-  const targets = await (await fetch(`http://127.0.0.1:${port}/json/list`)).json();
-  const page = targets.find((target) => target.type === "page");
-  if (!page) {
-    chrome.kill();
-    throw new Error("Chrome opened no page");
+  };
+  chrome.on("error", stop);
+  chrome.on("exit", (code, signal) => stop(new Error(`Chrome exited (${signal ?? code})`)));
+  // Bound the whole startup, including discovery and the WebSocket handshake.
+  const startup = setTimeout(() => stop(new Error("Chrome did not open its DevTools connection")), 10_000);
+  try {
+    let port;
+    while (!port) {
+      await new Promise((wake) => setTimeout(wake, 50));
+      abort.signal.throwIfAborted();
+      if (existsSync(portFile)) port = readFileSync(portFile, "utf8").split("\n")[0].trim() || undefined;
+    }
+    const targets = await (await fetch(`http://127.0.0.1:${port}/json/list`, { signal: abort.signal })).json();
+    abort.signal.throwIfAborted();
+    const page = targets.find((target) => target.type === "page");
+    if (!page) throw new Error("Chrome opened no page");
+    socket = new WebSocket(page.webSocketDebuggerUrl);
+    await new Promise((open, broken) => {
+      rejectOpening = broken;
+      socket.onopen = open;
+      socket.onerror = (event) => stop(event.error ?? new Error("Chrome DevTools connection failed"));
+      socket.onclose = () => stop(new Error("Chrome DevTools connection closed"));
+    });
+    abort.signal.throwIfAborted();
+  } catch (error) {
+    stop(error);
+    throw failure;
+  } finally {
+    clearTimeout(startup);
+    rejectOpening = undefined;
   }
 
-  const socket = new WebSocket(page.webSocketDebuggerUrl);
-  await new Promise((open, broken) => {
-    socket.onopen = open;
-    socket.onerror = broken;
-  });
-  const pending = new Map();
   let next = 0;
   socket.onmessage = ({ data }) => {
-    const message = JSON.parse(data);
+    let message;
+    try { message = JSON.parse(data); } catch (error) { stop(error); return; }
     const call = pending.get(message.id);
     if (!call) return;
     pending.delete(message.id);
@@ -59,16 +85,21 @@ export async function openChrome(profile, { gpu = false } = {}) {
     else call.done(message.result);
   };
   const send = (method, params = {}) => new Promise((done, broken) => {
+    if (closed) return broken(failure);
+    if (socket.readyState !== WebSocket.OPEN) {
+      stop(new Error("Chrome DevTools connection is not open"));
+      return broken(failure);
+    }
     const id = ++next;
     pending.set(id, { method, done, broken });
-    socket.send(JSON.stringify({ id, method, params }));
+    try { socket.send(JSON.stringify({ id, method, params })); } catch (error) {
+      pending.delete(id);
+      broken(error);
+    }
   });
   return {
     send,
-    close: () => {
-      socket.close();
-      chrome.kill();
-    },
+    close: () => stop(new Error("Chrome closed")),
   };
 }
 
