@@ -14,6 +14,7 @@ import androidx.navigationevent.NavigationEventInfo
 import androidx.navigationevent.compose.NavigationBackHandler
 import androidx.navigationevent.compose.rememberNavigationEventState
 import com.seblful.klas.R
+import com.seblful.klas.lock.UnlockedWindow
 import com.seblful.klas.ui.designsystem.component.ButtonKind
 import com.seblful.klas.ui.designsystem.component.KlasButton
 
@@ -112,39 +113,41 @@ private fun UnsavedChangesDialog(
     onKeepEditing: () -> Unit,
 ) {
     val canSave = intent == LeaveIntent.ASK_SAVE_OR_DISCARD
-    AlertDialog(
-        onDismissRequest = onKeepEditing,
-        title = {
-            Text(
-                stringResource(
-                    if (canSave) R.string.unsaved_save_title else R.string.unsaved_discard_title,
-                ),
-            )
-        },
-        text = {
-            Text(
-                stringResource(
-                    if (canSave) R.string.unsaved_save_text else R.string.unsaved_discard_text,
-                ),
-            )
-        },
-        confirmButton = {
-            if (canSave) {
-                KlasButton(onClick = onSave, kind = ButtonKind.Text) { Text(stringResource(R.string.action_save)) }
-            } else {
-                DiscardButton(onDiscard)
-            }
-        },
-        dismissButton = {
-            if (canSave) {
-                DiscardButton(onDiscard)
-            } else {
-                KlasButton(onClick = onKeepEditing, kind = ButtonKind.Text) {
-                    Text(stringResource(R.string.action_cancel))
+    UnlockedWindow {
+        AlertDialog(
+            onDismissRequest = onKeepEditing,
+            title = {
+                Text(
+                    stringResource(
+                        if (canSave) R.string.unsaved_save_title else R.string.unsaved_discard_title,
+                    ),
+                )
+            },
+            text = {
+                Text(
+                    stringResource(
+                        if (canSave) R.string.unsaved_save_text else R.string.unsaved_discard_text,
+                    ),
+                )
+            },
+            confirmButton = {
+                if (canSave) {
+                    KlasButton(onClick = onSave, kind = ButtonKind.Text) { Text(stringResource(R.string.action_save)) }
+                } else {
+                    DiscardButton(onDiscard)
                 }
-            }
-        },
-    )
+            },
+            dismissButton = {
+                if (canSave) {
+                    DiscardButton(onDiscard)
+                } else {
+                    KlasButton(onClick = onKeepEditing, kind = ButtonKind.Text) {
+                        Text(stringResource(R.string.action_cancel))
+                    }
+                }
+            },
+        )
+    }
 }
 
 @Composable

@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.window.PopupPositionProvider
 import com.seblful.klas.R
+import com.seblful.klas.lock.LocalAppLocked
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.time.Duration.Companion.milliseconds
@@ -56,10 +57,12 @@ fun CoachMark(
     content: @Composable () -> Unit,
 ) {
     val state = rememberTooltipState(isPersistent = true)
+    val hidden = rememberTooltipState()
+    val locked = LocalAppLocked.current
     val dismissed by rememberUpdatedState(onDismiss)
     val scope = rememberCoroutineScope()
-    LaunchedEffect(visible) {
-        if (!visible) return@LaunchedEffect
+    LaunchedEffect(visible, locked) {
+        if (!visible || locked) return@LaunchedEffect
         delay(CoachMarkDefaults.ShowAfter)
         // Suspends while the bubble is up; cancelled — the content gone, or no longer to be shown — it closes.
         state.show()
@@ -67,7 +70,7 @@ fun CoachMark(
     TooltipBox(
         positionProvider = rememberCoachMarkPosition(side),
         tooltip = {
-            RichTooltip(
+            if (!locked) RichTooltip(
                 action = {
                     KlasButton(
                         onClick = {
@@ -80,7 +83,7 @@ fun CoachMark(
                 caretShape = TooltipDefaults.caretShape(),
             ) { Text(text) }
         },
-        state = state,
+        state = if (locked) hidden else state,
         modifier = modifier,
         onDismissRequest = {
             scope.launch { state.dismiss() }

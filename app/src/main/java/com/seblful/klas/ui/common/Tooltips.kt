@@ -13,6 +13,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import com.seblful.klas.lock.LocalAppLocked
 
 /**
  * [content] with its [name] in a bubble **while it is held** — Material's plain tooltip.
@@ -23,12 +24,16 @@ import androidx.compose.ui.graphics.vector.ImageVector
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HoldToName(name: String, above: Boolean = false, content: @Composable () -> Unit) {
+    val state = rememberTooltipState()
+    val hidden = rememberTooltipState()
+    val locked = LocalAppLocked.current
     TooltipBox(
         positionProvider = TooltipDefaults.rememberTooltipPositionProvider(
             if (above) TooltipAnchorPosition.Above else TooltipAnchorPosition.Below,
         ),
-        tooltip = { PlainTooltip { Text(name) } },
-        state = rememberTooltipState(),
+        tooltip = { if (!locked) PlainTooltip { Text(name) } },
+        state = if (locked) hidden else state,
+        enableUserInput = !locked,
         content = content,
     )
 }

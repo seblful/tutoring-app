@@ -28,6 +28,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import com.seblful.klas.R
+import com.seblful.klas.lock.UnlockedWindow
 import com.seblful.klas.ui.designsystem.component.ButtonKind
 import com.seblful.klas.ui.designsystem.component.KlasButton
 import com.seblful.klas.ui.theme.KlasIcons
@@ -60,26 +61,28 @@ fun DatePickerModal(
     val state = rememberDatePickerState(
         initialSelectedDateMillis = initial.atStartOfDayIn(TimeZone.UTC).toEpochMilliseconds(),
     )
-    DatePickerDialog(
-        onDismissRequest = onDismiss,
-        confirmButton = {
-            KlasButton(
-                onClick = {
-                    state.selectedDateMillis?.let {
-                        onConfirm(Instant.fromEpochMilliseconds(it).toLocalDateTime(TimeZone.UTC).date)
-                    }
-                },
-                // Clearing the typed date in the picker's text mode leaves nothing to hand back, and a
-                // «Готово» that then did nothing read as a dead button.
-                enabled = state.selectedDateMillis != null,
-                kind = ButtonKind.Text,
-            ) { Text(stringResource(R.string.action_done)) }
-        },
-        dismissButton = {
-            KlasButton(onClick = onDismiss, kind = ButtonKind.Text) { Text(stringResource(R.string.action_cancel)) }
-        },
-    ) {
-        DatePicker(state = state)
+    UnlockedWindow { drafts ->
+        DatePickerDialog(
+            onDismissRequest = onDismiss,
+            confirmButton = {
+                KlasButton(
+                    onClick = {
+                        state.selectedDateMillis?.let {
+                            onConfirm(Instant.fromEpochMilliseconds(it).toLocalDateTime(TimeZone.UTC).date)
+                        }
+                    },
+                    // Clearing the typed date in the picker's text mode leaves nothing to hand back, and a
+                    // «Готово» that then did nothing read as a dead button.
+                    enabled = state.selectedDateMillis != null,
+                    kind = ButtonKind.Text,
+                ) { Text(stringResource(R.string.action_done)) }
+            },
+            dismissButton = {
+                KlasButton(onClick = onDismiss, kind = ButtonKind.Text) { Text(stringResource(R.string.action_cancel)) }
+            },
+        ) {
+            drafts.SaveableStateProvider("body") { DatePicker(state = state) }
+        }
     }
 }
 
@@ -103,28 +106,32 @@ fun TimePickerModal(
     )
     var typing by rememberSaveable { mutableStateOf(false) }
     val mode = if (typing) TimePickerDisplayMode.Input else TimePickerDisplayMode.Picker
-    TimePickerDialog(
-        onDismissRequest = onDismiss,
-        confirmButton = {
-            KlasButton(onClick = {
-                onConfirm(LocalTime(state.hour, state.minute))
-            }, kind = ButtonKind.Text) { Text(stringResource(R.string.action_done)) }
-        },
-        dismissButton = {
-            KlasButton(onClick = onDismiss, kind = ButtonKind.Text) { Text(stringResource(R.string.action_cancel)) }
-        },
-        title = { TimePickerDialogDefaults.Title(displayMode = mode) },
-        // The app's own toggle: Material's draws its icon for the mode it is in but names the one it leads to,
-        // so one of the two always disagreed. This shows and says where a tap leads.
-        modeToggleButton = {
-            NamedIconButton(
-                if (typing) KlasIcons.Outlined.Schedule else KlasIcons.Outlined.Keyboard,
-                stringResource(if (typing) R.string.time_picker_to_dial else R.string.time_picker_to_keyboard),
-                onClick = { typing = !typing },
-            )
-        },
-    ) {
-        if (typing) TimeInput(state = state) else TimePicker(state = state)
+    UnlockedWindow { drafts ->
+        TimePickerDialog(
+            onDismissRequest = onDismiss,
+            confirmButton = {
+                KlasButton(onClick = {
+                    onConfirm(LocalTime(state.hour, state.minute))
+                }, kind = ButtonKind.Text) { Text(stringResource(R.string.action_done)) }
+            },
+            dismissButton = {
+                KlasButton(onClick = onDismiss, kind = ButtonKind.Text) { Text(stringResource(R.string.action_cancel)) }
+            },
+            title = { TimePickerDialogDefaults.Title(displayMode = mode) },
+            // The app's own toggle: Material's draws its icon for the mode it is in but names the one it leads to,
+            // so one of the two always disagreed. This shows and says where a tap leads.
+            modeToggleButton = {
+                NamedIconButton(
+                    if (typing) KlasIcons.Outlined.Schedule else KlasIcons.Outlined.Keyboard,
+                    stringResource(if (typing) R.string.time_picker_to_dial else R.string.time_picker_to_keyboard),
+                    onClick = { typing = !typing },
+                )
+            },
+        ) {
+            drafts.SaveableStateProvider("body") {
+                if (typing) TimeInput(state = state) else TimePicker(state = state)
+            }
+        }
     }
 }
 
@@ -140,40 +147,44 @@ fun DurationPickerModal(
     var hours by rememberSaveable { mutableStateOf((initialMinutes / 60).toString()) }
     var minutes by rememberSaveable { mutableStateOf((initialMinutes % 60).toString()) }
     val total = (hours.toIntOrNull() ?: 0) * 60 + (minutes.toIntOrNull() ?: 0)
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        // Typed into, so a stray tap beside it keeps what was typed — see [KeepTypedInput].
-        properties = KeepTypedInput,
-        title = { Text(title ?: stringResource(R.string.class_duration_label)) },
-        text = {
-            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.itemGap)) {
-                CountField(
-                    value = hours,
-                    onValue = { hours = it },
-                    label = stringResource(R.string.duration_hours_label),
-                    max = 23,
-                    modifier = Modifier.weight(1f),
-                )
-                CountField(
-                    value = minutes,
-                    onValue = { minutes = it },
-                    label = stringResource(R.string.duration_minutes_label),
-                    max = 59,
-                    modifier = Modifier.weight(1f),
-                )
-            }
-        },
-        confirmButton = {
-            KlasButton(
-                onClick = { onConfirm(total) },
-                enabled = total > 0,
-                kind = ButtonKind.Text,
-            ) { Text(stringResource(R.string.action_done)) }
-        },
-        dismissButton = {
-            KlasButton(onClick = onDismiss, kind = ButtonKind.Text) { Text(stringResource(R.string.action_cancel)) }
-        },
-    )
+    UnlockedWindow { drafts ->
+        AlertDialog(
+            onDismissRequest = onDismiss,
+            // Typed into, so a stray tap beside it keeps what was typed — see [KeepTypedInput].
+            properties = KeepTypedInput,
+            title = { Text(title ?: stringResource(R.string.class_duration_label)) },
+            text = {
+                drafts.SaveableStateProvider("body") {
+                    Row(horizontalArrangement = Arrangement.spacedBy(Spacing.itemGap)) {
+                        CountField(
+                            value = hours,
+                            onValue = { hours = it },
+                            label = stringResource(R.string.duration_hours_label),
+                            max = 23,
+                            modifier = Modifier.weight(1f),
+                        )
+                        CountField(
+                            value = minutes,
+                            onValue = { minutes = it },
+                            label = stringResource(R.string.duration_minutes_label),
+                            max = 59,
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                KlasButton(
+                    onClick = { onConfirm(total) },
+                    enabled = total > 0,
+                    kind = ButtonKind.Text,
+                ) { Text(stringResource(R.string.action_done)) }
+            },
+            dismissButton = {
+                KlasButton(onClick = onDismiss, kind = ButtonKind.Text) { Text(stringResource(R.string.action_cancel)) }
+            },
+        )
+    }
 }
 
 /** How many of something, typed — what a tap on the booking form's lesson count opens. Up to [max]. */
@@ -188,31 +199,35 @@ fun CountPickerModal(
 ) {
     var count by rememberSaveable { mutableStateOf(initial.toString()) }
     val total = count.toIntOrNull() ?: 0
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        properties = KeepTypedInput,
-        title = { Text(title) },
-        text = {
-            CountField(
-                value = count,
-                onValue = { count = it },
-                label = label,
-                max = max,
-                modifier = Modifier.fillMaxWidth(),
-            )
-        },
-        confirmButton = {
-            KlasButton(
-                onClick = { onConfirm(total) },
-                // Zero lessons is not a booking, exactly as a lesson of no length is not a lesson.
-                enabled = total > 0,
-                kind = ButtonKind.Text,
-            ) { Text(stringResource(R.string.action_done)) }
-        },
-        dismissButton = {
-            KlasButton(onClick = onDismiss, kind = ButtonKind.Text) { Text(stringResource(R.string.action_cancel)) }
-        },
-    )
+    UnlockedWindow { drafts ->
+        AlertDialog(
+            onDismissRequest = onDismiss,
+            properties = KeepTypedInput,
+            title = { Text(title) },
+            text = {
+                drafts.SaveableStateProvider("body") {
+                    CountField(
+                        value = count,
+                        onValue = { count = it },
+                        label = label,
+                        max = max,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+            },
+            confirmButton = {
+                KlasButton(
+                    onClick = { onConfirm(total) },
+                    // Zero lessons is not a booking, exactly as a lesson of no length is not a lesson.
+                    enabled = total > 0,
+                    kind = ButtonKind.Text,
+                ) { Text(stringResource(R.string.action_done)) }
+            },
+            dismissButton = {
+                KlasButton(onClick = onDismiss, kind = ButtonKind.Text) { Text(stringResource(R.string.action_cancel)) }
+            },
+        )
+    }
 }
 
 @Composable

@@ -25,6 +25,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.seblful.klas.R
+import com.seblful.klas.lock.UnlockedWindow
 import com.seblful.klas.ui.theme.KlasIcons
 
 /*
@@ -47,14 +48,17 @@ fun KlasMenu(
     onDismissRequest: () -> Unit,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    DropdownMenu(
-        expanded = expanded,
-        onDismissRequest = onDismissRequest,
-        shape = MenuShape,
-        containerColor = MenuContainerColor,
-        shadowElevation = MenuShadowElevation,
-        content = content,
-    )
+    UnlockedWindow { drafts ->
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = onDismissRequest,
+            shape = MenuShape,
+            containerColor = MenuContainerColor,
+            shadowElevation = MenuShadowElevation,
+        ) {
+            drafts.SaveableStateProvider("body") { content() }
+        }
+    }
 }
 
 /**

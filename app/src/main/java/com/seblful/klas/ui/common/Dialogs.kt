@@ -30,6 +30,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.window.DialogProperties
 import com.seblful.klas.R
+import com.seblful.klas.lock.UnlockedWindow
 import com.seblful.klas.ui.designsystem.component.ButtonKind
 import com.seblful.klas.ui.designsystem.component.DialogAction
 import com.seblful.klas.ui.designsystem.component.KlasButton
@@ -47,17 +48,19 @@ fun ConfirmDialog(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
 ) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        text = { Text(text) },
-        confirmButton = {
-            TextButton(
-                onClick = { onConfirm(); onDismiss() },
-                colors = if (destructive) destructiveTextButtonColors() else ButtonDefaults.textButtonColors(),
-            ) { Text(confirmLabel) }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },
-    )
+    UnlockedWindow {
+        AlertDialog(
+            onDismissRequest = onDismiss,
+            text = { Text(text) },
+            confirmButton = {
+                TextButton(
+                    onClick = { onConfirm(); onDismiss() },
+                    colors = if (destructive) destructiveTextButtonColors() else ButtonDefaults.textButtonColors(),
+                ) { Text(confirmLabel) }
+            },
+            dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },
+        )
+    }
 }
 
 /** A text button that loses something: red label, and a red press, not only red words. */
@@ -94,41 +97,45 @@ fun TextFieldDialog(
     var value by rememberSaveable { mutableStateOf(initial) }
     // Its one field is the whole of it, and it opens because something was tapped to name a thing.
     val focus = rememberRevealedFocus()
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        // A stray tap beside the dialog must not throw away what was typed into it — the same rule
-        // the full-screen forms follow with their «Сохранить изменения?» prompt, kept cheap here:
-        // a dialog already has «Отмена», so the fix is to stop *accidental* dismissal rather than to
-        // ask about a deliberate one. Back still closes it, as it closes any dialog.
-        properties = KeepTypedInput,
-        title = { Text(title) },
-        text = {
-            OutlinedTextField(
-                value = value,
-                onValueChange = { value = it },
-                label = { Text(label) },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(capitalization = capitalization),
-                modifier = Modifier.fillMaxWidth().focusRequester(focus),
-            )
-        },
-        confirmButton = {
-            TextButton(
-                onClick = { onConfirm(value); onDismiss() },
-                enabled = value.isNotBlank(),
-            ) { Text(stringResource(R.string.action_save)) }
-        },
-        dismissButton = {
-            extra?.let {
-                KlasButton(
-                    onClick = it.onClick,
-                    kind = if (it.destructive) ButtonKind.Destructive else ButtonKind.Text,
-                    enabled = it.enabled,
-                ) { Text(it.label) }
-            }
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
-        },
-    )
+    UnlockedWindow { drafts ->
+        AlertDialog(
+            onDismissRequest = onDismiss,
+            // A stray tap beside the dialog must not throw away what was typed into it — the same rule
+            // the full-screen forms follow with their «Сохранить изменения?» prompt, kept cheap here:
+            // a dialog already has «Отмена», so the fix is to stop *accidental* dismissal rather than to
+            // ask about a deliberate one. Back still closes it, as it closes any dialog.
+            properties = KeepTypedInput,
+            title = { Text(title) },
+            text = {
+                drafts.SaveableStateProvider("body") {
+                    OutlinedTextField(
+                        value = value,
+                        onValueChange = { value = it },
+                        label = { Text(label) },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(capitalization = capitalization),
+                        modifier = Modifier.fillMaxWidth().focusRequester(focus),
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = { onConfirm(value); onDismiss() },
+                    enabled = value.isNotBlank(),
+                ) { Text(stringResource(R.string.action_save)) }
+            },
+            dismissButton = {
+                extra?.let {
+                    KlasButton(
+                        onClick = it.onClick,
+                        kind = if (it.destructive) ButtonKind.Destructive else ButtonKind.Text,
+                        enabled = it.enabled,
+                    ) { Text(it.label) }
+                }
+                TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
+            },
+        )
+    }
 }
 /**
  * A dialog that **tells** rather than asks: what happened, and «ОК» — a booking that skipped some dates,
@@ -140,12 +147,14 @@ fun NoticeDialog(
     title: String? = null,
     text: @Composable () -> Unit,
 ) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = title?.let { { Text(it) } },
-        text = text,
-        confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_ok)) } },
-    )
+    UnlockedWindow { drafts ->
+        AlertDialog(
+            onDismissRequest = onDismiss,
+            title = title?.let { { Text(it) } },
+            text = { drafts.SaveableStateProvider("body", text) },
+            confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_ok)) } },
+        )
+    }
 }
 /** [NoticeDialog] for a notice that is one string. */
 @Composable

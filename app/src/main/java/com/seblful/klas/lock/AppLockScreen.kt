@@ -12,10 +12,15 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.platform.LocalTextToolbar
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.unit.dp
@@ -35,8 +40,22 @@ import com.seblful.klas.ui.theme.KlasIcons
  */
 @Composable
 fun AppLockGate(locked: Boolean, onUnlock: (title: String) -> Unit, content: @Composable () -> Unit) {
+    val focus = LocalFocusManager.current
+    val keyboard = LocalSoftwareKeyboardController.current
+    val toolbar = LocalTextToolbar.current
+    LaunchedEffect(locked) {
+        if (locked) {
+            focus.clearFocus(force = true)
+            keyboard?.hide()
+            toolbar.hide()
+        }
+    }
     Box(Modifier.fillMaxSize()) {
-        Box(if (locked) Modifier.clearAndSetSemantics {} else Modifier) { content() }
+        CompositionLocalProvider(LocalAppLocked provides locked) {
+            Box(
+                if (locked) Modifier.clearAndSetSemantics {}.onPreviewKeyEvent { true } else Modifier,
+            ) { content() }
+        }
         if (locked) AppLockScreen(onUnlock)
     }
 }

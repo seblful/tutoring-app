@@ -13,6 +13,7 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import com.seblful.klas.lock.UnlockedWindow
 
 /**
  * The one card that leads a screen in the accent colour — the next lesson on an overview. Tappable when
@@ -41,5 +42,9 @@ fun AccentCard(
  */
 @Composable
 fun KlasSheet(onDismiss: () -> Unit, state: SheetState, content: @Composable ColumnScope.() -> Unit) {
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = state, dragHandle = null, content = content)
+    UnlockedWindow { drafts ->
+        ModalBottomSheet(onDismissRequest = onDismiss, sheetState = state, dragHandle = null) {
+            drafts.SaveableStateProvider("body") { content() }
+        }
+    }
 }

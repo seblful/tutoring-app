@@ -56,6 +56,8 @@ import com.seblful.klas.R
 import com.seblful.klas.domain.model.ClassMode
 import com.seblful.klas.domain.model.Student
 import com.seblful.klas.format.MoneyField
+import com.seblful.klas.lock.LocalAppLocked
+import com.seblful.klas.lock.UnlockedWindow
 import com.seblful.klas.ui.theme.KlasIcons
 import com.seblful.klas.ui.theme.klasSemantics
 
@@ -212,14 +214,16 @@ internal fun MenuField(
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = open) },
             modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
         )
-        ExposedDropdownMenu(
-            expanded = open,
-            onDismissRequest = close,
-            shape = MenuShape,
-            containerColor = MenuContainerColor,
-            shadowElevation = MenuShadowElevation,
-        ) {
-            items(close)
+        UnlockedWindow { drafts ->
+            ExposedDropdownMenu(
+                expanded = open,
+                onDismissRequest = close,
+                shape = MenuShape,
+                containerColor = MenuContainerColor,
+                shadowElevation = MenuShadowElevation,
+            ) {
+                drafts.SaveableStateProvider("body") { items(close) }
+            }
         }
     }
 }
@@ -310,7 +314,8 @@ fun PickerField(
 @Composable
 fun rememberRevealedFocus(): FocusRequester {
     val requester = remember { FocusRequester() }
-    LaunchedEffect(Unit) { requester.requestFocus() }
+    val locked = LocalAppLocked.current
+    LaunchedEffect(locked) { if (!locked) requester.requestFocus() }
     return requester
 }
 /**
