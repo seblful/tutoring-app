@@ -146,6 +146,7 @@ versions are updated manually.
 - [ ] Backup round-trip verified on a release build on a device.
 - [ ] Startup, first run or a tab's screen changed: `./gradlew :app:generateBaselineProfile` on an unlocked
       API 33+ phone, and the new `app/src/release/generated/baselineProfiles/` committed. It installs as
-      `com.seblful.klas.benchmark`, beside the release app.
+      `com.seblful.klas.benchmark`, beside the release app. It walks setup to book a lesson, then every
+      tab by name, and fails when a control it needs is gone; fix the journey, never skip the step.
 - [ ] Version and both Play notes updated; `main` fast-forwarded; matching tag pushed.
 - [ ] Release workflow green, GitHub notes rewritten, correct Play track/version rolled out.
