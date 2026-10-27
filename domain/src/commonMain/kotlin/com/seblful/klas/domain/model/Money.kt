@@ -78,9 +78,11 @@ value class Money(val minor: Long) : Comparable<Money> {
         val amount = displayText(decimal, grouping, currency.lakhs)
         val symbol = currency.symbol
         return when (placement) {
-            SymbolPlacement.AFTER -> "$amount $symbol"
+            // No-break: a line never ends between an amount and its sign.
+            SymbolPlacement.AFTER -> "$amount$NO_BREAK_SPACE$symbol"
             SymbolPlacement.BEFORE, SymbolPlacement.BEFORE_SPACED -> {
-                val space = if (placement == SymbolPlacement.BEFORE_SPACED || symbol.last().isLetter()) " " else ""
+                val spaced = placement == SymbolPlacement.BEFORE_SPACED || symbol.last().isLetter()
+                val space = if (spaced) NO_BREAK_SPACE else ""
                 val sign = if (amount.startsWith('-')) "-" else ""
                 "$sign$symbol$space${amount.removePrefix(sign)}"
             }
@@ -89,6 +91,8 @@ value class Money(val minor: Long) : Comparable<Money> {
 
     companion object {
         val ZERO = Money(0)
+
+        private const val NO_BREAK_SPACE = " "
 
         /** Minor units in one whole unit: 100 kopecks to the ruble, 100 cents to the dollar. */
         const val MINOR_PER_MAJOR = 100L

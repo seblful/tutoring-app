@@ -11,25 +11,25 @@ class MoneyTest {
 
     @Test
     fun `formats whole units without decimals`() {
-        assertEquals("1 500 \u20C5", Money.ofMajor(1500).format(Currency.BYN, ',', ' '))
+        assertEquals("1 500\u00A0\u20C5", Money.ofMajor(1500).format(Currency.BYN, ',', ' '))
     }
 
     @Test
     fun `formats minor units with two decimal places`() {
-        assertEquals("1 500,50 \u20C5", Money(150050).format(Currency.BYN, ',', ' '))
-        assertEquals("0,05 \u20C5", Money(5).format(Currency.BYN, ',', ' '))
+        assertEquals("1 500,50\u00A0\u20C5", Money(150050).format(Currency.BYN, ',', ' '))
+        assertEquals("0,05\u00A0\u20C5", Money(5).format(Currency.BYN, ',', ' '))
     }
 
     @Test
     fun `formats negative amounts with a leading sign`() {
-        assertEquals("-300 \u20C5", Money.ofMajor(-300).format(Currency.BYN, ',', ' '))
-        assertEquals("-1 300 \u20C5", Money.ofMajor(-1300).format(Currency.BYN, ',', ' '))
+        assertEquals("-300\u00A0\u20C5", Money.ofMajor(-300).format(Currency.BYN, ',', ' '))
+        assertEquals("-1 300\u00A0\u20C5", Money.ofMajor(-1300).format(Currency.BYN, ',', ' '))
     }
 
     @Test
     fun `the decimal separator is the caller's`() {
-        assertEquals("1,500.50 $", Money(150050).format(Currency.USD, '.', ','))
-        assertEquals("1 500,50 $", Money(150050).format(Currency.USD, ',', ' '))
+        assertEquals("1,500.50\u00A0$", Money(150050).format(Currency.USD, '.', ','))
+        assertEquals("1 500,50\u00A0$", Money(150050).format(Currency.USD, ',', ' '))
         assertEquals("-0.50", Money(-50).amountText('.'))
         assertEquals("1500", Money.ofMajor(1500).amountText('.'), "a whole amount has no separator to write")
     }
@@ -59,7 +59,7 @@ class MoneyTest {
     fun `a currency only labels the amount`() {
         val amount = Money(150050)
         Currency.entries.forEach { currency ->
-            assertEquals("1 500,50 ${currency.symbol}", amount.format(currency, ',', ' '))
+            assertEquals("1 500,50\u00A0${currency.symbol}", amount.format(currency, ',', ' '))
         }
     }
 
@@ -78,12 +78,12 @@ class MoneyTest {
 
     @Test
     fun `a rupee amount is grouped in lakhs and crores`() {
-        assertEquals("1,00,000 ₹", Money.ofMajor(100_000).format(Currency.INR, '.', ','))
-        assertEquals("1,23,45,678.50 ₹", Money(1_234_567_850).format(Currency.INR, '.', ','))
-        assertEquals("-12,345 ₹", Money.ofMajor(-12_345).format(Currency.INR, '.', ','))
-        assertEquals("999 ₹", Money.ofMajor(999).format(Currency.INR, '.', ','))
+        assertEquals("1,00,000\u00A0₹", Money.ofMajor(100_000).format(Currency.INR, '.', ','))
+        assertEquals("1,23,45,678.50\u00A0₹", Money(1_234_567_850).format(Currency.INR, '.', ','))
+        assertEquals("-12,345\u00A0₹", Money.ofMajor(-12_345).format(Currency.INR, '.', ','))
+        assertEquals("999\u00A0₹", Money.ofMajor(999).format(Currency.INR, '.', ','))
         val dollars = Money.ofMajor(100_000).format(Currency.USD, '.', ',')
-        assertEquals("100,000 $", dollars, "other currencies keep thousands")
+        assertEquals("100,000\u00A0$", dollars, "other currencies keep thousands")
     }
 
     @Test
@@ -91,12 +91,12 @@ class MoneyTest {
         val amount = Money(150050)
         assertEquals("\$1,500.50", amount.format(Currency.USD, '.', ',', SymbolPlacement.BEFORE))
         assertEquals("-\$1,500.50", Money(-150050).format(Currency.USD, '.', ',', SymbolPlacement.BEFORE))
-        assertEquals("€ 1.500,50", amount.format(Currency.EUR, ',', '.', SymbolPlacement.BEFORE_SPACED))
+        assertEquals("€\u00A01.500,50", amount.format(Currency.EUR, ',', '.', SymbolPlacement.BEFORE_SPACED))
         assertEquals(
-            "NOK 1,500.50",
+            "NOK 1,500.50",
             amount.format(Currency.NOK, '.', ',', SymbolPlacement.BEFORE),
             "a sign in letters keeps its space",
         )
-        assertEquals("1 500,50 ₫", amount.format(Currency.VND, ',', ' ', SymbolPlacement.AFTER))
+        assertEquals("1 500,50\u00A0₫", amount.format(Currency.VND, ',', ' ', SymbolPlacement.AFTER))
     }
 }

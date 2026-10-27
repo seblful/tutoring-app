@@ -116,7 +116,7 @@ class FormattersLanguageTest {
     fun `money is written with the language's decimal separator, whatever the currency`() {
         inLanguage(AppLocaleRule.RUSSIAN) {
             assertEquals(',', AppLocale.decimalSeparator)
-            assertEquals("1 500,50 $", Money(150050).money(Currency.USD))
+            assertEquals("1 500,50\u00A0$", Money(150050).money(Currency.USD))
             assertEquals("1500,50", Money(150050).amount())
             assertEquals("-0,50", Money(-50).toAmountInput())
         }
@@ -137,12 +137,21 @@ class FormattersLanguageTest {
     fun `a shown amount is grouped in thousands and a typed one reads back as itself`() {
         val total = Money(1_603_750)
         inLanguage(AppLocaleRule.RUSSIAN) {
-            assertEquals("16 037,50 \u20C5", total.money(Currency.BYN))
+            assertEquals("16 037,50\u00A0\u20C5", total.money(Currency.BYN))
             assertEquals(total, parseMoneyOrNull(total.toAmountInput()))
         }
         inLanguage(AppLocaleRule.ENGLISH) {
             assertEquals("\$16,037.50", total.money(Currency.USD))
             assertEquals(total, parseMoneyOrNull(total.toAmountInput()))
+        }
+    }
+
+    /** Arabic's «٬» and «٫» go with Arabic-Indic digits; the app writes Latin ones, so it takes their separators. */
+    @Test
+    fun `an Arabic amount is separated the way its Latin digits are`() {
+        inLanguage(Locale.forLanguageTag("ar")) {
+            assertEquals('.', AppLocale.decimalSeparator)
+            assertEquals("16,037.50 SAR", Money(1_603_750).money(Currency.SAR))
         }
     }
 
@@ -152,7 +161,7 @@ class FormattersLanguageTest {
         assertEquals("BYN 1,500.50", Money(150050).money(Currency.BYN, locale).forSystemFont())
         assertEquals("-BYN 1,500.50", Money(-150050).money(Currency.BYN, locale).forSystemFont())
         val russian = Money(150050).money(Currency.BYN, AppLocaleRule.RUSSIAN).forSystemFont()
-        assertTrue("«$russian» keeps its sign after the amount", russian.endsWith("500,50 BYN"))
+        assertTrue("«$russian» keeps its sign after the amount", russian.endsWith("500,50\u00A0BYN"))
         assertEquals("₽1,500.50", Money(150050).money(Currency.RUB, locale).forSystemFont())
         assertEquals("\$1,500.50", Money(150050).money(Currency.USD, locale).forSystemFont())
     }
@@ -169,11 +178,11 @@ class FormattersLanguageTest {
     @Test
     fun `the currency sign goes on the side the language writes it`() {
         val amount = Money(150050)
-        inLanguage(Locale.GERMAN) { assertEquals("1.500,50 €", amount.money(Currency.EUR)) }
-        inLanguage(Locale.forLanguageTag("nl")) { assertEquals("€ 1.500,50", amount.money(Currency.EUR)) }
+        inLanguage(Locale.GERMAN) { assertEquals("1.500,50\u00A0€", amount.money(Currency.EUR)) }
+        inLanguage(Locale.forLanguageTag("nl")) { assertEquals("€\u00A01.500,50", amount.money(Currency.EUR)) }
         inLanguage(Locale.JAPANESE) { assertEquals("¥1,500.50", amount.money(Currency.JPY)) }
-        inLanguage(Locale.forLanguageTag("ar")) { assertTrue(amount.money(Currency.SAR).endsWith(" SAR")) }
-        inLanguage(AppLocaleRule.ENGLISH) { assertEquals("NOK 1,500.50", amount.money(Currency.NOK)) }
+        inLanguage(Locale.forLanguageTag("ar")) { assertTrue(amount.money(Currency.SAR).endsWith("\u00A0SAR")) }
+        inLanguage(AppLocaleRule.ENGLISH) { assertEquals("NOK\u00A01,500.50", amount.money(Currency.NOK)) }
     }
 
     @Test

@@ -1,7 +1,8 @@
 # /// script
 # dependencies = ["fonttools>=4.63,<5", "skia-pathops>=0.9,<1"]
 # ///
-"""Embed a weight-matched BYN SVG in the fonts: uv run art/add_byn_glyph.py."""
+"""Embed a weight-matched BYN SVG in the fonts, and space every currency sign from the digits it leads:
+uv run art/add_byn_glyph.py."""
 
 from pathlib import Path
 from xml.etree import ElementTree
@@ -15,6 +16,11 @@ from fontTools.svgLib.path import parse_path
 from fontTools.ttLib import TTFont, newTable
 
 GLYPH_NAME = "uni20C5"
+
+# Signs that can lead an amount ("$736", BYN's in English). Golos sets them almost against the first digit,
+# 0.06 em apart in bold, so each gets SIGN_GAP more room on its right than on its left: about a hair space.
+CURRENCY_SIGNS = "$€£¥₴₸₽⃅"
+SIGN_GAP = 70
 
 
 def repair_vertical_metrics(font: TTFont) -> None:
@@ -37,6 +43,21 @@ def repair_vertical_metrics(font: TTFont) -> None:
 def hyphen_thickness(font: TTFont) -> int:
     glyph = font["glyf"][font.getBestCmap()[ord("-")]]
     return glyph.yMax - glyph.yMin
+
+
+def space_currency_signs(font: TTFont) -> None:
+    """Sets each sign's right bearing to its left one plus SIGN_GAP: from the outline, so reruns change nothing."""
+    cmap = font.getBestCmap()
+    glyf = font["glyf"]
+    if any(sign.isalnum() for sign in CURRENCY_SIGNS):
+        raise ValueError(f"CURRENCY_SIGNS must hold signs only, not letters or digits: {CURRENCY_SIGNS!r}")
+    for sign in CURRENCY_SIGNS:
+        name = cmap.get(ord(sign))
+        if name is None:
+            continue
+        glyph = glyf[name]
+        glyph.recalcBounds(glyf)
+        font["hmtx"][name] = (glyph.xMax + glyph.xMin + SIGN_GAP, glyph.xMin)
 
 
 def main() -> None:
@@ -94,6 +115,7 @@ def main() -> None:
             for table in font["cmap"].tables:
                 if table.isUnicode():
                     table.cmap[0x20C5] = GLYPH_NAME
+            space_currency_signs(font)
             font.save(font_path)
 
 

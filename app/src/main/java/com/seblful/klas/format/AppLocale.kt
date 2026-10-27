@@ -35,15 +35,22 @@ object AppLocale {
      * than from a `when` over two languages — a third translation should not have to remember to add itself
      * here.
      */
-    val decimalSeparator: Char get() = DecimalFormatSymbols.getInstance(current).decimalSeparator
+    val decimalSeparator: Char get() = latinSymbols(current).decimalSeparator
 
     /**
      * The thousands separator [current] groups a displayed amount with: a no-break space in Russian (so
      * `16 037` never breaks across a line), `,` in English. From the platform's tables, like
      * [decimalSeparator].
      */
-    val groupingSeparator: Char get() = DecimalFormatSymbols.getInstance(current).groupingSeparator
+    val groupingSeparator: Char get() = latinSymbols(current).groupingSeparator
 }
+
+/**
+ * [locale]'s separators for the Latin digits every amount is written in. Arabic's own, «٬» and «٫», belong
+ * with Arabic-Indic digits: beside Latin ones they wrote «16٬037٫50» and asked for a «٫» to be typed.
+ */
+private fun latinSymbols(locale: Locale): DecimalFormatSymbols =
+    DecimalFormatSymbols.getInstance(Locale.Builder().setLocale(locale).setUnicodeLocaleKeyword("nu", "latn").build())
 
 /**
  * The amount as it is **typed**, in the app's language — `1500,50` or `1500.50`, never grouped: what a money
@@ -68,7 +75,7 @@ fun Money.money(currency: Currency, locale: Locale = AppLocale.current): String 
 private data class MoneyStyle(val decimal: Char, val grouping: Char, val placement: SymbolPlacement) {
     companion object {
         fun of(locale: Locale): MoneyStyle {
-            val symbols = DecimalFormatSymbols.getInstance(locale)
+            val symbols = latinSymbols(locale)
             return MoneyStyle(symbols.decimalSeparator, symbols.groupingSeparator, placementIn(locale))
         }
 
