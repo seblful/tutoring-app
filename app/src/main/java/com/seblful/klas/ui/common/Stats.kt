@@ -113,7 +113,8 @@ private fun StatTile(stat: Stat, modifier: Modifier = Modifier) {
     }
 }
 
-private val TileInsetX = Spacing.inline
+/** Off the 4 dp grid on purpose: at 320 dp, 8 dp leaves «1000000,00 BYN» no room. Pinned by `StatRowAutoSizeTest`. */
+private val TileInsetX = 6.dp
 private val ValueToLabel = 0.dp
 
 private val MinValueSize = 11.dp

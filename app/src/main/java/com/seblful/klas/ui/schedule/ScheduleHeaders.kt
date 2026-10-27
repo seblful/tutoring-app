@@ -151,7 +151,8 @@ internal fun PageNavigator(
                     onClickLabel = stringResource(R.string.schedule_pick_date),
                     role = Role.Button,
                 ) { picking = true }
-                .padding(horizontal = Spacing.inline, vertical = Spacing.tight)
+                // Tight, not inline: at 320 dp «Понедельник, 30 сентября» fits beside three buttons only so.
+                .padding(horizontal = Spacing.tight, vertical = Spacing.tight)
                 .semantics { heading() },
             style = MaterialTheme.typography.titleMedium,
             maxLines = 1,
