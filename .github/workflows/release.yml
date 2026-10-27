@@ -58,9 +58,9 @@ jobs:
           fi
 
       # Play shows these as the release's "What's new", and once releases stop being drafts nobody gets to
-      # fix them in the Console first. So each language's file must be filled in, fit Play's 500
-      # characters, and have been rewritten since the previous tag — last release's notes again would
-      # pass every other check.
+      # fix them in the Console first. So every listing language (store/text/<locale>) needs a file that
+      # is filled in, fits Play's 500 characters, and has been rewritten since the previous tag — last
+      # release's notes again would pass every other check.
       - name: Play release notes are written for this version
         if: vars.PLAY_PUBLISH == 'true'
         env:
@@ -68,7 +68,8 @@ jobs:
         run: |
           set -euo pipefail
           prev=$(git describe --tags --abbrev=0 --match 'v*' "$GITHUB_SHA^" 2>/dev/null || true)
-          for f in store/whatsnew/whatsnew-ru-RU store/whatsnew/whatsnew-en-US; do
+          for dir in store/text/*/; do
+            f=store/whatsnew/whatsnew-$(basename "$dir")
             if ! grep -q '[^[:space:]]' "$f" 2>/dev/null; then
               echo "::error file=$f::$f is missing or empty; write this release's notes (docs/releasing.md)"
               exit 1

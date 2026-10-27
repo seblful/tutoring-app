@@ -5,8 +5,8 @@ Build signed APKs for sideloading and AABs for Google Play. For normal releases,
 
 ## Release from a tag
 
-1. On `develop`, bump `versionCode` and `versionName` in `app/build.gradle.kts`, rewrite both
-   `store/whatsnew/whatsnew-ru-RU` and `whatsnew-en-US`, and commit as `chore(release): X.Y.Z`.
+1. On `develop`, bump `versionCode` and `versionName` in `app/build.gradle.kts`, rewrite every
+   `store/whatsnew/whatsnew-<locale>`, and commit as `chore(release): X.Y.Z`.
 2. Complete the [checklist](#per-release-checklist), then fast-forward `main` to the release commit.
 3. Tag and push:
    ```bash
@@ -24,7 +24,7 @@ repeats the release and replaces existing GitHub artifacts; its `track` input ov
 
 Play notes are plain text, at most **500 characters per locale**. With publishing enabled, the workflow
 refuses missing, blank, oversized or unchanged notes. Write for the tutor; GitHub notes hold technical
-detail. Adding a listing language requires `whatsnew-<locale>` and a corresponding workflow check.
+detail. Every listing language in `store/text/<locale>` needs a `whatsnew-<locale>`; the workflow checks each.
 
 ## Set up signing (once)
 
