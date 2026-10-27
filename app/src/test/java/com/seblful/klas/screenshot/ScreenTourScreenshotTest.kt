@@ -8,6 +8,7 @@ import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isSelectable
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.performClick
@@ -29,6 +30,7 @@ import com.seblful.klas.testutil.FakeCalendarPermission
 import com.seblful.klas.testutil.FakeCalendarSync
 import com.seblful.klas.testutil.RecordingDigestScheduler
 import com.seblful.klas.testutil.RecordingReminderScheduler
+import com.seblful.klas.ui.common.SKELETON_TAG
 import dev.zacsweers.metro.createGraphFactory
 import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.LocalDate
@@ -191,6 +193,11 @@ class ScreenTourScreenshotTest {
     }
 
     private fun capture(variant: String, screen: String) {
+        settle()
+        // Room reads on its own threads, which neither the clock nor idling waits for.
+        compose.waitUntil(TIMEOUT_MS) {
+            compose.onAllNodesWithTag(SKELETON_TAG, useUnmergedTree = true).fetchSemanticsNodes().isEmpty()
+        }
         settle()
         captureScreenRoboImage(
             "src/test/screenshots/Tour.$variant.$screen.png",

@@ -25,7 +25,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.testTag
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.seblful.klas.ui.common.state.Loadable
@@ -43,7 +45,7 @@ fun ListSkeleton(
     Column(
         modifier
             .fillMaxWidth()
-            .clearAndSetSemantics { }
+            .clearAndSetSemantics { testTag = SKELETON_TAG }
             .padding(contentPadding),
         verticalArrangement = Arrangement.spacedBy(Spacing.itemGap),
     ) {
@@ -71,6 +73,7 @@ fun SkeletonBlock(
         modifier
             .fillMaxWidth()
             .height(height)
+            .testTag(SKELETON_TAG)
             .clip(shape)
             // The pulse is read in the draw, not in composition: read here it recomposed every block of
             // every skeleton on every frame of the wait, to repaint one colour.
@@ -182,6 +185,9 @@ fun LoadingFormScreen(title: String, onBack: () -> Unit, fields: Int = 4) {
         }
     }
 }
+
+/** On every placeholder, so a screenshot can wait until the screen has been read. */
+internal const val SKELETON_TAG = "skeleton"
 
 private val SkeletonRowHeight = 72.dp
 
