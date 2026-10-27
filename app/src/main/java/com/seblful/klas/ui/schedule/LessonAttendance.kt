@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -29,12 +28,12 @@ import com.seblful.klas.ui.common.MinTouchTarget
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.TickedMenuItem
 import com.seblful.klas.ui.common.insetRowPress
-import com.seblful.klas.ui.theme.KlasIcons
 
 /**
- * Who came, as value rows — «Attendance · Expected ▾» for a 1:1 lesson, a row per member for a group's. On
+ * Who came, as value rows — «Attendance · Expected» for a 1:1 lesson, a row per member for a group's. On
  * every lesson, because a 1:1 lesson can be an absence that is still billed (domain-rules). A tap opens the
- * choices beside the value; a change is undone from its message.
+ * choices beside the value, as Settings' «Before lesson» does, with no ▾ that reads as a form field; a change
+ * is undone from its message.
  */
 @Composable
 internal fun LessonAttendance(row: ScheduleRow, onAttendance: (TutoringClass, Attended) -> Unit) {
@@ -70,11 +69,6 @@ private fun AttendanceRow(label: String, selected: Attended, options: List<Atten
         ) {
             Text(label, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
             Text(value, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Icon(
-                KlasIcons.Filled.ArrowDropDown,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
         }
         KlasMenu(expanded = open, onDismissRequest = { open = false }) {
             options.forEach { option ->
