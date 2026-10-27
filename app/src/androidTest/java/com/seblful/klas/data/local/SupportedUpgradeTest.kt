@@ -82,7 +82,7 @@ class SupportedUpgradeTest {
         }
         BundledSQLiteDriver().open(context.getDatabasePath(TEST_DB).absolutePath).use { connection ->
             assertEquals(emptyList<Map<String, Any?>>(), connection.rows("PRAGMA foreign_key_check"))
-            assertEquals(10L, connection.long("PRAGMA user_version"))
+            assertEquals(Migrations.ALL.last().endVersion.toLong(), connection.long("PRAGMA user_version"))
         }
     }
 

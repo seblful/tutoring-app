@@ -46,9 +46,9 @@ class MonthNameCaseTest {
     }
 
     @Test
-    fun englishIsUnchanged() {
+    fun englishMonthsAreNotInflected() {
         AppLocale.current = Locale.forLanguageTag("en")
-        assertEquals("Thursday, 24 September", LocalDate(2026, 9, 24).formatDay())
-        assertEquals("5 May 2026", LocalDate(2026, 5, 5).formatDate())
+        assertEquals("Thursday, September 24", LocalDate(2026, 9, 24).formatDay())
+        assertEquals("May 5, 2026", LocalDate(2026, 5, 5).formatDate())
     }
 }

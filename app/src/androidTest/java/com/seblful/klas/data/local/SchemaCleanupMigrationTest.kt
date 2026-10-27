@@ -241,6 +241,8 @@ class SchemaCleanupMigrationTest {
                     themeMode = ThemeChoice.DARK, dynamicColorEnabled = true, defaultLessonMinutes = 90,
                     defaultGroupPriceMinor = 2000, currency = Currency.RUB, language = AppLanguage.ENGLISH,
                     lastExportMillis = 1750400000000,
+                    // An onboarded tutor upgrades past the first-run guide (MIGRATION_13_14).
+                    tipsSeen = "SCHEDULE_DATE,LESSON_SWIPE,LESSON_PICK,HOMEWORK_SWIPE", firstStepsHidden = true,
                 ),
                 settings,
             )
