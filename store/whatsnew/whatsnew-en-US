@@ -1,7 +1,8 @@
-Fixes and reliability:
-• Amounts are grouped by thousands: "16,037.50 USD".
-• Lesson times follow the phone's clock format everywhere.
-• A reminder no longer disappears before its lesson and is re-planned after a time zone change.
-• Restoring a backup keeps past lessons' calendar events.
-• Saving a lesson form no longer undoes "Taught".
-• Reports no longer flicker when you change the period.
+Klas 0.5 is a big update:
+• "Today" tab: the day's lessons, a tap to mark one taught, and who owes.
+• Home-screen widgets: today's lessons and shortcuts.
+• Undo cancelling, moving and marking lessons, payments and archiving.
+• Backups: a password, a weekly copy to a folder you choose, and a preview before restoring.
+• App lock; names and amounts stay off the lock screen.
+• Reports and statements as PDF.
+• 25 languages.
