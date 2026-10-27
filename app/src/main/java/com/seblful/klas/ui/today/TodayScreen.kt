@@ -298,7 +298,7 @@ private fun DayLessons(state: TodayState, actions: TodayActions) {
     HeaderedCard(
         title = stringResource(R.string.today_lessons),
         summary = summary.takeIf { rows.isNotEmpty() },
-        action = SectionAction(stringResource(R.string.nav_schedule), onClick = actions.schedule),
+        action = SectionAction(stringResource(R.string.nav_schedule), opens = true, onClick = actions.schedule),
     ) {
         if (rows.isEmpty()) {
             KlasRow(stringResource(R.string.today_no_lessons))
@@ -372,7 +372,7 @@ private fun RecentlyMarked(marks: List<TodayMark>, onUndo: (TodayMark) -> Unit) 
 private fun HomeworkDue(rows: List<HomeworkRow>, onHomework: () -> Unit) {
     HeaderedCard(
         title = stringResource(R.string.student_homework_title),
-        summary = rows.size.toString(),
+        count = rows.size,
         action = SectionAction(stringResource(R.string.section_see_all), opens = true, onClick = onHomework),
     ) {
         rows.take(HOMEWORK_SHOWN).forEach { row ->

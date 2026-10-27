@@ -27,17 +27,21 @@ import com.seblful.klas.ui.theme.KlasIcons
 /**
  * A section **with its header inside the card**: the title (a heading for TalkBack), then a count or summary,
  * then at most one text action.
+ *
+ * @param count a bare number of items, beside the title as a profile's «Lessons 36» has it; [summary] is for
+ * worded ones under it («1 lesson · 1.5 h»).
  */
 @Composable
 fun HeaderedCard(
     title: String,
     modifier: Modifier = Modifier,
     summary: String? = null,
+    count: Int? = null,
     action: SectionAction? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     SectionCard(modifier) {
-        CardHeader(title, summary, action)
+        CardHeader(title, summary, action, count = count)
         Column(Modifier.padding(bottom = Spacing.inline), content = content)
     }
 }
@@ -75,6 +79,7 @@ private fun CardHeader(
     summary: String?,
     action: SectionAction?,
     titleColor: Color = Color.Unspecified,
+    count: Int? = null,
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -84,12 +89,21 @@ private fun CardHeader(
             .padding(start = Spacing.gutter, end = Spacing.inline, top = Spacing.inline),
     ) {
         Column(Modifier.weight(1f).padding(vertical = Spacing.inline)) {
-            Text(
-                title,
-                style = MaterialTheme.typography.titleSmall,
-                color = titleColor,
-                modifier = Modifier.semantics { heading() },
-            )
+            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.inline)) {
+                Text(
+                    title,
+                    style = MaterialTheme.typography.titleSmall,
+                    color = titleColor,
+                    modifier = Modifier.semantics { heading() },
+                )
+                count?.let {
+                    Text(
+                        it.toString(),
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
             summary?.let {
                 Text(
                     it,

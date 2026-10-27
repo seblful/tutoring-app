@@ -55,7 +55,7 @@ Build screens from shared state and controls. Feature rules belong in the domain
 - Generic parts live in `ui/designsystem/component` and take no domain types: `KlasRow` (typed
   `RowStart`/`RowEnd`, so a row leads with an icon or the mark-done button and nothing of its own making,
   and has one trailing thing: an `Amount`, a value, a chevron, a switch or one named icon action), `Amount` (an `AmountText` worded with its meaning), `HeaderedCard` (title, count or
-  summary and one `SectionAction` inside the card, red when `destructive` — «Cancel day»; with a chevron when it `opens` the full list, as a profile's «See all ›»), `KlasButton` (`ButtonKind`), `KlasFab` (labelled,
+  summary and one `SectionAction` inside the card, red when `destructive` — «Cancel day»; with a chevron when it `opens` another screen — «See all ›», «Schedule ›», «Statement ›» — but not for a sheet over this one, as the next lesson's «Open»), `KlasButton` (`ButtonKind`), `KlasFab` (labelled,
   icon-only from 1.5× text, named once for TalkBack), `InkCentredText` (a number in a disc, centred by its
   drawn glyphs: a centred line box held Golos's figures low and left), `KlasDivider`, `FormDialog`/`ChoiceDialog`,
   `AccentCard` and `KlasSheet`. detekt's `ForbiddenImport` keeps the Material components they wrap out
@@ -94,7 +94,9 @@ Build screens from shared state and controls. Feature rules belong in the domain
 - Text-size floors use sp. At large font sizes the floating navigation bar shows icons with full accessible
   names and the selected destination's label across its width. Calendar weekday headings use localized
   narrow names. A row of segments or view tabs shares one label size, the largest every label fits
-  (`SegmentLabel`): one shrinking alone read as two type sizes. Settings choices switch to a field when segments
+  (`SegmentLabel`, measured apart by `RowAutoSize`, since auto-size lays out only a node's own text): one
+  shrinking alone read as two type sizes. Options too long for segments at any legible size — Settings' week
+  start, four full day names — are a value row opening a list, as Language is. Settings choices switch to a field when segments
   cannot accommodate large text; form
   dialogs scroll their bodies while keeping actions reachable.
 - Shapes are Material's baseline scale (`Shape.kt`); search opens Material's search input in place of the

@@ -20,6 +20,7 @@ import androidx.compose.ui.test.performTextReplacement
 import com.seblful.klas.data.settings.AppSettings
 import com.seblful.klas.domain.model.AppLanguage
 import com.seblful.klas.domain.model.Currency
+import com.seblful.klas.domain.model.WeekStartChoice
 import com.seblful.klas.testutil.AppLocaleRule
 import com.seblful.klas.ui.theme.KlasTheme
 import org.junit.Assert.assertEquals
@@ -180,6 +181,20 @@ class SettingsContentTest {
         compose.onNodeWithText("Language").performScrollTo().performClick()
         compose.onNodeWithText("English").performScrollTo().performClick()
         assertEquals(AppLanguage.ENGLISH, settings.language)
+    }
+
+    @Test
+    fun `the week's first day is a value row whose list names each day in full`() {
+        compose.setContent {
+            KlasTheme { AppearanceSettingsContent(settings, actions.update, showDynamicColor = false) }
+        }
+        compose.onNodeWithText("Saturday").assertDoesNotExist()
+
+        compose.onNodeWithText("Week starts on").performScrollTo().performClick()
+        compose.onNodeWithText("Saturday").performClick()
+
+        assertEquals(WeekStartChoice.SATURDAY, settings.weekStart)
+        compose.onNodeWithText("Saturday").assertExists()
     }
 
     @Test

@@ -53,7 +53,7 @@ internal fun BalanceCard(
     HeaderedCard(
         title = stringResource(R.string.student_balance_title),
         modifier = modifier,
-        action = SectionAction(stringResource(R.string.student_statement), onClick = onStatement),
+        action = SectionAction(stringResource(R.string.student_statement), opens = true, onClick = onStatement),
     ) {
         // The button beside the amount, not beside all four lines: there the lines below get the card's whole
         // width, and a large font does not fold «Last payment …» into a column of single words.

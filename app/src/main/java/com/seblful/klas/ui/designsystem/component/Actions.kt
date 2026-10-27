@@ -19,8 +19,9 @@ data class DialogAction(
 
 /**
  * The one text action a section header may carry: "See all ›", "+ Add". [destructive] for one that loses
- * something — «Cancel day» — red as every Cancel is; [opens] for one that leads to the full list, with the
- * chevron a profile's «See all ›» has.
+ * something — «Cancel day» — red as every Cancel is; [opens] for one that leads to another screen («See all ›»,
+ * «Schedule ›», «Statement ›»), with the chevron the lesson sheet's «Open profile ›» has. One that only shows
+ * something over this screen — the next lesson's «Open» sheet — has none.
  */
 @Immutable
 data class SectionAction(

@@ -46,13 +46,18 @@ internal fun AppearanceSettingsContent(
 ) {
     Column(modifier.verticalScroll(rememberScrollState()).padding(bottom = Spacing.gutter).padding(bottomInset)) {
         SettingsGroup {
-            LanguageSetting(settings.language) { picked -> onUpdate { it.copy(language = picked) } }
-            ChoiceRow(
-                title = stringResource(R.string.settings_week_start),
-                options = WeekStartChoice.entries.map { it to weekStartLabel(it) },
-                selected = settings.weekStart,
-                onSelect = { choice -> onUpdate { it.copy(weekStart = choice) } },
-            )
+            ListSetting(
+                stringResource(R.string.settings_language),
+                LanguageChoices,
+                settings.language,
+                { languageLabel(it) },
+            ) { picked -> onUpdate { it.copy(language = picked) } }
+            ListSetting(
+                stringResource(R.string.settings_week_start),
+                WeekStartChoice.entries,
+                settings.weekStart,
+                { weekStartLabel(it) },
+            ) { picked -> onUpdate { it.copy(weekStart = picked) } }
         }
         SettingsGroup(stringResource(R.string.settings_section_appearance)) {
             ChoiceRow(
@@ -92,24 +97,30 @@ internal fun themeLabel(theme: ThemeChoice): String = stringResource(
 
 /**
  * A value row opening the list, as Currency's does: past four choices [ChoiceRow] became an outlined field,
- * and a form field in a settings card gave it two edges and two kinds of row.
+ * and a form field in a settings card gave it two edges and two kinds of row. The week's first day too:
+ * four full day names in segments shrank to «Понедель…» in Russian.
  */
 @Composable
-private fun LanguageSetting(language: AppLanguage, onPick: (AppLanguage) -> Unit) {
+private fun <T> ListSetting(
+    title: String,
+    options: List<T>,
+    selected: T,
+    label: @Composable (T) -> String,
+    onPick: (T) -> Unit,
+) {
     var picking by rememberSaveable { mutableStateOf(false) }
-    val title = stringResource(R.string.settings_language)
-    ValueRow(title = title, value = languageLabel(language), enabled = true) { picking = true }
+    ValueRow(title = title, value = label(selected), enabled = true) { picking = true }
     if (picking) {
         ChoiceDialog(title = title, onDismiss = { picking = false }) {
             // Twenty-six short rows compose at once without a stall, so the list is a plain scrolling column.
             Column(Modifier.verticalScroll(rememberScrollState())) {
-                LanguageChoices.forEach { choice ->
+                options.forEach { choice ->
                     DialogRadioRow(
-                        label = languageLabel(choice),
-                        selected = choice == language,
+                        label = label(choice),
+                        selected = choice == selected,
                         onClick = {
                             picking = false
-                            if (choice != language) onPick(choice)
+                            if (choice != selected) onPick(choice)
                         },
                     )
                 }
