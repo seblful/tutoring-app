@@ -16,19 +16,19 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 | `onboarding_restore` | Restore a backup | Een back-up herstellen | |
 | `onboarding_restore_desc` | The file's data will replace what is here | De gegevens van het bestand zullen vervangen wat hier staat | |
 | `onboarding_skip` | Skip | Overslaan | |
-| `onboarding_skip_desc` | Subjects and students can be added later | Onderwerpen en studenten kunnen later worden toegevoegd | |
+| `onboarding_skip_desc` | Subjects and students can be added later | Vakken en leerlingen kunnen later worden toegevoegd | |
 | `onboarding_step` | Step %1$d of %2$d | Stap %1$d van %2$d | |
 | `onboarding_locale_title` | The basics | De basis | |
 | `onboarding_locale_desc` | Already chosen for you. Change anything now or later in Settings. | Al voor u gekozen. Wijzig nu of later iets in Instellingen. | |
 | `onboarding_lesson_length_desc` | Pre-fills new lessons. Rates are per hour, so each lesson is billed for its length. | Vult nieuwe lessen vooraf in. De tarieven zijn per uur, dus elke les wordt op basis van de duur ervan gefactureerd. | |
 | `onboarding_locale_currency_desc` | Amounts are only labelled with it — nothing is converted. | Bedragen worden er alleen mee gelabeld; er wordt niets omgezet. | |
-| `onboarding_subjects_title` | Subjects | Onderwerpen | |
+| `onboarding_subjects_title` | Subjects | Vakken | |
 | `onboarding_subjects_desc` | Tap what you teach, or add your own. You can change them later. | Tik op wat u onderwijst, of voeg uw eigen toe. Je kunt ze later wijzigen. | |
 | `onboarding_subject_suggestions` | *0:* Math · *1:* English · *2:* Physics · *3:* Chemistry · *4:* Biology · *5:* History · *6:* Computer science · *7:* Piano | *0:* Wiskunde · *1:* Engels · *2:* Natuurkunde · *3:* Chemie · *4:* Biologie · *5:* Geschiedenis · *6:* Computerwetenschappen · *7:* Piano | |
-| `onboarding_subject_removed` | Subject deleted | Onderwerp verwijderd | |
-| `onboarding_subject_remove_failed` | Could not delete the subject | Kan het onderwerp niet verwijderen | |
+| `onboarding_subject_removed` | Subject deleted | Vak verwijderd | |
+| `onboarding_subject_remove_failed` | Could not delete the subject | Kan het vak niet verwijderen | |
 | `onboarding_student_title` | First student | Eerste leerling | |
-| `onboarding_student_desc` | Just a name and a rate. A phone, email and note can be added on the student's profile later. | Even een naam en een tarief. Een telefoon, e-mail en notitie kunnen later aan het profiel van de student worden toegevoegd. | |
+| `onboarding_student_desc` | Just a name and a rate. A phone, email and note can be added on the student's profile later. | Alleen een naam en een tarief. Een telefoonnummer, e-mailadres en notitie kunnen later aan het profiel van de leerling worden toegevoegd. | |
 | `onboarding_continue` | Next | Volgende | |
 | `onboarding_finish` | Done | Klaar | |
 | `onboarding_subject_field_hint` | Type a name and press Enter | Typ een naam en druk op Enter | |
@@ -81,7 +81,6 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 | `today_lessons` | Today's lessons | De lessen van vandaag | |
 | `today_no_lessons` | No lessons today | Geen lessen vandaag | |
 | `today_owed` | Owed to you | Aan jou verschuldigd | |
-| `today_homework` | Homework due | In te leveren huiswerk | |
 | `today_backup_old` | Last backup %1$s | Laatste back-up %1$s | |
 | `today_backup_never` | No backup yet | Nog geen back-up | |
 | `today_backup_detail` | Your data is on this phone only. | Je gegevens staan alleen op deze telefoon. | |
@@ -93,7 +92,6 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 | `today_never_paid` | No payment yet | Nog geen betaling | |
 | `today_recent_marks` | Marked outside the app | Gemarkeerd buiten de app | |
 | `today_marked_at` | Taught · marked at %1$s | Gegeven · gemarkeerd om %1$s | |
-| `today_members` | *one:* %1$d member · *other:* %1$d members | *one:* %1$d lid · *other:* %1$d leden | |
 
 ## Buttons
 
@@ -150,7 +148,7 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 | `schedule_next_week` | Next week | Volgende week | |
 | `schedule_previous_month` | Previous month | Vorige maand | |
 | `schedule_next_month` | Next month | Volgende maand | |
-| `schedule_need_setup` | Add a subject and a student first | Voeg eerst een onderwerp en een leerling toe | |
+| `schedule_need_setup` | Add a subject and a student first | Voeg eerst een vak en een leerling toe | |
 | `schedule_pick_date` | Choose a date | Kies een datum | |
 | `schedule_cancel_day` | Cancel day | Annuleer dag | |
 | `schedule_open_day` | Open day | Dag openen | |
@@ -210,7 +208,7 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 | `people_pick_card` | Choose a student or a group | Kies een leerling of een groep | |
 | `people_owes` | Owes · %1$d | Met openstaand bedrag · %1$d | |
 | `people_archived` | Archived | Gearchiveerd | |
-| `people_all_subjects` | All subjects | Alle onderwerpen | |
+| `people_all_subjects` | All subjects | Alle vakken | |
 | `people_filter` | Filter and order | Filteren en sorteren | |
 | `people_show` | Show | Tonen | |
 | `people_subject` | Subject | Vak | |
@@ -220,12 +218,12 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 
 | Key | English | Now | OK / suggestion |
 |---|---|---|---|
-| `students_search_hint` | Search students | Zoek studenten | |
+| `students_search_hint` | Search students | Zoek leerlingen | |
 | `students_sort_name` | By name | Op naam | |
 | `students_sort_debt` | Debtors first | Debiteuren eerst | |
-| `students_title` | Students | Studenten | |
-| `students_empty` | No students yet | Nog geen studenten | |
-| `students_empty_detail` | A student is a name, their subjects and a rate per hour. After that you can book lessons and track payments. | Een student is een naam, zijn vakken en een uurtarief. Daarna kunt u lessen boeken en betalingen volgen. | |
+| `students_title` | Students | Leerlingen | |
+| `students_empty` | No students yet | Nog geen leerlingen | |
+| `students_empty_detail` | A student is a name, their subjects and a rate per hour. After that you can book lessons and track payments. | Een leerling bestaat uit een naam, de vakken en een uurtarief. Daarna kunt u lessen boeken en betalingen volgen. | |
 | `students_add` | Add a student | Voeg een leerling toe | |
 | `students_count` | *one:* %1$d\u00A0student · *other:* %1$d\u00A0students | *one:* %1$d\u00A0leerling · *other:* %1$d\u00A0leerlingen | |
 

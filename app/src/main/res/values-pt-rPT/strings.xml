@@ -36,8 +36,8 @@
         <item quantity="other">%1$d mais — refinar a pesquisa</item>
     </plurals>
     <string name="students_search_hint">Pesquisar alunos</string>
-    <string name="groups_search_hint">Grupos de investigação</string>
-    <string name="subjects_search_hint">Nome da disciplina</string>
+    <string name="groups_search_hint">Pesquisar grupos</string>
+    <string name="subjects_search_hint">Pesquisar disciplinas</string>
     <string name="students_sort_name">Por nome</string>
     <string name="students_sort_debt">Devedores primeiro</string>
     <string name="unsaved_save_title">Guardar alterações?</string>
@@ -100,11 +100,11 @@
     <string name="class_step_earlier">15 minutos antes</string>
     <string name="class_step_later">15 minutos depois</string>
     <string name="class_gap_who">aluno ou grupo</string>
-    <string name="class_gap_subject">Disciplina</string>
+    <string name="class_gap_subject">disciplina</string>
     <string name="class_gap_date">data</string>
     <string name="class_gap_start">hora de início</string>
     <string name="class_gap_length">comprimento</string>
-    <string name="class_gap_price">Preço por hora</string>
+    <string name="class_gap_price">preço por hora</string>
     <plurals name="class_series_lessons">
         <item quantity="one">%1$d aula</item>
         <item quantity="many">%1$d aulas</item>
@@ -161,7 +161,7 @@
     <string name="class_delete_completed_confirm">Esta aula foi realizada. Apagá-la removerá a cobrança do saldo do aluno. Apagar?</string>
     <string name="class_target_group">Grupo</string>
     <string name="class_group_label">Grupo</string>
-    <string name="class_no_subjects_for_group">Adicione primeiro os assuntos</string>
+    <string name="class_no_subjects_for_group">Adicione primeiro as disciplinas</string>
     <string name="class_group_members_title">Membros</string>
     <string name="class_group_no_active_members">Ninguém neste grupo pode ser reservado: os seus membros são arquivados</string>
     <string name="class_group_no_members_left">Escolha pelo menos um membro</string>
@@ -171,7 +171,7 @@
         <item quantity="many">Alunos a remover de uma aula realizada: %1$d. As suas aulas e as cobranças correspondentes serão apagadas. Guardar?</item>
         <item quantity="other">Alunos a remover de uma aula realizada: %1$d. As suas aulas e as cobranças correspondentes serão apagadas. Guardar?</item>
     </plurals>
-    <string name="class_subject_from_group">O grupo define o assunto</string>
+    <string name="class_subject_from_group">O grupo define a disciplina</string>
     <string name="class_group_price_label">Preço por aluno</string>
     <string name="class_mark_completed">Marcar como realizada</string>
     <string name="class_series_availability">Datas disponíveis: %1$d. As datas ocupadas serão ignoradas.</string>
@@ -207,14 +207,14 @@
     <string name="student_form_add">Adicionar aluno</string>
     <string name="student_form_subject_has_lessons">Há aulas, portanto fica</string>
     <string name="student_form_subjects_required">Escolha pelo menos uma disciplina e defina o preço por hora</string>
-    <string name="student_form_no_subjects">Adicione primeiro os assuntos</string>
+    <string name="student_form_no_subjects">Adicione primeiro as disciplinas</string>
     <string name="student_mode_label">Local</string>
-    <string name="student_subjects_title">Assuntos</string>
-    <string name="student_no_subjects">Nenhum assunto escolhido</string>
-    <string name="student_add_subject">Adicionar um assunto</string>
-    <string name="student_all_subjects_added">Cada assunto foi adicionado</string>
-    <string name="student_subject_remove_blocked">Não é possível retirar o assunto: tem lições</string>
-    <string name="student_archive_balance_part">O saldo deste aluno não foi liquidado (%1$s). O seu histórico permanece nos relatórios, mas os lembretes semanais da dívida irão excluí-los.</string>
+    <string name="student_subjects_title">Disciplinas</string>
+    <string name="student_no_subjects">Nenhuma disciplina escolhida</string>
+    <string name="student_add_subject">Adicionar uma disciplina</string>
+    <string name="student_all_subjects_added">Todas as disciplinas foram adicionadas</string>
+    <string name="student_subject_remove_blocked">Não é possível retirar a disciplina: tem aulas</string>
+    <string name="student_archive_balance_part">O saldo deste aluno não foi liquidado (%1$s). O seu histórico permanece nos relatórios, mas os lembretes semanais de dívida irão excluí-lo.</string>
     <string name="student_archive_question">Arquivar na mesma?</string>
     <plurals name="student_archive_lessons_part">
         <item quantity="one">Aulas marcadas que serão canceladas: %1$d.</item>
@@ -287,29 +287,29 @@
     <string name="action_copy">Copiar</string>
     <string name="clipboard_copied">Copiado</string>
     <string name="student_contact_failed">Nenhuma aplicação neste telefone pode fazer isso</string>
-    <string name="subjects_title">Assuntos</string>
-    <string name="subjects_empty">Ainda não há assuntos</string>
+    <string name="subjects_title">Disciplinas</string>
+    <string name="subjects_empty">Ainda não há disciplinas</string>
     <string name="subjects_empty_detail">Uma disciplina é aquilo que ensina. Adicione uma para definir preços e marcar aulas.</string>
-    <string name="subjects_add">Adicionar um assunto</string>
-    <string name="subject_add_title">Novo assunto</string>
-    <string name="subject_edit_title">Editar assunto</string>
+    <string name="subjects_add">Adicionar uma disciplina</string>
+    <string name="subject_add_title">Nova disciplina</string>
+    <string name="subject_edit_title">Editar disciplina</string>
     <string name="subject_name_label">Nome da disciplina</string>
-    <string name="subject_name_taken">Já existe um assunto com este nome</string>
+    <string name="subject_name_taken">Já existe uma disciplina com este nome</string>
     <string name="subject_delete_named">Apagar %1$s</string>
-    <string name="subject_deleted">Assunto eliminado</string>
-    <string name="subject_delete_blocked">Não é possível eliminar a matéria: tem aulas. Apague-os primeiro.</string>
-    <string name="subject_delete_blocked_group">Não é possível eliminar o assunto: um grupo estuda-o. Mude primeiro o assunto do grupo.</string>
-    <string name="subject_delete_blocked_students">Não é possível eliminar a disciplina: um aluno frequenta. Remova-o do perfil deles primeiro.</string>
+    <string name="subject_deleted">Disciplina eliminada</string>
+    <string name="subject_delete_blocked">Não é possível eliminar a disciplina: tem aulas. Apague-as primeiro.</string>
+    <string name="subject_delete_blocked_group">Não é possível eliminar a disciplina: um grupo estuda-a. Mude primeiro a disciplina do grupo.</string>
+    <string name="subject_delete_blocked_students">Não é possível eliminar a disciplina: um aluno frequenta-a. Remova-a primeiro do perfil dele.</string>
     <string name="groups_title">Grupos</string>
     <string name="groups_empty">Nenhum grupo ainda</string>
-    <string name="groups_empty_detail">Um grupo é constituído por vários estudantes partilhando uma taxa. Uma aula é reservada para todos eles de uma só vez.</string>
+    <string name="groups_empty_detail">Um grupo é constituído por vários alunos que partilham uma taxa. Uma aula é reservada para todos eles de uma só vez.</string>
     <string name="groups_add">Criar um grupo</string>
     <string name="group_form_create">Criar grupo</string>
     <string name="group_add_title">Novo grupo</string>
     <string name="group_edit_title">Editar grupo</string>
     <string name="group_name_label">Nome</string>
     <string name="group_subject_label">Disciplina</string>
-    <string name="group_subject_none">Sem assunto</string>
+    <string name="group_subject_none">Sem disciplina</string>
     <string name="group_subject_hint">Apenas os alunos com taxa para esta disciplina podem integrar o grupo</string>
     <string name="group_subject_none_hint">Sem disciplina: qualquer aluno, e a disciplina é escolhida no momento da reserva da aula</string>
     <string name="group_price_label">Preço por aluno</string>
@@ -329,7 +329,7 @@
     <string name="group_students_title">Membros</string>
     <string name="group_lessons_title">Lições</string>
     <string name="group_lessons_empty">Este grupo ainda não tem aulas</string>
-    <string name="group_no_subject">Sem assunto</string>
+    <string name="group_no_subject">Sem disciplina</string>
     <string name="group_edit_members">Alterar membros</string>
     <string name="group_member_open">Abrir perfil</string>
     <string name="group_lesson_present">Presentes: %1$d de %2$d</string>
@@ -338,7 +338,7 @@
         <item quantity="many">%1$d membros</item>
         <item quantity="other">%1$d membros</item>
     </plurals>
-    <string name="more_subjects">Assuntos</string>
+    <string name="more_subjects">Disciplinas</string>
     <string name="more_backup">Backup</string>
     <string name="calendar_denied">Sem acesso ao calendário</string>
     <string name="calendar_rationale">Klas necessita de acesso ao calendário para mostrar as aulas no calendário deste dispositivo</string>
@@ -498,7 +498,7 @@
     <string name="onboarding_locale_desc">Já escolhido para si. Altere qualquer coisa agora ou mais tarde nas Definições.</string>
     <string name="onboarding_lesson_length_desc">Preenche previamente novas lições. As tarifas são por hora, pelo que cada aula é cobrada de acordo com a sua duração.</string>
     <string name="onboarding_locale_currency_desc">Os valores são apenas rotulados com ele - nada é convertido.</string>
-    <string name="onboarding_subjects_title">Assuntos</string>
+    <string name="onboarding_subjects_title">Disciplinas</string>
     <string name="onboarding_subjects_desc">Toque no que ensina ou adicione o seu próprio. Pode alterá-los mais tarde.</string>
     <string-array name="onboarding_subject_suggestions">
         <item>Matemática</item>
@@ -510,8 +510,8 @@
         <item>Informática</item>
         <item>Piano</item>
     </string-array>
-    <string name="onboarding_subject_removed">Assunto eliminado</string>
-    <string name="onboarding_subject_remove_failed">Não foi possível eliminar o assunto</string>
+    <string name="onboarding_subject_removed">Disciplina eliminada</string>
+    <string name="onboarding_subject_remove_failed">Não foi possível eliminar a disciplina</string>
     <string name="onboarding_student_title">Primeiro aluno</string>
     <string name="onboarding_student_desc">Apenas um nome e uma taxa. Um telefone, e-mail e nota podem ser adicionados posteriormente ao perfil do aluno.</string>
     <string name="onboarding_continue">Seguinte</string>
@@ -588,7 +588,7 @@
     <string name="reports_by_year">Rendimento por ano</string>
     <string name="reports_by_kind">Rendimento por tipo de aula</string>
     <string name="reports_by_group">Rendimento por grupo</string>
-    <string name="reports_by_subject">Rendimento por assunto</string>
+    <string name="reports_by_subject">Rendimento por disciplina</string>
     <string name="reports_by_student">Rendimento por aluno</string>
     <string name="reports_debts">Dívidas</string>
     <string name="reports_no_debts">Ninguém deve nada</string>
@@ -731,7 +731,7 @@
     <string name="payment_choose_student">Quem efetuou o pagamento?</string>
     <string name="subject_set_price">Definir preço por hora</string>
     <string name="group_member_set_price">Definir preço por hora</string>
-    <string name="subject_add">Adicionar assunto</string>
+    <string name="subject_add">Adicionar disciplina</string>
     <string name="group_price_setup_hint">Defina uma taxa de disciplina individual para adicionar estes alunos. As aulas de grupo utilizam a tarifa de grupo.</string>
     <string name="class_completed_message">Marcado como ensinado</string>
     <string name="class_cancelled_message">Aula cancelada</string>
@@ -790,7 +790,6 @@
     <string name="today_lessons">Lições de hoje</string>
     <string name="today_no_lessons">Não há aulas hoje</string>
     <string name="today_owed">Devido a si</string>
-    <string name="today_homework">Trabalhos de casa por entregar</string>
     <string name="today_backup_old">Último backup %1$s</string>
     <string name="today_backup_never">Ainda não há backup</string>
     <string name="today_backup_detail">Os seus dados estão apenas neste telefone.</string>
@@ -800,7 +799,7 @@
         <item quantity="many">%1$d aulas marcadas como realizadas</item>
         <item quantity="other">%1$d aulas marcadas como realizadas</item>
     </plurals>
-    <string name="settings_subjects_none">Ainda não há assuntos</string>
+    <string name="settings_subjects_none">Ainda não há disciplinas</string>
     <string name="settings_backup_never">Nunca · configurar semanalmente</string>
     <string name="settings_backup_last">Último %1$s · configurado semanalmente</string>
     <string name="schedule_pick_date">Escolha uma data</string>
@@ -823,9 +822,9 @@
     <string name="statement_credit">Pago antecipadamente: %1$s</string>
     <string name="statement_settled">Nada a pagar</string>
     <string name="groups_sort_next">Por próxima aula</string>
-    <string name="form_gap_name">um nome</string>
-    <string name="form_gap_subject">Disciplina</string>
-    <string name="form_gap_price">Preço por hora</string>
+    <string name="form_gap_name">nome</string>
+    <string name="form_gap_subject">disciplina</string>
+    <string name="form_gap_price">preço por hora</string>
     <string name="form_gap_members">membros</string>
     <string name="filter_more">Filtro</string>
     <plurals name="batch_selected">
@@ -890,7 +889,7 @@
     <string name="reports_ledger_day">Data</string>
     <string name="reports_ledger_entry">Lançamento</string>
     <string name="reports_ledger_student">Aluno</string>
-    <string name="reports_ledger_detail">Assunto ou método</string>
+    <string name="reports_ledger_detail">Disciplina ou método</string>
     <string name="reports_ledger_lesson">Lição</string>
     <string name="reports_ledger_payment">Pagamento</string>
     <string name="schedule_cancel_day">Cancelar dia</string>
@@ -913,10 +912,10 @@
     <string name="today_never_paid">Ainda não há pagamento</string>
     <string name="today_recent_marks">Marcado fora da aplicação</string>
     <string name="today_marked_at">Realizada · marcada às %1$s</string>
-    <plurals name="today_members">
-        <item quantity="one">%1$d membro</item>
-        <item quantity="many">%1$d membros</item>
-        <item quantity="other">%1$d membros</item>
+    <plurals name="members_count">
+        <item quantity="one">%1$d\u00A0membro</item>
+        <item quantity="many">%1$d\u00A0membros</item>
+        <item quantity="other">%1$d\u00A0membros</item>
     </plurals>
     <string name="people_owes">Com dívida · %1$d</string>
     <string name="people_archived">Arquivado</string>
@@ -934,7 +933,7 @@
         <item quantity="many">%1$d disciplinas</item>
         <item quantity="other">%1$d disciplinas</item>
     </plurals>
-    <string name="subject_unused">Ainda não utilizado</string>
+    <string name="subject_unused">Ainda não utilizada</string>
     <plurals name="subject_groups_count">
         <item quantity="one">%1$d grupo</item>
         <item quantity="many">%1$d grupos</item>

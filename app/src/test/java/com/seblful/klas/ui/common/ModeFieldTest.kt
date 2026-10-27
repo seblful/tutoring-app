@@ -1,13 +1,12 @@
 package com.seblful.klas.ui.common
 
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.v2.createComposeRule
-import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.test.platform.app.InstrumentationRegistry
+import androidx.test.core.app.ApplicationProvider
 import com.seblful.klas.R
 import com.seblful.klas.domain.model.ClassMode
 import com.seblful.klas.ui.theme.KlasTheme
@@ -15,13 +14,17 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Rule
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
 
+/** A student's or group's place: both answers in sight, as booking's Place segments are, never behind a ▾. */
+@RunWith(RobolectricTestRunner::class)
 class ModeFieldTest {
 
     @get:Rule
     val rule = createComposeRule()
 
-    private val resources = InstrumentationRegistry.getInstrumentation().targetContext.resources
+    private val resources = ApplicationProvider.getApplicationContext<android.content.Context>().resources
     private val inPerson: String = resources.getString(R.string.class_mode_in_person)
     private val remote: String = resources.getString(R.string.class_mode_remote)
 
@@ -39,36 +42,21 @@ class ModeFieldTest {
         }
     }
 
-    private fun field(text: String) = rule.onNodeWithText(text)
-
     @Test
-    fun theChosenModeIsReadableWithoutOpeningAnything() {
+    fun `both places are in sight and the chosen one is marked`() {
         open(selected = ClassMode.REMOTE)
 
-        field(remote).assertIsDisplayed()
-        rule.onAllNodesWithText(inPerson).assertCountEquals(0)
+        rule.onNodeWithText(remote).assertIsSelected()
+        rule.onNodeWithText(inPerson).assertIsDisplayed()
         assertNull("nothing was picked, so nothing was reported", chosen)
     }
 
     @Test
-    fun theOtherModeIsOfferedOnlyOnceTheFieldIsOpened() {
-        open(selected = ClassMode.IN_PERSON)
-        rule.onAllNodesWithText(remote).assertCountEquals(0)
-
-        field(inPerson).performClick()
-
-        rule.onNodeWithText(remote).assertIsDisplayed()
-    }
-
-    @Test
-    fun pickingFromTheMenuReportsTheModeAndClosesIt() {
+    fun `a tap on the other place picks it`() {
         open(selected = ClassMode.IN_PERSON)
 
-        field(inPerson).performClick()
         rule.onNodeWithText(remote).performClick()
 
         assertEquals(ClassMode.REMOTE, chosen)
-        rule.waitUntil { rule.onAllNodesWithText(inPerson).fetchSemanticsNodes().size == 1 }
-        rule.onAllNodesWithText(remote).assertCountEquals(0)
     }
 }

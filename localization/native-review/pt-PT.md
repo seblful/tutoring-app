@@ -7,7 +7,7 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 
 | Key | English | Now | Why | Suggestion |
 |---|---|---|---|---|
-| `stat_debt` | Owes | Devo | reads “I owe” | |
+| `stat_debt` | Owes | Dívida | reads “I owe” | |
 | `lesson_kind_individual` | Individual | Indivíduo | “an individual (person)”, not a one-to-one lesson | |
 
 ## Setup
@@ -29,11 +29,11 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 | `onboarding_locale_desc` | Already chosen for you. Change anything now or later in Settings. | Já escolhido para si. Altere qualquer coisa agora ou mais tarde nas Definições. | |
 | `onboarding_lesson_length_desc` | Pre-fills new lessons. Rates are per hour, so each lesson is billed for its length. | Preenche previamente novas lições. As tarifas são por hora, pelo que cada aula é cobrada de acordo com a sua duração. | |
 | `onboarding_locale_currency_desc` | Amounts are only labelled with it — nothing is converted. | Os valores são apenas rotulados com ele - nada é convertido. | |
-| `onboarding_subjects_title` | Subjects | Assuntos | |
+| `onboarding_subjects_title` | Subjects | Disciplinas | |
 | `onboarding_subjects_desc` | Tap what you teach, or add your own. You can change them later. | Toque no que ensina ou adicione o seu próprio. Pode alterá-los mais tarde. | |
 | `onboarding_subject_suggestions` | *0:* Math · *1:* English · *2:* Physics · *3:* Chemistry · *4:* Biology · *5:* History · *6:* Computer science · *7:* Piano | *0:* Matemática · *1:* Inglês · *2:* Física · *3:* Química · *4:* Biologia · *5:* História · *6:* Informática · *7:* Piano | |
-| `onboarding_subject_removed` | Subject deleted | Assunto eliminado | |
-| `onboarding_subject_remove_failed` | Could not delete the subject | Não foi possível eliminar o assunto | |
+| `onboarding_subject_removed` | Subject deleted | Disciplina eliminada | |
+| `onboarding_subject_remove_failed` | Could not delete the subject | Não foi possível eliminar a disciplina | |
 | `onboarding_student_title` | First student | Primeiro aluno | |
 | `onboarding_student_desc` | Just a name and a rate. A phone, email and note can be added on the student's profile later. | Apenas um nome e uma taxa. Um telefone, e-mail e nota podem ser adicionados posteriormente ao perfil do aluno. | |
 | `onboarding_continue` | Next | Seguinte | |
@@ -88,7 +88,6 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 | `today_lessons` | Today's lessons | Lições de hoje | |
 | `today_no_lessons` | No lessons today | Não há aulas hoje | |
 | `today_owed` | Owed to you | Devido a si | |
-| `today_homework` | Homework due | Trabalhos de casa por entregar | |
 | `today_backup_old` | Last backup %1$s | Último backup %1$s | |
 | `today_backup_never` | No backup yet | Ainda não há backup | |
 | `today_backup_detail` | Your data is on this phone only. | Os seus dados estão apenas neste telefone. | |
@@ -100,7 +99,6 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 | `today_never_paid` | No payment yet | Ainda não há pagamento | |
 | `today_recent_marks` | Marked outside the app | Marcado fora da aplicação | |
 | `today_marked_at` | Taught · marked at %1$s | Realizada · marcada às %1$s | |
-| `today_members` | *one:* %1$d member · *other:* %1$d members | *one:* %1$d membro · *many:* %1$d membros · *other:* %1$d membros | |
 
 ## Buttons
 
@@ -177,7 +175,7 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 
 | Key | English | Now | OK / suggestion |
 |---|---|---|---|
-| `stat_debt` | Owes | Devo | |
+| `stat_debt` | Owes | Dívida | |
 | `stat_credit` | In credit | Saldo a favor | |
 | `stat_lessons` | Lessons | Lições | |
 | `stat_hours` | Hours | Horas | |

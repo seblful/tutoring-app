@@ -10,6 +10,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
+import com.seblful.klas.ui.common.HoldToName
 import com.seblful.klas.ui.theme.KlasIcons
 import com.seblful.klas.ui.theme.klasColors
 
@@ -31,20 +32,22 @@ fun DoneButton(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
 ) {
-    IconButton(
-        onClick = if (done) onOpen else onDone,
-        enabled = enabled,
-        modifier = modifier.semantics {
-            contentDescription = label
-            if (done) stateDescription = doneWord
-        },
-    ) {
-        Icon(
-            if (done) KlasIcons.Filled.CheckCircle else KlasIcons.Outlined.Circle,
-            contentDescription = null,
-            tint = (if (done) klasColors.success else MaterialTheme.colorScheme.onSurfaceVariant)
-                .copy(alpha = if (enabled) 1f else DisabledAlpha),
-        )
+    HoldToName(label) {
+        IconButton(
+            onClick = if (done) onOpen else onDone,
+            enabled = enabled,
+            modifier = modifier.semantics {
+                contentDescription = label
+                if (done) stateDescription = doneWord
+            },
+        ) {
+            Icon(
+                if (done) KlasIcons.Filled.CheckCircle else KlasIcons.Outlined.Circle,
+                contentDescription = null,
+                tint = (if (done) klasColors.success else MaterialTheme.colorScheme.onSurfaceVariant)
+                    .copy(alpha = if (enabled) 1f else DisabledAlpha),
+            )
+        }
     }
 }
 

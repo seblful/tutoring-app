@@ -44,4 +44,17 @@ class BalanceCardTest {
 
         assertEquals(1, statements)
     }
+
+    @Test
+    fun `a settled student is said to owe nothing, not to owe zero`() {
+        compose.setContent {
+            KlasTheme {
+                BalanceCard(StudentDetails(balance = Balance.Settled), onAddPayment = {}, onStatement = {})
+            }
+        }
+
+        compose.onNodeWithText("Nothing owed").assertIsDisplayed()
+        compose.onNodeWithText("Owes").assertDoesNotExist()
+        compose.onNodeWithText("$0", substring = true).assertDoesNotExist()
+    }
 }

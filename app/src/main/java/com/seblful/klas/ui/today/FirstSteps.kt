@@ -62,7 +62,7 @@ private fun StepsCard(title: String, complete: Boolean, onHide: () -> Unit, rows
         summary = stringResource(R.string.first_steps_count, rows.count { it.done }, rows.size),
         action = SectionAction(
             stringResource(if (complete) R.string.first_steps_close else R.string.first_steps_hide),
-            onHide,
+            onClick = onHide,
         ),
     ) {
         val doneWord = stringResource(R.string.first_step_done)

@@ -34,9 +34,9 @@
         <item quantity="one">%1$d mehr – Suche verfeinern</item>
         <item quantity="other">%1$d mehr – Suche verfeinern</item>
     </plurals>
-    <string name="students_search_hint">Studenten suchen</string>
-    <string name="groups_search_hint">Gruppen durchsuchen</string>
-    <string name="subjects_search_hint">Fachname</string>
+    <string name="students_search_hint">Schüler suchen</string>
+    <string name="groups_search_hint">Gruppen suchen</string>
+    <string name="subjects_search_hint">Fächer suchen</string>
     <string name="students_sort_name">Nach Namen</string>
     <string name="students_sort_debt">Schuldner zuerst</string>
     <string name="unsaved_save_title">Änderungen speichern?</string>
@@ -87,7 +87,7 @@
     <string name="class_section_price">Stundensatz</string>
     <string name="class_section_format">Ort</string>
     <string name="class_terms_price_needed">Stundensatz festlegen</string>
-    <string name="class_who_label">Student oder Gruppe</string>
+    <string name="class_who_label">Schüler oder Gruppe</string>
     <string name="class_book_action">Buchen</string>
     <string name="class_still_needed">Wird noch benötigt</string>
     <string name="class_day_previous">Vorheriger Tag</string>
@@ -183,12 +183,12 @@
     <string name="lesson_kind_group">Gruppe</string>
     <string name="lesson_kind_individual_one">Individuell</string>
     <string name="lesson_kind_count">%1$s · %2$d</string>
-    <string name="students_title">Studenten</string>
-    <string name="students_empty">Noch keine Studenten</string>
-    <string name="students_empty_detail">Ein Student ist ein Name, seine Fächer und ein Stundensatz. Danach können Sie Unterrichtsstunden buchen und Zahlungen verfolgen.</string>
+    <string name="students_title">Schüler</string>
+    <string name="students_empty">Noch keine Schüler</string>
+    <string name="students_empty_detail">Ein Schüler besteht aus einem Namen, seinen Fächern und einem Stundensatz. Danach können Sie Unterrichtsstunden buchen und Zahlungen verfolgen.</string>
     <string name="students_add">Fügen Sie einen Schüler hinzu</string>
     <string name="student_archived_badge">Archiviert</string>
-    <string name="student_add_title">Neuer Student</string>
+    <string name="student_add_title">Neuer Schüler</string>
     <string name="student_edit_title">Schüler bearbeiten</string>
     <string name="student_name_label">Name</string>
     <string name="student_phone_label">Kontakttelefon</string>
@@ -208,7 +208,7 @@
     <string name="student_add_subject">Fach hinzufügen</string>
     <string name="student_all_subjects_added">Alle Fächer wurden hinzugefügt</string>
     <string name="student_subject_remove_blocked">Das Fach kann nicht entfernt werden, da Unterrichtsstunden dafür existieren</string>
-    <string name="student_archive_balance_part">Der Saldo dieses Studenten ist nicht beglichen (%1$s). Ihre Historie bleibt in den Berichten erhalten, aber wöchentliche Schuldenerinnerungen schließen sie aus.</string>
+    <string name="student_archive_balance_part">Der Saldo dieses Schülers ist nicht ausgeglichen (%1$s). Sein Verlauf bleibt in den Berichten erhalten, aber wöchentliche Schuldenerinnerungen berücksichtigen ihn nicht mehr.</string>
     <string name="student_archive_question">Trotzdem archivieren?</string>
     <plurals name="student_archive_lessons_part">
         <item quantity="one">Abzusagende geplante Stunden: %1$d.</item>
@@ -292,7 +292,7 @@
     <string name="subject_delete_blocked_students">Das Fach kann nicht gelöscht werden, da ein Schüler dafür angemeldet ist. Entfernen Sie es zuerst aus dessen Profil.</string>
     <string name="groups_title">Gruppen</string>
     <string name="groups_empty">Noch keine Gruppen</string>
-    <string name="groups_empty_detail">Eine Gruppe besteht aus mehreren Studenten, die sich einen Tarif teilen. Für alle wird eine Unterrichtsstunde auf einmal gebucht.</string>
+    <string name="groups_empty_detail">Eine Gruppe besteht aus mehreren Schülern, die sich einen Tarif teilen. Eine Unterrichtsstunde wird für alle gleichzeitig gebucht.</string>
     <string name="groups_add">Erstellen Sie eine Gruppe</string>
     <string name="group_form_create">Gruppe erstellen</string>
     <string name="group_add_title">Neue Gruppe</string>
@@ -388,7 +388,7 @@
     <string name="settings_calendar_sync">Kalendersynchronisierung</string>
     <string name="settings_calendar_sync_desc">Lektionen im Kalender dieses Geräts anzeigen</string>
     <string name="settings_calendar_sync_blocked">Der Kalenderzugriff wurde widerrufen – Lektionen werden nicht kopiert</string>
-    <string name="settings_email_invites">Laden Sie Studierende per E-Mail ein</string>
+    <string name="settings_email_invites">Schüler per E-Mail einladen</string>
     <string name="settings_email_invites_desc">Fügen Sie Schüler mit E-Mail-Adressen zu Kalenderereignissen hinzu. Ihr Kalenderkonto verwaltet Einladungen; Vorhandene synchronisierte Ereignisse werden aktualisiert.</string>
     <string name="settings_reminder_lead">Vor dem Unterricht</string>
     <string name="settings_reminder_lead_custom">Benutzerdefiniert…</string>
@@ -473,7 +473,7 @@
     <string name="onboarding_restore">Stellen Sie ein Backup wieder her</string>
     <string name="onboarding_restore_desc">Die Daten der Datei ersetzen, was hier ist</string>
     <string name="onboarding_skip">Überspringen</string>
-    <string name="onboarding_skip_desc">Fächer und Studierende können später hinzugefügt werden</string>
+    <string name="onboarding_skip_desc">Fächer und Schüler können später hinzugefügt werden</string>
     <string name="onboarding_step">Schritt %1$d von %2$d</string>
     <string name="onboarding_locale_title">Die Grundlagen</string>
     <string name="onboarding_locale_desc">Bereits für Sie ausgewählt. Ändern Sie jetzt oder später alles in den Einstellungen.</string>
@@ -493,7 +493,7 @@
     </string-array>
     <string name="onboarding_subject_removed">Fach gelöscht</string>
     <string name="onboarding_subject_remove_failed">Das Fach konnte nicht gelöscht werden</string>
-    <string name="onboarding_student_title">Erster Student</string>
+    <string name="onboarding_student_title">Erster Schüler</string>
     <string name="onboarding_student_desc">Nur ein Name und ein Preis. Eine Telefonnummer, eine E-Mail-Adresse und eine Notiz können später zum Profil des Schülers hinzugefügt werden.</string>
     <string name="onboarding_continue">Weiter</string>
     <string name="onboarding_finish">Fertig</string>
@@ -566,7 +566,7 @@
     <string name="reports_by_kind">Einkommen nach Unterrichtsart</string>
     <string name="reports_by_group">Einkommen nach Gruppe</string>
     <string name="reports_by_subject">Einkommen nach Fach</string>
-    <string name="reports_by_student">Einkommen des Studierenden</string>
+    <string name="reports_by_student">Einkommen nach Schüler</string>
     <string name="reports_debts">Schulden</string>
     <string name="reports_no_debts">Niemand schuldet etwas</string>
     <string name="reports_total_outstanding">Offene Forderungen insgesamt</string>
@@ -763,7 +763,6 @@
     <string name="today_lessons">Die heutigen Lektionen</string>
     <string name="today_no_lessons">Heute kein Unterricht</string>
     <string name="today_owed">Ihnen geschuldet</string>
-    <string name="today_homework">Fällige Hausaufgaben</string>
     <string name="today_backup_old">Letzte Sicherung %1$s</string>
     <string name="today_backup_never">Noch kein Backup</string>
     <string name="today_backup_detail">Ihre Daten befinden sich nur auf diesem Telefon.</string>
@@ -795,7 +794,7 @@
     <string name="statement_credit">Im Voraus bezahlt: %1$s</string>
     <string name="statement_settled">Nichts zu bezahlen</string>
     <string name="groups_sort_next">Nach nächster Unterrichtsstunde</string>
-    <string name="form_gap_name">ein Name</string>
+    <string name="form_gap_name">Name</string>
     <string name="form_gap_subject">Fach</string>
     <string name="form_gap_price">Stundensatz</string>
     <string name="form_gap_members">Mitglieder</string>
@@ -847,7 +846,7 @@
     <string name="reports_earned">Verdient</string>
     <string name="reports_export_menu">Exportieren</string>
     <string name="reports_filter">Filtern Sie den Bericht</string>
-    <string name="reports_filter_all">Alle Studierenden und Fächer</string>
+    <string name="reports_filter_all">Alle Schüler und Fächer</string>
     <string name="onboarding_subject_field_hint">Geben Sie einen Namen ein und drücken Sie die Eingabetaste</string>
     <string name="reports_share_ledger">Senden Sie das Hauptbuch</string>
     <string name="reports_export_ledger">Speichern Sie das Hauptbuch als CSV</string>
@@ -870,7 +869,7 @@
     <string name="class_step_earlier_to">Früher bis %1$s</string>
     <string name="class_step_later_to">Später zu %1$s</string>
     <string name="class_step_first_free">− oder + nimmt %1$s, die erste freie Zeit</string>
-    <string name="fab_new_student">Neuer Student</string>
+    <string name="fab_new_student">Neuer Schüler</string>
     <string name="fab_new_group">Neue Gruppe</string>
     <string name="today_next_in">Weiter · in %1$s</string>
     <string name="today_open">Öffnen</string>
@@ -878,9 +877,9 @@
     <string name="today_never_paid">Noch keine Zahlung</string>
     <string name="today_recent_marks">Außerhalb der App markiert</string>
     <string name="today_marked_at">Gehalten · um %1$s markiert</string>
-    <plurals name="today_members">
-        <item quantity="one">%1$d Mitglied</item>
-        <item quantity="other">%1$d Mitglieder</item>
+    <plurals name="members_count">
+        <item quantity="one">%1$d\u00A0Mitglied</item>
+        <item quantity="other">%1$d\u00A0Mitglieder</item>
     </plurals>
     <string name="people_owes">Mit Schulden · %1$d</string>
     <string name="people_archived">Archiviert</string>

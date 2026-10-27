@@ -35,7 +35,7 @@
     </plurals>
     <string name="students_search_hint">搜尋學生</string>
     <string name="groups_search_hint">搜尋組</string>
-    <string name="subjects_search_hint">科目名稱</string>
+    <string name="subjects_search_hint">搜尋科目</string>
     <string name="students_sort_name">按名稱</string>
     <string name="students_sort_debt">債務人優先</string>
     <string name="unsaved_save_title">儲存變更嗎？</string>
@@ -182,7 +182,7 @@
     <string name="students_empty_detail">學生是一個名字、他們的科目和每小時的費率。之後，您可以預訂課程並追蹤付款。</string>
     <string name="students_add">新增學生</string>
     <string name="student_archived_badge">已存檔</string>
-    <string name="student_add_title">新生</string>
+    <string name="student_add_title">新學生</string>
     <string name="student_edit_title">編輯學生</string>
     <string name="student_name_label">姓名</string>
     <string name="student_phone_label">聯絡電話</string>
@@ -278,8 +278,8 @@
     <string name="subject_delete_named">刪除%1$s</string>
     <string name="subject_deleted">科目已刪除</string>
     <string name="subject_delete_blocked">無法刪除該科目：它有課程。先刪除那些。</string>
-    <string name="subject_delete_blocked_group">無法刪除該科目：一個小組正在研究它。首先改變小組的科目。</string>
-    <string name="subject_delete_blocked_students">無法刪除該科目：學生接受了該科目。首先將其從他們的個人資料中刪除。</string>
+    <string name="subject_delete_blocked_group">無法刪除該科目：有小組在學習該科目。請先變更小組的科目。</string>
+    <string name="subject_delete_blocked_students">無法刪除該科目：有學生在學習該科目。請先從學生資料中移除該科目。</string>
     <string name="groups_title">團體</string>
     <string name="groups_empty">還沒有群組</string>
     <string name="groups_empty_detail">一個團體是指共享同一個費率的多名學生。一次為所有人預訂一節課。</string>
@@ -736,7 +736,6 @@
     <string name="today_lessons">今天的課程</string>
     <string name="today_no_lessons">今天沒有課</string>
     <string name="today_owed">欠你的</string>
-    <string name="today_homework">待交作業</string>
     <string name="today_backup_old">最後備份 %1$s</string>
     <string name="today_backup_never">尚未備份</string>
     <string name="today_backup_detail">您的資料僅儲存在這部手機上。</string>
@@ -767,10 +766,10 @@
     <string name="statement_credit">預付款：%1$s</string>
     <string name="statement_settled">無須支付任何費用</string>
     <string name="groups_sort_next">依下次上課時間</string>
-    <string name="form_gap_name">一個名字</string>
+    <string name="form_gap_name">名字</string>
     <string name="form_gap_subject">科目</string>
     <string name="form_gap_price">課時費</string>
-    <string name="form_gap_members">會員</string>
+    <string name="form_gap_members">成員</string>
     <string name="filter_more">篩選</string>
     <plurals name="batch_selected">
         <item quantity="other">已選擇%1$d</item>
@@ -835,7 +834,7 @@
     <string name="class_step_earlier_to">提早至%1$s</string>
     <string name="class_step_later_to">延後至%1$s</string>
     <string name="class_step_first_free">按−或+可跳至最早的空檔：%1$s</string>
-    <string name="fab_new_student">新生</string>
+    <string name="fab_new_student">新學生</string>
     <string name="fab_new_group">新組</string>
     <string name="today_next_in">下一堂 · %1$s後</string>
     <string name="today_open">開啟</string>
@@ -843,7 +842,7 @@
     <string name="today_never_paid">尚未付款</string>
     <string name="today_recent_marks">從應用程式外標記</string>
     <string name="today_marked_at">已完成 · 標記時間：%1$s</string>
-    <plurals name="today_members">
+    <plurals name="members_count">
         <item quantity="other">%1$d名成員</item>
     </plurals>
     <string name="people_owes">有欠款 · %1$d</string>

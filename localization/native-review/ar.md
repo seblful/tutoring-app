@@ -7,7 +7,7 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 
 | Key | English | Now | Why | Suggestion |
 |---|---|---|---|---|
-| `stat_debt` | Owes | عويس | a transliteration of “owes”, not a word | |
+| `stat_debt` | Owes | مستحقات | a transliteration of “owes”, not a word | |
 | `lesson_kind_individual` | Individual | فرد | “an individual (person)”, not a one-to-one lesson | |
 
 ## Setup
@@ -29,11 +29,11 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 | `onboarding_locale_desc` | Already chosen for you. Change anything now or later in Settings. | تم اختياره لك بالفعل. قم بتغيير أي شيء الآن أو لاحقًا في الإعدادات. | |
 | `onboarding_lesson_length_desc` | Pre-fills new lessons. Rates are per hour, so each lesson is billed for its length. | يقوم بملء الدروس الجديدة مسبقًا. الأسعار محددة بالساعة، لذا تتم محاسبة كل درس وفقًا لطوله. | |
 | `onboarding_locale_currency_desc` | Amounts are only labelled with it — nothing is converted. | تتم تسمية المبالغ به فقط - ولا يتم تحويل أي شيء. | |
-| `onboarding_subjects_title` | Subjects | المواضيع | |
+| `onboarding_subjects_title` | Subjects | المواد | |
 | `onboarding_subjects_desc` | Tap what you teach, or add your own. You can change them later. | اضغط على ما تقوم بتدريسه، أو قم بإضافة ما تعلمه بنفسك. يمكنك تغييرها لاحقا. | |
 | `onboarding_subject_suggestions` | *0:* Math · *1:* English · *2:* Physics · *3:* Chemistry · *4:* Biology · *5:* History · *6:* Computer science · *7:* Piano | *0:* الرياضيات · *1:* اللغة الإنجليزية · *2:* الفيزياء · *3:* الكيمياء · *4:* علم الأحياء · *5:* التاريخ · *6:* علوم الحاسب الآلي · *7:* بيانو | |
-| `onboarding_subject_removed` | Subject deleted | تم حذف الموضوع | |
-| `onboarding_subject_remove_failed` | Could not delete the subject | لا يمكن حذف الموضوع | |
+| `onboarding_subject_removed` | Subject deleted | تم حذف المادة | |
+| `onboarding_subject_remove_failed` | Could not delete the subject | تعذر حذف المادة | |
 | `onboarding_student_title` | First student | الطالب الأول | |
 | `onboarding_student_desc` | Just a name and a rate. A phone, email and note can be added on the student's profile later. | مجرد اسم وسعر. ويمكن إضافة هاتف وبريد إلكتروني وملاحظة في الملف الشخصي للطالب لاحقًا. | |
 | `onboarding_continue` | Next | التالي | |
@@ -88,7 +88,6 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 | `today_lessons` | Today's lessons | دروس اليوم | |
 | `today_no_lessons` | No lessons today | لا توجد دروس اليوم | |
 | `today_owed` | Owed to you | مستحق لك | |
-| `today_homework` | Homework due | الواجبات المستحقة | |
 | `today_backup_old` | Last backup %1$s | آخر نسخة احتياطية %1$s | |
 | `today_backup_never` | No backup yet | لا توجد نسخة احتياطية حتى الآن | |
 | `today_backup_detail` | Your data is on this phone only. | بياناتك موجودة على هذا الهاتف فقط. | |
@@ -100,7 +99,6 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 | `today_never_paid` | No payment yet | لم يتم الدفع بعد | |
 | `today_recent_marks` | Marked outside the app | تم وضع علامة خارج التطبيق | |
 | `today_marked_at` | Taught · marked at %1$s | مكتمل · تم التعليم في %1$s | |
-| `today_members` | *one:* %1$d member · *other:* %1$d members | *zero:* عدد الأعضاء: %1$d · *one:* عدد الأعضاء: %1$d · *two:* عدد الأعضاء: %1$d · *few:* عدد الأعضاء: %1$d · *many:* عدد الأعضاء: %1$d · *other:* عدد الأعضاء: %1$d | |
 
 ## Buttons
 
@@ -136,7 +134,7 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 | `schedule_add_class` | Book a lesson | حجز الدرس | |
 | `schedule_week_empty` | No lessons this week | لا توجد دروس هذا الأسبوع | |
 | `schedule_empty_no_setup` | Nothing to plan yet | لا يوجد شيء للتخطيط له بعد | |
-| `schedule_empty_no_setup_detail` | A lesson is booked for a student and a subject with a rate. Start with a student. | يتم حجز درس للطالب والمادة بمعدل. ابدأ بالطالب. | |
+| `schedule_empty_no_setup_detail` | A lesson is booked for a student and a subject with a rate. Start with a student. | يُحجز الدرس لطالب ومادة لها سعر. ابدأ بالطالب. | |
 | `schedule_add_student` | Add a student | إضافة طالب | |
 | `schedule_filter_everyone` | Everyone | الجميع | |
 | `schedule_filter_any_status` | Any status | أي حالة | |
@@ -157,7 +155,7 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 | `schedule_next_week` | Next week | الاسبوع القادم | |
 | `schedule_previous_month` | Previous month | الشهر السابق | |
 | `schedule_next_month` | Next month | الشهر القادم | |
-| `schedule_need_setup` | Add a subject and a student first | أضف موضوعًا وطالبًا أولاً | |
+| `schedule_need_setup` | Add a subject and a student first | أضف مادة وطالبًا أولاً | |
 | `schedule_pick_date` | Choose a date | اختر تاريخا | |
 | `schedule_cancel_day` | Cancel day | إلغاء اليوم | |
 | `schedule_open_day` | Open day | فتح اليوم | |
@@ -177,7 +175,7 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 
 | Key | English | Now | OK / suggestion |
 |---|---|---|---|
-| `stat_debt` | Owes | عويس | |
+| `stat_debt` | Owes | مستحقات | |
 | `stat_credit` | In credit | رصيد مدفوع مقدّمًا | |
 | `stat_lessons` | Lessons | الدروس | |
 | `stat_hours` | Hours | ساعات | |

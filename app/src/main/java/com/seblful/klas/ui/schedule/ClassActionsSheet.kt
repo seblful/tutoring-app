@@ -13,7 +13,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
@@ -289,8 +288,13 @@ private fun AttachedHomework(items: List<SheetHomework>, onDone: (Homework, Bool
                     .padding(vertical = Spacing.tight),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                // No handler of its own: the row is the target, so the whole line ticks it.
-                Checkbox(checked = done, onCheckedChange = null)
+                // No handler of its own: the row is the target, so the whole line ticks it. Homework's circle
+                // tick, as on the Homework tab and a profile, not a square box.
+                Icon(
+                    if (done) KlasIcons.Filled.CheckCircle else KlasIcons.Outlined.Circle,
+                    contentDescription = null,
+                    tint = if (done) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                )
                 Column(Modifier.weight(1f).padding(start = Spacing.inline)) {
                     item.who?.let { Text(it, style = MaterialTheme.typography.labelLarge) }
                     Text(

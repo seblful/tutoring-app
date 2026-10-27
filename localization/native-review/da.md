@@ -16,17 +16,17 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 | `onboarding_restore` | Restore a backup | Gendan en sikkerhedskopi | |
 | `onboarding_restore_desc` | The file's data will replace what is here | Filens data vil erstatte det, der er her | |
 | `onboarding_skip` | Skip | Springe | |
-| `onboarding_skip_desc` | Subjects and students can be added later | Emner og studerende kan tilføjes senere | |
+| `onboarding_skip_desc` | Subjects and students can be added later | Fag og elever kan tilføjes senere | |
 | `onboarding_step` | Step %1$d of %2$d | Trin %1$d af %2$d | |
 | `onboarding_locale_title` | The basics | Det grundlæggende | |
 | `onboarding_locale_desc` | Already chosen for you. Change anything now or later in Settings. | Allerede valgt til dig. Rediger noget nu eller senere i Indstillinger. | |
 | `onboarding_lesson_length_desc` | Pre-fills new lessons. Rates are per hour, so each lesson is billed for its length. | Forudfylder nye lektioner. Priserne er pr. time, så hver lektion faktureres for dens længde. | |
 | `onboarding_locale_currency_desc` | Amounts are only labelled with it — nothing is converted. | Beløb er kun mærket med det - intet omregnes. | |
-| `onboarding_subjects_title` | Subjects | Emner | |
+| `onboarding_subjects_title` | Subjects | Fag | |
 | `onboarding_subjects_desc` | Tap what you teach, or add your own. You can change them later. | Tryk på det, du underviser i, eller tilføj dit eget. Du kan ændre dem senere. | |
 | `onboarding_subject_suggestions` | *0:* Math · *1:* English · *2:* Physics · *3:* Chemistry · *4:* Biology · *5:* History · *6:* Computer science · *7:* Piano | *0:* Matematik · *1:* Engelsk · *2:* Fysik · *3:* Kemi · *4:* Biologi · *5:* Historie · *6:* Datalogi · *7:* Klaver | |
-| `onboarding_subject_removed` | Subject deleted | Emne slettet | |
-| `onboarding_subject_remove_failed` | Could not delete the subject | Emnet kunne ikke slettes | |
+| `onboarding_subject_removed` | Subject deleted | Fag slettet | |
+| `onboarding_subject_remove_failed` | Could not delete the subject | Faget kunne ikke slettes | |
 | `onboarding_student_title` | First student | Første elev | |
 | `onboarding_student_desc` | Just a name and a rate. A phone, email and note can be added on the student's profile later. | Bare et navn og en pris. En telefon, e-mail og note kan tilføjes på elevens profil senere. | |
 | `onboarding_continue` | Next | Dernæst | |
@@ -81,7 +81,6 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 | `today_lessons` | Today's lessons | Dagens lektioner | |
 | `today_no_lessons` | No lessons today | Ingen undervisning i dag | |
 | `today_owed` | Owed to you | Skyldes dig | |
-| `today_homework` | Homework due | Lektier til aflevering | |
 | `today_backup_old` | Last backup %1$s | Sidste backup %1$s | |
 | `today_backup_never` | No backup yet | Ingen backup endnu | |
 | `today_backup_detail` | Your data is on this phone only. | Dine data er kun på denne telefon. | |
@@ -93,7 +92,6 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 | `today_never_paid` | No payment yet | Endnu ingen betaling | |
 | `today_recent_marks` | Marked outside the app | Markeret uden for appen | |
 | `today_marked_at` | Taught · marked at %1$s | Afholdt · markeret kl. %1$s | |
-| `today_members` | *one:* %1$d member · *other:* %1$d members | *one:* %1$d medlem · *other:* %1$d medlemmer | |
 
 ## Buttons
 
@@ -150,7 +148,7 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 | `schedule_next_week` | Next week | Næste uge | |
 | `schedule_previous_month` | Previous month | Forrige måned | |
 | `schedule_next_month` | Next month | Næste måned | |
-| `schedule_need_setup` | Add a subject and a student first | Tilføj et emne og en elev først | |
+| `schedule_need_setup` | Add a subject and a student first | Tilføj et fag og en elev først | |
 | `schedule_pick_date` | Choose a date | Vælg en dato | |
 | `schedule_cancel_day` | Cancel day | Annuller dag | |
 | `schedule_open_day` | Open day | Åbn dagen | |
@@ -170,7 +168,7 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 
 | Key | English | Now | OK / suggestion |
 |---|---|---|---|
-| `stat_debt` | Owes | skylder | |
+| `stat_debt` | Owes | Skylder | |
 | `stat_credit` | In credit | Tilgodehavende | |
 | `stat_lessons` | Lessons | Lektioner | |
 | `stat_hours` | Hours | Timer | |
@@ -223,8 +221,8 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 | `students_search_hint` | Search students | Søg efter elever | |
 | `students_sort_name` | By name | Ved navn | |
 | `students_sort_debt` | Debtors first | Debitorer først | |
-| `students_title` | Students | Studerende | |
-| `students_empty` | No students yet | Ingen studerende endnu | |
+| `students_title` | Students | Elever | |
+| `students_empty` | No students yet | Ingen elever endnu | |
 | `students_empty_detail` | A student is a name, their subjects and a rate per hour. After that you can book lessons and track payments. | En elev er et navn, deres fag og en timepris. Derefter kan du booke lektioner og spore betalinger. | |
 | `students_add` | Add a student | Tilføj en elev | |
 | `students_count` | *one:* %1$d\u00A0student · *other:* %1$d\u00A0students | *one:* %1$d\u00A0elev · *other:* %1$d\u00A0elever | |

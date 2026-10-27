@@ -35,8 +35,8 @@
         <item quantity="other">%1$d daha fazlası — aramayı daraltın</item>
     </plurals>
     <string name="students_search_hint">Öğrencileri arayın</string>
-    <string name="groups_search_hint">Grupları ara</string>
-    <string name="subjects_search_hint">Ders adı</string>
+    <string name="groups_search_hint">Grupları arayın</string>
+    <string name="subjects_search_hint">Dersleri arayın</string>
     <string name="students_sort_name">Ada göre</string>
     <string name="students_sort_debt">Önce borçlular</string>
     <string name="unsaved_save_title">Değişiklikler kaydedilsin mi?</string>
@@ -98,11 +98,11 @@
     <string name="class_step_earlier">15 dakika önce</string>
     <string name="class_step_later">15 dakika sonra</string>
     <string name="class_gap_who">öğrenci veya grup</string>
-    <string name="class_gap_subject">Ders</string>
+    <string name="class_gap_subject">ders</string>
     <string name="class_gap_date">tarih</string>
     <string name="class_gap_start">başlangıç zamanı</string>
     <string name="class_gap_length">uzunluk</string>
-    <string name="class_gap_price">Saat ücreti</string>
+    <string name="class_gap_price">saat ücreti</string>
     <plurals name="class_series_lessons">
         <item quantity="one">%1$d ders</item>
         <item quantity="other">%1$d ders</item>
@@ -156,7 +156,7 @@
     <string name="class_delete_completed_confirm">Bu ders yapıldı. Silinirse ücreti öğrencinin bakiyesinden kaldırılacak. Silinsin mi?</string>
     <string name="class_target_group">Grup</string>
     <string name="class_group_label">Grup</string>
-    <string name="class_no_subjects_for_group">Önce konuları ekleyin</string>
+    <string name="class_no_subjects_for_group">Önce ders ekleyin</string>
     <string name="class_group_members_title">Üyeler</string>
     <string name="class_group_no_active_members">Bu grupta hiç kimse rezerve edilemez: üyeleri arşivlendi</string>
     <string name="class_group_no_members_left">En az bir üye seçin</string>
@@ -165,7 +165,7 @@
         <item quantity="one">Yapılmış bir dersten çıkarılacak öğrenci sayısı: %1$d. Dersleri ve ilgili ücretler silinecek. Kaydedilsin mi?</item>
         <item quantity="other">Yapılmış bir dersten çıkarılacak öğrenci sayısı: %1$d. Dersleri ve ilgili ücretler silinecek. Kaydedilsin mi?</item>
     </plurals>
-    <string name="class_subject_from_group">Grup konuyu belirler</string>
+    <string name="class_subject_from_group">Dersi grup belirler</string>
     <string name="class_group_price_label">Öğrenci başına saat ücreti</string>
     <string name="class_mark_completed">Yapıldı olarak işaretle</string>
     <string name="class_series_availability">Boş tarihler: %1$d. Dolu tarihler atlanacak.</string>
@@ -185,7 +185,7 @@
     <string name="lesson_kind_count">%1$s · %2$d</string>
     <string name="students_title">Öğrenciler</string>
     <string name="students_empty">Henüz öğrenci yok</string>
-    <string name="students_empty_detail">Bir öğrencinin adı, konuları ve saat başına oranıdır. Bundan sonra ders rezervasyonu yapabilir ve ödemeleri takip edebilirsiniz.</string>
+    <string name="students_empty_detail">Öğrenci kaydı bir ad, dersler ve saatlik ücretten oluşur. Ardından ders rezervasyonu yapabilir ve ödemeleri takip edebilirsiniz.</string>
     <string name="students_add">Bir öğrenci ekle</string>
     <string name="student_archived_badge">Arşivlendi</string>
     <string name="student_add_title">Yeni öğrenci</string>
@@ -201,13 +201,13 @@
     <string name="student_form_add">Öğrenci ekle</string>
     <string name="student_form_subject_has_lessons">Dersleri var, bu yüzden kalıyor</string>
     <string name="student_form_subjects_required">En az bir ders konusu seçin ve saat ücretini belirleyin</string>
-    <string name="student_form_no_subjects">Önce konuları ekleyin</string>
+    <string name="student_form_no_subjects">Önce ders ekleyin</string>
     <string name="student_mode_label">Yer</string>
-    <string name="student_subjects_title">Konular</string>
-    <string name="student_no_subjects">Hiçbir konu seçilmedi</string>
-    <string name="student_add_subject">Konu ekle</string>
-    <string name="student_all_subjects_added">Her konu eklendi</string>
-    <string name="student_subject_remove_blocked">Konu kaldırılamıyor: dersler var</string>
+    <string name="student_subjects_title">Dersler</string>
+    <string name="student_no_subjects">Hiçbir ders seçilmedi</string>
+    <string name="student_add_subject">Ders ekle</string>
+    <string name="student_all_subjects_added">Tüm dersler eklendi</string>
+    <string name="student_subject_remove_blocked">Ders kaldırılamıyor: kayıtlı dersleri var</string>
     <string name="student_archive_balance_part">Bu öğrencinin bakiyesi henüz kapatılmadı (%1$s). Geçmişleri raporlarda kalır ancak haftalık borç hatırlatmaları onları kapsamaz.</string>
     <string name="student_archive_question">Yine de arşivlensin mi?</string>
     <plurals name="student_archive_lessons_part">
@@ -277,19 +277,19 @@
     <string name="action_copy">Kopyala</string>
     <string name="clipboard_copied">Kopyalandı</string>
     <string name="student_contact_failed">Bu telefondaki hiçbir uygulama bunu yapamaz</string>
-    <string name="subjects_title">Konular</string>
-    <string name="subjects_empty">Henüz konu yok</string>
+    <string name="subjects_title">Dersler</string>
+    <string name="subjects_empty">Henüz ders eklenmedi</string>
     <string name="subjects_empty_detail">Ders, öğrettiğiniz alandır. Ücret belirlemek ve ders planlamak için önce bir ders ekleyin.</string>
-    <string name="subjects_add">Konu ekle</string>
-    <string name="subject_add_title">Yeni konu</string>
-    <string name="subject_edit_title">Konuyu düzenle</string>
+    <string name="subjects_add">Ders ekle</string>
+    <string name="subject_add_title">Yeni ders</string>
+    <string name="subject_edit_title">Dersi düzenle</string>
     <string name="subject_name_label">Ders konusu adı</string>
-    <string name="subject_name_taken">Bu ada sahip bir konu zaten mevcut</string>
+    <string name="subject_name_taken">Bu adda bir ders zaten var</string>
     <string name="subject_delete_named">%1$s\'yi sil</string>
-    <string name="subject_deleted">Konu silindi</string>
-    <string name="subject_delete_blocked">Konu silinemiyor: dersler var. Önce bunları silin.</string>
-    <string name="subject_delete_blocked_group">Konu silinemiyor: bir grup konuyu inceliyor. Önce grubun konusunu değiştirin.</string>
-    <string name="subject_delete_blocked_students">Konu silinemiyor: konuyu bir öğrenci alıyor. Önce profillerinden kaldırın.</string>
+    <string name="subject_deleted">Ders silindi</string>
+    <string name="subject_delete_blocked">Ders silinemiyor: kayıtlı dersleri var. Önce onları silin.</string>
+    <string name="subject_delete_blocked_group">Ders silinemiyor: bir grup bu dersi alıyor. Önce grubun dersini değiştirin.</string>
+    <string name="subject_delete_blocked_students">Ders silinemiyor: bir öğrenci bu dersi alıyor. Önce öğrencinin profilinden kaldırın.</string>
     <string name="groups_title">Gruplar</string>
     <string name="groups_empty">Henüz grup yok</string>
     <string name="groups_empty_detail">Bir grup, aynı oranı paylaşan birkaç öğrenciden oluşur. Hepsine aynı anda bir ders rezervasyonu yapılır.</string>
@@ -299,9 +299,9 @@
     <string name="group_edit_title">Grubu düzenle</string>
     <string name="group_name_label">Ad</string>
     <string name="group_subject_label">Ders</string>
-    <string name="group_subject_none">Konu yok</string>
+    <string name="group_subject_none">Ders seçilmedi</string>
     <string name="group_subject_hint">Gruba yalnızca bu ders konusu için ücreti belirlenmiş öğrenciler katılabilir</string>
-    <string name="group_subject_none_hint">Konu olmadan: herhangi bir öğrenci ve ders rezervasyonu yapılırken konu seçilir</string>
+    <string name="group_subject_none_hint">Ders seçilmeden: herhangi bir öğrenci katılabilir; ders, rezervasyon yapılırken seçilir</string>
     <string name="group_price_label">Öğrenci başına saat ücreti</string>
     <string name="group_price_hint">Grubun her üyesi için aynı saatlik ücret</string>
     <string name="group_members_title">Üyeler</string>
@@ -318,7 +318,7 @@
     <string name="group_students_title">Üyeler</string>
     <string name="group_lessons_title">Dersler</string>
     <string name="group_lessons_empty">Bu grupta henüz ders yok</string>
-    <string name="group_no_subject">Konu yok</string>
+    <string name="group_no_subject">Ders seçilmedi</string>
     <string name="group_edit_members">Üyeleri değiştir</string>
     <string name="group_member_open">Profili aç</string>
     <string name="group_lesson_present">Katılan: %1$d / %2$d</string>
@@ -326,7 +326,7 @@
         <item quantity="one">%1$d katılımcı</item>
         <item quantity="other">%1$d katılımcı</item>
     </plurals>
-    <string name="more_subjects">Konular</string>
+    <string name="more_subjects">Dersler</string>
     <string name="more_backup">Yedekleme</string>
     <string name="calendar_denied">Takvime erişim yok</string>
     <string name="calendar_rationale">Klas\'nin dersleri bu cihazın takviminde gösterebilmesi için takvim erişimine ihtiyacı var</string>
@@ -468,18 +468,18 @@
     <string name="onboarding_value_schedule">Hatırlatıcılarla birlikte güne, haftaya ve aya göre dersler</string>
     <string name="onboarding_value_money">Kimin ödediği ve kimin borcu olduğu otomatik hesaplanır</string>
     <string name="onboarding_value_offline">İnternet yok ve hesap yok: verileriniz telefonda kalıyor</string>
-    <string name="onboarding_welcome_desc">Kurulum bir dakikanızı alır: temel bilgiler, öğrettiğiniz konular ve ilk öğrenciniz.</string>
+    <string name="onboarding_welcome_desc">Kurulum bir dakikanızı alır: temel bilgiler, öğrettiğiniz dersler ve ilk öğrenciniz.</string>
     <string name="onboarding_start">Kurulum</string>
     <string name="onboarding_restore">Bir yedeği geri yükleyin</string>
     <string name="onboarding_restore_desc">Dosyanın verileri burada olanın yerini alacak</string>
     <string name="onboarding_skip">Atla</string>
-    <string name="onboarding_skip_desc">Konular ve öğrenciler daha sonra eklenebilir</string>
+    <string name="onboarding_skip_desc">Dersler ve öğrenciler daha sonra eklenebilir</string>
     <string name="onboarding_step">%2$d\'nin %1$d adımı</string>
     <string name="onboarding_locale_title">Temel bilgiler</string>
     <string name="onboarding_locale_desc">Zaten sizin için seçildik. İstediğiniz şeyi şimdi veya daha sonra Ayarlar\'da değiştirin.</string>
     <string name="onboarding_lesson_length_desc">Yeni dersleri önceden doldurur. Fiyatlar saat başınadır, dolayısıyla her ders süresine göre faturalandırılır.</string>
     <string name="onboarding_locale_currency_desc">Tutarlar yalnızca onunla etiketlenir; hiçbir şey dönüştürülmez.</string>
-    <string name="onboarding_subjects_title">Konular</string>
+    <string name="onboarding_subjects_title">Dersler</string>
     <string name="onboarding_subjects_desc">Öğrettiğiniz şeye dokunun veya kendinizinkini ekleyin. Bunları daha sonra değiştirebilirsiniz.</string>
     <string-array name="onboarding_subject_suggestions">
         <item>Matematik</item>
@@ -491,8 +491,8 @@
         <item>Bilgisayar bilimi</item>
         <item>Piyano</item>
     </string-array>
-    <string name="onboarding_subject_removed">Konu silindi</string>
-    <string name="onboarding_subject_remove_failed">Konu silinemedi</string>
+    <string name="onboarding_subject_removed">Ders silindi</string>
+    <string name="onboarding_subject_remove_failed">Ders silinemedi</string>
     <string name="onboarding_student_title">İlk öğrenci</string>
     <string name="onboarding_student_desc">Sadece bir isim ve oran. Daha sonra öğrencinin profiline telefon, e-posta ve not eklenebilir.</string>
     <string name="onboarding_continue">Sonraki</string>
@@ -505,7 +505,7 @@
         <item quantity="one">Bu ders yapıldı. Silinirse %1$d öğrencinin ücreti kaldırılacak. Silinsin mi?</item>
         <item quantity="other">Bu ders yapıldı. Silinirse %1$d öğrencinin ücreti kaldırılacak. Silinsin mi?</item>
     </plurals>
-    <string name="schedule_need_setup">Önce bir konu ve öğrenci ekleyin</string>
+    <string name="schedule_need_setup">Önce bir ders ve bir öğrenci ekleyin</string>
     <string name="reminder_channel_name">Ders hatırlatıcıları</string>
     <string name="reminder_channel_desc">Ders başlamadan önce bildirimler</string>
     <string name="notification_locked_text">Ayrıntıları görmek için kilidi açın</string>
@@ -565,7 +565,7 @@
     <string name="reports_by_year">Yıllara göre gelir</string>
     <string name="reports_by_kind">Ders türüne göre gelir</string>
     <string name="reports_by_group">Gruba göre gelir</string>
-    <string name="reports_by_subject">Konuya göre gelir</string>
+    <string name="reports_by_subject">Derse göre gelir</string>
     <string name="reports_by_student">Öğrenciye göre gelir</string>
     <string name="reports_debts">Borçlar</string>
     <string name="reports_no_debts">Kimsenin hiçbir borcu yok</string>
@@ -704,8 +704,8 @@
     <string name="payment_choose_student">Ödemeyi kim yaptı?</string>
     <string name="subject_set_price">Saat ücretini belirle</string>
     <string name="group_member_set_price">Saat ücretini belirle</string>
-    <string name="subject_add">Konu ekle</string>
-    <string name="group_price_setup_hint">Bu öğrencileri eklemek için bireysel bir konu oranı ayarlayın. Grup derslerinde grup ücreti kullanılır.</string>
+    <string name="subject_add">Ders ekle</string>
+    <string name="group_price_setup_hint">Bu öğrencileri eklemek için bireysel bir ders ücreti belirleyin. Grup derslerinde grup ücreti kullanılır.</string>
     <string name="class_completed_message">Yapıldı olarak işaretlendi</string>
     <string name="class_cancelled_message">Ders iptal edildi</string>
     <string name="class_replanned_message">Ders yeniden planlandı</string>
@@ -763,7 +763,6 @@
     <string name="today_lessons">Bugünün dersleri</string>
     <string name="today_no_lessons">Bugün ders yok</string>
     <string name="today_owed">Sana borçluyum</string>
-    <string name="today_homework">Teslim edilecek ödevler</string>
     <string name="today_backup_old">Son yedekleme %1$s</string>
     <string name="today_backup_never">Henüz yedekleme yok</string>
     <string name="today_backup_detail">Verileriniz yalnızca bu telefonda.</string>
@@ -772,7 +771,7 @@
         <item quantity="one">%1$d ders yapıldı olarak işaretlendi</item>
         <item quantity="other">%1$d ders yapıldı olarak işaretlendi</item>
     </plurals>
-    <string name="settings_subjects_none">Henüz konu yok</string>
+    <string name="settings_subjects_none">Henüz ders eklenmedi</string>
     <string name="settings_backup_never">Hiçbir zaman · haftalık kurulum</string>
     <string name="settings_backup_last">Son %1$s · haftalık kurulum</string>
     <string name="schedule_pick_date">Bir tarih seçin</string>
@@ -795,9 +794,9 @@
     <string name="statement_credit">Peşin ödenen: %1$s</string>
     <string name="statement_settled">Ödenecek bir şey yok</string>
     <string name="groups_sort_next">Sonraki derse göre</string>
-    <string name="form_gap_name">bir isim</string>
-    <string name="form_gap_subject">Ders</string>
-    <string name="form_gap_price">Saat ücreti</string>
+    <string name="form_gap_name">isim</string>
+    <string name="form_gap_subject">ders</string>
+    <string name="form_gap_price">saat ücreti</string>
     <string name="form_gap_members">üye</string>
     <string name="filter_more">Filtre</string>
     <plurals name="batch_selected">
@@ -847,7 +846,7 @@
     <string name="reports_earned">Kazanılan tutar</string>
     <string name="reports_export_menu">Dışa Aktar</string>
     <string name="reports_filter">Raporu filtrele</string>
-    <string name="reports_filter_all">Tüm öğrenciler ve konular</string>
+    <string name="reports_filter_all">Tüm öğrenciler ve dersler</string>
     <string name="onboarding_subject_field_hint">Bir ad yazın ve Enter\'a basın</string>
     <string name="reports_share_ledger">Defteri gönder</string>
     <string name="reports_export_ledger">Defterini CSV olarak kaydet</string>
@@ -855,7 +854,7 @@
     <string name="reports_ledger_day">Tarih</string>
     <string name="reports_ledger_entry">Kayıt</string>
     <string name="reports_ledger_student">Öğrenci</string>
-    <string name="reports_ledger_detail">Konu veya yöntem</string>
+    <string name="reports_ledger_detail">Ders veya yöntem</string>
     <string name="reports_ledger_lesson">Ders</string>
     <string name="reports_ledger_payment">Ödeme</string>
     <string name="schedule_cancel_day">Günü iptal et</string>
@@ -878,13 +877,13 @@
     <string name="today_never_paid">Henüz ödeme yapılmadı</string>
     <string name="today_recent_marks">Uygulamanın dışında işaretlendi</string>
     <string name="today_marked_at">Yapıldı · işaretlenme saati: %1$s</string>
-    <plurals name="today_members">
-        <item quantity="one">%1$d katılımcı</item>
-        <item quantity="other">%1$d katılımcı</item>
+    <plurals name="members_count">
+        <item quantity="one">%1$d\u00A0katılımcı</item>
+        <item quantity="other">%1$d\u00A0katılımcı</item>
     </plurals>
     <string name="people_owes">Borcu olanlar · %1$d</string>
     <string name="people_archived">Arşivlendi</string>
-    <string name="people_all_subjects">Tüm konular</string>
+    <string name="people_all_subjects">Tüm dersler</string>
     <string name="people_filter">Filtrele ve sırala</string>
     <string name="people_show">Göster</string>
     <string name="people_subject">Ders</string>

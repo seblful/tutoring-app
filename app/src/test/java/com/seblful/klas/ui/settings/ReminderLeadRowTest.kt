@@ -42,6 +42,24 @@ class ReminderLeadRowTest {
     }
 
     @Test
+    fun `the Calendar page's row is the Notifications one - presets, and its note on the second line`() {
+        compose.setContent {
+            KlasTheme {
+                ReminderLeadRow(
+                    minutes = selected,
+                    enabled = true,
+                    onSelect = { selected = it },
+                    description = reminderLeadDescription(enabled = true),
+                )
+            }
+        }
+        compose.onNodeWithText("Before lesson", substring = true).performClick()
+        compose.onNodeWithText("1 day before").performClick()
+
+        assertEquals(1440, selected)
+    }
+
+    @Test
     fun `a day before can be selected and changed to a custom number of days`() {
         open()
         compose.onNodeWithText("Before lesson").performClick()

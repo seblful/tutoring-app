@@ -501,7 +501,9 @@ fun ScheduleScreen(
                                             summary = section.summary,
                                             position = SlicePosition.FIRST,
                                             action = section.plannedIds().takeIf { it.isNotEmpty() }?.let { ids ->
-                                                SectionAction(cancelDayLabel) { viewModel.batch.cancelDay(ids) }
+                                                SectionAction(cancelDayLabel, destructive = true) {
+                                                    viewModel.batch.cancelDay(ids)
+                                                }
                                             },
                                         )
                                     }
@@ -798,7 +800,7 @@ private fun ChosenDayHeader(dayContent: Loadable<ScheduleContent.Day>, selected:
         date = day?.date ?: selected,
         summary = day?.summary ?: DaySummary.NONE,
         position = if (day?.rows.isNullOrEmpty()) SlicePosition.ONLY else SlicePosition.FIRST,
-        action = SectionAction(stringResource(R.string.schedule_open_day), onOpenDay),
+        action = SectionAction(stringResource(R.string.schedule_open_day), onClick = onOpenDay),
     )
 }
 

@@ -10,8 +10,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.TextAutoSize
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -44,6 +42,7 @@ import com.seblful.klas.format.formatMonth
 import com.seblful.klas.format.formatWeekRange
 import com.seblful.klas.ui.common.DatePickerModal
 import com.seblful.klas.ui.common.LocalCurrency
+import com.seblful.klas.ui.common.NamedIconButton
 import com.seblful.klas.ui.common.PageStepper
 import com.seblful.klas.ui.common.ScreenTip
 import com.seblful.klas.ui.common.Spacing
@@ -163,9 +162,7 @@ internal fun PageNavigator(
                 maxFontSize = MaterialTheme.typography.titleMedium.fontSize,
             ),
         )
-        IconButton(onClick = onToday) {
-            Icon(KlasIcons.Outlined.Today, stringResource(R.string.schedule_today))
-        }
+        NamedIconButton(KlasIcons.Outlined.Today, stringResource(R.string.schedule_today), onToday)
     }
     if (picking) {
         DatePickerModal(

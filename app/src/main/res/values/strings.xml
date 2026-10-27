@@ -70,7 +70,7 @@
     </plurals>
     <string name="students_search_hint">Search students</string>
     <string name="groups_search_hint">Search groups</string>
-    <string name="subjects_search_hint">Subject name</string>
+    <string name="subjects_search_hint">Search subjects</string>
 
     <!-- Sorting the students list: the tutor's two questions are "who is this" and "who owes me" -->
     <string name="students_sort_name">By name</string>
@@ -630,7 +630,7 @@
     <string name="theme_light">Light</string>
     <string name="theme_dark">Dark</string>
     <string name="settings_week_start">Week starts on</string>
-    <string name="week_start_phone">System setting</string>
+    <string name="week_start_phone">System</string>
     <!--
       Which language the app speaks. "System" is a real answer and the default: a tutor who has set
       their phone to English has already said what language they read software in.
@@ -1054,7 +1054,6 @@
     <string name="today_no_lessons">No lessons today</string>
     <string name="today_owed">Owed to you</string>
     <!-- Due at today's lessons and still open from past ones — not only today's, which the old title said. -->
-    <string name="today_homework">Homework due</string>
     <string name="today_backup_old">Last backup %1$s</string>
     <string name="today_backup_never">No backup yet</string>
     <string name="today_backup_detail">Your data is on this phone only.</string>
@@ -1086,9 +1085,9 @@
     <string name="statement_credit">Paid in advance: %1$s</string>
     <string name="statement_settled">Nothing to pay</string>
     <string name="groups_sort_next">By next lesson</string>
-    <string name="form_gap_name">a name</string>
-    <string name="form_gap_subject">a subject</string>
-    <string name="form_gap_price">a rate</string>
+    <string name="form_gap_name">name</string>
+    <string name="form_gap_subject">subject</string>
+    <string name="form_gap_price">rate</string>
     <string name="form_gap_members">members</string>
     <string name="filter_more">Filter</string>
     <plurals name="batch_selected">
@@ -1169,9 +1168,9 @@
     <string name="today_never_paid">No payment yet</string>
     <string name="today_recent_marks">Marked outside the app</string>
     <string name="today_marked_at">Taught · marked at %1$s</string>
-    <plurals name="today_members">
-        <item quantity="one">%1$d member</item>
-        <item quantity="other">%1$d members</item>
+    <plurals name="members_count">
+        <item quantity="one">%1$d\u00A0member</item>
+        <item quantity="other">%1$d\u00A0members</item>
     </plurals>
     <string name="people_owes">Owes · %1$d</string>
     <string name="people_archived">Archived</string>

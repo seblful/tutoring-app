@@ -35,8 +35,8 @@
         <item quantity="other">%1$d περισσότερα — βελτιώστε την αναζήτηση</item>
     </plurals>
     <string name="students_search_hint">Αναζήτηση μαθητών</string>
-    <string name="groups_search_hint">Ομάδες αναζήτησης</string>
-    <string name="subjects_search_hint">Όνομα μαθήματος</string>
+    <string name="groups_search_hint">Αναζήτηση ομάδων</string>
+    <string name="subjects_search_hint">Αναζήτηση αντικειμένων</string>
     <string name="students_sort_name">Ονοματεπώνυμο</string>
     <string name="students_sort_debt">Πρώτα οι οφειλέτες</string>
     <string name="unsaved_save_title">Αποθήκευση αλλαγών;</string>
@@ -50,7 +50,7 @@
     <string name="schedule_add_class">Κλείστε ένα μάθημα</string>
     <string name="schedule_week_empty">Χωρίς μαθήματα αυτή την εβδομάδα</string>
     <string name="schedule_empty_no_setup">Δεν υπάρχει τίποτα να σχεδιάσουμε ακόμα</string>
-    <string name="schedule_empty_no_setup_detail">Κλείνεται μάθημα για μαθητή και μάθημα με ποσοστό. Ξεκινήστε με έναν μαθητή.</string>
+    <string name="schedule_empty_no_setup_detail">Το μάθημα κλείνεται για έναν μαθητή και ένα αντικείμενο με ωριαία τιμή. Ξεκινήστε με έναν μαθητή.</string>
     <string name="schedule_add_student">Προσθήκη μαθητή</string>
     <string name="schedule_filter_everyone">Όλοι</string>
     <string name="schedule_filter_any_status">Οποιαδήποτε κατάσταση</string>
@@ -98,17 +98,17 @@
     <string name="class_step_earlier">15 λεπτά νωρίτερα</string>
     <string name="class_step_later">15 λεπτά αργότερα</string>
     <string name="class_gap_who">μαθητής ή ομάδα</string>
-    <string name="class_gap_subject">Μάθημα</string>
+    <string name="class_gap_subject">μάθημα</string>
     <string name="class_gap_date">ημερομηνία</string>
     <string name="class_gap_start">ώρα έναρξης</string>
     <string name="class_gap_length">μήκος</string>
-    <string name="class_gap_price">Ωριαία τιμή</string>
+    <string name="class_gap_price">ωριαία τιμή</string>
     <plurals name="class_series_lessons">
         <item quantity="one">%1$d μάθημα</item>
         <item quantity="other">%1$d μαθήματα</item>
     </plurals>
     <string name="class_edit_title">Επεξεργασία μαθήματος</string>
-    <string name="class_student_label">Φοιτητής</string>
+    <string name="class_student_label">Μαθητής</string>
     <string name="class_subject_label">Μάθημα</string>
     <string name="class_no_subjects_for_student">Δεν έχει οριστεί τιμή για κανένα αντικείμενο αυτού του μαθητή. Ορίστε την στο προφίλ του.</string>
     <string name="class_duration_label">Μήκος</string>
@@ -156,7 +156,7 @@
     <string name="class_delete_completed_confirm">Αυτό το μάθημα πραγματοποιήθηκε. Η διαγραφή του θα αφαιρέσει τη χρέωση από το υπόλοιπο του μαθητή. Διαγραφή;</string>
     <string name="class_target_group">Ομάδα</string>
     <string name="class_group_label">Ομάδα</string>
-    <string name="class_no_subjects_for_group">Προσθέστε πρώτα θέματα</string>
+    <string name="class_no_subjects_for_group">Προσθέστε πρώτα αντικείμενα</string>
     <string name="class_group_members_title">Μέλη</string>
     <string name="class_group_no_active_members">Δεν μπορεί να γίνει κράτηση σε κανέναν σε αυτήν την ομάδα: τα μέλη της αρχειοθετούνται</string>
     <string name="class_group_no_members_left">Επιλέξτε τουλάχιστον ένα μέλος</string>
@@ -165,7 +165,7 @@
         <item quantity="one">Μαθητές που αφαιρούνται από πραγματοποιημένο μάθημα: %1$d. Τα μαθήματά τους και οι αντίστοιχες χρεώσεις θα διαγραφούν. Αποθήκευση;</item>
         <item quantity="other">Μαθητές που αφαιρούνται από πραγματοποιημένο μάθημα: %1$d. Τα μαθήματά τους και οι αντίστοιχες χρεώσεις θα διαγραφούν. Αποθήκευση;</item>
     </plurals>
-    <string name="class_subject_from_group">Η ομάδα ορίζει το θέμα</string>
+    <string name="class_subject_from_group">Το αντικείμενο το ορίζει η ομάδα</string>
     <string name="class_group_price_label">Ωριαία τιμή ανά μαθητή</string>
     <string name="class_mark_completed">Σήμανση ως πραγματοποιημένο</string>
     <string name="class_series_availability">Διαθέσιμες ημερομηνίες: %1$d. Οι κατειλημμένες ημερομηνίες θα παραλειφθούν.</string>
@@ -185,7 +185,7 @@
     <string name="lesson_kind_count">%1$s · %2$d</string>
     <string name="students_title">Μαθητές</string>
     <string name="students_empty">Δεν υπάρχουν ακόμη μαθητές</string>
-    <string name="students_empty_detail">Ένας μαθητής είναι ένα όνομα, τα θέματά του και ο ρυθμός ανά ώρα. Μετά από αυτό μπορείτε να κάνετε κράτηση μαθημάτων και να παρακολουθείτε τις πληρωμές.</string>
+    <string name="students_empty_detail">Ένας μαθητής είναι ένα όνομα, τα αντικείμενά του και μια ωριαία τιμή. Μετά από αυτό μπορείτε να κάνετε κράτηση μαθημάτων και να παρακολουθείτε τις πληρωμές.</string>
     <string name="students_add">Προσθήκη μαθητή</string>
     <string name="student_archived_badge">Αρχειοθετήθηκε</string>
     <string name="student_add_title">Νέος μαθητής</string>
@@ -201,13 +201,13 @@
     <string name="student_form_add">Προσθήκη μαθητή</string>
     <string name="student_form_subject_has_lessons">Έχει μαθήματα, άρα μένει</string>
     <string name="student_form_subjects_required">Επιλέξτε τουλάχιστον ένα αντικείμενο και ορίστε την ωριαία τιμή του</string>
-    <string name="student_form_no_subjects">Προσθέστε πρώτα θέματα</string>
+    <string name="student_form_no_subjects">Προσθέστε πρώτα αντικείμενα</string>
     <string name="student_mode_label">Τόπος</string>
-    <string name="student_subjects_title">Θέματα</string>
-    <string name="student_no_subjects">Δεν επιλέχθηκαν θέματα</string>
-    <string name="student_add_subject">Προσθέστε ένα θέμα</string>
-    <string name="student_all_subjects_added">Κάθε θέμα έχει προστεθεί</string>
-    <string name="student_subject_remove_blocked">Δεν είναι δυνατή η κατάργηση του θέματος: έχει μαθήματα</string>
+    <string name="student_subjects_title">Αντικείμενα</string>
+    <string name="student_no_subjects">Δεν επιλέχθηκαν αντικείμενα</string>
+    <string name="student_add_subject">Προσθέστε ένα αντικείμενο</string>
+    <string name="student_all_subjects_added">Έχουν προστεθεί όλα τα αντικείμενα</string>
+    <string name="student_subject_remove_blocked">Δεν είναι δυνατή η αφαίρεση του αντικειμένου: έχει μαθήματα</string>
     <string name="student_archive_balance_part">Το υπόλοιπο αυτού του μαθητή δεν έχει διευθετηθεί (%1$s). Το ιστορικό τους παραμένει σε αναφορές, αλλά οι εβδομαδιαίες υπενθυμίσεις χρέους θα τους αποκλείσουν.</string>
     <string name="student_archive_question">Αρχειοθέτηση ούτως ή άλλως;</string>
     <plurals name="student_archive_lessons_part">
@@ -277,19 +277,19 @@
     <string name="action_copy">Αντιγραφή</string>
     <string name="clipboard_copied">Αντιγράφηκε</string>
     <string name="student_contact_failed">Καμία εφαρμογή σε αυτό το τηλέφωνο δεν μπορεί να το κάνει αυτό</string>
-    <string name="subjects_title">Θέματα</string>
-    <string name="subjects_empty">Δεν υπάρχουν ακόμη θέματα</string>
+    <string name="subjects_title">Αντικείμενα</string>
+    <string name="subjects_empty">Δεν υπάρχουν ακόμη αντικείμενα</string>
     <string name="subjects_empty_detail">Το μάθημα είναι το αντικείμενο που διδάσκετε. Προσθέστε ένα για να ορίσετε τιμές και να προγραμματίσετε παραδόσεις.</string>
-    <string name="subjects_add">Προσθέστε ένα θέμα</string>
-    <string name="subject_add_title">Νέο θέμα</string>
-    <string name="subject_edit_title">Επεξεργασία θέματος</string>
+    <string name="subjects_add">Προσθέστε ένα αντικείμενο</string>
+    <string name="subject_add_title">Νέο αντικείμενο</string>
+    <string name="subject_edit_title">Επεξεργασία αντικειμένου</string>
     <string name="subject_name_label">Όνομα αντικειμένου</string>
-    <string name="subject_name_taken">Ένα θέμα με αυτό το όνομα υπάρχει ήδη</string>
+    <string name="subject_name_taken">Υπάρχει ήδη αντικείμενο με αυτό το όνομα</string>
     <string name="subject_delete_named">Διαγραφή %1$s</string>
-    <string name="subject_deleted">Το θέμα διαγράφηκε</string>
-    <string name="subject_delete_blocked">Δεν είναι δυνατή η διαγραφή του θέματος: έχει μαθήματα. Διαγράψτε τα πρώτα.</string>
-    <string name="subject_delete_blocked_group">Δεν είναι δυνατή η διαγραφή του θέματος: μια ομάδα το μελετά. Αλλάξτε πρώτα το θέμα της ομάδας.</string>
-    <string name="subject_delete_blocked_students">Δεν είναι δυνατή η διαγραφή του θέματος: το παίρνει ένας μαθητής. Καταργήστε το πρώτα από το προφίλ τους.</string>
+    <string name="subject_deleted">Το αντικείμενο διαγράφηκε</string>
+    <string name="subject_delete_blocked">Δεν είναι δυνατή η διαγραφή του αντικειμένου: έχει μαθήματα. Διαγράψτε τα πρώτα.</string>
+    <string name="subject_delete_blocked_group">Δεν είναι δυνατή η διαγραφή του αντικειμένου: το διδάσκεται μια ομάδα. Αλλάξτε πρώτα το αντικείμενο της ομάδας.</string>
+    <string name="subject_delete_blocked_students">Δεν είναι δυνατή η διαγραφή του αντικειμένου: το παρακολουθεί ένας μαθητής. Αφαιρέστε το πρώτα από το προφίλ του.</string>
     <string name="groups_title">Ομάδες</string>
     <string name="groups_empty">Δεν υπάρχουν ακόμη ομάδες</string>
     <string name="groups_empty_detail">Μια ομάδα είναι πολλοί μαθητές που μοιράζονται ένα ποσοστό. Κλείνεται ένα μάθημα για όλους ταυτόχρονα.</string>
@@ -299,9 +299,9 @@
     <string name="group_edit_title">Επεξεργασία ομάδας</string>
     <string name="group_name_label">Όνομα</string>
     <string name="group_subject_label">Μάθημα</string>
-    <string name="group_subject_none">Χωρίς θέμα</string>
+    <string name="group_subject_none">Χωρίς αντικείμενο</string>
     <string name="group_subject_hint">Στην ομάδα μπορούν να συμμετάσχουν μόνο μαθητές με ορισμένη τιμή για αυτό το αντικείμενο</string>
-    <string name="group_subject_none_hint">Χωρίς θέμα: οποιοσδήποτε μαθητής, και το θέμα επιλέγεται κατά την κράτηση ενός μαθήματος</string>
+    <string name="group_subject_none_hint">Χωρίς αντικείμενο: οποιοσδήποτε μαθητής, και το αντικείμενο επιλέγεται κατά την κράτηση ενός μαθήματος</string>
     <string name="group_price_label">Ωριαία τιμή ανά μαθητή</string>
     <string name="group_price_hint">Ίδια ωριαία χρέωση για κάθε μέλος της ομάδας</string>
     <string name="group_members_title">Μέλη</string>
@@ -318,7 +318,7 @@
     <string name="group_students_title">Μέλη</string>
     <string name="group_lessons_title">Μαθήματα</string>
     <string name="group_lessons_empty">Αυτή η ομάδα δεν έχει ακόμη μαθήματα</string>
-    <string name="group_no_subject">Χωρίς θέμα</string>
+    <string name="group_no_subject">Χωρίς αντικείμενο</string>
     <string name="group_edit_members">Αλλαγή μελών</string>
     <string name="group_member_open">Άνοιγμα προφίλ</string>
     <string name="group_lesson_present">Παρόντες: %1$d από %2$d</string>
@@ -326,7 +326,7 @@
         <item quantity="one">%1$d μέλος</item>
         <item quantity="other">%1$d μέλη</item>
     </plurals>
-    <string name="more_subjects">Θέματα</string>
+    <string name="more_subjects">Αντικείμενα</string>
     <string name="more_backup">Δημιουργία αντιγράφων ασφαλείας</string>
     <string name="calendar_denied">Δεν υπάρχει πρόσβαση στο ημερολόγιο</string>
     <string name="calendar_rationale">Το Klas χρειάζεται πρόσβαση στο ημερολόγιο για να εμφανίζει μαθήματα στο ημερολόγιο αυτής της συσκευής</string>
@@ -473,13 +473,13 @@
     <string name="onboarding_restore">Επαναφέρετε ένα αντίγραφο ασφαλείας</string>
     <string name="onboarding_restore_desc">Τα δεδομένα του αρχείου θα αντικαταστήσουν αυτό που υπάρχει εδώ</string>
     <string name="onboarding_skip">Παράλειψη</string>
-    <string name="onboarding_skip_desc">Τα θέματα και οι μαθητές μπορούν να προστεθούν αργότερα</string>
+    <string name="onboarding_skip_desc">Τα αντικείμενα και οι μαθητές μπορούν να προστεθούν αργότερα</string>
     <string name="onboarding_step">Βήμα %1$d από %2$d</string>
     <string name="onboarding_locale_title">Τα βασικά</string>
     <string name="onboarding_locale_desc">Έχει ήδη επιλεγεί για εσάς. Αλλάξτε οτιδήποτε τώρα ή αργότερα στις Ρυθμίσεις.</string>
     <string name="onboarding_lesson_length_desc">Προσυμπληρώνει νέα μαθήματα. Οι τιμές είναι ανά ώρα, επομένως κάθε μάθημα χρεώνεται για τη διάρκειά του.</string>
     <string name="onboarding_locale_currency_desc">Τα ποσά επισημαίνονται μόνο με αυτό — τίποτα δεν μετατρέπεται.</string>
-    <string name="onboarding_subjects_title">Θέματα</string>
+    <string name="onboarding_subjects_title">Αντικείμενα</string>
     <string name="onboarding_subjects_desc">Πατήστε αυτό που διδάσκετε ή προσθέστε το δικό σας. Μπορείτε να τα αλλάξετε αργότερα.</string>
     <string-array name="onboarding_subject_suggestions">
         <item>Μαθ</item>
@@ -491,8 +491,8 @@
         <item>Πληροφορική</item>
         <item>Πιάνο</item>
     </string-array>
-    <string name="onboarding_subject_removed">Το θέμα διαγράφηκε</string>
-    <string name="onboarding_subject_remove_failed">Δεν ήταν δυνατή η διαγραφή του θέματος</string>
+    <string name="onboarding_subject_removed">Το αντικείμενο διαγράφηκε</string>
+    <string name="onboarding_subject_remove_failed">Δεν ήταν δυνατή η διαγραφή του αντικειμένου</string>
     <string name="onboarding_student_title">Πρώτος μαθητής</string>
     <string name="onboarding_student_desc">Μόνο ένα όνομα και ένα ποσοστό. Ένα τηλέφωνο, ένα email και μια σημείωση μπορούν να προστεθούν στο προφίλ του μαθητή αργότερα.</string>
     <string name="onboarding_continue">Επόμενο</string>
@@ -505,7 +505,7 @@
         <item quantity="one">Το μάθημα πραγματοποιήθηκε. Η διαγραφή του θα αφαιρέσει τη χρέωση από %1$d μαθητή. Διαγραφή;</item>
         <item quantity="other">Το μάθημα πραγματοποιήθηκε. Η διαγραφή του θα αφαιρέσει τις χρεώσεις από %1$d μαθητές. Διαγραφή;</item>
     </plurals>
-    <string name="schedule_need_setup">Προσθέστε πρώτα ένα θέμα και έναν μαθητή</string>
+    <string name="schedule_need_setup">Προσθέστε πρώτα ένα αντικείμενο και έναν μαθητή</string>
     <string name="reminder_channel_name">Υπενθυμίσεις μαθήματος</string>
     <string name="reminder_channel_desc">Ειδοποιήσεις πριν από την έναρξη ενός μαθήματος</string>
     <string name="notification_locked_text">Ξεκλειδώστε για να δείτε λεπτομέρειες</string>
@@ -565,7 +565,7 @@
     <string name="reports_by_year">Έσοδα ανά έτος</string>
     <string name="reports_by_kind">Έσοδα ανά τύπο μαθήματος</string>
     <string name="reports_by_group">Έσοδα ανά ομάδα</string>
-    <string name="reports_by_subject">Έσοδα ανά θέμα</string>
+    <string name="reports_by_subject">Έσοδα ανά αντικείμενο</string>
     <string name="reports_by_student">Έσοδα ανά μαθητή</string>
     <string name="reports_debts">Χρέη</string>
     <string name="reports_no_debts">Κανείς δεν χρωστάει τίποτα</string>
@@ -704,8 +704,8 @@
     <string name="payment_choose_student">Ποιος έκανε την πληρωμή;</string>
     <string name="subject_set_price">Ορισμός ωριαίας τιμής</string>
     <string name="group_member_set_price">Ορισμός ωριαίας τιμής</string>
-    <string name="subject_add">Προσθήκη θέματος</string>
-    <string name="group_price_setup_hint">Ορίστε ένα ατομικό ποσοστό θεμάτων για να προσθέσετε αυτούς τους μαθητές. Τα ομαδικά μαθήματα χρησιμοποιούν τον ομαδικό ρυθμό.</string>
+    <string name="subject_add">Προσθήκη αντικειμένου</string>
+    <string name="group_price_setup_hint">Ορίστε μια ατομική ωριαία τιμή για το αντικείμενο, ώστε να προσθέσετε αυτούς τους μαθητές. Τα ομαδικά μαθήματα χρησιμοποιούν την ομαδική τιμή.</string>
     <string name="class_completed_message">Σημειωμένος διδασκόμενος</string>
     <string name="class_cancelled_message">Το μάθημα ακυρώθηκε</string>
     <string name="class_replanned_message">Το μάθημα έχει προγραμματιστεί ξανά</string>
@@ -763,7 +763,6 @@
     <string name="today_lessons">Τα σημερινά μαθήματα</string>
     <string name="today_no_lessons">Κανένα μάθημα σήμερα</string>
     <string name="today_owed">Σας οφείλω</string>
-    <string name="today_homework">Εργασίες προς παράδοση</string>
     <string name="today_backup_old">Τελευταίο αντίγραφο ασφαλείας %1$s</string>
     <string name="today_backup_never">Δεν υπάρχει ακόμα αντίγραφο ασφαλείας</string>
     <string name="today_backup_detail">Τα δεδομένα σας βρίσκονται μόνο σε αυτό το τηλέφωνο.</string>
@@ -772,7 +771,7 @@
         <item quantity="one">%1$d μάθημα σημειώθηκε ως πραγματοποιημένο</item>
         <item quantity="other">%1$d μαθήματα σημειώθηκαν ως πραγματοποιημένα</item>
     </plurals>
-    <string name="settings_subjects_none">Δεν υπάρχουν ακόμη θέματα</string>
+    <string name="settings_subjects_none">Δεν υπάρχουν ακόμη αντικείμενα</string>
     <string name="settings_backup_never">Ποτέ · εβδομαδιαία ρύθμιση</string>
     <string name="settings_backup_last">Τελευταίο %1$s · εβδομαδιαία ρύθμιση</string>
     <string name="schedule_pick_date">Επιλέξτε μια ημερομηνία</string>
@@ -795,9 +794,9 @@
     <string name="statement_credit">Προκαταβολή: %1$s</string>
     <string name="statement_settled">Δεν υπάρχει τίποτα για πληρωμή</string>
     <string name="groups_sort_next">Κατά επόμενο μάθημα</string>
-    <string name="form_gap_name">ένα όνομα</string>
-    <string name="form_gap_subject">Μάθημα</string>
-    <string name="form_gap_price">Ωριαία τιμή</string>
+    <string name="form_gap_name">όνομα</string>
+    <string name="form_gap_subject">μάθημα</string>
+    <string name="form_gap_price">ωριαία τιμή</string>
     <string name="form_gap_members">μέλη</string>
     <string name="filter_more">Φίλτρο</string>
     <plurals name="batch_selected">
@@ -847,15 +846,15 @@
     <string name="reports_earned">Δεδουλευμένα</string>
     <string name="reports_export_menu">Εξαγωγή</string>
     <string name="reports_filter">Φιλτράρετε την αναφορά</string>
-    <string name="reports_filter_all">Όλοι οι μαθητές και τα θέματα</string>
+    <string name="reports_filter_all">Όλοι οι μαθητές και τα αντικείμενα</string>
     <string name="onboarding_subject_field_hint">Πληκτρολογήστε ένα όνομα και πατήστε Enter</string>
     <string name="reports_share_ledger">Στείλτε το καθολικό</string>
     <string name="reports_export_ledger">Αποθηκεύστε το καθολικό ως CSV</string>
     <string name="reports_ledger_filename">klas-ledger.csv</string>
     <string name="reports_ledger_day">Ημερομηνία</string>
     <string name="reports_ledger_entry">Εγγραφή</string>
-    <string name="reports_ledger_student">Φοιτητής</string>
-    <string name="reports_ledger_detail">Θέμα ή μέθοδος</string>
+    <string name="reports_ledger_student">Μαθητής</string>
+    <string name="reports_ledger_detail">Αντικείμενο ή μέθοδος</string>
     <string name="reports_ledger_lesson">Μάθημα</string>
     <string name="reports_ledger_payment">Πληρωμή</string>
     <string name="schedule_cancel_day">Ακύρωση ημέρας</string>
@@ -878,13 +877,13 @@
     <string name="today_never_paid">Δεν υπάρχει πληρωμή ακόμη</string>
     <string name="today_recent_marks">Επισήμανση εκτός της εφαρμογής</string>
     <string name="today_marked_at">Πραγματοποιήθηκε · σημάνθηκε στις %1$s</string>
-    <plurals name="today_members">
-        <item quantity="one">%1$d μέλος</item>
-        <item quantity="other">%1$d μέλη</item>
+    <plurals name="members_count">
+        <item quantity="one">%1$d\u00A0μέλος</item>
+        <item quantity="other">%1$d\u00A0μέλη</item>
     </plurals>
     <string name="people_owes">Με οφειλή · %1$d</string>
     <string name="people_archived">Αρχειοθετήθηκε</string>
-    <string name="people_all_subjects">Όλα τα θέματα</string>
+    <string name="people_all_subjects">Όλα τα αντικείμενα</string>
     <string name="people_filter">Φίλτρο και ταξινόμηση</string>
     <string name="people_show">Εμφάνιση</string>
     <string name="people_subject">Μάθημα</string>

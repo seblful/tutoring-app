@@ -7,28 +7,28 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 
 | Key | English | Now | OK / suggestion |
 |---|---|---|---|
-| `onboarding_tagline` | Your students' lessons, payments and debts in one place | Студенттеріңіздің сабақтары, төлемдері мен қарыздары бір жерде | |
+| `onboarding_tagline` | Your students' lessons, payments and debts in one place | Оқушыларыңыздың сабақтары, төлемдері мен қарыздары бір жерде | |
 | `onboarding_value_schedule` | Lessons by day, week and month, with reminders | Еске салғыштары бар күн, апта және ай бойынша сабақтар | |
 | `onboarding_value_money` | Who has paid and who owes — worked out for you | Кім төледі, кімнің қарызы бар — автоматты түрде есептеледі | |
 | `onboarding_value_offline` | No internet and no account: your data stays on the phone | Интернет және есептік жазба жоқ: деректеріңіз телефонда қалады | |
-| `onboarding_welcome_desc` | Setup takes a minute: the basics, the subjects you teach and your first student. | Орнату бір минутты алады: негіздер, сіз оқытатын пәндер және бірінші студентіңіз. | |
+| `onboarding_welcome_desc` | Setup takes a minute: the basics, the subjects you teach and your first student. | Баптау бір минут алады: негізгі параметрлер, сіз оқытатын пәндер және алғашқы оқушыңыз. | |
 | `onboarding_start` | Set up | Орнату | |
 | `onboarding_restore` | Restore a backup | Сақтық көшірмені қалпына келтіріңіз | |
 | `onboarding_restore_desc` | The file's data will replace what is here | Файл деректері осы жердегіні ауыстырады | |
 | `onboarding_skip` | Skip | Өткізіп жіберу | |
-| `onboarding_skip_desc` | Subjects and students can be added later | Пәндерді және студенттерді кейінірек қосуға болады | |
+| `onboarding_skip_desc` | Subjects and students can be added later | Пәндер мен оқушыларды кейінірек қосуға болады | |
 | `onboarding_step` | Step %1$d of %2$d | %1$d қадамы %2$d | |
 | `onboarding_locale_title` | The basics | Негіздер | |
 | `onboarding_locale_desc` | Already chosen for you. Change anything now or later in Settings. | Сіз үшін әлдеқашан таңдалған. Кез келген нәрсені қазір немесе кейінірек "Параметрлер" бөлімінен өзгертіңіз. | |
 | `onboarding_lesson_length_desc` | Pre-fills new lessons. Rates are per hour, so each lesson is billed for its length. | Жаңа сабақтарды алдын ала толтырады. Тарифтер сағатына есептелген, сондықтан әрбір сабақ ұзақтығы үшін шот алынады. | |
 | `onboarding_locale_currency_desc` | Amounts are only labelled with it — nothing is converted. | Сомалар тек онымен белгіленеді — ештеңе түрлендірілмейді. | |
-| `onboarding_subjects_title` | Subjects | Тақырыптар | |
+| `onboarding_subjects_title` | Subjects | Пәндер | |
 | `onboarding_subjects_desc` | Tap what you teach, or add your own. You can change them later. | Өзіңіз үйрететін нәрсені түртіңіз немесе өзіңізді қосыңыз. Оларды кейін өзгертуге болады. | |
 | `onboarding_subject_suggestions` | *0:* Math · *1:* English · *2:* Physics · *3:* Chemistry · *4:* Biology · *5:* History · *6:* Computer science · *7:* Piano | *0:* Математика · *1:* Ағылшын тілі · *2:* Физика · *3:* Химия · *4:* Биология · *5:* Тарих · *6:* Информатика · *7:* Фортепиано | |
-| `onboarding_subject_removed` | Subject deleted | Тақырып жойылды | |
-| `onboarding_subject_remove_failed` | Could not delete the subject | Тақырыпты жою мүмкін болмады | |
-| `onboarding_student_title` | First student | Алғашқы студент | |
-| `onboarding_student_desc` | Just a name and a rate. A phone, email and note can be added on the student's profile later. | Тек аты мен бағасы. Телефон, электрондық пошта және жазбаны студенттің профиліне кейінірек қосуға болады. | |
+| `onboarding_subject_removed` | Subject deleted | Пән жойылды | |
+| `onboarding_subject_remove_failed` | Could not delete the subject | Пәнді жою мүмкін болмады | |
+| `onboarding_student_title` | First student | Алғашқы оқушы | |
+| `onboarding_student_desc` | Just a name and a rate. A phone, email and note can be added on the student's profile later. | Тек аты мен ақысы. Телефон, электрондық пошта мен жазбаны кейінірек оқушының профиліне қосуға болады. | |
 | `onboarding_continue` | Next | Келесі | |
 | `onboarding_finish` | Done | Дайын | |
 | `onboarding_subject_field_hint` | Type a name and press Enter | Атты теріп, Enter пернесін басыңыз | |
@@ -81,7 +81,6 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 | `today_lessons` | Today's lessons | Бүгінгі сабақтар | |
 | `today_no_lessons` | No lessons today | Бүгін сабақ жоқ | |
 | `today_owed` | Owed to you | Сізге қарыздармын | |
-| `today_homework` | Homework due | Тапсыратын үй тапсырмасы | |
 | `today_backup_old` | Last backup %1$s | Соңғы сақтық көшірме %1$s | |
 | `today_backup_never` | No backup yet | Сақтық көшірме әлі жоқ | |
 | `today_backup_detail` | Your data is on this phone only. | Деректеріңіз тек осы телефонда. | |
@@ -93,7 +92,6 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 | `today_never_paid` | No payment yet | Әлі төлем жоқ | |
 | `today_recent_marks` | Marked outside the app | Қолданбадан тыс белгіленген | |
 | `today_marked_at` | Taught · marked at %1$s | Өткізілді · %1$s уақытында белгіленді | |
-| `today_members` | *one:* %1$d member · *other:* %1$d members | *one:* %1$d қатысушы · *other:* %1$d қатысушы | |
 
 ## Buttons
 
@@ -129,7 +127,7 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 | `schedule_add_class` | Book a lesson | Сабаққа тапсырыс беріңіз | |
 | `schedule_week_empty` | No lessons this week | Осы аптада сабақ жоқ | |
 | `schedule_empty_no_setup` | Nothing to plan yet | Әлі жоспарлайтын ештеңе жоқ | |
-| `schedule_empty_no_setup_detail` | A lesson is booked for a student and a subject with a rate. Start with a student. | Сабақ студентке және курсы бар пәнге жазылады. Оқушыдан бастаңыз. | |
+| `schedule_empty_no_setup_detail` | A lesson is booked for a student and a subject with a rate. Start with a student. | Сабақ оқушыға және ақысы белгіленген пәнге жазылады. Оқушыдан бастаңыз. | |
 | `schedule_add_student` | Add a student | Оқушы қосу | |
 | `schedule_filter_everyone` | Everyone | Барлығы | |
 | `schedule_filter_any_status` | Any status | Кез келген күй | |
@@ -150,7 +148,7 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 | `schedule_next_week` | Next week | Келесі аптада | |
 | `schedule_previous_month` | Previous month | Алдыңғы ай | |
 | `schedule_next_month` | Next month | Келесі айда | |
-| `schedule_need_setup` | Add a subject and a student first | Алдымен тақырып пен студентті қосыңыз | |
+| `schedule_need_setup` | Add a subject and a student first | Алдымен пән мен оқушыны қосыңыз | |
 | `schedule_pick_date` | Choose a date | Күнді таңдаңыз | |
 | `schedule_cancel_day` | Cancel day | Күнді болдырмау | |
 | `schedule_open_day` | Open day | Күнді ашу | |
@@ -223,9 +221,9 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 | `students_search_hint` | Search students | Оқушыларды іздеу | |
 | `students_sort_name` | By name | Аты бойынша | |
 | `students_sort_debt` | Debtors first | Бірінші борышкерлер | |
-| `students_title` | Students | Студенттер | |
-| `students_empty` | No students yet | Әлі студенттер жоқ | |
-| `students_empty_detail` | A student is a name, their subjects and a rate per hour. After that you can book lessons and track payments. | Студент - бұл аты-жөні, олардың пәндері және сағатына ақы. Осыдан кейін сіз сабақтарға тапсырыс бере аласыз және төлемдерді қадағалай аласыз. | |
+| `students_title` | Students | Оқушылар | |
+| `students_empty` | No students yet | Әзірге оқушылар жоқ | |
+| `students_empty_detail` | A student is a name, their subjects and a rate per hour. After that you can book lessons and track payments. | Оқушы — бұл аты-жөні, пәндері және сағаттық ақысы. Осыдан кейін сабақтарды жазып, төлемдерді қадағалай аласыз. | |
 | `students_add` | Add a student | Оқушы қосу | |
 | `students_count` | *one:* %1$d\u00A0student · *other:* %1$d\u00A0students | *one:* %1$d\u00A0оқушы · *other:* %1$d\u00A0оқушы | |
 
@@ -277,7 +275,7 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 | `widget_today_locked` | Unlock to see today's lessons | Бүгінгі сабақтарды көру үшін құлыпты ашыңыз | |
 | `widget_today_empty` | No lessons today | Бүгін сабақ жоқ | |
 | `widget_quick_actions_name` | Klas shortcuts | Klas таңбашалары | |
-| `widget_quick_actions_description` | Book a lesson, add a student, or open today, homework and debts | Сабаққа тапсырыс беріңіз, студент қосыңыз немесе бүгін ашыңыз, үй тапсырмасы мен қарыздар | |
+| `widget_quick_actions_description` | Book a lesson, add a student, or open today, homework and debts | Сабақ жазу, оқушы қосу немесе бүгінгі күнді, үй тапсырмалары мен қарыздарды ашу | |
 | `widget_preview_lessons` | *0:* Anna Sokolova · *1:* Algebra · *2:* Year 11 · *3:* English · *4:* Ivan Petrov · *5:* Physics | *0:* Анна Соколова · *1:* Алгебра · *2:* 11 жыл · *3:* Ағылшын тілі · *4:* Иван Петров · *5:* Физика | |
 | `widget_mark_lesson` | Mark %1$s, %2$s taught | Марк %1$s, %2$s оқытты | |
 | `widget_lesson_taught` | %1$s, %2$s: taught | %1$s, %2$s: өткізілді | |

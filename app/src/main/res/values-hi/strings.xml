@@ -36,7 +36,7 @@
     </plurals>
     <string name="students_search_hint">छात्र खोजें</string>
     <string name="groups_search_hint">समूह खोजें</string>
-    <string name="subjects_search_hint">विषय का नाम</string>
+    <string name="subjects_search_hint">विषय खोजें</string>
     <string name="students_sort_name">नाम से</string>
     <string name="students_sort_debt">देनदार पहले</string>
     <string name="unsaved_save_title">परिवर्तन सहेजें?</string>
@@ -110,7 +110,7 @@
     <string name="class_edit_title">पाठ संपादित करें</string>
     <string name="class_student_label">छात्र</string>
     <string name="class_subject_label">विषय</string>
-    <string name="class_no_subjects_for_student">इस विद्यार्थी के किसी भी विषय की फीस तय नहीं है। उसकी प्रोफ़ाइल में फीस तय करें।</string>
+    <string name="class_no_subjects_for_student">इस छात्र के किसी भी विषय की फीस तय नहीं है। उसकी प्रोफ़ाइल में फीस तय करें।</string>
     <string name="class_duration_label">लंबाई</string>
     <string name="class_duration_custom">अन्य</string>
     <string name="class_duration_ends_at">%1$s तक</string>
@@ -153,7 +153,7 @@
     <string name="class_gone">यह पाठ अब मौजूद नहीं है</string>
     <string name="class_gone_detail">इसे खोलने के बाद इसे हटा दिया गया। आपको जिस पाठ की आवश्यकता है उसे ढूंढने के लिए शेड्यूल पर वापस जाएं।</string>
     <string name="class_delete_confirm">यह पाठ हटाएं?</string>
-    <string name="class_delete_completed_confirm">यह कक्षा संपन्न हो चुकी है। इसे मिटाने पर विद्यार्थी के खाते से इसकी फीस हट जाएगी। मिटाएँ?</string>
+    <string name="class_delete_completed_confirm">यह कक्षा संपन्न हो चुकी है। इसे मिटाने पर छात्र के खाते से इसकी फीस हट जाएगी। मिटाएँ?</string>
     <string name="class_target_group">समूह</string>
     <string name="class_group_label">समूह</string>
     <string name="class_no_subjects_for_group">पहले विषय जोड़ें</string>
@@ -162,11 +162,11 @@
     <string name="class_group_no_members_left">कम से कम एक सदस्य चुनें</string>
     <string name="class_group_members_editable">चुनें कि इस पाठ के लिए किसे बुक किया गया है। पाठ पत्रक में अनुपस्थिति रिकार्ड करें।</string>
     <plurals name="class_member_drop_billed_confirm">
-        <item quantity="one">संपन्न कक्षा से हटाए जाने वाले विद्यार्थियों की संख्या: %1$d। उनकी कक्षाएँ और संबंधित फीस हटा दी जाएँगी। सहेजें?</item>
-        <item quantity="other">संपन्न कक्षा से हटाए जाने वाले विद्यार्थियों की संख्या: %1$d। उनकी कक्षाएँ और संबंधित फीस हटा दी जाएँगी। सहेजें?</item>
+        <item quantity="one">संपन्न कक्षा से हटाए जाने वाले छात्रों की संख्या: %1$d। उनकी कक्षाएँ और संबंधित फीस हटा दी जाएँगी। सहेजें?</item>
+        <item quantity="other">संपन्न कक्षा से हटाए जाने वाले छात्रों की संख्या: %1$d। उनकी कक्षाएँ और संबंधित फीस हटा दी जाएँगी। सहेजें?</item>
     </plurals>
     <string name="class_subject_from_group">समूह विषय निर्धारित करता है</string>
-    <string name="class_group_price_label">प्रति विद्यार्थी की फीस</string>
+    <string name="class_group_price_label">प्रति छात्र फीस</string>
     <string name="class_mark_completed">संपन्न चिह्नित करें</string>
     <string name="class_series_availability">उपलब्ध तिथियाँ: %1$d। पहले से बुक तिथियाँ छोड़ दी जाएँगी।</string>
     <string name="class_attendance_label">उपस्थिति</string>
@@ -228,7 +228,7 @@
     <string name="student_payments_title">भुगतान</string>
     <string name="student_last_payment">अंतिम भुगतान %1$s</string>
     <string name="student_lessons_empty">अभी तक कोई पाठ नहीं</string>
-    <string name="student_subject_remove_confirm">इस विद्यार्थी के विषयों से %1$s हटाएँ? इसकी फीस और फीस का इतिहास मिटा दिया जाएगा।</string>
+    <string name="student_subject_remove_confirm">इस छात्र के विषयों से %1$s हटाएँ? इसकी फीस और फीस का इतिहास मिटा दिया जाएगा।</string>
     <string name="student_classes_title">पाठ</string>
     <string name="student_homework_title">गृहकार्य</string>
     <string name="student_next_lesson">अगला पाठ</string>
@@ -300,9 +300,9 @@
     <string name="group_name_label">नाम</string>
     <string name="group_subject_label">विषय</string>
     <string name="group_subject_none">कोई विषय नहीं</string>
-    <string name="group_subject_hint">केवल इस विषय में उत्तीर्ण छात्र ही समूह में शामिल हो सकते हैं</string>
+    <string name="group_subject_hint">केवल वही छात्र समूह में शामिल हो सकते हैं जिनकी इस विषय की फीस तय है</string>
     <string name="group_subject_none_hint">बिना किसी विषय के: कोई भी छात्र, और पाठ बुक होने पर विषय चुना जाता है</string>
-    <string name="group_price_label">प्रति विद्यार्थी की फीस</string>
+    <string name="group_price_label">प्रति छात्र फीस</string>
     <string name="group_price_hint">समूह के हर सदस्य के लिए समान प्रति घंटे का शुल्क</string>
     <string name="group_members_title">सदस्य</string>
     <string name="group_members_required">कम से कम एक छात्र चुनें</string>
@@ -429,7 +429,7 @@
         <item>रविवार</item>
     </string-array>
     <string name="settings_autocomplete">कक्षाओं को अपने-आप संपन्न चिह्नित करें</string>
-    <string name="settings_autocomplete_desc">समाप्त कक्षाओं को अपने-आप संपन्न चिह्नित करें और उनकी फीस विद्यार्थियों के खाते में जोड़ें</string>
+    <string name="settings_autocomplete_desc">समाप्त कक्षाओं को अपने-आप संपन्न चिह्नित करें और उनकी फीस छात्रों के खाते में जोड़ें</string>
     <plurals name="settings_autocomplete_sweep_confirm">
         <item quantity="one">पिछली %1$d कक्षा संपन्न चिह्नित की जाएगी और उसकी फीस जोड़ी जाएगी। अपने-आप चिह्नित करना चालू करें?</item>
         <item quantity="other">पिछली %1$d कक्षाएँ संपन्न चिह्नित की जाएँगी और उनकी फीस जोड़ी जाएगी। अपने-आप चिह्नित करना चालू करें?</item>
@@ -498,12 +498,12 @@
     <string name="onboarding_continue">अगला</string>
     <string name="onboarding_finish">हो गया</string>
     <plurals name="class_delete_group_confirm">
-        <item quantity="one">यह समूह कक्षा मिटाएँ? विद्यार्थियों की संख्या: %1$d।</item>
-        <item quantity="other">यह समूह कक्षा मिटाएँ? विद्यार्थियों की संख्या: %1$d।</item>
+        <item quantity="one">यह समूह कक्षा मिटाएँ? छात्रों की संख्या: %1$d।</item>
+        <item quantity="other">यह समूह कक्षा मिटाएँ? छात्रों की संख्या: %1$d।</item>
     </plurals>
     <plurals name="class_delete_group_completed_confirm">
-        <item quantity="one">यह कक्षा संपन्न हो चुकी है। इसे मिटाने पर %1$d विद्यार्थी के खाते से इसकी फीस हट जाएगी। मिटाएँ?</item>
-        <item quantity="other">यह कक्षा संपन्न हो चुकी है। इसे मिटाने पर %1$d विद्यार्थियों के खातों से इसकी फीस हट जाएगी। मिटाएँ?</item>
+        <item quantity="one">यह कक्षा संपन्न हो चुकी है। इसे मिटाने पर %1$d छात्र के खाते से इसकी फीस हट जाएगी। मिटाएँ?</item>
+        <item quantity="other">यह कक्षा संपन्न हो चुकी है। इसे मिटाने पर %1$d छात्रों के खातों से इसकी फीस हट जाएगी। मिटाएँ?</item>
     </plurals>
     <string name="schedule_need_setup">पहले एक विषय और एक छात्र जोड़ें</string>
     <string name="reminder_channel_name">पाठ अनुस्मारक</string>
@@ -536,8 +536,8 @@
     <string name="people_pick_card">एक छात्र या एक समूह चुनें</string>
     <string name="settings_pick_page">एक अनुभाग चुनें</string>
     <plurals name="students_count">
-        <item quantity="one">%1$d\u00A0विद्यार्थी</item>
-        <item quantity="other">%1$d\u00A0विद्यार्थी</item>
+        <item quantity="one">%1$d छात्र</item>
+        <item quantity="other">%1$d छात्र</item>
     </plurals>
     <string name="reports_title">रिपोर्ट</string>
     <string name="reports_empty">अभी रिपोर्ट करने के लिए कुछ नहीं है</string>
@@ -566,7 +566,7 @@
     <string name="reports_by_kind">पाठ प्रकार के अनुसार आय</string>
     <string name="reports_by_group">समूह द्वारा आय</string>
     <string name="reports_by_subject">विषयानुसार आय</string>
-    <string name="reports_by_student">छात्र द्वारा आय</string>
+    <string name="reports_by_student">छात्रवार आय</string>
     <string name="reports_debts">ऋण</string>
     <string name="reports_no_debts">किसी का कुछ भी बकाया नहीं है</string>
     <string name="reports_total_outstanding">कुल बकाया राशि</string>
@@ -645,7 +645,7 @@
     <string name="backup_error_password_needed">यह बैकअप पासवर्ड से सुरक्षित है</string>
     <string name="backup_error_wrong_password">गलत पासवर्ड</string>
     <string name="backup_export_password_title">पासवर्ड से सुरक्षित रखें?</string>
-    <string name="backup_export_password_desc">वैकल्पिक। पासवर्ड के बिना, फ़ाइल रखने वाला कोई भी व्यक्ति विद्यार्थियों के नाम और संपर्क विवरण पढ़ सकता है।</string>
+    <string name="backup_export_password_desc">वैकल्पिक। पासवर्ड के बिना, फ़ाइल रखने वाला कोई भी व्यक्ति छात्रों के नाम और संपर्क विवरण पढ़ सकता है।</string>
     <string name="backup_password">पासवर्ड</string>
     <string name="backup_password_repeat">पासवर्ड दोहराएं</string>
     <string name="backup_password_mismatch">पासवर्ड भिन्न हैं</string>
@@ -763,7 +763,6 @@
     <string name="today_lessons">आज के पाठ</string>
     <string name="today_no_lessons">आज कोई पाठ नहीं</string>
     <string name="today_owed">आपका ऋणी</string>
-    <string name="today_homework">जमा करने वाला होमवर्क</string>
     <string name="today_backup_old">अंतिम बैकअप %1$s</string>
     <string name="today_backup_never">अभी तक कोई बैकअप नहीं है</string>
     <string name="today_backup_detail">आपका डेटा केवल इस फ़ोन पर है।</string>
@@ -795,7 +794,7 @@
     <string name="statement_credit">अग्रिम भुगतान: %1$s</string>
     <string name="statement_settled">भुगतान करने के लिए कुछ भी नहीं</string>
     <string name="groups_sort_next">अगली कक्षा के अनुसार</string>
-    <string name="form_gap_name">एक नाम</string>
+    <string name="form_gap_name">नाम</string>
     <string name="form_gap_subject">विषय</string>
     <string name="form_gap_price">प्रति घंटे की फीस</string>
     <string name="form_gap_members">सदस्य</string>
@@ -878,9 +877,9 @@
     <string name="today_never_paid">अभी तक कोई भुगतान नहीं</string>
     <string name="today_recent_marks">ऐप के बाहर चिह्नित</string>
     <string name="today_marked_at">संपन्न · %1$s पर चिह्नित</string>
-    <plurals name="today_members">
-        <item quantity="one">%1$d सदस्य</item>
-        <item quantity="other">%1$d सदस्य</item>
+    <plurals name="members_count">
+        <item quantity="one">%1$d\u00A0सदस्य</item>
+        <item quantity="other">%1$d\u00A0सदस्य</item>
     </plurals>
     <string name="people_owes">बकाया वाले · %1$d</string>
     <string name="people_archived">संग्रहीत</string>

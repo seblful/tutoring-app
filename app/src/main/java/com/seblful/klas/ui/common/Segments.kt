@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.text.TextAutoSize
+import androidx.compose.foundation.text.modifiers.TextAutoSizeLayoutScope
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.LocalRippleConfiguration
 import androidx.compose.material3.LocalTextStyle
@@ -36,7 +37,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.TextUnit
@@ -79,6 +82,7 @@ fun <T> SegmentedChoice(
     // only where the selection **moves** — the `if (!isSelected)` below is the one place that decides that,
     // so a tutor re-tapping the segment they are already on gets the silence they should.
     val segmentTick = rememberSegmentTickFeedback()
+    val labels = options.map { label(it) }
 
     SingleChoiceSegmentedButtonRow(modifier.fillMaxWidth()) {
         options.forEachIndexed { index, option ->
@@ -100,7 +104,7 @@ fun <T> SegmentedChoice(
                 // and the selected segment already carries a tinted container — which is Material's own
                 // affordance, and is what the tick was duplicating.
                 icon = {},
-            ) { SegmentLabel(label(option)) }
+            ) { SegmentLabel(labels[index], row = labels) }
         }
     }
 }
@@ -169,11 +173,54 @@ fun <T> ChoiceRow(
     }
 }
 
-/** A segment's label on **one line**, shrinking a step at a time rather than wrapping. */
+/**
+ * A segment's label on **one line**, shrinking a step at a time rather than wrapping — at **one size with
+ * every label of its [row]**: each shrinking on its own left «System se…» smaller than «Monday» beside it.
+ * The segments of a row are equally wide, so the size every label fits is found in each one alike.
+ */
 @Composable
-fun SegmentLabel(text: String) {
-    OneLineLabel(text, floor = MinSegmentLabelSize, fallbackSize = MaterialTheme.typography.labelLarge.fontSize)
+fun SegmentLabel(text: String, row: List<String> = listOf(text)) {
+    val ceiling = LocalTextStyle.current.fontSize.takeOrElse { MaterialTheme.typography.labelLarge.fontSize }
+    Text(
+        text = text,
+        maxLines = 1,
+        // Only reachable if even the floor overflows: a cut word rather than a second line.
+        overflow = TextOverflow.Ellipsis,
+        autoSize = remember(row, ceiling) { RowAutoSize(row, MinSegmentLabelSize, ceiling) },
+    )
 }
+
+/**
+ * Material's step-based shrink, judged on every label of [row] at once: the largest size, from [ceiling] down
+ * to [floor], at which each fits the width a label is given.
+ */
+private class RowAutoSize(
+    private val row: List<String>,
+    private val floor: TextUnit,
+    private val ceiling: TextUnit,
+) : TextAutoSize {
+    override fun TextAutoSizeLayoutScope.getFontSize(constraints: Constraints, text: AnnotatedString): TextUnit =
+        largestFitting(ceiling, floor) { size -> row.all { fits(constraints, it, size) } }
+
+    private fun TextAutoSizeLayoutScope.fits(constraints: Constraints, label: String, size: TextUnit): Boolean {
+        val layout = performLayout(constraints, AnnotatedString(label), size)
+        return !layout.didOverflowWidth && !layout.didOverflowHeight && !layout.isLineEllipsized(0)
+    }
+
+    override fun equals(other: Any?): Boolean =
+        other is RowAutoSize && other.row == row && other.floor == floor && other.ceiling == ceiling
+
+    override fun hashCode(): Int = (row.hashCode() * 31 + floor.hashCode()) * 31 + ceiling.hashCode()
+}
+
+/** The largest size from [ceiling] down to [floor], a step at a time, at which [fits]; the floor when none is. */
+internal fun largestFitting(ceiling: TextUnit, floor: TextUnit, fits: (TextUnit) -> Boolean): TextUnit {
+    var size = ceiling.value
+    while (size > floor.value && !fits(size.sp)) size -= LabelSizeStep
+    return maxOf(size, floor.value).sp
+}
+
+private const val LabelSizeStep = 0.5f
 
 /**
  * A label held to **one line**, shrinking a step at a time — never below [floor] — before it ellipsizes:
@@ -244,6 +291,7 @@ private fun <T> ViewTabs(
     label: @Composable (T) -> String,
 ) {
     val tick = rememberSegmentTickFeedback()
+    val labels = options.map { label(it) }
     PrimaryTabRow(
         selectedTabIndex = options.indexOf(selected).coerceAtLeast(0),
         // The header paints the bar's colour behind it, at rest and tinted on scroll alike.
@@ -251,7 +299,7 @@ private fun <T> ViewTabs(
         // No rule under the tabs: the header carries on below them (the schedule's pager) as one band.
         divider = {},
     ) {
-        options.forEach { option ->
+        options.forEachIndexed { index, option ->
             val isSelected = option == selected
             val press = remember { MutableInteractionSource() }
             // Material's tab ripple fills its whole cell, a hard-edged block from the bar's top to the indicator;
@@ -277,7 +325,7 @@ private fun <T> ViewTabs(
                                     .clip(MaterialTheme.shapes.small)
                                     .indication(press, ripple())
                                     .padding(horizontal = TabPressPadX, vertical = TabPressPadY),
-                            ) { SegmentLabel(label(option)) }
+                            ) { SegmentLabel(labels[index], row = labels) }
                         }
                     },
                 )

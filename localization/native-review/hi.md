@@ -81,7 +81,6 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 | `today_lessons` | Today's lessons | आज के पाठ | |
 | `today_no_lessons` | No lessons today | आज कोई पाठ नहीं | |
 | `today_owed` | Owed to you | आपका ऋणी | |
-| `today_homework` | Homework due | जमा करने वाला होमवर्क | |
 | `today_backup_old` | Last backup %1$s | अंतिम बैकअप %1$s | |
 | `today_backup_never` | No backup yet | अभी तक कोई बैकअप नहीं है | |
 | `today_backup_detail` | Your data is on this phone only. | आपका डेटा केवल इस फ़ोन पर है। | |
@@ -93,7 +92,6 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 | `today_never_paid` | No payment yet | अभी तक कोई भुगतान नहीं | |
 | `today_recent_marks` | Marked outside the app | ऐप के बाहर चिह्नित | |
 | `today_marked_at` | Taught · marked at %1$s | संपन्न · %1$s पर चिह्नित | |
-| `today_members` | *one:* %1$d member · *other:* %1$d members | *one:* %1$d सदस्य · *other:* %1$d सदस्य | |
 
 ## Buttons
 
@@ -227,7 +225,7 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 | `students_empty` | No students yet | अभी तक कोई छात्र नहीं | |
 | `students_empty_detail` | A student is a name, their subjects and a rate per hour. After that you can book lessons and track payments. | एक छात्र का एक नाम, उनके विषय और प्रति घंटे की दर होती है। उसके बाद आप पाठ बुक कर सकते हैं और भुगतान ट्रैक कर सकते हैं। | |
 | `students_add` | Add a student | एक छात्र जोड़ें | |
-| `students_count` | *one:* %1$d\u00A0student · *other:* %1$d\u00A0students | *one:* %1$d\u00A0विद्यार्थी · *other:* %1$d\u00A0विद्यार्थी | |
+| `students_count` | *one:* %1$d\u00A0student · *other:* %1$d\u00A0students | *one:* %1$d छात्र · *other:* %1$d छात्र | |
 
 ## Durations
 

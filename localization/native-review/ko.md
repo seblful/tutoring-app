@@ -7,7 +7,7 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 
 | Key | English | Now | Why | Suggestion |
 |---|---|---|---|---|
-| `stat_debt` | Owes | 빚진 | awkward | |
+| `stat_debt` | Owes | 미납 | awkward | |
 
 ## Setup
 
@@ -87,7 +87,6 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 | `today_lessons` | Today's lessons | 오늘의 수업 | |
 | `today_no_lessons` | No lessons today | 오늘 수업이 없습니다 | |
 | `today_owed` | Owed to you | 받을 금액 | |
-| `today_homework` | Homework due | 제출할 숙제 | |
 | `today_backup_old` | Last backup %1$s | 최근 백업 %1$s | |
 | `today_backup_never` | No backup yet | 아직 백업이 없습니다 | |
 | `today_backup_detail` | Your data is on this phone only. | 데이터는 이 휴대전화에만 저장되어 있습니다. | |
@@ -99,7 +98,6 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 | `today_never_paid` | No payment yet | 아직 결제가 없습니다 | |
 | `today_recent_marks` | Marked outside the app | 앱 외부에서 표시됨 | |
 | `today_marked_at` | Taught · marked at %1$s | 진행 완료 · %1$s에 표시 | |
-| `today_members` | *one:* %1$d member · *other:* %1$d members | *other:* %1$d 명 구성원 | |
 
 ## Buttons
 
@@ -176,7 +174,7 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 
 | Key | English | Now | OK / suggestion |
 |---|---|---|---|
-| `stat_debt` | Owes | 빚진 | |
+| `stat_debt` | Owes | 미납 | |
 | `stat_credit` | In credit | 선불 잔액 | |
 | `stat_lessons` | Lessons | 수업 | |
 | `stat_hours` | Hours | 시간 | |
@@ -229,7 +227,7 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 | `students_search_hint` | Search students | 학생 검색 | |
 | `students_sort_name` | By name | 이름으로 | |
 | `students_sort_debt` | Debtors first | 채무자 우선 | |
-| `students_title` | Students | 재학생 | |
+| `students_title` | Students | 학생 | |
 | `students_empty` | No students yet | 아직 학생이 없습니다. | |
 | `students_empty_detail` | A student is a name, their subjects and a rate per hour. After that you can book lessons and track payments. | 학생은 이름, 과목 및 시간당 요금입니다. 그 후에는 수업을 예약하고 결제를 추적할 수 있습니다. | |
 | `students_add` | Add a student | 학생 추가 | |

@@ -39,8 +39,8 @@
         <item quantity="other">نتائج إضافية: %1$d — حدّد البحث أكثر</item>
     </plurals>
     <string name="students_search_hint">البحث عن الطلاب</string>
-    <string name="groups_search_hint">مجموعات البحث</string>
-    <string name="subjects_search_hint">اسم المادة</string>
+    <string name="groups_search_hint">البحث عن المجموعات</string>
+    <string name="subjects_search_hint">البحث عن المواد</string>
     <string name="students_sort_name">بالاسم</string>
     <string name="students_sort_debt">المدينون أولاً</string>
     <string name="unsaved_save_title">حفظ التغييرات؟</string>
@@ -54,7 +54,7 @@
     <string name="schedule_add_class">حجز الدرس</string>
     <string name="schedule_week_empty">لا توجد دروس هذا الأسبوع</string>
     <string name="schedule_empty_no_setup">لا يوجد شيء للتخطيط له بعد</string>
-    <string name="schedule_empty_no_setup_detail">يتم حجز درس للطالب والمادة بمعدل. ابدأ بالطالب.</string>
+    <string name="schedule_empty_no_setup_detail">يُحجز الدرس لطالب ومادة لها سعر. ابدأ بالطالب.</string>
     <string name="schedule_add_student">إضافة طالب</string>
     <string name="schedule_filter_everyone">الجميع</string>
     <string name="schedule_filter_any_status">أي حالة</string>
@@ -176,7 +176,7 @@
     <string name="class_delete_completed_confirm">أُجري هذا الدرس. سيؤدي حذفه إلى إزالة رسومه من رصيد الطالب. هل تريد الحذف؟</string>
     <string name="class_target_group">المجموعة</string>
     <string name="class_group_label">المجموعة</string>
-    <string name="class_no_subjects_for_group">أضف المواضيع أولاً</string>
+    <string name="class_no_subjects_for_group">أضف المواد أولاً</string>
     <string name="class_group_members_title">الأعضاء</string>
     <string name="class_group_no_active_members">لا يمكن حجز أي شخص في هذه المجموعة: تتم أرشفة أعضائها</string>
     <string name="class_group_no_members_left">اختر عضوًا واحدًا على الأقل</string>
@@ -189,7 +189,7 @@
         <item quantity="many">عدد الطلاب الذين ستتم إزالتهم من درس أُجري: %1$d. ستُحذف دروسهم مع الرسوم المترتبة عليها. هل تريد الحفظ؟</item>
         <item quantity="other">عدد الطلاب الذين ستتم إزالتهم من درس أُجري: %1$d. ستُحذف دروسهم مع الرسوم المترتبة عليها. هل تريد الحفظ؟</item>
     </plurals>
-    <string name="class_subject_from_group">المجموعة تحدد الموضوع</string>
+    <string name="class_subject_from_group">المجموعة تحدد المادة</string>
     <string name="class_group_price_label">سعر الساعة لكل طالب</string>
     <string name="class_mark_completed">تعليم كمكتمل</string>
     <string name="class_series_availability">عدد المواعيد المتاحة: %1$d. ستُتخطى المواعيد المحجوزة.</string>
@@ -225,13 +225,13 @@
     <string name="student_form_add">إضافة طالب</string>
     <string name="student_form_subject_has_lessons">فيه دروس فبقي</string>
     <string name="student_form_subjects_required">اختر مادة واحدة على الأقل وحدّد سعر الساعة</string>
-    <string name="student_form_no_subjects">أضف المواضيع أولاً</string>
+    <string name="student_form_no_subjects">أضف المواد أولاً</string>
     <string name="student_mode_label">المكان</string>
-    <string name="student_subjects_title">المواضيع</string>
-    <string name="student_no_subjects">لم يتم اختيار أي مواضيع</string>
-    <string name="student_add_subject">إضافة موضوع</string>
-    <string name="student_all_subjects_added">تمت إضافة كل موضوع</string>
-    <string name="student_subject_remove_blocked">لا يمكن إزالة الموضوع: فيه دروس</string>
+    <string name="student_subjects_title">المواد</string>
+    <string name="student_no_subjects">لم يتم اختيار أي مواد</string>
+    <string name="student_add_subject">إضافة مادة</string>
+    <string name="student_all_subjects_added">تمت إضافة كل المواد</string>
+    <string name="student_subject_remove_blocked">لا يمكن إزالة المادة: فيها دروس</string>
     <string name="student_archive_balance_part">لم تتم تسوية رصيد هذا الطالب (%1$s). ويظل تاريخهم موجودًا في التقارير، لكن التذكيرات الأسبوعية بالديون ستستبعدهم.</string>
     <string name="student_archive_question">الأرشيف على أي حال؟</string>
     <plurals name="student_archive_lessons_part">
@@ -317,19 +317,19 @@
     <string name="action_copy">نسخ</string>
     <string name="clipboard_copied">تم النسخ</string>
     <string name="student_contact_failed">لا يوجد تطبيق على هذا الهاتف يمكنه القيام بذلك</string>
-    <string name="subjects_title">المواضيع</string>
-    <string name="subjects_empty">لا توجد مواضيع بعد</string>
+    <string name="subjects_title">المواد</string>
+    <string name="subjects_empty">لا توجد مواد بعد</string>
     <string name="subjects_empty_detail">المادة هي ما تُدرّسه. أضف مادة لتحديد أسعارها وحجز الدروس.</string>
-    <string name="subjects_add">إضافة موضوع</string>
-    <string name="subject_add_title">موضوع جديد</string>
-    <string name="subject_edit_title">تحرير الموضوع</string>
+    <string name="subjects_add">إضافة مادة</string>
+    <string name="subject_add_title">مادة جديدة</string>
+    <string name="subject_edit_title">تعديل المادة</string>
     <string name="subject_name_label">اسم المادة</string>
-    <string name="subject_name_taken">يوجد بالفعل موضوع بهذا الاسم</string>
+    <string name="subject_name_taken">توجد مادة بهذا الاسم بالفعل</string>
     <string name="subject_delete_named">حذف %1$s</string>
-    <string name="subject_deleted">تم حذف الموضوع</string>
-    <string name="subject_delete_blocked">لا يمكن حذف الموضوع: فيه دروس. احذف تلك أولاً.</string>
-    <string name="subject_delete_blocked_group">لا يمكن حذف الموضوع: هناك مجموعة تدرسه. قم بتغيير موضوع المجموعة أولاً.</string>
-    <string name="subject_delete_blocked_students">لا يمكن حذف الموضوع: يأخذه الطالب. قم بإزالته من ملفه الشخصي أولاً.</string>
+    <string name="subject_deleted">تم حذف المادة</string>
+    <string name="subject_delete_blocked">لا يمكن حذف المادة: فيها دروس. احذف تلك الدروس أولاً.</string>
+    <string name="subject_delete_blocked_group">لا يمكن حذف المادة: هناك مجموعة تدرسها. غيّر مادة المجموعة أولاً.</string>
+    <string name="subject_delete_blocked_students">لا يمكن حذف المادة: يدرسها طالب. أزلها من ملفه الشخصي أولاً.</string>
     <string name="groups_title">المجموعات</string>
     <string name="groups_empty">لا توجد مجموعات بعد</string>
     <string name="groups_empty_detail">المجموعة عبارة عن عدة طلاب يتشاركون بمعدل واحد. ويتم حجز درس واحد لهم جميعًا مرة واحدة.</string>
@@ -339,7 +339,7 @@
     <string name="group_edit_title">تحرير المجموعة</string>
     <string name="group_name_label">الاسم</string>
     <string name="group_subject_label">المادة</string>
-    <string name="group_subject_none">لا يوجد موضوع</string>
+    <string name="group_subject_none">بدون مادة</string>
     <string name="group_subject_hint">لا يمكن الانضمام إلى المجموعة إلا للطلاب الذين حُدد لهم سعر لهذه المادة</string>
     <string name="group_subject_none_hint">بدون مادة: أي طالب، ويتم اختيار المادة عند حجز الدرس</string>
     <string name="group_price_label">سعر الساعة لكل طالب</string>
@@ -362,7 +362,7 @@
     <string name="group_students_title">الأعضاء</string>
     <string name="group_lessons_title">الدروس</string>
     <string name="group_lessons_empty">هذه المجموعة ليس لديها دروس بعد</string>
-    <string name="group_no_subject">لا يوجد موضوع</string>
+    <string name="group_no_subject">بدون مادة</string>
     <string name="group_edit_members">تعديل الأعضاء</string>
     <string name="group_member_open">فتح ملف التعريف</string>
     <string name="group_lesson_present">الحضور: %1$d من أصل %2$d</string>
@@ -374,7 +374,7 @@
         <item quantity="many">عدد الأعضاء: %1$d</item>
         <item quantity="other">عدد الأعضاء: %1$d</item>
     </plurals>
-    <string name="more_subjects">المواضيع</string>
+    <string name="more_subjects">المواد</string>
     <string name="more_backup">النسخ الاحتياطي</string>
     <string name="calendar_denied">لا يمكن الوصول إلى التقويم</string>
     <string name="calendar_rationale">يحتاج Klas إلى الوصول إلى التقويم لإظهار الدروس في تقويم هذا الجهاز</string>
@@ -555,7 +555,7 @@
     <string name="onboarding_locale_desc">تم اختياره لك بالفعل. قم بتغيير أي شيء الآن أو لاحقًا في الإعدادات.</string>
     <string name="onboarding_lesson_length_desc">يقوم بملء الدروس الجديدة مسبقًا. الأسعار محددة بالساعة، لذا تتم محاسبة كل درس وفقًا لطوله.</string>
     <string name="onboarding_locale_currency_desc">تتم تسمية المبالغ به فقط - ولا يتم تحويل أي شيء.</string>
-    <string name="onboarding_subjects_title">المواضيع</string>
+    <string name="onboarding_subjects_title">المواد</string>
     <string name="onboarding_subjects_desc">اضغط على ما تقوم بتدريسه، أو قم بإضافة ما تعلمه بنفسك. يمكنك تغييرها لاحقا.</string>
     <string-array name="onboarding_subject_suggestions">
         <item>الرياضيات</item>
@@ -567,8 +567,8 @@
         <item>علوم الحاسب الآلي</item>
         <item>بيانو</item>
     </string-array>
-    <string name="onboarding_subject_removed">تم حذف الموضوع</string>
-    <string name="onboarding_subject_remove_failed">لا يمكن حذف الموضوع</string>
+    <string name="onboarding_subject_removed">تم حذف المادة</string>
+    <string name="onboarding_subject_remove_failed">تعذر حذف المادة</string>
     <string name="onboarding_student_title">الطالب الأول</string>
     <string name="onboarding_student_desc">مجرد اسم وسعر. ويمكن إضافة هاتف وبريد إلكتروني وملاحظة في الملف الشخصي للطالب لاحقًا.</string>
     <string name="onboarding_continue">التالي</string>
@@ -589,7 +589,7 @@
         <item quantity="many">أُجري هذا الدرس. سيؤدي حذفه إلى إزالة الرسوم عن هذا العدد من الطلاب: %1$d. هل تريد الحذف؟</item>
         <item quantity="other">أُجري هذا الدرس. سيؤدي حذفه إلى إزالة الرسوم عن هذا العدد من الطلاب: %1$d. هل تريد الحذف؟</item>
     </plurals>
-    <string name="schedule_need_setup">أضف موضوعًا وطالبًا أولاً</string>
+    <string name="schedule_need_setup">أضف مادة وطالبًا أولاً</string>
     <string name="reminder_channel_name">تذكيرات للدرس</string>
     <string name="reminder_channel_desc">إشعارات قبل بدء الدرس</string>
     <string name="notification_locked_text">افتح القفل لرؤية التفاصيل</string>
@@ -657,7 +657,7 @@
     <string name="reports_by_year">الدخل حسب السنة</string>
     <string name="reports_by_kind">الدخل حسب نوع الدرس</string>
     <string name="reports_by_group">الدخل حسب المجموعة</string>
-    <string name="reports_by_subject">الدخل حسب الموضوع</string>
+    <string name="reports_by_subject">الدخل حسب المادة</string>
     <string name="reports_by_student">الدخل حسب الطالب</string>
     <string name="reports_debts">الديون</string>
     <string name="reports_no_debts">لا أحد يدين بأي شيء</string>
@@ -812,8 +812,8 @@
     <string name="payment_choose_student">من قام بالدفع؟</string>
     <string name="subject_set_price">تحديد سعر الساعة</string>
     <string name="group_member_set_price">تحديد سعر الساعة</string>
-    <string name="subject_add">أضف الموضوع</string>
-    <string name="group_price_setup_hint">قم بتعيين معدل مادة فردية لإضافة هؤلاء الطلاب. تستخدم الدروس الجماعية معدل المجموعة.</string>
+    <string name="subject_add">إضافة مادة</string>
+    <string name="group_price_setup_hint">حدّد سعرًا فرديًا للمادة لإضافة هؤلاء الطلاب. تستخدم الدروس الجماعية سعر المجموعة.</string>
     <string name="class_completed_message">تم وضع علامة على التدريس</string>
     <string name="class_cancelled_message">تم إلغاء الدرس</string>
     <string name="class_replanned_message">تم التخطيط للدرس مرة أخرى</string>
@@ -871,7 +871,6 @@
     <string name="today_lessons">دروس اليوم</string>
     <string name="today_no_lessons">لا توجد دروس اليوم</string>
     <string name="today_owed">مستحق لك</string>
-    <string name="today_homework">الواجبات المستحقة</string>
     <string name="today_backup_old">آخر نسخة احتياطية %1$s</string>
     <string name="today_backup_never">لا توجد نسخة احتياطية حتى الآن</string>
     <string name="today_backup_detail">بياناتك موجودة على هذا الهاتف فقط.</string>
@@ -884,7 +883,7 @@
         <item quantity="many">عدد الدروس التي عُلّمت كمكتملة: %1$d</item>
         <item quantity="other">عدد الدروس التي عُلّمت كمكتملة: %1$d</item>
     </plurals>
-    <string name="settings_subjects_none">لا توجد مواضيع بعد</string>
+    <string name="settings_subjects_none">لا توجد مواد بعد</string>
     <string name="settings_backup_never">لا يتم الإعداد أسبوعيًا أبدًا</string>
     <string name="settings_backup_last">آخر %1$s · يتم الإعداد أسبوعيًا</string>
     <string name="schedule_pick_date">اختر تاريخا</string>
@@ -995,7 +994,7 @@
     <string name="reports_ledger_day">التاريخ</string>
     <string name="reports_ledger_entry">قيد</string>
     <string name="reports_ledger_student">الطالب</string>
-    <string name="reports_ledger_detail">الموضوع أو الطريقة</string>
+    <string name="reports_ledger_detail">المادة أو الطريقة</string>
     <string name="reports_ledger_lesson">الدرس</string>
     <string name="reports_ledger_payment">الدفع</string>
     <string name="schedule_cancel_day">إلغاء اليوم</string>
@@ -1018,7 +1017,7 @@
     <string name="today_never_paid">لم يتم الدفع بعد</string>
     <string name="today_recent_marks">تم وضع علامة خارج التطبيق</string>
     <string name="today_marked_at">مكتمل · تم التعليم في %1$s</string>
-    <plurals name="today_members">
+    <plurals name="members_count">
         <item quantity="zero">عدد الأعضاء: %1$d</item>
         <item quantity="one">عدد الأعضاء: %1$d</item>
         <item quantity="two">عدد الأعضاء: %1$d</item>
@@ -1045,7 +1044,7 @@
         <item quantity="many">عدد المواد: %1$d</item>
         <item quantity="other">عدد المواد: %1$d</item>
     </plurals>
-    <string name="subject_unused">لم يستخدم بعد</string>
+    <string name="subject_unused">لم تُستخدم بعد</string>
     <plurals name="subject_groups_count">
         <item quantity="zero">عدد المجموعات: %1$d</item>
         <item quantity="one">عدد المجموعات: %1$d</item>

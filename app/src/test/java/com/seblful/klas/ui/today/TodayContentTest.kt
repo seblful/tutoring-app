@@ -126,6 +126,14 @@ class TodayContentTest {
     }
 
     @Test
+    fun `a lesson on now says so in a pill of its own, as every lesson row's status is`() {
+        show(state(listOf(row(2, "Olivia Brooks", 12, LessonPhase.IN_PROGRESS))))
+
+        compose.onAllNodesWithText("On now", useUnmergedTree = true).assertCountEquals(1)
+        compose.onAllNodesWithText("· On now", substring = true, useUnmergedTree = true).assertCountEquals(0)
+    }
+
+    @Test
     fun `the first steps tick what is done and open the rest`() {
         val steps = FirstSteps(setOf(FirstStep.BOOK, FirstStep.REMINDERS))
         show(state(emptyList()).copy(firstSteps = FirstStepsCard(steps, student = 7)))

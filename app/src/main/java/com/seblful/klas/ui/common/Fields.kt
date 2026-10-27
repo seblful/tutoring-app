@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -18,9 +19,6 @@ import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.ListItem
-import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -34,11 +32,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -70,7 +68,8 @@ import com.seblful.klas.ui.theme.KlasIcons
  */
 
 /**
- * Where a class is held, chosen the way every other single answer on a form is: a [ChoiceField].
+ * Where a class is held: two answers, so segments under a caption, as booking's Place shows them — a dropdown
+ * hid the other one behind a ▾ (a choice of up to four values is segments, see `docs/ui-conventions.md`).
  *
  * @param label «Место» on a lesson, «Место занятий» where the default for future lessons is being set —
  * the same control answering two different questions.
@@ -81,13 +80,20 @@ fun ModeField(
     selected: ClassMode,
     onSelect: (ClassMode) -> Unit,
 ) {
-    ChoiceField(
-        label = label,
-        selected = selected,
-        options = ClassMode.entries,
-        optionLabel = { mode -> classModeLabel(mode) },
-        onSelect = onSelect,
-    )
+    Column(Modifier.fillMaxWidth()) {
+        Text(
+            label,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(bottom = Spacing.tight),
+        )
+        SegmentedChoice(
+            options = ClassMode.entries,
+            selected = selected,
+            onSelect = onSelect,
+            label = { mode -> classModeLabel(mode) },
+        )
+    }
 }
 /**
  * A read-only text field that opens a menu of [options] — the app's one way of picking a single
@@ -339,23 +345,32 @@ fun MemberPickRow(
     modifier: Modifier = Modifier,
 ) {
     val toggleFeedback = rememberToggleFeedback()
-    // Material's checkbox list row, the tick leading as every selection control does (R6): it says it is
-    // chosen, and the row adds no tint of its own. It reaches into the form's padding by the list item's
-    // extra inset, so the tick keeps the form's edge.
-    ListItem(
-        headlineContent = { Text(student.name) },
-        leadingContent = { Checkbox(checked = selected, onCheckedChange = null) },
-        trailingContent = { Avatar(student.name, student.id) },
-        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-        modifier = modifier
+    // Laid out as the student form's subject ticks are: the tick leading as every selection control does (R6),
+    // on the form's edge rather than a list item's 16 dp in, the row a thumb tall and pressed in its rounded
+    // outset. The avatar trails, the tick having the lead.
+    Row(
+        modifier
             .fillMaxWidth()
-            .bleed(Spacing.gutter - Spacing.inline)
-            .clip(MaterialTheme.shapes.small)
-            .toggleable(value = selected, role = Role.Checkbox, onValueChange = { on ->
-                toggleFeedback(on); onToggle(on)
-            }),
-    )
+            .outsetRowPress { source ->
+                Modifier.toggleable(
+                    value = selected,
+                    interactionSource = source,
+                    indication = null,
+                    role = Role.Checkbox,
+                    onValueChange = { on -> toggleFeedback(on); onToggle(on) },
+                )
+            }
+            .heightIn(min = MemberRowHeight),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Checkbox(checked = selected, onCheckedChange = null)
+        Text(student.name, Modifier.weight(1f).padding(horizontal = Spacing.inline))
+        Avatar(student.name, student.id)
+    }
 }
+
+/** A list item's one-line height, which the roster's rows kept before they matched the subject ticks. */
+private val MemberRowHeight = 56.dp
 
 /**
  * The search field the list screens carry in place of their title while searching: Material's search bar
@@ -390,9 +405,11 @@ fun SearchField(
             leadingIcon = { Icon(KlasIcons.Filled.Search, contentDescription = null) },
             trailingIcon = {
                 if (query.isNotEmpty()) {
-                    IconButton(onClick = { onQueryChange("") }) {
-                        Icon(KlasIcons.Filled.Close, stringResource(R.string.search_clear))
-                    }
+                    NamedIconButton(
+                        KlasIcons.Filled.Close,
+                        stringResource(R.string.search_clear),
+                        onClick = { onQueryChange("") },
+                    )
                 }
             },
         )

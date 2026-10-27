@@ -36,7 +36,7 @@
     </plurals>
     <string name="students_search_hint">Søg efter elever</string>
     <string name="groups_search_hint">Søg efter grupper</string>
-    <string name="subjects_search_hint">Fagets navn</string>
+    <string name="subjects_search_hint">Søg efter fag</string>
     <string name="students_sort_name">Ved navn</string>
     <string name="students_sort_debt">Debitorer først</string>
     <string name="unsaved_save_title">Vil du gemme ændringer?</string>
@@ -87,7 +87,7 @@
     <string name="class_section_price">Timepris</string>
     <string name="class_section_format">Sted</string>
     <string name="class_terms_price_needed">Angiv timepris</string>
-    <string name="class_who_label">studerende eller gruppe</string>
+    <string name="class_who_label">Elev eller gruppe</string>
     <string name="class_book_action">Book</string>
     <string name="class_still_needed">Stadig brug for</string>
     <string name="class_day_previous">Dagen før</string>
@@ -98,11 +98,11 @@
     <string name="class_step_earlier">15 minutter tidligere</string>
     <string name="class_step_later">15 minutter senere</string>
     <string name="class_gap_who">elev eller gruppe</string>
-    <string name="class_gap_subject">Fag</string>
+    <string name="class_gap_subject">fag</string>
     <string name="class_gap_date">dato</string>
     <string name="class_gap_start">starttidspunkt</string>
     <string name="class_gap_length">længde</string>
-    <string name="class_gap_price">Timepris</string>
+    <string name="class_gap_price">timepris</string>
     <plurals name="class_series_lessons">
         <item quantity="one">%1$d lektion</item>
         <item quantity="other">%1$d lektioner</item>
@@ -156,7 +156,7 @@
     <string name="class_delete_completed_confirm">Denne lektion blev afholdt. Hvis den slettes, fjernes opkrævningen fra elevens saldo. Slet?</string>
     <string name="class_target_group">Gruppe</string>
     <string name="class_group_label">Gruppe</string>
-    <string name="class_no_subjects_for_group">Tilføj emner først</string>
+    <string name="class_no_subjects_for_group">Tilføj fag først</string>
     <string name="class_group_members_title">Medlemmer</string>
     <string name="class_group_no_active_members">Ingen i denne gruppe kan bookes: dens medlemmer er arkiveret</string>
     <string name="class_group_no_members_left">Vælg mindst ét medlem</string>
@@ -165,7 +165,7 @@
         <item quantity="one">Elever, der fjernes fra en afholdt lektion: %1$d. Deres lektioner og de tilhørende opkrævninger slettes. Gem?</item>
         <item quantity="other">Elever, der fjernes fra en afholdt lektion: %1$d. Deres lektioner og de tilhørende opkrævninger slettes. Gem?</item>
     </plurals>
-    <string name="class_subject_from_group">Gruppen sætter emnet</string>
+    <string name="class_subject_from_group">Gruppen bestemmer faget</string>
     <string name="class_group_price_label">Timepris pr. elev</string>
     <string name="class_mark_completed">Markér som afholdt</string>
     <string name="class_series_availability">Ledige datoer: %1$d. Optagne datoer springes over.</string>
@@ -183,8 +183,8 @@
     <string name="lesson_kind_group">Gruppe</string>
     <string name="lesson_kind_individual_one">Individuel</string>
     <string name="lesson_kind_count">%1$s · %2$d</string>
-    <string name="students_title">Studerende</string>
-    <string name="students_empty">Ingen studerende endnu</string>
+    <string name="students_title">Elever</string>
+    <string name="students_empty">Ingen elever endnu</string>
     <string name="students_empty_detail">En elev er et navn, deres fag og en timepris. Derefter kan du booke lektioner og spore betalinger.</string>
     <string name="students_add">Tilføj en elev</string>
     <string name="student_archived_badge">Arkiveret</string>
@@ -201,13 +201,13 @@
     <string name="student_form_add">Tilføj elev</string>
     <string name="student_form_subject_has_lessons">Har lektioner, så det bliver ved</string>
     <string name="student_form_subjects_required">Vælg mindst ét fag, og angiv timeprisen</string>
-    <string name="student_form_no_subjects">Tilføj emner først</string>
+    <string name="student_form_no_subjects">Tilføj fag først</string>
     <string name="student_mode_label">Sted</string>
-    <string name="student_subjects_title">Emner</string>
-    <string name="student_no_subjects">Ingen emner valgt</string>
-    <string name="student_add_subject">Tilføj et emne</string>
-    <string name="student_all_subjects_added">Hvert emne er blevet tilføjet</string>
-    <string name="student_subject_remove_blocked">Kan ikke fjerne emnet: det har lektioner</string>
+    <string name="student_subjects_title">Fag</string>
+    <string name="student_no_subjects">Ingen fag valgt</string>
+    <string name="student_add_subject">Tilføj et fag</string>
+    <string name="student_all_subjects_added">Alle fag er tilføjet</string>
+    <string name="student_subject_remove_blocked">Kan ikke fjerne faget: det har lektioner</string>
     <string name="student_archive_balance_part">Denne elevs saldo er ikke afregnet (%1$s). Deres historie forbliver i rapporter, men ugentlige gældspåmindelser vil udelukke dem.</string>
     <string name="student_archive_question">Arkiv alligevel?</string>
     <plurals name="student_archive_lessons_part">
@@ -277,31 +277,31 @@
     <string name="action_copy">Kopiér</string>
     <string name="clipboard_copied">Kopieret</string>
     <string name="student_contact_failed">Ingen app på denne telefon kan gøre det</string>
-    <string name="subjects_title">Emner</string>
-    <string name="subjects_empty">Ingen emner endnu</string>
+    <string name="subjects_title">Fag</string>
+    <string name="subjects_empty">Ingen fag endnu</string>
     <string name="subjects_empty_detail">Et fag er det, du underviser i. Tilføj et fag for at fastsætte priser og booke lektioner.</string>
-    <string name="subjects_add">Tilføj et emne</string>
-    <string name="subject_add_title">Nyt emne</string>
-    <string name="subject_edit_title">Rediger emne</string>
+    <string name="subjects_add">Tilføj et fag</string>
+    <string name="subject_add_title">Nyt fag</string>
+    <string name="subject_edit_title">Rediger fag</string>
     <string name="subject_name_label">Fagets navn</string>
-    <string name="subject_name_taken">Et emne med dette navn findes allerede</string>
+    <string name="subject_name_taken">Der findes allerede et fag med dette navn</string>
     <string name="subject_delete_named">Slet %1$s</string>
-    <string name="subject_deleted">Emne slettet</string>
-    <string name="subject_delete_blocked">Kan ikke slette emnet: det har lektioner. Slet dem først.</string>
-    <string name="subject_delete_blocked_group">Kan ikke slette emnet: en gruppe studerer det. Skift først gruppens emne.</string>
-    <string name="subject_delete_blocked_students">Kan ikke slette emnet: en elev tager det. Fjern det fra deres profil først.</string>
+    <string name="subject_deleted">Fag slettet</string>
+    <string name="subject_delete_blocked">Kan ikke slette faget: det har lektioner. Slet dem først.</string>
+    <string name="subject_delete_blocked_group">Kan ikke slette faget: en gruppe undervises i det. Skift først gruppens fag.</string>
+    <string name="subject_delete_blocked_students">Kan ikke slette faget: en elev har det. Fjern det fra elevens profil først.</string>
     <string name="groups_title">Grupper</string>
     <string name="groups_empty">Ingen grupper endnu</string>
-    <string name="groups_empty_detail">En gruppe er flere studerende, der deler en sats. Der er booket én lektion til dem alle på én gang.</string>
+    <string name="groups_empty_detail">En gruppe er flere elever, der deler én takst. Der bookes én lektion til dem alle på én gang.</string>
     <string name="groups_add">Opret en gruppe</string>
     <string name="group_form_create">Opret gruppe</string>
     <string name="group_add_title">Ny gruppe</string>
     <string name="group_edit_title">Rediger gruppe</string>
     <string name="group_name_label">Navn</string>
     <string name="group_subject_label">Fag</string>
-    <string name="group_subject_none">Intet emne</string>
-    <string name="group_subject_hint">Kun elever med en takst for dette emne kan deltage i gruppen</string>
-    <string name="group_subject_none_hint">Uden et emne: enhver elev, og emnet vælges, når en lektion er booket</string>
+    <string name="group_subject_none">Intet fag</string>
+    <string name="group_subject_hint">Kun elever med en takst for dette fag kan deltage i gruppen</string>
+    <string name="group_subject_none_hint">Uden fag: enhver elev, og faget vælges, når en lektion bookes</string>
     <string name="group_price_label">Timepris pr. elev</string>
     <string name="group_price_hint">Samme timepris for alle gruppens medlemmer</string>
     <string name="group_members_title">Medlemmer</string>
@@ -318,7 +318,7 @@
     <string name="group_students_title">Medlemmer</string>
     <string name="group_lessons_title">Lektioner</string>
     <string name="group_lessons_empty">Denne gruppe har ingen lektioner endnu</string>
-    <string name="group_no_subject">Intet emne</string>
+    <string name="group_no_subject">Intet fag</string>
     <string name="group_edit_members">Rediger medlemmer</string>
     <string name="group_member_open">Åben profil</string>
     <string name="group_lesson_present">Tilstede: %1$d af %2$d</string>
@@ -326,7 +326,7 @@
         <item quantity="one">%1$d medlem</item>
         <item quantity="other">%1$d medlemmer</item>
     </plurals>
-    <string name="more_subjects">Emner</string>
+    <string name="more_subjects">Fag</string>
     <string name="more_backup">Sikkerhedskopiering</string>
     <string name="calendar_denied">Ingen adgang til kalenderen</string>
     <string name="calendar_rationale">Klas har brug for kalenderadgang for at vise lektioner i denne enheds kalender</string>
@@ -473,13 +473,13 @@
     <string name="onboarding_restore">Gendan en sikkerhedskopi</string>
     <string name="onboarding_restore_desc">Filens data vil erstatte det, der er her</string>
     <string name="onboarding_skip">Springe</string>
-    <string name="onboarding_skip_desc">Emner og studerende kan tilføjes senere</string>
+    <string name="onboarding_skip_desc">Fag og elever kan tilføjes senere</string>
     <string name="onboarding_step">Trin %1$d af %2$d</string>
     <string name="onboarding_locale_title">Det grundlæggende</string>
     <string name="onboarding_locale_desc">Allerede valgt til dig. Rediger noget nu eller senere i Indstillinger.</string>
     <string name="onboarding_lesson_length_desc">Forudfylder nye lektioner. Priserne er pr. time, så hver lektion faktureres for dens længde.</string>
     <string name="onboarding_locale_currency_desc">Beløb er kun mærket med det - intet omregnes.</string>
-    <string name="onboarding_subjects_title">Emner</string>
+    <string name="onboarding_subjects_title">Fag</string>
     <string name="onboarding_subjects_desc">Tryk på det, du underviser i, eller tilføj dit eget. Du kan ændre dem senere.</string>
     <string-array name="onboarding_subject_suggestions">
         <item>Matematik</item>
@@ -491,8 +491,8 @@
         <item>Datalogi</item>
         <item>Klaver</item>
     </string-array>
-    <string name="onboarding_subject_removed">Emne slettet</string>
-    <string name="onboarding_subject_remove_failed">Emnet kunne ikke slettes</string>
+    <string name="onboarding_subject_removed">Fag slettet</string>
+    <string name="onboarding_subject_remove_failed">Faget kunne ikke slettes</string>
     <string name="onboarding_student_title">Første elev</string>
     <string name="onboarding_student_desc">Bare et navn og en pris. En telefon, e-mail og note kan tilføjes på elevens profil senere.</string>
     <string name="onboarding_continue">Dernæst</string>
@@ -505,7 +505,7 @@
         <item quantity="one">Denne lektion blev afholdt. Sletning fjerner opkrævningen for %1$d elev. Slet?</item>
         <item quantity="other">Denne lektion blev afholdt. Sletning fjerner opkrævningerne for %1$d elever. Slet?</item>
     </plurals>
-    <string name="schedule_need_setup">Tilføj et emne og en elev først</string>
+    <string name="schedule_need_setup">Tilføj et fag og en elev først</string>
     <string name="reminder_channel_name">Lektionspåmindelser</string>
     <string name="reminder_channel_desc">Notifikationer før en lektion starter</string>
     <string name="notification_locked_text">Lås op for at se detaljer</string>
@@ -565,8 +565,8 @@
     <string name="reports_by_year">Indkomst efter år</string>
     <string name="reports_by_kind">Indkomst efter lektionstype</string>
     <string name="reports_by_group">Indkomst efter gruppe</string>
-    <string name="reports_by_subject">Indkomst efter emne</string>
-    <string name="reports_by_student">Indkomst pr. studerende</string>
+    <string name="reports_by_subject">Indkomst efter fag</string>
+    <string name="reports_by_student">Indkomst efter elev</string>
     <string name="reports_debts">Gæld</string>
     <string name="reports_no_debts">Ingen skylder noget</string>
     <string name="reports_total_outstanding">Samlet udestående</string>
@@ -704,7 +704,7 @@
     <string name="payment_choose_student">Hvem foretog betalingen?</string>
     <string name="subject_set_price">Angiv timepris</string>
     <string name="group_member_set_price">Angiv timepris</string>
-    <string name="subject_add">Tilføj emne</string>
+    <string name="subject_add">Tilføj fag</string>
     <string name="group_price_setup_hint">Indstil en individuel fagsats for at tilføje disse elever. Gruppetimer bruger gruppetaksten.</string>
     <string name="class_completed_message">Markeret undervist</string>
     <string name="class_cancelled_message">Lektion aflyst</string>
@@ -763,7 +763,6 @@
     <string name="today_lessons">Dagens lektioner</string>
     <string name="today_no_lessons">Ingen undervisning i dag</string>
     <string name="today_owed">Skyldes dig</string>
-    <string name="today_homework">Lektier til aflevering</string>
     <string name="today_backup_old">Sidste backup %1$s</string>
     <string name="today_backup_never">Ingen backup endnu</string>
     <string name="today_backup_detail">Dine data er kun på denne telefon.</string>
@@ -772,7 +771,7 @@
         <item quantity="one">%1$d lektion markeret som afholdt</item>
         <item quantity="other">%1$d lektioner markeret som afholdt</item>
     </plurals>
-    <string name="settings_subjects_none">Ingen emner endnu</string>
+    <string name="settings_subjects_none">Ingen fag endnu</string>
     <string name="settings_backup_never">Aldrig · opsat ugentligt</string>
     <string name="settings_backup_last">Sidste %1$s · opsat ugentligt</string>
     <string name="schedule_pick_date">Vælg en dato</string>
@@ -795,9 +794,9 @@
     <string name="statement_credit">Forudbetalt: %1$s</string>
     <string name="statement_settled">Intet at betale</string>
     <string name="groups_sort_next">Efter næste lektion</string>
-    <string name="form_gap_name">et navn</string>
-    <string name="form_gap_subject">Fag</string>
-    <string name="form_gap_price">Timepris</string>
+    <string name="form_gap_name">navn</string>
+    <string name="form_gap_subject">fag</string>
+    <string name="form_gap_price">timepris</string>
     <string name="form_gap_members">medlemmer</string>
     <string name="filter_more">Filter</string>
     <plurals name="batch_selected">
@@ -855,7 +854,7 @@
     <string name="reports_ledger_day">Dato</string>
     <string name="reports_ledger_entry">Postering</string>
     <string name="reports_ledger_student">Elev</string>
-    <string name="reports_ledger_detail">Emne eller metode</string>
+    <string name="reports_ledger_detail">Fag eller metode</string>
     <string name="reports_ledger_lesson">Lektie</string>
     <string name="reports_ledger_payment">Betaling</string>
     <string name="schedule_cancel_day">Annuller dag</string>
@@ -878,9 +877,9 @@
     <string name="today_never_paid">Endnu ingen betaling</string>
     <string name="today_recent_marks">Markeret uden for appen</string>
     <string name="today_marked_at">Afholdt · markeret kl. %1$s</string>
-    <plurals name="today_members">
-        <item quantity="one">%1$d medlem</item>
-        <item quantity="other">%1$d medlemmer</item>
+    <plurals name="members_count">
+        <item quantity="one">%1$d\u00A0medlem</item>
+        <item quantity="other">%1$d\u00A0medlemmer</item>
     </plurals>
     <string name="people_owes">Skylder penge · %1$d</string>
     <string name="people_archived">Arkiveret</string>

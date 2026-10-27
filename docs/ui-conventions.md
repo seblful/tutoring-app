@@ -55,7 +55,7 @@ Build screens from shared state and controls. Feature rules belong in the domain
 - Generic parts live in `ui/designsystem/component` and take no domain types: `KlasRow` (typed
   `RowStart`/`RowEnd`, so a row leads with an icon or the mark-done button and nothing of its own making,
   and has one trailing thing: an `Amount`, a value, a chevron, a switch or one named icon action), `Amount` (an `AmountText` worded with its meaning), `HeaderedCard` (title, count or
-  summary and one `SectionAction` inside the card), `KlasButton` (`ButtonKind`), `KlasFab` (labelled,
+  summary and one `SectionAction` inside the card, red when `destructive` — «Cancel day»; with a chevron when it `opens` the full list, as a profile's «See all ›»), `KlasButton` (`ButtonKind`), `KlasFab` (labelled,
   icon-only from 1.5× text, named once for TalkBack), `InkCentredText` (a number in a disc, centred by its
   drawn glyphs: a centred line box held Golos's figures low and left), `KlasDivider`, `FormDialog`/`ChoiceDialog`,
   `AccentCard` and `KlasSheet`. detekt's `ForbiddenImport` keeps the Material components they wrap out
@@ -93,7 +93,9 @@ Build screens from shared state and controls. Feature rules belong in the domain
   parameters until Material supports Styles; a Style cannot read `MaterialTheme`, so it uses `Shapes`/`Typography`.
 - Text-size floors use sp. At large font sizes the floating navigation bar shows icons with full accessible
   names and the selected destination's label across its width. Calendar weekday headings use localized
-  narrow names. Settings choices switch to a field when segments cannot accommodate large text; form
+  narrow names. A row of segments or view tabs shares one label size, the largest every label fits
+  (`SegmentLabel`): one shrinking alone read as two type sizes. Settings choices switch to a field when segments
+  cannot accommodate large text; form
   dialogs scroll their bodies while keeping actions reachable.
 - Shapes are Material's baseline scale (`Shape.kt`); search opens Material's search input in place of the
   bar's title (`SearchField`).
@@ -101,7 +103,10 @@ Build screens from shared state and controls. Feature rules belong in the domain
   aligned. Use top-level `ContentCard`, nested `ListItem`; top-level cards lead with a 40 dp `Avatar`
   or `IconAvatar`. Student and group cards are overviews (`OverviewSection.kt`): under the large title, one muted
   facts line (`FactsLine`: one line when it fits, else a fact per line, never one broken) (a group's subject and
-  rate; a student's is two lines, the phone over the lesson format, beside a call icon, a message icon whose tap, like a tap on the phone, opens Android's chooser of messaging apps, and an email icon), the next lesson (`NextLessonCard`, `primaryContainer`, its «+» books), a headline card (the
+  rate; a student's is the phone, or the email for want of one), over where they are taught (`PlaceLine`,
+  the archived badge at its end, on both profiles). A student's contact sits beside a call icon, a message icon
+  whose tap, like a tap on the phone, opens Android's chooser of messaging apps, and an email icon; only the
+  contact itself is pressed, in a rounded tint, and an email standing in for the phone writes to it. The next lesson (`NextLessonCard`, `primaryContainer`, its «+» books), a headline card (the
   student's balance with its payment button; the group's earnings), then `OverviewSection`s with their
   latest few rows and «See all» to the full list (`StudentList`/`GroupList` routes, beside People like the
   card). Short lists — a student's subjects, a group's members — are shown in full.
@@ -116,8 +121,9 @@ Build screens from shared state and controls. Feature rules belong in the domain
 - A group's overview lists members before lessons: each with "Present 7 of 8" of the taught lessons they
   were booked into (not marked absent counts as there) and, when they owe, the debt. Its facts line says
   the rate as "12 $/h per student". The group form runs name, subject, rate, place, members, note; ticks
-  lead the member rows, a roster longer than eight can be searched, and the rate field's hint carries its
-  last change.
+  lead the member rows on the form's edge as the student form's subject ticks do (`MemberPickRow`, avatar
+  trailing), «Change the roster» shows the edit pencil, not «+», a roster longer than eight can be searched, and the rate field's hint carries its
+  last change. The roster's search matches as People's does (`PeopleSearch`), and clears with ✕.
 - People's students and groups are one surface with dividers (`SurfaceRow`, `SlicePosition`; D3), the
   divider drawn over each row's edge so rows keep one height; lessons stay a card each. A `KlasRow` in a
   `SurfaceRow` takes no `contentPadding` (Subjects): it brings its own inset. Each side has its
@@ -149,7 +155,7 @@ Build screens from shared state and controls. Feature rules belong in the domain
   Status uses `StatusBadge`, never font style; on lessons it starts line two. A pill and its words share a
   baseline (`BadgeLine`): centred, they give `ListItem` two baselines and a three-line row. Nested trailing
   money uses `TrailingAmount`; ordinary amounts stay ink, red means debt; a settled student shows no
-  balance. Lesson rows lead with their date; card times use `ColumnTime`
+  balance (the profile's card says «Nothing owed», never «Owes $0»). Lesson rows lead with their date; card times use `ColumnTime`
   (tabular, widest-time width, measured once per list by `rememberColumnTimeWidth`), the end under the
   start in a quieter style, so back-to-back lessons and gaps read without a time grid (D4). Ranges are
   `timeRangeText`. A kind icon prefixes a group lesson's name only — the row that differs, and lists its
@@ -162,16 +168,21 @@ Build screens from shared state and controls. Feature rules belong in the domain
   (`LessonAttendance`), then homework, «Set homework», «Add a payment», «Book the next one like this» (a
   prefilled booking a week on, `ClassEdit.like`) and «Open profile ›».
 - Forms have one field style: tapped fields (`PickerField`) draw the outlined text field's own decoration,
-  so labels float alike and fields space alike. Ticks in a form sit on its edge, not centred in 48 dp.
+  so labels float alike and fields space alike. Ticks in a form sit on its edge, not centred in 48 dp. Place, two
+  answers, is segments under a caption (`ModeField`), as booking's Place is — never a ▾ hiding the other.
 
 ## Formatting and appearance
 
 - Display money via `Money.money()` (`16 037,50 ₽`, `$16,037.50`, `€ 1.500,50`); seed inputs with ungrouped
-  `amount()` because `parseMoneyOrNull` treats a comma as decimal. CSV uses ungrouped amounts.
+  `amount()` because `parseMoneyOrNull` treats a comma as decimal. CSV uses ungrouped amounts. A space beside
+  the sign is a no-break one, so a line never ends between them. Amounts are Latin digits, so their separators
+  are the language's Latin-digit ones (`nu-latn`): Arabic writes `16,037.50 SAR`, not «16٬037٫50».
 - BYN uses the official vector sign at provisional [U+20C5](https://www.unicode.org/alloc/Pipeline.html),
   embedded in all Golos Text weights. After replacing fonts or editing `art/belarusian_ruble.svg`, run
   `uv run art/add_byn_glyph.py`. Its outline gains stroke weight with the font, using Golos's own
-  hyphen thickness as the reference. System notifications fall back to `BYN`.
+  hyphen thickness as the reference. The same script gives each currency sign Golos draws (`CURRENCY_SIGNS`)
+  0.07 em more room on its right than on its left: Golos set `$7` almost touching. Signs Golos lacks (₹, ₩, ₺…)
+  come from the system font. System notifications fall back to `BYN`.
 - Currency choices in setup (a dropdown) and Settings (a value row opening a list dialog) share every
   currency in `Currency`. Sort by the localized name and show the name, symbol and ISO code
   (`Belarusian ruble — ⃅ (BYN)`); codes distinguish shared symbols. Use the same label in change
@@ -204,8 +215,8 @@ Build screens from shared state and controls. Feature rules belong in the domain
   start with it done; Settings' «Show tips again» brings it all back.
 - Apply `AppLanguage` with `ProvideLocalizedResources`, never `Locale.setDefault()`. `StringCoverageTest`
   checks resource parity; language changes re-sync baked calendar text. Setup and Settings share
-  `LanguageChoices`: System first, followed by all 25 variants in stable autonym order in a scrollable
-  dropdown. Native names live in `Language.kt` so they stay recognizable in any selected language.
+  `LanguageChoices`: System first, followed by all 25 variants in stable autonym order — setup's dropdown,
+  and in Settings a value row opening a list dialog, as Currency's does. Native names live in `Language.kt` so they stay recognizable in any selected language.
   `ProvideLocalizedResources` also sets Compose layout direction; Arabic uses right-to-left layout.
   System matching respects Chinese script (Hans/Hant), then region (TW/HK/MO use Traditional); bare
   Chinese uses Simplified. Portuguese uses Brazil for bare `pt`/BR and Portugal for other regions.
@@ -261,7 +272,8 @@ Build screens from shared state and controls. Feature rules belong in the domain
   marks made outside the app (widget, reminder) in the last ten minutes with their Undo (`RecentMarks`),
   then the day as one card — count · hours · billed, «Schedule» — whose lessons lead with the round
   mark-done button (`DoneButton`, `RowStart.Done`): named per lesson, off until it has begun, a spent tick
-  once taught. Owed lists the three who owe most, each with their last payment, and «See all».
+  once taught; one on now or taught says so in a pill starting line two (`RowBadge`), as every lesson row does.
+  Homework under its lessons leads with the task, whom and which lesson under it, as on the Homework tab. Owed lists the three who owe most, each with their last payment, and «See all».
   Selection follows the back stack. Destinations arrive by Material's fade through; predictive back
   shrinks the leaving screen over the one beneath (`predictiveBackPop`). On a phone, a landscape one included,
   the tabs are a bar docked over the screen's foot (`DockedTabBar`, the owner's choice over Material's short
@@ -326,7 +338,8 @@ Build screens from shared state and controls. Feature rules belong in the domain
   screen's own, and no add button meanwhile.
   Homework slides toward the tab it moves to — current right, done left — the way its tab cannot turn.
 - Every swipe has a `swipeAction` on the same semantic node; background actions are not read. Use
-  `selected` semantics (`TickedMenuItem`), headings, and `NamedIconButton`/`HoldToName` on bar icons/tabs.
+  `selected` semantics (`TickedMenuItem`), headings, and `NamedIconButton`/`HoldToName` on every icon button
+  and tab, in a bar or a row, so a held glyph always names itself; detekt forbids a bare `IconButton`.
 
 ## Feature conventions
 
@@ -348,7 +361,8 @@ Build screens from shared state and controls. Feature rules belong in the domain
   beside its words, or under them at the end when beside them it would leave the words under 60% of the
   line. A value row's value trails as text (`ValueRow`: «1 hour before», the currency), never a ▾ that
   reads as a form field. Dependent controls stay visible and explain how to enable them. Shared reminder
-  timing is editable when lesson reminders **or** calendar sync is enabled, from either category.
+  timing is editable when lesson reminders **or** calendar sync is enabled, from either category — one
+  `ReminderLeadRow` on both pages (presets, then «Custom…»), its note on its second line.
 - Month and week cells print one number per status, tinted by it (`DayLoad.tallies`) — the owner's choice
   over a shape per lesson, which read as a row of dots; each cell speaks its counts in words. The report
   chart's accent bar is named under it («Best month»), since the chart itself is not read aloud.

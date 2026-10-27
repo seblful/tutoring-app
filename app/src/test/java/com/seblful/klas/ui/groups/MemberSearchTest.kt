@@ -14,6 +14,11 @@ class MemberSearchTest {
     }
 
     @Test
+    fun `the words of a name may be typed in any order, as People's search takes them`() {
+        assertEquals(listOf(1L), roster.matching("thompson ava").map { it.id })
+    }
+
+    @Test
     fun `an empty search keeps everybody`() {
         assertEquals(roster, roster.matching("  "))
     }

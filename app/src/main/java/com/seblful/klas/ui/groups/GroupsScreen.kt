@@ -123,7 +123,7 @@ internal fun GroupCard(
             if (row.memberNames.isEmpty()) {
                 stringResource(R.string.group_no_members)
             } else {
-                pluralStringResource(R.plurals.students_count, row.memberNames.size, row.memberNames.size)
+                pluralStringResource(R.plurals.members_count, row.memberNames.size, row.memberNames.size)
             },
         ),
         onClick = onClick,

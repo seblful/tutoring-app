@@ -499,11 +499,16 @@ private fun PeriodNavigator(
                 onClick = { expanded = true },
                 kind = ButtonKind.Quiet,
             ) {
+                // Shrinks before it cuts, as the schedule's page title does.
                 Text(
                     periodTitle(period),
                     style = MaterialTheme.typography.titleMedium,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
+                    autoSize = TextAutoSize.StepBased(
+                        minFontSize = with(LocalDensity.current) { PeriodTitleMinSize.toSp() },
+                        maxFontSize = MaterialTheme.typography.titleMedium.fontSize,
+                    ),
                 )
                 Icon(KlasIcons.Filled.ArrowDropDown, stringResource(R.string.reports_period))
             }
@@ -1130,3 +1135,6 @@ private val ChartHeight = 116.dp
 // A floor in dp, so a large font scale still leaves the month names room to shrink.
 private val AxisMinSize = 9.dp
 private val ChevronSize = 18.dp
+
+/** The schedule title's floor (`NavigatorTitleMinSize`), in dp so font scaling leaves room to shrink. */
+private val PeriodTitleMinSize = 11.dp

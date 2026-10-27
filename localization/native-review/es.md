@@ -22,19 +22,19 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 | `onboarding_restore` | Restore a backup | Restaurar una copia de seguridad | |
 | `onboarding_restore_desc` | The file's data will replace what is here | Los datos del archivo reemplazarán lo que está aquí | |
 | `onboarding_skip` | Skip | Saltar | |
-| `onboarding_skip_desc` | Subjects and students can be added later | Las materias y estudiantes se pueden agregar más tarde | |
+| `onboarding_skip_desc` | Subjects and students can be added later | Las materias y los alumnos se pueden agregar más tarde | |
 | `onboarding_step` | Step %1$d of %2$d | Paso %1$d de %2$d | |
 | `onboarding_locale_title` | The basics | Lo básico | |
 | `onboarding_locale_desc` | Already chosen for you. Change anything now or later in Settings. | Ya elegido para ti. Cambie cualquier cosa ahora o más tarde en Configuración. | |
 | `onboarding_lesson_length_desc` | Pre-fills new lessons. Rates are per hour, so each lesson is billed for its length. | Precompleta nuevas lecciones. Las tarifas son por hora, por lo que cada lección se factura según su duración. | |
 | `onboarding_locale_currency_desc` | Amounts are only labelled with it — nothing is converted. | Las cantidades solo se etiquetan con él; no se convierte nada. | |
-| `onboarding_subjects_title` | Subjects | Sujetos | |
+| `onboarding_subjects_title` | Subjects | Asignaturas | |
 | `onboarding_subjects_desc` | Tap what you teach, or add your own. You can change them later. | Toca lo que enseñas o agrega el tuyo propio. Puedes cambiarlos más tarde. | |
 | `onboarding_subject_suggestions` | *0:* Math · *1:* English · *2:* Physics · *3:* Chemistry · *4:* Biology · *5:* History · *6:* Computer science · *7:* Piano | *0:* Matemáticas · *1:* Inglés · *2:* Física · *3:* Química · *4:* Biología · *5:* Historia · *6:* Ciencias de la computación · *7:* Piano | |
-| `onboarding_subject_removed` | Subject deleted | Asunto eliminado | |
-| `onboarding_subject_remove_failed` | Could not delete the subject | No se pudo eliminar el asunto | |
-| `onboarding_student_title` | First student | Primer estudiante | |
-| `onboarding_student_desc` | Just a name and a rate. A phone, email and note can be added on the student's profile later. | Sólo un nombre y una tarifa. Se puede agregar un teléfono, un correo electrónico y una nota al perfil del estudiante más adelante. | |
+| `onboarding_subject_removed` | Subject deleted | Asignatura eliminada | |
+| `onboarding_subject_remove_failed` | Could not delete the subject | No se pudo eliminar la asignatura | |
+| `onboarding_student_title` | First student | Primer alumno | |
+| `onboarding_student_desc` | Just a name and a rate. A phone, email and note can be added on the student's profile later. | Sólo un nombre y una tarifa. Se puede agregar un teléfono, un correo electrónico y una nota al perfil del alumno más adelante. | |
 | `onboarding_continue` | Next | Siguiente | |
 | `onboarding_finish` | Done | Hecho | |
 | `onboarding_subject_field_hint` | Type a name and press Enter | Escriba un nombre y presione Enter | |
@@ -87,7 +87,6 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 | `today_lessons` | Today's lessons | Lecciones de hoy | |
 | `today_no_lessons` | No lessons today | No hay lecciones hoy | |
 | `today_owed` | Owed to you | Te lo debo | |
-| `today_homework` | Homework due | Tareas pendientes de entregar | |
 | `today_backup_old` | Last backup %1$s | Última copia de seguridad %1$s | |
 | `today_backup_never` | No backup yet | Aún no hay copia de seguridad | |
 | `today_backup_detail` | Your data is on this phone only. | Tus datos están solo en este teléfono. | |
@@ -99,7 +98,6 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 | `today_never_paid` | No payment yet | Aún no hay pago | |
 | `today_recent_marks` | Marked outside the app | Marcado fuera de la aplicación | |
 | `today_marked_at` | Taught · marked at %1$s | Impartida · marcada a las %1$s | |
-| `today_members` | *one:* %1$d member · *other:* %1$d members | *one:* %1$d miembro · *many:* %1$d miembros · *other:* %1$d miembros | |
 
 ## Buttons
 
@@ -135,8 +133,8 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 | `schedule_add_class` | Book a lesson | Reservar una lección | |
 | `schedule_week_empty` | No lessons this week | No hay lecciones esta semana | |
 | `schedule_empty_no_setup` | Nothing to plan yet | Nada que planear todavía | |
-| `schedule_empty_no_setup_detail` | A lesson is booked for a student and a subject with a rate. Start with a student. | Se reserva una lección para un alumno y una asignatura con una tarifa. Comience con un estudiante. | |
-| `schedule_add_student` | Add a student | Agregar un estudiante | |
+| `schedule_empty_no_setup_detail` | A lesson is booked for a student and a subject with a rate. Start with a student. | Se reserva una lección para un alumno y una asignatura con una tarifa. Comience con un alumno. | |
+| `schedule_add_student` | Add a student | Agregar un alumno | |
 | `schedule_filter_everyone` | Everyone | Todos | |
 | `schedule_filter_any_status` | Any status | Cualquier estado | |
 | `schedule_filter` | Filter the schedule | Filtrar el horario | |
@@ -156,7 +154,7 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 | `schedule_next_week` | Next week | La próxima semana | |
 | `schedule_previous_month` | Previous month | Mes anterior | |
 | `schedule_next_month` | Next month | El próximo mes | |
-| `schedule_need_setup` | Add a subject and a student first | Agregar una materia y un estudiante primero | |
+| `schedule_need_setup` | Add a subject and a student first | Agregar una materia y un alumno primero | |
 | `schedule_pick_date` | Choose a date | Elige una fecha | |
 | `schedule_cancel_day` | Cancel day | Cancelar día | |
 | `schedule_open_day` | Open day | Abrir el día | |
@@ -213,10 +211,10 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 | `people_next_weekday` | %1$s %2$s | %1$s %2$s | |
 | `people_last_lesson` | Last lesson %1$s | Última lección %1$s | |
 | `people_no_lessons` | No lessons yet | Aún no hay lecciones | |
-| `people_pick_card` | Choose a student or a group | Elige un estudiante o un grupo | |
+| `people_pick_card` | Choose a student or a group | Elige un alumno o un grupo | |
 | `people_owes` | Owes · %1$d | Con deuda · %1$d | |
 | `people_archived` | Archived | Archivado | |
-| `people_all_subjects` | All subjects | Todos los sujetos | |
+| `people_all_subjects` | All subjects | Todas las asignaturas | |
 | `people_filter` | Filter and order | Filtrar y ordenar | |
 | `people_show` | Show | Mostrar | |
 | `people_subject` | Subject | Asignatura | |
@@ -226,14 +224,14 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 
 | Key | English | Now | OK / suggestion |
 |---|---|---|---|
-| `students_search_hint` | Search students | Buscar estudiantes | |
+| `students_search_hint` | Search students | Buscar alumnos | |
 | `students_sort_name` | By name | Por nombre | |
 | `students_sort_debt` | Debtors first | Deudores primero | |
-| `students_title` | Students | Estudiantes | |
-| `students_empty` | No students yet | Aún no hay estudiantes | |
-| `students_empty_detail` | A student is a name, their subjects and a rate per hour. After that you can book lessons and track payments. | Un estudiante es un nombre, sus materias y una tarifa por hora. Después de eso, podrás reservar lecciones y realizar un seguimiento de los pagos. | |
-| `students_add` | Add a student | Agregar un estudiante | |
-| `students_count` | *one:* %1$d\u00A0student · *other:* %1$d\u00A0students | *one:* %1$d\u00A0estudiante · *many:* %1$d\u00A0estudiantes · *other:* %1$d\u00A0estudiantes | |
+| `students_title` | Students | Alumnos | |
+| `students_empty` | No students yet | Aún no hay alumnos | |
+| `students_empty_detail` | A student is a name, their subjects and a rate per hour. After that you can book lessons and track payments. | Un alumno es un nombre, sus materias y una tarifa por hora. Después de eso, podrás reservar lecciones y realizar un seguimiento de los pagos. | |
+| `students_add` | Add a student | Agregar un alumno | |
+| `students_count` | *one:* %1$d\u00A0student · *other:* %1$d\u00A0students | *one:* %1$d alumno · *many:* %1$d alumnos · *other:* %1$d alumnos | |
 
 ## Durations
 
@@ -283,7 +281,7 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 | `widget_today_locked` | Unlock to see today's lessons | Desbloquea para ver las lecciones de hoy | |
 | `widget_today_empty` | No lessons today | No hay lecciones hoy | |
 | `widget_quick_actions_name` | Klas shortcuts | Atajos de Klas | |
-| `widget_quick_actions_description` | Book a lesson, add a student, or open today, homework and debts | Reserve una lección, agregue un estudiante o abra hoy, tareas y deudas | |
+| `widget_quick_actions_description` | Book a lesson, add a student, or open today, homework and debts | Reserve una lección, agregue un alumno o abra hoy, tareas y deudas | |
 | `widget_preview_lessons` | *0:* Anna Sokolova · *1:* Algebra · *2:* Year 11 · *3:* English · *4:* Ivan Petrov · *5:* Physics | *0:* Anna Sokolova · *1:* Álgebra · *2:* Año 11 · *3:* Inglés · *4:* Iván Petrov · *5:* Física | |
 | `widget_mark_lesson` | Mark %1$s, %2$s taught | Marcar la clase con %1$s, %2$s como impartida | |
 | `widget_lesson_taught` | %1$s, %2$s: taught | %1$s, %2$s: impartida | |

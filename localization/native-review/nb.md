@@ -16,18 +16,18 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 | `onboarding_restore` | Restore a backup | Gjenopprett en sikkerhetskopi | |
 | `onboarding_restore_desc` | The file's data will replace what is here | Filens data vil erstatte det som er her | |
 | `onboarding_skip` | Skip | Hopp over | |
-| `onboarding_skip_desc` | Subjects and students can be added later | Emner og studenter kan legges til senere | |
+| `onboarding_skip_desc` | Subjects and students can be added later | Fag og elever kan legges til senere | |
 | `onboarding_step` | Step %1$d of %2$d | Trinn %1$d av %2$d | |
 | `onboarding_locale_title` | The basics | Det grunnleggende | |
 | `onboarding_locale_desc` | Already chosen for you. Change anything now or later in Settings. | Allerede valgt for deg. Endre hva som helst nå eller senere i Innstillinger. | |
 | `onboarding_lesson_length_desc` | Pre-fills new lessons. Rates are per hour, so each lesson is billed for its length. | Forhåndsutfyller nye leksjoner. Prisene er per time, så hver leksjon faktureres for lengden. | |
 | `onboarding_locale_currency_desc` | Amounts are only labelled with it — nothing is converted. | Beløp er bare merket med det – ingenting blir konvertert. | |
-| `onboarding_subjects_title` | Subjects | Emner | |
+| `onboarding_subjects_title` | Subjects | Fag | |
 | `onboarding_subjects_desc` | Tap what you teach, or add your own. You can change them later. | Trykk på det du lærer, eller legg til ditt eget. Du kan endre dem senere. | |
 | `onboarding_subject_suggestions` | *0:* Math · *1:* English · *2:* Physics · *3:* Chemistry · *4:* Biology · *5:* History · *6:* Computer science · *7:* Piano | *0:* Math · *1:* Engelsk · *2:* Fysikk · *3:* Kjemi · *4:* Biologi · *5:* Historie · *6:* Datavitenskap · *7:* Piano | |
-| `onboarding_subject_removed` | Subject deleted | Emne slettet | |
-| `onboarding_subject_remove_failed` | Could not delete the subject | Kunne ikke slette emnet | |
-| `onboarding_student_title` | First student | Første student | |
+| `onboarding_subject_removed` | Subject deleted | Fag slettet | |
+| `onboarding_subject_remove_failed` | Could not delete the subject | Kunne ikke slette faget | |
+| `onboarding_student_title` | First student | Første elev | |
 | `onboarding_student_desc` | Just a name and a rate. A phone, email and note can be added on the student's profile later. | Bare et navn og en pris. Telefon, e-post og notat kan legges til på elevens profil senere. | |
 | `onboarding_continue` | Next | Neste | |
 | `onboarding_finish` | Done | Ferdig | |
@@ -81,7 +81,6 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 | `today_lessons` | Today's lessons | Dagens leksjoner | |
 | `today_no_lessons` | No lessons today | Ingen leksjoner i dag | |
 | `today_owed` | Owed to you | Skyldes deg | |
-| `today_homework` | Homework due | Lekser til innlevering | |
 | `today_backup_old` | Last backup %1$s | Siste sikkerhetskopi %1$s | |
 | `today_backup_never` | No backup yet | Ingen sikkerhetskopi ennå | |
 | `today_backup_detail` | Your data is on this phone only. | Dataene dine er kun på denne telefonen. | |
@@ -93,7 +92,6 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 | `today_never_paid` | No payment yet | Ingen betaling ennå | |
 | `today_recent_marks` | Marked outside the app | Merket utenfor appen | |
 | `today_marked_at` | Taught · marked at %1$s | Gjennomført · merket kl. %1$s | |
-| `today_members` | *one:* %1$d member · *other:* %1$d members | *one:* %1$d medlem · *other:* %1$d medlemmer | |
 
 ## Buttons
 
@@ -129,8 +127,8 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 | `schedule_add_class` | Book a lesson | Bestill en leksjon | |
 | `schedule_week_empty` | No lessons this week | Ingen leksjoner denne uken | |
 | `schedule_empty_no_setup` | Nothing to plan yet | Ingenting å planlegge ennå | |
-| `schedule_empty_no_setup_detail` | A lesson is booked for a student and a subject with a rate. Start with a student. | En leksjon er bestilt for en student og et emne med takst. Start med en student. | |
-| `schedule_add_student` | Add a student | Legg til en student | |
+| `schedule_empty_no_setup_detail` | A lesson is booked for a student and a subject with a rate. Start with a student. | En leksjon bestilles for en elev og et fag med takst. Start med en elev. | |
+| `schedule_add_student` | Add a student | Legg til en elev | |
 | `schedule_filter_everyone` | Everyone | Alle sammen | |
 | `schedule_filter_any_status` | Any status | Enhver status | |
 | `schedule_filter` | Filter the schedule | Filtrer timeplanen | |
@@ -150,7 +148,7 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 | `schedule_next_week` | Next week | Neste uke | |
 | `schedule_previous_month` | Previous month | Forrige måned | |
 | `schedule_next_month` | Next month | Neste måned | |
-| `schedule_need_setup` | Add a subject and a student first | Legg til et emne og en student først | |
+| `schedule_need_setup` | Add a subject and a student first | Legg til et fag og en elev først | |
 | `schedule_pick_date` | Choose a date | Velg en dato | |
 | `schedule_cancel_day` | Cancel day | Avbryt dag | |
 | `schedule_open_day` | Open day | Åpne dagen | |
@@ -170,7 +168,7 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 
 | Key | English | Now | OK / suggestion |
 |---|---|---|---|
-| `stat_debt` | Owes | skylder | |
+| `stat_debt` | Owes | Skylder | |
 | `stat_credit` | In credit | Til gode | |
 | `stat_lessons` | Lessons | Leksjoner | |
 | `stat_hours` | Hours | Timer | |
@@ -207,7 +205,7 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 | `people_next_weekday` | %1$s %2$s | %1$s %2$s | |
 | `people_last_lesson` | Last lesson %1$s | Siste leksjon %1$s | |
 | `people_no_lessons` | No lessons yet | Ingen leksjoner ennå | |
-| `people_pick_card` | Choose a student or a group | Velg en student eller en gruppe | |
+| `people_pick_card` | Choose a student or a group | Velg en elev eller en gruppe | |
 | `people_owes` | Owes · %1$d | Skylder penger · %1$d | |
 | `people_archived` | Archived | Arkivert | |
 | `people_all_subjects` | All subjects | Alle fag | |
@@ -220,13 +218,13 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 
 | Key | English | Now | OK / suggestion |
 |---|---|---|---|
-| `students_search_hint` | Search students | Søk etter studenter | |
+| `students_search_hint` | Search students | Søk etter elever | |
 | `students_sort_name` | By name | Ved navn | |
 | `students_sort_debt` | Debtors first | Debitorer først | |
-| `students_title` | Students | Studenter | |
-| `students_empty` | No students yet | Ingen studenter ennå | |
-| `students_empty_detail` | A student is a name, their subjects and a rate per hour. After that you can book lessons and track payments. | En student er et navn, deres fag og en timepris. Etter det kan du bestille leksjoner og spore betalinger. | |
-| `students_add` | Add a student | Legg til en student | |
+| `students_title` | Students | Elever | |
+| `students_empty` | No students yet | Ingen elever ennå | |
+| `students_empty_detail` | A student is a name, their subjects and a rate per hour. After that you can book lessons and track payments. | En elev er et navn, elevens fag og en timepris. Etter det kan du bestille leksjoner og spore betalinger. | |
+| `students_add` | Add a student | Legg til en elev | |
 | `students_count` | *one:* %1$d\u00A0student · *other:* %1$d\u00A0students | *one:* %1$d\u00A0elev · *other:* %1$d\u00A0elever | |
 
 ## Durations
@@ -277,7 +275,7 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 | `widget_today_locked` | Unlock to see today's lessons | Lås opp for å se dagens leksjoner | |
 | `widget_today_empty` | No lessons today | Ingen leksjoner i dag | |
 | `widget_quick_actions_name` | Klas shortcuts | Klas snarveier | |
-| `widget_quick_actions_description` | Book a lesson, add a student, or open today, homework and debts | Bestill en leksjon, legg til en student, eller åpne i dag, lekser og gjeld | |
+| `widget_quick_actions_description` | Book a lesson, add a student, or open today, homework and debts | Bestill en leksjon, legg til en elev, eller åpne i dag, lekser og gjeld | |
 | `widget_preview_lessons` | *0:* Anna Sokolova · *1:* Algebra · *2:* Year 11 · *3:* English · *4:* Ivan Petrov · *5:* Physics | *0:* Anna Sokolova · *1:* Algebra · *2:* År 11 · *3:* Engelsk · *4:* Ivan Petrov · *5:* Fysikk | |
 | `widget_mark_lesson` | Mark %1$s, %2$s taught | Mark %1$s, %2$s lærte | |
 | `widget_lesson_taught` | %1$s, %2$s: taught | %1$s, %2$s: gjennomført | |

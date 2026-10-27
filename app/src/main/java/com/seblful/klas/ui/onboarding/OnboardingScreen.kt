@@ -28,7 +28,6 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
@@ -78,6 +77,7 @@ import com.seblful.klas.ui.common.KlasWordmark
 import com.seblful.klas.ui.common.LanguageChoices
 import com.seblful.klas.ui.common.ListSkeleton
 import com.seblful.klas.ui.common.MinTouchTarget
+import com.seblful.klas.ui.common.NamedIconButton
 import com.seblful.klas.ui.common.ShowMessagesFor
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.languageLabel
@@ -430,12 +430,11 @@ fun OnboardingScreen(
                                     ListItem(
                                         headlineContent = { Text(subject.name) },
                                         trailingContent = {
-                                            IconButton(onClick = { removeSubject(subject) }) {
-                                                Icon(
-                                                    KlasIcons.Outlined.Delete,
-                                                    stringResource(R.string.subject_delete_named, subject.name),
-                                                )
-                                            }
+                                            NamedIconButton(
+                                                KlasIcons.Outlined.Delete,
+                                                stringResource(R.string.subject_delete_named, subject.name),
+                                                onClick = { removeSubject(subject) },
+                                            )
                                         },
                                     )
                                 }
@@ -520,9 +519,12 @@ private fun SubjectField(onAdd: (String) -> Unit, modifier: Modifier = Modifier)
         ),
         keyboardActions = KeyboardActions(onDone = { add() }),
         trailingIcon = {
-            IconButton(onClick = ::add, enabled = name.isNotBlank()) {
-                Icon(KlasIcons.Filled.Add, stringResource(R.string.subjects_add))
-            }
+            NamedIconButton(
+                KlasIcons.Filled.Add,
+                stringResource(R.string.subjects_add),
+                onClick = ::add,
+                enabled = name.isNotBlank(),
+            )
         },
         modifier = modifier.fillMaxWidth(),
     )

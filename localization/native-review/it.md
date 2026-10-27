@@ -7,7 +7,7 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 
 | Key | English | Now | Why | Suggestion |
 |---|---|---|---|---|
-| `stat_debt` | Owes | Devo | reads “I owe” | |
+| `stat_debt` | Owes | Debito | reads “I owe” | |
 
 ## Setup
 
@@ -28,11 +28,11 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 | `onboarding_locale_desc` | Already chosen for you. Change anything now or later in Settings. | Già scelto per te. Modifica qualsiasi cosa adesso o più tardi nelle Impostazioni. | |
 | `onboarding_lesson_length_desc` | Pre-fills new lessons. Rates are per hour, so each lesson is billed for its length. | Precompila nuove lezioni. Le tariffe sono orarie, quindi ogni lezione viene fatturata per la sua durata. | |
 | `onboarding_locale_currency_desc` | Amounts are only labelled with it — nothing is converted. | Gli importi vengono solo etichettati con esso: non viene convertito nulla. | |
-| `onboarding_subjects_title` | Subjects | Soggetti | |
+| `onboarding_subjects_title` | Subjects | Materie | |
 | `onboarding_subjects_desc` | Tap what you teach, or add your own. You can change them later. | Tocca ciò che insegni o aggiungine uno tuo. Puoi cambiarli più tardi. | |
 | `onboarding_subject_suggestions` | *0:* Math · *1:* English · *2:* Physics · *3:* Chemistry · *4:* Biology · *5:* History · *6:* Computer science · *7:* Piano | *0:* Matematica · *1:* Inglese · *2:* Fisica · *3:* Chimica · *4:* Biologia · *5:* Storia · *6:* Informatica · *7:* Pianoforte | |
-| `onboarding_subject_removed` | Subject deleted | Oggetto eliminato | |
-| `onboarding_subject_remove_failed` | Could not delete the subject | Impossibile eliminare l'oggetto | |
+| `onboarding_subject_removed` | Subject deleted | Materia eliminata | |
+| `onboarding_subject_remove_failed` | Could not delete the subject | Impossibile eliminare la materia | |
 | `onboarding_student_title` | First student | Primo studente | |
 | `onboarding_student_desc` | Just a name and a rate. A phone, email and note can be added on the student's profile later. | Solo un nome e una tariffa. Un telefono, un'e-mail e una nota possono essere aggiunti successivamente al profilo dello studente. | |
 | `onboarding_continue` | Next | Successivo | |
@@ -87,7 +87,6 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 | `today_lessons` | Today's lessons | Le lezioni di oggi | |
 | `today_no_lessons` | No lessons today | Nessuna lezione oggi | |
 | `today_owed` | Owed to you | Dovuto a te | |
-| `today_homework` | Homework due | Compiti da consegnare | |
 | `today_backup_old` | Last backup %1$s | Ultimo backup %1$s | |
 | `today_backup_never` | No backup yet | Ancora nessun backup | |
 | `today_backup_detail` | Your data is on this phone only. | I tuoi dati sono solo su questo telefono. | |
@@ -99,7 +98,6 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 | `today_never_paid` | No payment yet | Nessun pagamento ancora | |
 | `today_recent_marks` | Marked outside the app | Contrassegnato fuori dall'app | |
 | `today_marked_at` | Taught · marked at %1$s | Svolta · segnata alle %1$s | |
-| `today_members` | *one:* %1$d member · *other:* %1$d members | *one:* %1$d partecipante · *many:* %1$d partecipanti · *other:* %1$d partecipanti | |
 
 ## Buttons
 
@@ -176,7 +174,7 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 
 | Key | English | Now | OK / suggestion |
 |---|---|---|---|
-| `stat_debt` | Owes | Devo | |
+| `stat_debt` | Owes | Debito | |
 | `stat_credit` | In credit | Credito disponibile | |
 | `stat_lessons` | Lessons | Lezioni | |
 | `stat_hours` | Hours | Ore | |
@@ -216,7 +214,7 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 | `people_pick_card` | Choose a student or a group | Scegli uno studente o un gruppo | |
 | `people_owes` | Owes · %1$d | Con debiti · %1$d | |
 | `people_archived` | Archived | Archiviato | |
-| `people_all_subjects` | All subjects | Tutti i soggetti | |
+| `people_all_subjects` | All subjects | Tutte le materie | |
 | `people_filter` | Filter and order | Filtra e ordina | |
 | `people_show` | Show | Mostra | |
 | `people_subject` | Subject | Materia | |

@@ -103,11 +103,7 @@ private fun LessonReminderSettings(
         minutes = settings.reminderLeadMinutes,
         enabled = settings.canEditReminderLead,
         onSelect = { minutes -> actions.update { it.copy(reminderLeadMinutes = minutes) } },
-    )
-    SettingsHint(
-        stringResource(
-            if (settings.canEditReminderLead) R.string.settings_reminder_shared else R.string.settings_reminder_enable,
-        ),
+        description = reminderLeadDescription(settings.canEditReminderLead),
     )
 }
 

@@ -34,9 +34,9 @@
         <item quantity="one">%1$d meer — verfijn de zoekopdracht</item>
         <item quantity="other">%1$d meer — verfijn de zoekopdracht</item>
     </plurals>
-    <string name="students_search_hint">Zoek studenten</string>
+    <string name="students_search_hint">Zoek leerlingen</string>
     <string name="groups_search_hint">Zoek groepen</string>
-    <string name="subjects_search_hint">Vaknaam</string>
+    <string name="subjects_search_hint">Zoek vakken</string>
     <string name="students_sort_name">Op naam</string>
     <string name="students_sort_debt">Debiteuren eerst</string>
     <string name="unsaved_save_title">Wijzigingen opslaan?</string>
@@ -87,7 +87,7 @@
     <string name="class_section_price">Uurtarief</string>
     <string name="class_section_format">Plaats</string>
     <string name="class_terms_price_needed">Uurtarief instellen</string>
-    <string name="class_who_label">Student of groep</string>
+    <string name="class_who_label">Leerling of groep</string>
     <string name="class_book_action">Boeken</string>
     <string name="class_still_needed">Nog steeds nodig</string>
     <string name="class_day_previous">Vorige dag</string>
@@ -98,11 +98,11 @@
     <string name="class_step_earlier">15 minuten eerder</string>
     <string name="class_step_later">15 minuten later</string>
     <string name="class_gap_who">leerling of groep</string>
-    <string name="class_gap_subject">Vak</string>
+    <string name="class_gap_subject">vak</string>
     <string name="class_gap_date">datum</string>
     <string name="class_gap_start">starttijd</string>
     <string name="class_gap_length">lengte</string>
-    <string name="class_gap_price">Uurtarief</string>
+    <string name="class_gap_price">uurtarief</string>
     <plurals name="class_series_lessons">
         <item quantity="one">%1$d les</item>
         <item quantity="other">%1$d lessen</item>
@@ -156,7 +156,7 @@
     <string name="class_delete_completed_confirm">Deze les is gegeven. Verwijderen haalt de bijbehorende kosten van het saldo van de leerling. Verwijderen?</string>
     <string name="class_target_group">Groep</string>
     <string name="class_group_label">Groep</string>
-    <string name="class_no_subjects_for_group">Voeg eerst onderwerpen toe</string>
+    <string name="class_no_subjects_for_group">Voeg eerst vakken toe</string>
     <string name="class_group_members_title">Leden</string>
     <string name="class_group_no_active_members">Niemand in deze groep kan geboekt worden: de leden ervan zijn gearchiveerd</string>
     <string name="class_group_no_members_left">Kies minstens één lid</string>
@@ -165,7 +165,7 @@
         <item quantity="one">Leerlingen die uit een gegeven les worden verwijderd: %1$d. Hun lessen en de bijbehorende kosten worden verwijderd. Opslaan?</item>
         <item quantity="other">Leerlingen die uit een gegeven les worden verwijderd: %1$d. Hun lessen en de bijbehorende kosten worden verwijderd. Opslaan?</item>
     </plurals>
-    <string name="class_subject_from_group">De groep stelt het onderwerp in</string>
+    <string name="class_subject_from_group">De groep bepaalt het vak</string>
     <string name="class_group_price_label">Uurtarief per leerling</string>
     <string name="class_mark_completed">Als gegeven markeren</string>
     <string name="class_series_availability">Beschikbare datums: %1$d. Bezette datums worden overgeslagen.</string>
@@ -183,9 +183,9 @@
     <string name="lesson_kind_group">Groep</string>
     <string name="lesson_kind_individual_one">Individueel</string>
     <string name="lesson_kind_count">%1$s · %2$d</string>
-    <string name="students_title">Studenten</string>
-    <string name="students_empty">Nog geen studenten</string>
-    <string name="students_empty_detail">Een student is een naam, zijn vakken en een uurtarief. Daarna kunt u lessen boeken en betalingen volgen.</string>
+    <string name="students_title">Leerlingen</string>
+    <string name="students_empty">Nog geen leerlingen</string>
+    <string name="students_empty_detail">Een leerling bestaat uit een naam, de vakken en een uurtarief. Daarna kunt u lessen boeken en betalingen volgen.</string>
     <string name="students_add">Voeg een leerling toe</string>
     <string name="student_archived_badge">Gearchiveerd</string>
     <string name="student_add_title">Nieuwe leerling</string>
@@ -201,14 +201,14 @@
     <string name="student_form_add">Leerling toevoegen</string>
     <string name="student_form_subject_has_lessons">Heeft les, dus het blijft</string>
     <string name="student_form_subjects_required">Kies minstens één vak en stel het uurtarief in</string>
-    <string name="student_form_no_subjects">Voeg eerst onderwerpen toe</string>
+    <string name="student_form_no_subjects">Voeg eerst vakken toe</string>
     <string name="student_mode_label">Plaats</string>
-    <string name="student_subjects_title">Onderwerpen</string>
-    <string name="student_no_subjects">Geen onderwerpen gekozen</string>
-    <string name="student_add_subject">Voeg een onderwerp toe</string>
-    <string name="student_all_subjects_added">Elk onderwerp is toegevoegd</string>
-    <string name="student_subject_remove_blocked">Kan het onderwerp niet verwijderen: het bevat lessen</string>
-    <string name="student_archive_balance_part">Het saldo van deze leerling is niet verrekend (%1$s). Hun geschiedenis blijft in rapporten staan, maar wekelijkse schuldherinneringen zullen ze uitsluiten.</string>
+    <string name="student_subjects_title">Vakken</string>
+    <string name="student_no_subjects">Geen vakken gekozen</string>
+    <string name="student_add_subject">Voeg een vak toe</string>
+    <string name="student_all_subjects_added">Alle vakken zijn toegevoegd</string>
+    <string name="student_subject_remove_blocked">Kan het vak niet verwijderen: het heeft lessen</string>
+    <string name="student_archive_balance_part">Het saldo van deze leerling is niet verrekend (%1$s). De geschiedenis blijft in rapporten staan, maar deze leerling krijgt geen wekelijkse schuldherinneringen meer.</string>
     <string name="student_archive_question">Toch archiveren?</string>
     <plurals name="student_archive_lessons_part">
         <item quantity="one">Geplande lessen die worden geannuleerd: %1$d.</item>
@@ -277,37 +277,37 @@
     <string name="action_copy">Kopiëren</string>
     <string name="clipboard_copied">Gekopieerd</string>
     <string name="student_contact_failed">Geen enkele app op deze telefoon kan dat</string>
-    <string name="subjects_title">Onderwerpen</string>
-    <string name="subjects_empty">Nog geen onderwerpen</string>
+    <string name="subjects_title">Vakken</string>
+    <string name="subjects_empty">Nog geen vakken</string>
     <string name="subjects_empty_detail">Een vak is wat je onderwijst. Voeg een vak toe om tarieven in te stellen en lessen te boeken.</string>
-    <string name="subjects_add">Voeg een onderwerp toe</string>
-    <string name="subject_add_title">Nieuw onderwerp</string>
-    <string name="subject_edit_title">Onderwerp bewerken</string>
+    <string name="subjects_add">Voeg een vak toe</string>
+    <string name="subject_add_title">Nieuw vak</string>
+    <string name="subject_edit_title">Vak bewerken</string>
     <string name="subject_name_label">Naam van het vak</string>
-    <string name="subject_name_taken">Er bestaat al een onderwerp met deze naam</string>
+    <string name="subject_name_taken">Er bestaat al een vak met deze naam</string>
     <string name="subject_delete_named">%1$s verwijderen</string>
-    <string name="subject_deleted">Onderwerp verwijderd</string>
-    <string name="subject_delete_blocked">Kan het onderwerp niet verwijderen: het bevat lessen. Verwijder deze eerst.</string>
-    <string name="subject_delete_blocked_group">Kan het onderwerp niet verwijderen: een groep bestudeert het. Verander eerst het onderwerp van de groep.</string>
-    <string name="subject_delete_blocked_students">Kan het onderwerp niet verwijderen: een leerling neemt het over. Verwijder het eerst uit hun profiel.</string>
+    <string name="subject_deleted">Vak verwijderd</string>
+    <string name="subject_delete_blocked">Kan het vak niet verwijderen: het heeft lessen. Verwijder die eerst.</string>
+    <string name="subject_delete_blocked_group">Kan het vak niet verwijderen: een groep volgt het. Wijzig eerst het vak van de groep.</string>
+    <string name="subject_delete_blocked_students">Kan het vak niet verwijderen: een leerling volgt het. Verwijder het eerst uit het profiel van de leerling.</string>
     <string name="groups_title">Groepen</string>
     <string name="groups_empty">Nog geen groepen</string>
-    <string name="groups_empty_detail">Een groep bestaat uit meerdere studenten die één tarief delen. Voor hen allemaal tegelijk wordt één les geboekt.</string>
+    <string name="groups_empty_detail">Een groep bestaat uit meerdere leerlingen die één tarief delen. Voor hen allemaal tegelijk wordt één les geboekt.</string>
     <string name="groups_add">Creëer een groep</string>
     <string name="group_form_create">Groep aanmaken</string>
     <string name="group_add_title">Nieuwe groep</string>
     <string name="group_edit_title">Groep bewerken</string>
     <string name="group_name_label">Naam</string>
     <string name="group_subject_label">Vak</string>
-    <string name="group_subject_none">Geen onderwerp</string>
-    <string name="group_subject_hint">Alleen studenten met een tarief voor dit vak kunnen lid worden van de groep</string>
-    <string name="group_subject_none_hint">Zonder onderwerp: elke leerling, en het onderwerp wordt gekozen wanneer een les wordt geboekt</string>
+    <string name="group_subject_none">Geen vak</string>
+    <string name="group_subject_hint">Alleen leerlingen met een tarief voor dit vak kunnen lid worden van de groep</string>
+    <string name="group_subject_none_hint">Zonder vak: elke leerling, en het vak wordt gekozen wanneer een les wordt geboekt</string>
     <string name="group_price_label">Uurtarief per leerling</string>
     <string name="group_price_hint">Hetzelfde uurtarief voor ieder groepslid</string>
     <string name="group_members_title">Leden</string>
     <string name="group_members_required">Kies minstens één leerling</string>
-    <string name="group_no_students">Voeg eerst studenten toe</string>
-    <string name="group_no_students_for_subject">Voor dit vak geldt geen tarief voor studenten</string>
+    <string name="group_no_students">Voeg eerst leerlingen toe</string>
+    <string name="group_no_students_for_subject">Geen enkele leerling heeft een tarief voor dit vak</string>
     <string name="group_no_members">Geen leden</string>
     <plurals name="group_members_leaving_confirm">
         <item quantity="one">Leden zonder uurtarief voor het vak van de groep: %1$d. Ze worden uit de groep verwijderd. Opslaan?</item>
@@ -318,7 +318,7 @@
     <string name="group_students_title">Leden</string>
     <string name="group_lessons_title">Lessen</string>
     <string name="group_lessons_empty">Deze groep heeft nog geen lessen</string>
-    <string name="group_no_subject">Geen onderwerp</string>
+    <string name="group_no_subject">Geen vak</string>
     <string name="group_edit_members">Leden wijzigen</string>
     <string name="group_member_open">Profiel openen</string>
     <string name="group_lesson_present">Aanwezig: %1$d van %2$d</string>
@@ -326,7 +326,7 @@
         <item quantity="one">%1$d lid</item>
         <item quantity="other">%1$d leden</item>
     </plurals>
-    <string name="more_subjects">Onderwerpen</string>
+    <string name="more_subjects">Vakken</string>
     <string name="more_backup">Back-up</string>
     <string name="calendar_denied">Geen toegang tot de agenda</string>
     <string name="calendar_rationale">Klas heeft agendatoegang nodig om lessen in de agenda van dit apparaat weer te geven</string>
@@ -388,8 +388,8 @@
     <string name="settings_calendar_sync">Kalendersynchronisatie</string>
     <string name="settings_calendar_sync_desc">Toon lessen in de agenda van dit apparaat</string>
     <string name="settings_calendar_sync_blocked">Agendatoegang is ingetrokken - lessen worden niet gekopieerd</string>
-    <string name="settings_email_invites">Nodig studenten uit per e-mail</string>
-    <string name="settings_email_invites_desc">Voeg studenten met e-mailadressen toe aan agenda-evenementen. Uw agenda-account verwerkt uitnodigingen; bestaande gesynchroniseerde gebeurtenissen worden bijgewerkt.</string>
+    <string name="settings_email_invites">Nodig leerlingen uit per e-mail</string>
+    <string name="settings_email_invites_desc">Voeg leerlingen met e-mailadressen toe aan agenda-evenementen. Uw agenda-account verwerkt uitnodigingen; bestaande gesynchroniseerde gebeurtenissen worden bijgewerkt.</string>
     <string name="settings_reminder_lead">Vóór de les</string>
     <string name="settings_reminder_lead_custom">Aangepast…</string>
     <string name="settings_reminder_amount">Bedrag</string>
@@ -473,13 +473,13 @@
     <string name="onboarding_restore">Een back-up herstellen</string>
     <string name="onboarding_restore_desc">De gegevens van het bestand zullen vervangen wat hier staat</string>
     <string name="onboarding_skip">Overslaan</string>
-    <string name="onboarding_skip_desc">Onderwerpen en studenten kunnen later worden toegevoegd</string>
+    <string name="onboarding_skip_desc">Vakken en leerlingen kunnen later worden toegevoegd</string>
     <string name="onboarding_step">Stap %1$d van %2$d</string>
     <string name="onboarding_locale_title">De basis</string>
     <string name="onboarding_locale_desc">Al voor u gekozen. Wijzig nu of later iets in Instellingen.</string>
     <string name="onboarding_lesson_length_desc">Vult nieuwe lessen vooraf in. De tarieven zijn per uur, dus elke les wordt op basis van de duur ervan gefactureerd.</string>
     <string name="onboarding_locale_currency_desc">Bedragen worden er alleen mee gelabeld; er wordt niets omgezet.</string>
-    <string name="onboarding_subjects_title">Onderwerpen</string>
+    <string name="onboarding_subjects_title">Vakken</string>
     <string name="onboarding_subjects_desc">Tik op wat u onderwijst, of voeg uw eigen toe. Je kunt ze later wijzigen.</string>
     <string-array name="onboarding_subject_suggestions">
         <item>Wiskunde</item>
@@ -491,10 +491,10 @@
         <item>Computerwetenschappen</item>
         <item>Piano</item>
     </string-array>
-    <string name="onboarding_subject_removed">Onderwerp verwijderd</string>
-    <string name="onboarding_subject_remove_failed">Kan het onderwerp niet verwijderen</string>
+    <string name="onboarding_subject_removed">Vak verwijderd</string>
+    <string name="onboarding_subject_remove_failed">Kan het vak niet verwijderen</string>
     <string name="onboarding_student_title">Eerste leerling</string>
-    <string name="onboarding_student_desc">Even een naam en een tarief. Een telefoon, e-mail en notitie kunnen later aan het profiel van de student worden toegevoegd.</string>
+    <string name="onboarding_student_desc">Alleen een naam en een tarief. Een telefoonnummer, e-mailadres en notitie kunnen later aan het profiel van de leerling worden toegevoegd.</string>
     <string name="onboarding_continue">Volgende</string>
     <string name="onboarding_finish">Klaar</string>
     <plurals name="class_delete_group_confirm">
@@ -505,7 +505,7 @@
         <item quantity="one">Deze les is gegeven. Verwijderen haalt de kosten weg bij %1$d leerling. Verwijderen?</item>
         <item quantity="other">Deze les is gegeven. Verwijderen haalt de kosten weg bij %1$d leerlingen. Verwijderen?</item>
     </plurals>
-    <string name="schedule_need_setup">Voeg eerst een onderwerp en een leerling toe</string>
+    <string name="schedule_need_setup">Voeg eerst een vak en een leerling toe</string>
     <string name="reminder_channel_name">Lesherinneringen</string>
     <string name="reminder_channel_desc">Meldingen voordat een les begint</string>
     <string name="notification_locked_text">Ontgrendel om details te zien</string>
@@ -565,8 +565,8 @@
     <string name="reports_by_year">Inkomen per jaar</string>
     <string name="reports_by_kind">Inkomen per lestype</string>
     <string name="reports_by_group">Inkomen per groep</string>
-    <string name="reports_by_subject">Inkomen per onderwerp</string>
-    <string name="reports_by_student">Inkomen per student</string>
+    <string name="reports_by_subject">Inkomen per vak</string>
+    <string name="reports_by_student">Inkomen per leerling</string>
     <string name="reports_debts">Schulden</string>
     <string name="reports_no_debts">Niemand is iets verschuldigd</string>
     <string name="reports_total_outstanding">Totaal nog te ontvangen</string>
@@ -597,7 +597,7 @@
     <string name="backup_title">Back-up</string>
     <string name="backup_filename">klas-backup-%1$s.json</string>
     <string name="backup_export">Exporteer uw gegevens</string>
-    <string name="backup_export_desc">Sla lesgegevens op in een bestand. De valuta en lesstandaarden gaan mee; herinneringen, kalendersynchronisatie en de wekelijkse kopie blijven op deze telefoon. Het bestand bevat de namen, telefoonnummers en e-mailadressen van studenten. Het wordt alleen gecodeerd als u een wachtwoord instelt.</string>
+    <string name="backup_export_desc">Sla lesgegevens op in een bestand. De valuta en lesstandaarden gaan mee; herinneringen, kalendersynchronisatie en de wekelijkse kopie blijven op deze telefoon. Het bestand bevat de namen, telefoonnummers en e-mailadressen van leerlingen. Het wordt alleen gecodeerd als u een wachtwoord instelt.</string>
     <string name="backup_last_export">Laatste back-up: %1$s</string>
     <string name="backup_last_export_detail">Alles sindsdien staat alleen op deze telefoon</string>
     <string name="backup_never">Nog geen back-ups</string>
@@ -704,8 +704,8 @@
     <string name="payment_choose_student">Wie heeft de betaling gedaan?</string>
     <string name="subject_set_price">Uurtarief instellen</string>
     <string name="group_member_set_price">Uurtarief instellen</string>
-    <string name="subject_add">Onderwerp toevoegen</string>
-    <string name="group_price_setup_hint">Stel een individueel vaktarief in om deze studenten toe te voegen. Voor groepslessen geldt het groepstarief.</string>
+    <string name="subject_add">Vak toevoegen</string>
+    <string name="group_price_setup_hint">Stel een individueel vaktarief in om deze leerlingen toe te voegen. Voor groepslessen geldt het groepstarief.</string>
     <string name="class_completed_message">Gemarkeerd onderwezen</string>
     <string name="class_cancelled_message">Les geannuleerd</string>
     <string name="class_replanned_message">Les weer gepland</string>
@@ -763,7 +763,6 @@
     <string name="today_lessons">De lessen van vandaag</string>
     <string name="today_no_lessons">Geen lessen vandaag</string>
     <string name="today_owed">Aan jou verschuldigd</string>
-    <string name="today_homework">In te leveren huiswerk</string>
     <string name="today_backup_old">Laatste back-up %1$s</string>
     <string name="today_backup_never">Nog geen back-up</string>
     <string name="today_backup_detail">Je gegevens staan alleen op deze telefoon.</string>
@@ -772,7 +771,7 @@
         <item quantity="one">%1$d les als gegeven gemarkeerd</item>
         <item quantity="other">%1$d lessen als gegeven gemarkeerd</item>
     </plurals>
-    <string name="settings_subjects_none">Nog geen onderwerpen</string>
+    <string name="settings_subjects_none">Nog geen vakken</string>
     <string name="settings_backup_never">Nooit · wekelijks instellen</string>
     <string name="settings_backup_last">Laatste %1$s · wekelijks ingesteld</string>
     <string name="schedule_pick_date">Kies een datum</string>
@@ -795,9 +794,9 @@
     <string name="statement_credit">Vooraf betaald: %1$s</string>
     <string name="statement_settled">Niets te betalen</string>
     <string name="groups_sort_next">Op eerstvolgende les</string>
-    <string name="form_gap_name">een naam</string>
-    <string name="form_gap_subject">Vak</string>
-    <string name="form_gap_price">Uurtarief</string>
+    <string name="form_gap_name">naam</string>
+    <string name="form_gap_subject">vak</string>
+    <string name="form_gap_price">uurtarief</string>
     <string name="form_gap_members">leden</string>
     <string name="filter_more">Filteren</string>
     <plurals name="batch_selected">
@@ -847,7 +846,7 @@
     <string name="reports_earned">Verdiend</string>
     <string name="reports_export_menu">Exporteren</string>
     <string name="reports_filter">Filter het rapport</string>
-    <string name="reports_filter_all">Alle studenten en vakken</string>
+    <string name="reports_filter_all">Alle leerlingen en vakken</string>
     <string name="onboarding_subject_field_hint">Typ een naam en druk op Enter</string>
     <string name="reports_share_ledger">Verzend het grootboek</string>
     <string name="reports_export_ledger">Sla het grootboek op als CSV</string>
@@ -855,7 +854,7 @@
     <string name="reports_ledger_day">Datum</string>
     <string name="reports_ledger_entry">Boeking</string>
     <string name="reports_ledger_student">Leerling</string>
-    <string name="reports_ledger_detail">Onderwerp of methode</string>
+    <string name="reports_ledger_detail">Vak of methode</string>
     <string name="reports_ledger_lesson">Les</string>
     <string name="reports_ledger_payment">Betaling</string>
     <string name="schedule_cancel_day">Annuleer dag</string>
@@ -878,13 +877,13 @@
     <string name="today_never_paid">Nog geen betaling</string>
     <string name="today_recent_marks">Gemarkeerd buiten de app</string>
     <string name="today_marked_at">Gegeven · gemarkeerd om %1$s</string>
-    <plurals name="today_members">
-        <item quantity="one">%1$d lid</item>
-        <item quantity="other">%1$d leden</item>
+    <plurals name="members_count">
+        <item quantity="one">%1$d\u00A0lid</item>
+        <item quantity="other">%1$d\u00A0leden</item>
     </plurals>
     <string name="people_owes">Met openstaand bedrag · %1$d</string>
     <string name="people_archived">Gearchiveerd</string>
-    <string name="people_all_subjects">Alle onderwerpen</string>
+    <string name="people_all_subjects">Alle vakken</string>
     <string name="people_filter">Filteren en sorteren</string>
     <string name="people_show">Tonen</string>
     <string name="people_subject">Vak</string>

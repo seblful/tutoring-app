@@ -298,7 +298,7 @@ internal fun NotificationsBlockedBanner(onAllow: () -> Unit, modifier: Modifier 
         title = stringResource(R.string.settings_all_notifications_blocked),
         kind = BannerKind.Blocking,
         modifier = modifier.padding(top = Spacing.itemGap),
-        action = SectionAction(stringResource(R.string.action_allow), onAllow),
+        action = SectionAction(stringResource(R.string.action_allow), onClick = onAllow),
     )
 }
 

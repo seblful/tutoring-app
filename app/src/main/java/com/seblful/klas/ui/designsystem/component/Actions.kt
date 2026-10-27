@@ -17,9 +17,18 @@ data class DialogAction(
     val destructive: Boolean = false,
 )
 
-/** The one text action a section header may carry: "See all ›", "+ Add". */
+/**
+ * The one text action a section header may carry: "See all ›", "+ Add". [destructive] for one that loses
+ * something — «Cancel day» — red as every Cancel is; [opens] for one that leads to the full list, with the
+ * chevron a profile's «See all ›» has.
+ */
 @Immutable
-data class SectionAction(val label: String, val onClick: () -> Unit)
+data class SectionAction(
+    val label: String,
+    val destructive: Boolean = false,
+    val opens: Boolean = false,
+    val onClick: () -> Unit,
+)
 
 /** One way of narrowing a list: what it is called, whether it is in force, and what choosing it does. */
 class FilterOption(

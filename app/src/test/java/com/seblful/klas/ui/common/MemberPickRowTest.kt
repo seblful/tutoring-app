@@ -8,12 +8,15 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.unit.dp
 import com.seblful.klas.domain.model.Student
 import com.seblful.klas.ui.theme.KlasTheme
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -47,5 +50,17 @@ class MemberPickRowTest {
             .performClick()
 
         assertEquals(listOf(true, false), toggles)
+    }
+
+    @Test
+    fun `the name follows the tick on the form's edge, as a subject's does`() {
+        compose.setContent {
+            KlasTheme { MemberPickRow(Student(id = 7, name = "Anna"), selected = false, onToggle = {}) }
+        }
+
+        val row = compose.onNodeWithText("Anna").getUnclippedBoundsInRoot()
+        val name = compose.onNodeWithText("Anna", useUnmergedTree = true).getUnclippedBoundsInRoot()
+        // A tick (24 dp) and the gap after it: a list item's 16 dp inset before the tick would push it to 56.
+        assertTrue("name starts ${name.left - row.left} in", name.left - row.left <= 40.dp)
     }
 }

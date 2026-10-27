@@ -12,6 +12,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.offset
 
 /**
  * How a full-width row shows it is being pressed: a soft **rounded** tint inset from the edges, never a
@@ -59,6 +60,16 @@ fun Modifier.bleed(by: Dp): Modifier = layout { measurable, constraints ->
     }
     val placeable = measurable.measure(wider)
     layout((placeable.width - extra).coerceAtLeast(0), placeable.height) { placeable.place(-extra / 2, 0) }
+}
+
+/**
+ * Lets content reach [by] above and below its line while taking only the line's height — a press tint with
+ * room around one line of text, without spacing it from the line under it.
+ */
+fun Modifier.bleedVertically(by: Dp): Modifier = layout { measurable, constraints ->
+    val extra = (by * 2).roundToPx()
+    val placeable = measurable.measure(constraints.offset(vertical = extra))
+    layout(placeable.width, (placeable.height - extra).coerceAtLeast(0)) { placeable.place(0, -extra / 2) }
 }
 
 private val RowPressInset = 8.dp

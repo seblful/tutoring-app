@@ -1,3 +1,5 @@
+@file:Suppress("ForbiddenImport") // NamedIconButton is the app's icon button: one that names itself when held.
+
 package com.seblful.klas.ui.common
 
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -39,7 +41,8 @@ fun HoldToName(name: String, above: Boolean = false, content: @Composable () -> 
 }
 
 /**
- * An icon button that **names itself when held** — the shape every glyph in a bar takes.
+ * An icon button that **names itself when held** — the shape every glyph button takes, in a bar or in a row:
+ * a glyph that says nothing when held reads as broken beside one that does.
  *
  * @param tint an override for the glyph's colour — the accent where a button marks something (a list in
  * a non-default order, a send action). Null keeps the button's own.
@@ -50,10 +53,11 @@ fun NamedIconButton(
     name: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    enabled: Boolean = true,
     tint: Color? = null,
 ) {
     HoldToName(name) {
-        IconButton(onClick = onClick, modifier = modifier) {
+        IconButton(onClick = onClick, modifier = modifier, enabled = enabled) {
             if (tint != null) Icon(icon, name, tint = tint) else Icon(icon, name)
         }
     }

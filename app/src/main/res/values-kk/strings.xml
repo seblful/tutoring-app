@@ -36,7 +36,7 @@
     </plurals>
     <string name="students_search_hint">Оқушыларды іздеу</string>
     <string name="groups_search_hint">Топтарды іздеу</string>
-    <string name="subjects_search_hint">Пән атауы</string>
+    <string name="subjects_search_hint">Пәндерді іздеу</string>
     <string name="students_sort_name">Аты бойынша</string>
     <string name="students_sort_debt">Бірінші борышкерлер</string>
     <string name="unsaved_save_title">Өзгерістерді сақтау керек пе?</string>
@@ -50,7 +50,7 @@
     <string name="schedule_add_class">Сабаққа тапсырыс беріңіз</string>
     <string name="schedule_week_empty">Осы аптада сабақ жоқ</string>
     <string name="schedule_empty_no_setup">Әлі жоспарлайтын ештеңе жоқ</string>
-    <string name="schedule_empty_no_setup_detail">Сабақ студентке және курсы бар пәнге жазылады. Оқушыдан бастаңыз.</string>
+    <string name="schedule_empty_no_setup_detail">Сабақ оқушыға және ақысы белгіленген пәнге жазылады. Оқушыдан бастаңыз.</string>
     <string name="schedule_add_student">Оқушы қосу</string>
     <string name="schedule_filter_everyone">Барлығы</string>
     <string name="schedule_filter_any_status">Кез келген күй</string>
@@ -87,7 +87,7 @@
     <string name="class_section_price">Сағаттық ақы</string>
     <string name="class_section_format">Өтетін орны</string>
     <string name="class_terms_price_needed">Сағаттық ақыны белгілеу</string>
-    <string name="class_who_label">Студент немесе топ</string>
+    <string name="class_who_label">Оқушы немесе топ</string>
     <string name="class_book_action">Жоспарлау</string>
     <string name="class_still_needed">Әлі де қажет</string>
     <string name="class_day_previous">Алдыңғы күн</string>
@@ -97,18 +97,18 @@
     <string name="class_time_pick">Уақытты белгілеңіз</string>
     <string name="class_step_earlier">15 минут бұрын</string>
     <string name="class_step_later">15 минуттан кейін</string>
-    <string name="class_gap_who">студент немесе топ</string>
-    <string name="class_gap_subject">Пән</string>
+    <string name="class_gap_who">оқушы немесе топ</string>
+    <string name="class_gap_subject">пән</string>
     <string name="class_gap_date">күні</string>
     <string name="class_gap_start">басталу уақыты</string>
     <string name="class_gap_length">ұзақтығы</string>
-    <string name="class_gap_price">Сағаттық ақы</string>
+    <string name="class_gap_price">сағаттық ақы</string>
     <plurals name="class_series_lessons">
         <item quantity="one">%1$d сабақ</item>
         <item quantity="other">%1$d сабақ</item>
     </plurals>
     <string name="class_edit_title">Сабақты өңдеу</string>
-    <string name="class_student_label">Студент</string>
+    <string name="class_student_label">Оқушы</string>
     <string name="class_subject_label">Пән</string>
     <string name="class_no_subjects_for_student">Бұл оқушының ешбір пәні бойынша ақы белгіленбеген. Оқушының профилінде ақыны белгілеңіз.</string>
     <string name="class_duration_label">Ұзақтығы</string>
@@ -156,7 +156,7 @@
     <string name="class_delete_completed_confirm">Бұл сабақ өткізілді. Оны жойғанда есептелген ақы оқушының балансынан алынады. Жойылсын ба?</string>
     <string name="class_target_group">Топ</string>
     <string name="class_group_label">Топ</string>
-    <string name="class_no_subjects_for_group">Алдымен тақырыптарды қосыңыз</string>
+    <string name="class_no_subjects_for_group">Алдымен пәндерді қосыңыз</string>
     <string name="class_group_members_title">Қатысушылар</string>
     <string name="class_group_no_active_members">Бұл топтағы ешкімді брондауға болмайды: оның мүшелері мұрағатталған</string>
     <string name="class_group_no_members_left">Кемінде бір мүше таңдаңыз</string>
@@ -165,7 +165,7 @@
         <item quantity="one">Өткізілген сабақтан шығарылатын оқушы саны: %1$d. Олардың сабақтары мен тиісті ақылары жойылады. Сақталсын ба?</item>
         <item quantity="other">Өткізілген сабақтан шығарылатын оқушы саны: %1$d. Олардың сабақтары мен тиісті ақылары жойылады. Сақталсын ба?</item>
     </plurals>
-    <string name="class_subject_from_group">Топ тақырыпты орнатады</string>
+    <string name="class_subject_from_group">Пәнді топ белгілейді</string>
     <string name="class_group_price_label">Бір оқушыға сағаттық ақы</string>
     <string name="class_mark_completed">Өткізілді деп белгілеу</string>
     <string name="class_series_availability">Бос күндер: %1$d. Бос емес күндер өткізіп жіберіледі.</string>
@@ -183,16 +183,16 @@
     <string name="lesson_kind_group">Топ</string>
     <string name="lesson_kind_individual_one">Жеке</string>
     <string name="lesson_kind_count">%1$s · %2$d</string>
-    <string name="students_title">Студенттер</string>
-    <string name="students_empty">Әлі студенттер жоқ</string>
-    <string name="students_empty_detail">Студент - бұл аты-жөні, олардың пәндері және сағатына ақы. Осыдан кейін сіз сабақтарға тапсырыс бере аласыз және төлемдерді қадағалай аласыз.</string>
+    <string name="students_title">Оқушылар</string>
+    <string name="students_empty">Әзірге оқушылар жоқ</string>
+    <string name="students_empty_detail">Оқушы — бұл аты-жөні, пәндері және сағаттық ақысы. Осыдан кейін сабақтарды жазып, төлемдерді қадағалай аласыз.</string>
     <string name="students_add">Оқушы қосу</string>
     <string name="student_archived_badge">Мұрағатталған</string>
-    <string name="student_add_title">Жаңа студент</string>
+    <string name="student_add_title">Жаңа оқушы</string>
     <string name="student_edit_title">Оқушыны өңдеу</string>
     <string name="student_name_label">Аты</string>
     <string name="student_phone_label">Байланыс телефоны</string>
-    <string name="student_phone_hint">Міндетті емес · қоңыраулар мен хабарламалар үшін студенттің немесе ата-ананың</string>
+    <string name="student_phone_hint">Міндетті емес · оқушының немесе ата-ананың, қоңыраулар мен хабарламалар үшін</string>
     <string name="student_phone_pick">Контактілерден таңдау</string>
     <string name="student_email_label">Электрондық пошта</string>
     <string name="student_email_hint">Қосымша · сабаққа шақырулар үшін, егер олар Параметрлерде қосулы болса</string>
@@ -201,14 +201,14 @@
     <string name="student_form_add">Оқушы қосу</string>
     <string name="student_form_subject_has_lessons">Сабақтары бар, сондықтан ол қалады</string>
     <string name="student_form_subjects_required">Кемінде бір пәнді таңдап, сағаттық ақысын белгілеңіз</string>
-    <string name="student_form_no_subjects">Алдымен тақырыптарды қосыңыз</string>
+    <string name="student_form_no_subjects">Алдымен пәндерді қосыңыз</string>
     <string name="student_mode_label">Өтетін орны</string>
-    <string name="student_subjects_title">Тақырыптар</string>
+    <string name="student_subjects_title">Пәндер</string>
     <string name="student_no_subjects">Ешбір пән таңдалмады</string>
-    <string name="student_add_subject">Тақырыпты қосыңыз</string>
-    <string name="student_all_subjects_added">Әрбір тақырып қосылды</string>
-    <string name="student_subject_remove_blocked">Тақырыпты жою мүмкін емес: оның сабақтары бар</string>
-    <string name="student_archive_balance_part">Бұл студенттің балансы реттелмеген (%1$s). Олардың тарихы есептерде қалады, бірақ апта сайынғы қарыз туралы ескертулер оларды алып тастайды.</string>
+    <string name="student_add_subject">Пән қосу</string>
+    <string name="student_all_subjects_added">Барлық пән қосылды</string>
+    <string name="student_subject_remove_blocked">Пәнді жою мүмкін емес: оның сабақтары бар</string>
+    <string name="student_archive_balance_part">Бұл оқушының балансы жабылмаған (%1$s). Оның тарихы есептерде қалады, бірақ ол апта сайынғы қарыз туралы ескертулерге енбейді.</string>
     <string name="student_archive_question">Мұрағаттау керек пе?</string>
     <plurals name="student_archive_lessons_part">
         <item quantity="one">Болдырылмайтын жоспарланған сабақ саны: %1$d.</item>
@@ -277,36 +277,36 @@
     <string name="action_copy">Көшіру</string>
     <string name="clipboard_copied">Көшірілді</string>
     <string name="student_contact_failed">Бұл телефондағы ешбір қолданба мұны істей алмайды</string>
-    <string name="subjects_title">Тақырыптар</string>
-    <string name="subjects_empty">Әлі тақырыптар жоқ</string>
+    <string name="subjects_title">Пәндер</string>
+    <string name="subjects_empty">Әлі пәндер жоқ</string>
     <string name="subjects_empty_detail">Пән — сіз оқытатын сала. Бағаны белгілеу және сабаққа жазу үшін алдымен пән қосыңыз.</string>
-    <string name="subjects_add">Тақырыпты қосыңыз</string>
-    <string name="subject_add_title">Жаңа тақырып</string>
-    <string name="subject_edit_title">Тақырыпты өңдеу</string>
+    <string name="subjects_add">Пән қосу</string>
+    <string name="subject_add_title">Жаңа пән</string>
+    <string name="subject_edit_title">Пәнді өңдеу</string>
     <string name="subject_name_label">Пән атауы</string>
-    <string name="subject_name_taken">Мұндай атау бар тақырып бұрыннан бар</string>
+    <string name="subject_name_taken">Мұндай атаумен пән бұрыннан бар</string>
     <string name="subject_delete_named">%1$s жою</string>
-    <string name="subject_deleted">Тақырып жойылды</string>
-    <string name="subject_delete_blocked">Тақырыпты жою мүмкін емес: оның сабақтары бар. Алдымен соларды жойыңыз.</string>
-    <string name="subject_delete_blocked_group">Тақырыпты жою мүмкін емес: топ оны зерттейді. Алдымен топтың тақырыбын өзгертіңіз.</string>
-    <string name="subject_delete_blocked_students">Тақырыпты жою мүмкін емес: студент оны алады. Алдымен оны профилінен алып тастаңыз.</string>
+    <string name="subject_deleted">Пән жойылды</string>
+    <string name="subject_delete_blocked">Пәнді жою мүмкін емес: оның сабақтары бар. Алдымен соларды жойыңыз.</string>
+    <string name="subject_delete_blocked_group">Пәнді жою мүмкін емес: оны топ оқиды. Алдымен топтың пәнін өзгертіңіз.</string>
+    <string name="subject_delete_blocked_students">Пәнді жою мүмкін емес: оны оқушы оқиды. Алдымен оны оқушының профилінен алып тастаңыз.</string>
     <string name="groups_title">Топтар</string>
     <string name="groups_empty">Әзірге топтар жоқ</string>
-    <string name="groups_empty_detail">Топ - бір бағаны бөлісетін бірнеше студент. Олардың барлығына бірден бір сабақ жазылады.</string>
+    <string name="groups_empty_detail">Топ — ортақ ақысы бар бірнеше оқушы. Бір сабақ бәріне бірден жазылады.</string>
     <string name="groups_add">Топ құру</string>
     <string name="group_form_create">Топ құру</string>
     <string name="group_add_title">Жаңа топ</string>
     <string name="group_edit_title">Топты өңдеу</string>
     <string name="group_name_label">Аты</string>
     <string name="group_subject_label">Пән</string>
-    <string name="group_subject_none">Тақырып жоқ</string>
+    <string name="group_subject_none">Пән жоқ</string>
     <string name="group_subject_hint">Топқа осы пән бойынша ақысы белгіленген оқушылар ғана қосыла алады</string>
-    <string name="group_subject_none_hint">Пәнсіз: кез келген студент және сабақ жазылу кезінде пән таңдалады</string>
+    <string name="group_subject_none_hint">Пәнсіз: кез келген оқушы, ал пән сабақ жазылғанда таңдалады</string>
     <string name="group_price_label">Бір оқушыға сағаттық ақы</string>
     <string name="group_price_hint">Топтың әрбір мүшесіне бірдей сағаттық ақы</string>
     <string name="group_members_title">Қатысушылар</string>
-    <string name="group_members_required">Кем дегенде бір студентті таңдаңыз</string>
-    <string name="group_no_students">Алдымен студенттерді қосыңыз</string>
+    <string name="group_members_required">Кем дегенде бір оқушыны таңдаңыз</string>
+    <string name="group_no_students">Алдымен оқушыларды қосыңыз</string>
     <string name="group_no_students_for_subject">Ешбір оқушы үшін осы пәннің ақысы белгіленбеген</string>
     <string name="group_no_members">Мүшелер жоқ</string>
     <plurals name="group_members_leaving_confirm">
@@ -318,7 +318,7 @@
     <string name="group_students_title">Қатысушылар</string>
     <string name="group_lessons_title">Сабақтар</string>
     <string name="group_lessons_empty">Бұл топта әлі сабақ жоқ</string>
-    <string name="group_no_subject">Тақырып жоқ</string>
+    <string name="group_no_subject">Пән жоқ</string>
     <string name="group_edit_members">Қатысушыларды өзгерту</string>
     <string name="group_member_open">Профильді ашу</string>
     <string name="group_lesson_present">Қатысқандар: %1$d / %2$d</string>
@@ -326,7 +326,7 @@
         <item quantity="one">%1$d қатысушы</item>
         <item quantity="other">%1$d қатысушы</item>
     </plurals>
-    <string name="more_subjects">Тақырыптар</string>
+    <string name="more_subjects">Пәндер</string>
     <string name="more_backup">Сақтық көшірме</string>
     <string name="calendar_denied">Күнтізбеге кіру мүмкін емес</string>
     <string name="calendar_rationale">Klas осы құрылғының күнтізбесінде сабақтарды көрсету үшін күнтізбеге рұқсат қажет</string>
@@ -361,7 +361,7 @@
     <string name="settings_system_notifications_desc">Дыбыстар, діріл және хабарландыру түрлері</string>
     <string name="settings_calendar_fix">Күнтізбе қатынасын қалпына келтіру</string>
     <string name="settings_calendar_fix_desc">Телефон параметрлерінде күнтізбеге кіруге рұқсат беріңіз</string>
-    <string name="settings_email_invites_disabled">Студенттерді шақыру үшін күнтізбені синхрондауды қосыңыз</string>
+    <string name="settings_email_invites_disabled">Оқушыларды шақыру үшін күнтізбені синхрондауды қосыңыз</string>
     <string name="settings_reminder_timing">Еске салу уақыты</string>
     <string name="settings_reminder_shared">Телефон және күнтізбе электрондық пошта еске салғыштары үшін пайдаланылады. Оны өзгерту бұрыннан бар күнтізбе оқиғаларын жаңартады.</string>
     <string name="settings_reminder_enable">Осы уақытты өзгерту үшін сабақ еске салғыштарын немесе күнтізбені синхрондауды қосыңыз</string>
@@ -388,8 +388,8 @@
     <string name="settings_calendar_sync">Күнтізбені синхрондау</string>
     <string name="settings_calendar_sync_desc">Осы құрылғының күнтізбесінде сабақтарды көрсету</string>
     <string name="settings_calendar_sync_blocked">Күнтізбеге кіру мүмкіндігі жойылды — сабақтар көшірілмейді</string>
-    <string name="settings_email_invites">Студенттерді электрондық пошта арқылы шақырыңыз</string>
-    <string name="settings_email_invites_desc">Электрондық пошта мекенжайлары бар студенттерді күнтізбе оқиғаларына қосыңыз. Күнтізбе тіркелгіңіз шақыруларды өңдейді; бар синхрондалған оқиғалар жаңартылады.</string>
+    <string name="settings_email_invites">Оқушыларды электрондық пошта арқылы шақыру</string>
+    <string name="settings_email_invites_desc">Электрондық пошта мекенжайы бар оқушыларды күнтізбе оқиғаларына қосу. Шақыруларды күнтізбе тіркелгісі жібереді; бұрын синхрондалған оқиғалар жаңартылады.</string>
     <string name="settings_reminder_lead">Сабақ алдында</string>
     <string name="settings_reminder_lead_custom">Арнаулы…</string>
     <string name="settings_reminder_amount">Сома</string>
@@ -464,22 +464,22 @@
         <item quantity="other">%1$d&#160;сағ</item>
     </plurals>
     <string name="hours_and_minutes">%1$s %2$s</string>
-    <string name="onboarding_tagline">Студенттеріңіздің сабақтары, төлемдері мен қарыздары бір жерде</string>
+    <string name="onboarding_tagline">Оқушыларыңыздың сабақтары, төлемдері мен қарыздары бір жерде</string>
     <string name="onboarding_value_schedule">Еске салғыштары бар күн, апта және ай бойынша сабақтар</string>
     <string name="onboarding_value_money">Кім төледі, кімнің қарызы бар — автоматты түрде есептеледі</string>
     <string name="onboarding_value_offline">Интернет және есептік жазба жоқ: деректеріңіз телефонда қалады</string>
-    <string name="onboarding_welcome_desc">Орнату бір минутты алады: негіздер, сіз оқытатын пәндер және бірінші студентіңіз.</string>
+    <string name="onboarding_welcome_desc">Баптау бір минут алады: негізгі параметрлер, сіз оқытатын пәндер және алғашқы оқушыңыз.</string>
     <string name="onboarding_start">Орнату</string>
     <string name="onboarding_restore">Сақтық көшірмені қалпына келтіріңіз</string>
     <string name="onboarding_restore_desc">Файл деректері осы жердегіні ауыстырады</string>
     <string name="onboarding_skip">Өткізіп жіберу</string>
-    <string name="onboarding_skip_desc">Пәндерді және студенттерді кейінірек қосуға болады</string>
+    <string name="onboarding_skip_desc">Пәндер мен оқушыларды кейінірек қосуға болады</string>
     <string name="onboarding_step">%1$d қадамы %2$d</string>
     <string name="onboarding_locale_title">Негіздер</string>
     <string name="onboarding_locale_desc">Сіз үшін әлдеқашан таңдалған. Кез келген нәрсені қазір немесе кейінірек \"Параметрлер\" бөлімінен өзгертіңіз.</string>
     <string name="onboarding_lesson_length_desc">Жаңа сабақтарды алдын ала толтырады. Тарифтер сағатына есептелген, сондықтан әрбір сабақ ұзақтығы үшін шот алынады.</string>
     <string name="onboarding_locale_currency_desc">Сомалар тек онымен белгіленеді — ештеңе түрлендірілмейді.</string>
-    <string name="onboarding_subjects_title">Тақырыптар</string>
+    <string name="onboarding_subjects_title">Пәндер</string>
     <string name="onboarding_subjects_desc">Өзіңіз үйрететін нәрсені түртіңіз немесе өзіңізді қосыңыз. Оларды кейін өзгертуге болады.</string>
     <string-array name="onboarding_subject_suggestions">
         <item>Математика</item>
@@ -491,10 +491,10 @@
         <item>Информатика</item>
         <item>Фортепиано</item>
     </string-array>
-    <string name="onboarding_subject_removed">Тақырып жойылды</string>
-    <string name="onboarding_subject_remove_failed">Тақырыпты жою мүмкін болмады</string>
-    <string name="onboarding_student_title">Алғашқы студент</string>
-    <string name="onboarding_student_desc">Тек аты мен бағасы. Телефон, электрондық пошта және жазбаны студенттің профиліне кейінірек қосуға болады.</string>
+    <string name="onboarding_subject_removed">Пән жойылды</string>
+    <string name="onboarding_subject_remove_failed">Пәнді жою мүмкін болмады</string>
+    <string name="onboarding_student_title">Алғашқы оқушы</string>
+    <string name="onboarding_student_desc">Тек аты мен ақысы. Телефон, электрондық пошта мен жазбаны кейінірек оқушының профиліне қосуға болады.</string>
     <string name="onboarding_continue">Келесі</string>
     <string name="onboarding_finish">Дайын</string>
     <plurals name="class_delete_group_confirm">
@@ -505,7 +505,7 @@
         <item quantity="one">Бұл сабақ өткізілді. Оны жойғанда %1$d оқушының есептелген ақысы алынады. Жойылсын ба?</item>
         <item quantity="other">Бұл сабақ өткізілді. Оны жойғанда %1$d оқушының есептелген ақысы алынады. Жойылсын ба?</item>
     </plurals>
-    <string name="schedule_need_setup">Алдымен тақырып пен студентті қосыңыз</string>
+    <string name="schedule_need_setup">Алдымен пән мен оқушыны қосыңыз</string>
     <string name="reminder_channel_name">Сабақ туралы еске салғыштар</string>
     <string name="reminder_channel_desc">Сабақ басталар алдында хабарландырулар</string>
     <string name="notification_locked_text">Мәліметтерді көру үшін құлыпты ашыңыз</string>
@@ -566,7 +566,7 @@
     <string name="reports_by_kind">Сабақ түрі бойынша табыс</string>
     <string name="reports_by_group">Топ бойынша табыс</string>
     <string name="reports_by_subject">Пән бойынша табыс</string>
-    <string name="reports_by_student">Студенттің кірісі</string>
+    <string name="reports_by_student">Оқушылар бойынша кіріс</string>
     <string name="reports_debts">Қарыздар</string>
     <string name="reports_no_debts">Ешкім ештеңе қарыз емес</string>
     <string name="reports_total_outstanding">Жалпы төленбеген сома</string>
@@ -597,7 +597,7 @@
     <string name="backup_title">Сақтық көшірме</string>
     <string name="backup_filename">klas-backup-%1$s.json</string>
     <string name="backup_export">Деректерді экспорттау</string>
-    <string name="backup_export_desc">Репетиторлық деректерді файлға сақтаңыз. Валюта мен сабақ параметрлері деректермен бірге сақталады; еске салғыштар, күнтізбені синхрондау және апта сайынғы көшірме осы телефонда қалады. Файлда студенттердің аты-жөні, телефон нөмірлері және электрондық пошта мекенжайлары бар. Ол құпия сөзді орнатқан жағдайда ғана шифрланады.</string>
+    <string name="backup_export_desc">Репетиторлық деректерді файлға сақтаңыз. Валюта мен сабақ параметрлері деректермен бірге сақталады; еске салғыштар, күнтізбені синхрондау және апта сайынғы көшірме осы телефонда қалады. Файлда оқушылардың аты-жөні, телефон нөмірлері және электрондық пошта мекенжайлары бар. Ол құпия сөзді орнатқан жағдайда ғана шифрланады.</string>
     <string name="backup_last_export">Соңғы сақтық көшірме: %1$s</string>
     <string name="backup_last_export_detail">Содан бері кез келген нәрсе тек осы телефонда</string>
     <string name="backup_never">Сақтық көшірмелер әлі жоқ</string>
@@ -677,11 +677,11 @@
     <string name="homework_restored_message">Ағымдағы күйге қайта жылжытылды</string>
     <string name="homework_deleted">Үй тапсырмасы жойылды</string>
     <string name="homework_empty_current">Ағымдағы үй тапсырмасы жоқ</string>
-    <string name="homework_empty_current_detail">Студентке немесе топқа үй тапсырмасын қойыңыз — ол олардың келесі сабағына қоса беріледі.</string>
+    <string name="homework_empty_current_detail">Оқушыға немесе топқа үй тапсырмасын беріңіз — ол олардың келесі сабағына тіркеледі.</string>
     <string name="homework_empty_archive">Әлі ештеңе жасалмады</string>
     <string name="homework_empty_archive_detail">Орындалды деп белгіленген үй тапсырмасы осында өтеді. Үй тапсырмасының бөлігіндегі шеңберді түртіңіз немесе орындалды деп белгілеу үшін оны оңға сырғытыңыз.</string>
-    <string name="homework_need_student">Алдымен студентті қосыңыз</string>
-    <string name="homework_filter">Бір студентті немесе топты көрсету</string>
+    <string name="homework_need_student">Алдымен оқушыны қосыңыз</string>
+    <string name="homework_filter">Бір оқушыны немесе топты көрсету</string>
     <string name="homework_filter_all">Барлығы</string>
     <string name="homework_filter_empty">%1$s үшін үй тапсырмасы жоқ</string>
     <string name="homework_filter_empty_detail">Барлығының үй тапсырмасын көру үшін сүзгіні тазалаңыз</string>
@@ -704,8 +704,8 @@
     <string name="payment_choose_student">Төлемді кім жасады?</string>
     <string name="subject_set_price">Сағаттық ақыны белгілеу</string>
     <string name="group_member_set_price">Сағаттық ақыны белгілеу</string>
-    <string name="subject_add">Тақырыпты қосу</string>
-    <string name="group_price_setup_hint">Бұл студенттерді қосу үшін жеке пән жылдамдығын орнатыңыз. Топтық сабақтар топтық бағаны пайдаланады.</string>
+    <string name="subject_add">Пән қосу</string>
+    <string name="group_price_setup_hint">Бұл оқушыларды қосу үшін пәнге жеке сағаттық ақы белгілеңіз. Топтық сабақтар топтық ақыны пайдаланады.</string>
     <string name="class_completed_message">Оқытты деп белгіленді</string>
     <string name="class_cancelled_message">Сабақтан бас тартылды</string>
     <string name="class_replanned_message">Сабақ қайтадан жоспарланған</string>
@@ -722,7 +722,7 @@
     <string name="widget_today_locked">Бүгінгі сабақтарды көру үшін құлыпты ашыңыз</string>
     <string name="widget_today_empty">Бүгін сабақ жоқ</string>
     <string name="widget_quick_actions_name">Klas таңбашалары</string>
-    <string name="widget_quick_actions_description">Сабаққа тапсырыс беріңіз, студент қосыңыз немесе бүгін ашыңыз, үй тапсырмасы мен қарыздар</string>
+    <string name="widget_quick_actions_description">Сабақ жазу, оқушы қосу немесе бүгінгі күнді, үй тапсырмалары мен қарыздарды ашу</string>
     <string-array name="widget_preview_lessons">
         <item>Анна Соколова</item>
         <item>Алгебра</item>
@@ -763,7 +763,6 @@
     <string name="today_lessons">Бүгінгі сабақтар</string>
     <string name="today_no_lessons">Бүгін сабақ жоқ</string>
     <string name="today_owed">Сізге қарыздармын</string>
-    <string name="today_homework">Тапсыратын үй тапсырмасы</string>
     <string name="today_backup_old">Соңғы сақтық көшірме %1$s</string>
     <string name="today_backup_never">Сақтық көшірме әлі жоқ</string>
     <string name="today_backup_detail">Деректеріңіз тек осы телефонда.</string>
@@ -772,7 +771,7 @@
         <item quantity="one">%1$d сабақ өткізілді деп белгіленді</item>
         <item quantity="other">%1$d сабақ өткізілді деп белгіленді</item>
     </plurals>
-    <string name="settings_subjects_none">Әлі тақырыптар жоқ</string>
+    <string name="settings_subjects_none">Әлі пәндер жоқ</string>
     <string name="settings_backup_never">Ешқашан · апта сайын орнатпаңыз</string>
     <string name="settings_backup_last">Соңғы %1$s · апта сайын орнатылады</string>
     <string name="schedule_pick_date">Күнді таңдаңыз</string>
@@ -796,8 +795,8 @@
     <string name="statement_settled">Төлеуге ештеңе жоқ</string>
     <string name="groups_sort_next">Келесі сабақ бойынша</string>
     <string name="form_gap_name">атау</string>
-    <string name="form_gap_subject">Пән</string>
-    <string name="form_gap_price">Сағаттық ақы</string>
+    <string name="form_gap_subject">пән</string>
+    <string name="form_gap_price">сағаттық ақы</string>
     <string name="form_gap_members">мүшелері</string>
     <string name="filter_more">Сүзгі</string>
     <plurals name="batch_selected">
@@ -843,19 +842,19 @@
     </plurals>
     <string name="group_member_present">Қатысу: %1$d / %2$d сабақ</string>
     <string name="group_member_no_lessons">Әлі сабақ жоқ</string>
-    <string name="price_per_hour_per_student">Бір студентке %1$s/\u2060сағ</string>
+    <string name="price_per_hour_per_student">Бір оқушыға %1$s/⁠сағ</string>
     <string name="reports_earned">Табыс</string>
     <string name="reports_export_menu">Экспорттау</string>
     <string name="reports_filter">Есепті сүзгілеу</string>
-    <string name="reports_filter_all">Барлық студенттер мен пәндер</string>
+    <string name="reports_filter_all">Барлық оқушылар мен пәндер</string>
     <string name="onboarding_subject_field_hint">Атты теріп, Enter пернесін басыңыз</string>
     <string name="reports_share_ledger">Бухгалтерлік кітапты жіберіңіз</string>
     <string name="reports_export_ledger">Бухгалтерлік кітапты CSV ретінде сақтаңыз</string>
     <string name="reports_ledger_filename">klas-ledger.csv</string>
     <string name="reports_ledger_day">Күн</string>
     <string name="reports_ledger_entry">Жазба</string>
-    <string name="reports_ledger_student">Студент</string>
-    <string name="reports_ledger_detail">Тақырып немесе әдіс</string>
+    <string name="reports_ledger_student">Оқушы</string>
+    <string name="reports_ledger_detail">Пән немесе әдіс</string>
     <string name="reports_ledger_lesson">Сабақ</string>
     <string name="reports_ledger_payment">Төлем</string>
     <string name="schedule_cancel_day">Күнді болдырмау</string>
@@ -870,7 +869,7 @@
     <string name="class_step_earlier_to">Бұрын, %1$s</string>
     <string name="class_step_later_to">Кейінірек, %1$s</string>
     <string name="class_step_first_free">− немесе + %1$s, бірінші бос уақытты алады</string>
-    <string name="fab_new_student">Жаңа студент</string>
+    <string name="fab_new_student">Жаңа оқушы</string>
     <string name="fab_new_group">Жаңа топ</string>
     <string name="today_next_in">Келесі · %1$s ішінде</string>
     <string name="today_open">Ашу</string>
@@ -878,9 +877,9 @@
     <string name="today_never_paid">Әлі төлем жоқ</string>
     <string name="today_recent_marks">Қолданбадан тыс белгіленген</string>
     <string name="today_marked_at">Өткізілді · %1$s уақытында белгіленді</string>
-    <plurals name="today_members">
-        <item quantity="one">%1$d қатысушы</item>
-        <item quantity="other">%1$d қатысушы</item>
+    <plurals name="members_count">
+        <item quantity="one">%1$d\u00A0қатысушы</item>
+        <item quantity="other">%1$d\u00A0қатысушы</item>
     </plurals>
     <string name="people_owes">Қарызы бар · %1$d</string>
     <string name="people_archived">Мұрағатталған</string>

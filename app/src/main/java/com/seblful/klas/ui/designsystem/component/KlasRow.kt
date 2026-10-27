@@ -3,7 +3,6 @@ package com.seblful.klas.ui.designsystem.component
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
@@ -14,8 +13,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
+import com.seblful.klas.ui.common.BadgeLine
 import com.seblful.klas.ui.common.DisabledAlpha
+import com.seblful.klas.ui.common.NamedIconButton
 import com.seblful.klas.ui.common.OpensScreenMark
+import com.seblful.klas.ui.common.StatusBadge
 import com.seblful.klas.ui.common.insetRowPress
 import com.seblful.klas.ui.common.rememberToggleFeedback
 
@@ -57,10 +59,14 @@ sealed interface RowEnd {
     data class Action(val icon: ImageVector, val label: String, val onClick: () -> Unit) : RowEnd
 }
 
+/** A status pill starting a row's second line, as every lesson row's status does — never a word at its end. */
+data class RowBadge(val text: String, val color: Color)
+
 /**
  * One row for every list: a title, an optional supporting line, at most one thing leading and one trailing.
  * Transparent, so it sits on whichever card holds it; the press is inset into the card like every row's.
  *
+ * @param badge a status pill leading the supporting line, sharing its baseline ([BadgeLine]).
  * @param onClickLabel what a tap does, for TalkBack's "double-tap to …" — say it for rows that open things.
  * @param enabled dims the whole row and refuses taps while it cannot be used.
  */
@@ -69,6 +75,7 @@ fun KlasRow(
     title: String,
     modifier: Modifier = Modifier,
     supporting: String? = null,
+    badge: RowBadge? = null,
     start: RowStart? = null,
     end: RowEnd? = null,
     onClick: (() -> Unit)? = null,
@@ -103,7 +110,15 @@ fun KlasRow(
     }
     ListItem(
         headlineContent = { Text(title) },
-        supportingContent = supporting?.let { { Text(it) } },
+        supportingContent = when {
+            badge != null -> {
+                { BadgeLine(badge = { StatusBadge(badge.text, badge.color) }) { supporting?.let { Text(it) } } }
+            }
+            supporting != null -> {
+                { Text(supporting) }
+            }
+            else -> null
+        },
         leadingContent = start?.let { { Lead(it) } },
         trailingContent = end?.let { { Trail(it, enabled) } },
         colors = rowColors(enabled),
@@ -128,9 +143,7 @@ private fun Trail(end: RowEnd, enabled: Boolean) {
         RowEnd.Opens -> OpensScreenMark()
         // A picture of the state: the row is the control (see KlasRow).
         is RowEnd.Toggle -> Switch(checked = end.on, onCheckedChange = null, enabled = enabled)
-        is RowEnd.Action -> IconButton(onClick = end.onClick, enabled = enabled) {
-            Icon(end.icon, contentDescription = end.label)
-        }
+        is RowEnd.Action -> NamedIconButton(end.icon, end.label, end.onClick, enabled = enabled)
     }
 }
 

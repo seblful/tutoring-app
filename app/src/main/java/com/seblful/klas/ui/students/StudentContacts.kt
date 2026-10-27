@@ -1,14 +1,12 @@
 package com.seblful.klas.ui.students
 
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -24,16 +22,20 @@ import com.seblful.klas.ui.common.ArchiveMenuItem
 import com.seblful.klas.ui.common.LocalCurrency
 import com.seblful.klas.ui.common.MenuItem
 import com.seblful.klas.ui.common.MinTouchTarget
+import com.seblful.klas.ui.common.NamedIconButton
 import com.seblful.klas.ui.common.OverflowMenu
+import com.seblful.klas.ui.common.PlaceLine
 import com.seblful.klas.ui.common.Spacing
-import com.seblful.klas.ui.common.classModeLabel
+import com.seblful.klas.ui.common.bleedVertically
+import com.seblful.klas.ui.common.outsetRowPress
 import com.seblful.klas.ui.designsystem.component.KlasDivider
 import com.seblful.klas.ui.theme.KlasIcons
 
 /**
  * Under the name, as two lines: how to reach them, then how they are taught — with the ways to reach them
- * beside it. Then the tutor's note, if any. A tap on the phone, or on its message icon, asks Android which app
- * should write to them (see `ExternalTarget.Message`): [onMessage] gets the kept phone and its whole number.
+ * beside it, and the archived badge as a group's header carries it. Then the tutor's note, if any. A tap on the
+ * phone, or on its message icon, asks Android which app should write to them (see `ExternalTarget.Message`):
+ * [onMessage] gets the kept phone and its whole number. An email standing in for the phone writes to it.
  */
 @Composable
 internal fun ContactBlock(
@@ -48,26 +50,17 @@ internal fun ContactBlock(
     val email = student.email.takeIf { it.isNotBlank() }
     Column(modifier) {
         Row(Modifier.fillMaxWidth().heightIn(min = MinTouchTarget), verticalAlignment = Alignment.CenterVertically) {
-            // The tap area is the box, so the line sits in its middle, level with the icon beside it.
-            Box(
-                Modifier
-                    .weight(1f)
-                    .then(
-                        if (phone == null) Modifier else {
-                            Modifier
-                                .heightIn(min = MinTouchTarget)
-                                .clickable(role = Role.Button) { onMessage(phone, international) }
-                        },
-                    ),
-                contentAlignment = Alignment.CenterStart,
-            ) {
-                Column {
-                    val style = MaterialTheme.typography.bodyMedium
-                    val color = MaterialTheme.colorScheme.onSurfaceVariant
-                    // The email stands in the line only for want of a phone; its button is there either way.
-                    (phone ?: email)?.let { Text(it, style = style, color = color) }
-                    Text(classModeLabel(student.defaultMode), style = style, color = color)
+            Column(Modifier.weight(1f)) {
+                // Only the contact is pressed, in a rounded tint: the place under it is not a way to reach them.
+                val reach = when {
+                    phone != null -> ContactLine(phone, stringResource(R.string.student_message)) {
+                        onMessage(phone, international)
+                    }
+                    email != null -> ContactLine(email, stringResource(R.string.student_write_email)) { onEmail(email) }
+                    else -> null
                 }
+                reach?.let { ReachLine(it) }
+                PlaceLine(student.defaultMode, student.archived)
             }
             if (phone != null) {
                 ContactAction(KlasIcons.Outlined.Call, stringResource(R.string.student_call)) { onCall(phone) }
@@ -89,11 +82,32 @@ internal fun ContactBlock(
     }
 }
 
+private class ContactLine(val text: String, val label: String, val onClick: () -> Unit)
+
+@Composable
+private fun ReachLine(line: ContactLine) {
+    Text(
+        line.text,
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier
+            .bleedVertically(Spacing.tight)
+            .outsetRowPress { source ->
+                Modifier.clickable(
+                    source,
+                    indication = null,
+                    onClickLabel = line.label,
+                    role = Role.Button,
+                    onClick = line.onClick,
+                )
+            }
+            .padding(vertical = Spacing.tight),
+    )
+}
+
 @Composable
 private fun ContactAction(icon: ImageVector, label: String, onClick: () -> Unit) {
-    IconButton(onClick = onClick) {
-        Icon(icon, contentDescription = label, tint = MaterialTheme.colorScheme.primary)
-    }
+    NamedIconButton(icon, label, onClick, tint = MaterialTheme.colorScheme.primary)
 }
 
 @Composable

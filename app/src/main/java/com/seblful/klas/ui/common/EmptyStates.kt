@@ -139,7 +139,13 @@ fun NoSearchResults(modifier: Modifier = Modifier) {
 }
 /** The one way to add to a tab's list, sitting at its top where a section header's action used to. */
 @Composable
-fun AddRow(label: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
+fun AddRow(
+    label: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    /** «+» for a row that adds; a row that changes what is listed («Change the roster») says so with its own. */
+    icon: ImageVector = KlasIcons.Filled.Add,
+) {
     KlasButton(
         onClick = onClick,
         // No inset of its own: the button's content padding already puts the «+» on the rows' text edge
@@ -147,7 +153,7 @@ fun AddRow(label: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
         modifier = modifier.heightIn(min = MinTouchTarget),
         kind = ButtonKind.Text,
     ) {
-        Icon(KlasIcons.Filled.Add, contentDescription = null)
+        Icon(icon, contentDescription = null)
         Text(label, Modifier.padding(start = Spacing.inline))
     }
 }

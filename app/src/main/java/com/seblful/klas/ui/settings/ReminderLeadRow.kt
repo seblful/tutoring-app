@@ -31,13 +31,18 @@ import com.seblful.klas.ui.designsystem.component.DialogAction
 import com.seblful.klas.ui.designsystem.component.FormDialog
 import com.seblful.klas.ui.theme.klasSemantics
 
-/** One selected lead time, with presets and a custom amount in minutes, hours or days. */
+/**
+ * One selected lead time, with presets and a custom amount in minutes, hours or days — the same row on the
+ * Notifications and Calendar pages, which share the preference.
+ *
+ * @param description its second line: that the time is shared, or how to make it editable.
+ */
 @Composable
-internal fun ReminderLeadRow(minutes: Int, enabled: Boolean, onSelect: (Int) -> Unit) {
+internal fun ReminderLeadRow(minutes: Int, enabled: Boolean, onSelect: (Int) -> Unit, description: String? = null) {
     var expanded by rememberSaveable { mutableStateOf(false) }
     var custom by rememberSaveable { mutableStateOf(false) }
     Box {
-        ValueRow(stringResource(R.string.settings_reminder_lead), reminderLeadLabel(minutes), enabled) {
+        ValueRow(stringResource(R.string.settings_reminder_lead), reminderLeadLabel(minutes), enabled, description) {
             expanded = true
         }
         KlasMenu(expanded = expanded && enabled, onDismissRequest = { expanded = false }) {
@@ -73,23 +78,10 @@ internal fun ReminderLeadRow(minutes: Int, enabled: Boolean, onSelect: (Int) -> 
     }
 }
 
-/** The calendar reference opens the same custom editor and writes the same preference. */
+/** [ReminderLeadRow]'s second line wherever it is shown: shared with the other page, or why it is off. */
 @Composable
-internal fun SharedReminderTimingRow(minutes: Int, enabled: Boolean, onSelect: (Int) -> Unit) {
-    var editing by rememberSaveable { mutableStateOf(false) }
-    val description =
-        stringResource(if (enabled) R.string.settings_reminder_shared else R.string.settings_reminder_enable)
-    ValueRow(stringResource(R.string.settings_reminder_lead), reminderLeadLabel(minutes), enabled, description) {
-        editing = true
-    }
-    if (editing && enabled) {
-        ReminderLeadPickerModal(
-            initialMinutes = minutes,
-            onConfirm = { onSelect(it); editing = false },
-            onDismiss = { editing = false },
-        )
-    }
-}
+internal fun reminderLeadDescription(enabled: Boolean): String =
+    stringResource(if (enabled) R.string.settings_reminder_shared else R.string.settings_reminder_enable)
 
 @Composable
 private fun reminderLeadLabel(minutes: Int): String {

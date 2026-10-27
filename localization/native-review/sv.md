@@ -16,7 +16,7 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 | `onboarding_restore` | Restore a backup | Återställ en säkerhetskopia | |
 | `onboarding_restore_desc` | The file's data will replace what is here | Filens data kommer att ersätta det som finns här | |
 | `onboarding_skip` | Skip | Hoppa över | |
-| `onboarding_skip_desc` | Subjects and students can be added later | Ämnen och studenter kan läggas till senare | |
+| `onboarding_skip_desc` | Subjects and students can be added later | Ämnen och elever kan läggas till senare | |
 | `onboarding_step` | Step %1$d of %2$d | Steg %1$d av %2$d | |
 | `onboarding_locale_title` | The basics | Grunderna | |
 | `onboarding_locale_desc` | Already chosen for you. Change anything now or later in Settings. | Redan valt för dig. Ändra något nu eller senare i Inställningar. | |
@@ -27,7 +27,7 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 | `onboarding_subject_suggestions` | *0:* Math · *1:* English · *2:* Physics · *3:* Chemistry · *4:* Biology · *5:* History · *6:* Computer science · *7:* Piano | *0:* Math · *1:* Engelska · *2:* Fysik · *3:* Kemi · *4:* Biologi · *5:* Historia · *6:* Datavetenskap · *7:* Piano | |
 | `onboarding_subject_removed` | Subject deleted | Ämnet raderat | |
 | `onboarding_subject_remove_failed` | Could not delete the subject | Kunde inte ta bort ämnet | |
-| `onboarding_student_title` | First student | Första studenten | |
+| `onboarding_student_title` | First student | Första eleven | |
 | `onboarding_student_desc` | Just a name and a rate. A phone, email and note can be added on the student's profile later. | Bara ett namn och ett pris. Telefon, e-post och anteckning kan läggas till på elevens profil senare. | |
 | `onboarding_continue` | Next | Nästa | |
 | `onboarding_finish` | Done | Klart | |
@@ -81,7 +81,6 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 | `today_lessons` | Today's lessons | Dagens lektioner | |
 | `today_no_lessons` | No lessons today | Inga lektioner idag | |
 | `today_owed` | Owed to you | Tack vare dig | |
-| `today_homework` | Homework due | Läxor att lämna in | |
 | `today_backup_old` | Last backup %1$s | Senaste säkerhetskopian %1$s | |
 | `today_backup_never` | No backup yet | Ingen säkerhetskopia ännu | |
 | `today_backup_detail` | Your data is on this phone only. | Din data finns endast på den här telefonen. | |
@@ -93,7 +92,6 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 | `today_never_paid` | No payment yet | Ingen betalning ännu | |
 | `today_recent_marks` | Marked outside the app | Markerad utanför appen | |
 | `today_marked_at` | Taught · marked at %1$s | Genomförd · markerad kl. %1$s | |
-| `today_members` | *one:* %1$d member · *other:* %1$d members | *one:* %1$d medlem · *other:* %1$d medlemmar | |
 
 ## Buttons
 
@@ -170,7 +168,7 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 
 | Key | English | Now | OK / suggestion |
 |---|---|---|---|
-| `stat_debt` | Owes | skyldig | |
+| `stat_debt` | Owes | Skyldig | |
 | `stat_credit` | In credit | Tillgodo | |
 | `stat_lessons` | Lessons | Lektioner | |
 | `stat_hours` | Hours | Timmar | |
@@ -220,12 +218,12 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 
 | Key | English | Now | OK / suggestion |
 |---|---|---|---|
-| `students_search_hint` | Search students | Sök efter studenter | |
+| `students_search_hint` | Search students | Sök efter elever | |
 | `students_sort_name` | By name | Efter namn | |
 | `students_sort_debt` | Debtors first | Gäldenärer först | |
-| `students_title` | Students | Studenter | |
-| `students_empty` | No students yet | Inga studenter än | |
-| `students_empty_detail` | A student is a name, their subjects and a rate per hour. After that you can book lessons and track payments. | En student är ett namn, deras ämnen och ett pris per timme. Efter det kan du boka lektioner och spåra betalningar. | |
+| `students_title` | Students | Elever | |
+| `students_empty` | No students yet | Inga elever än | |
+| `students_empty_detail` | A student is a name, their subjects and a rate per hour. After that you can book lessons and track payments. | En elev är ett namn, elevens ämnen och ett pris per timme. Efter det kan du boka lektioner och följa upp betalningar. | |
 | `students_add` | Add a student | Lägg till en elev | |
 | `students_count` | *one:* %1$d\u00A0student · *other:* %1$d\u00A0students | *one:* %1$d\u00A0elev · *other:* %1$d\u00A0elever | |
 

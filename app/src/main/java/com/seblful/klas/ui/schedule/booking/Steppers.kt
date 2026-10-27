@@ -26,6 +26,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.seblful.klas.ui.common.HoldToName
 import com.seblful.klas.ui.common.MinTouchTarget
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.theme.KlasIcons
@@ -110,11 +111,18 @@ internal fun RowScope.StepValue(
 /** A round tonal button: [icon] over an optional [caption] — the step's size — named [name]. */
 @Composable
 internal fun StepButton(icon: ImageVector, name: String, onClick: (() -> Unit)?, size: Dp, caption: String? = null) {
-    FilledTonalIconButton(onClick = { onClick?.invoke() }, modifier = Modifier.size(size), enabled = onClick != null) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Icon(icon, contentDescription = name, Modifier.size(StepIconSize))
-            caption?.let {
-                Text(it, style = MaterialTheme.typography.labelSmall, modifier = Modifier.clearAndSetSemantics { })
+    // Held, it says where a press goes («Later, to 19:30»), as every icon button names itself.
+    HoldToName(name) {
+        FilledTonalIconButton(
+            onClick = { onClick?.invoke() },
+            modifier = Modifier.size(size),
+            enabled = onClick != null,
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Icon(icon, contentDescription = name, Modifier.size(StepIconSize))
+                caption?.let {
+                    Text(it, style = MaterialTheme.typography.labelSmall, modifier = Modifier.clearAndSetSemantics { })
+                }
             }
         }
     }

@@ -34,8 +34,8 @@
         <item quantity="other">%1$d 詳細 — 検索を絞り込む</item>
     </plurals>
     <string name="students_search_hint">生徒を検索する</string>
-    <string name="groups_search_hint">検索グループ</string>
-    <string name="subjects_search_hint">科目名</string>
+    <string name="groups_search_hint">グループを検索する</string>
+    <string name="subjects_search_hint">科目を検索する</string>
     <string name="students_sort_name">名前で</string>
     <string name="students_sort_debt">債務者第一</string>
     <string name="unsaved_save_title">変更を保存しますか?</string>
@@ -49,7 +49,7 @@
     <string name="schedule_add_class">レッスンを予約する</string>
     <string name="schedule_week_empty">今週はレッスンがありません</string>
     <string name="schedule_empty_no_setup">まだ何も計画していません</string>
-    <string name="schedule_empty_no_setup_detail">レッスンは、生徒および対象に対して料金で予約されます。学生から始めましょう。</string>
+    <string name="schedule_empty_no_setup_detail">レッスンは、生徒と料金が設定された科目の組み合わせで予約します。生徒から始めましょう。</string>
     <string name="schedule_add_student">生徒を追加する</string>
     <string name="schedule_filter_everyone">みんな</string>
     <string name="schedule_filter_any_status">任意のステータス</string>
@@ -85,7 +85,7 @@
     <string name="class_section_price">時間単価</string>
     <string name="class_section_format">場所</string>
     <string name="class_terms_price_needed">時間単価を設定</string>
-    <string name="class_who_label">学生またはグループ</string>
+    <string name="class_who_label">生徒またはグループ</string>
     <string name="class_book_action">予約</string>
     <string name="class_still_needed">まだ必要</string>
     <string name="class_day_previous">前日</string>
@@ -95,7 +95,7 @@
     <string name="class_time_pick">時間を設定する</string>
     <string name="class_step_earlier">15分前</string>
     <string name="class_step_later">15分後</string>
-    <string name="class_gap_who">学生またはグループ</string>
+    <string name="class_gap_who">生徒またはグループ</string>
     <string name="class_gap_subject">科目</string>
     <string name="class_gap_date">の日付</string>
     <string name="class_gap_start">開始時間</string>
@@ -105,7 +105,7 @@
         <item quantity="other">%1$d回のレッスン</item>
     </plurals>
     <string name="class_edit_title">レッスンの編集</string>
-    <string name="class_student_label">学生</string>
+    <string name="class_student_label">生徒</string>
     <string name="class_subject_label">科目</string>
     <string name="class_no_subjects_for_student">この生徒には授業料が設定された科目がありません。生徒のプロフィールで設定してください。</string>
     <string name="class_duration_label">長さ</string>
@@ -151,7 +151,7 @@
     <string name="class_delete_completed_confirm">このレッスンは実施済みです。削除すると、生徒の残高からこのレッスンの料金が取り消されます。削除しますか？</string>
     <string name="class_target_group">グループ</string>
     <string name="class_group_label">グループ</string>
-    <string name="class_no_subjects_for_group">最初に件名を追加します</string>
+    <string name="class_no_subjects_for_group">まず科目を追加してください</string>
     <string name="class_group_members_title">メンバー</string>
     <string name="class_group_no_active_members">このグループの誰も予約できません: そのメンバーはアーカイブされています</string>
     <string name="class_group_no_members_left">少なくとも 1 人のメンバーを選択してください</string>
@@ -177,13 +177,13 @@
     <string name="lesson_kind_group">グループ</string>
     <string name="lesson_kind_individual_one">個人</string>
     <string name="lesson_kind_count">%1$s · %2$d</string>
-    <string name="students_title">学生</string>
+    <string name="students_title">生徒</string>
     <string name="students_empty">生徒はまだいません</string>
-    <string name="students_empty_detail">学生とは、名前、科目、および時間当たりの料金です。その後、レッスンを予約し、支払いを追跡することができます。</string>
+    <string name="students_empty_detail">生徒は、名前と科目、時間単価で登録します。その後、レッスンの予約と支払いの記録ができます。</string>
     <string name="students_add">生徒を追加する</string>
     <string name="student_archived_badge">アーカイブ済み</string>
-    <string name="student_add_title">新入生</string>
-    <string name="student_edit_title">学生を編集する</string>
+    <string name="student_add_title">新しい生徒</string>
+    <string name="student_edit_title">生徒を編集</string>
     <string name="student_name_label">名前</string>
     <string name="student_phone_label">連絡先電話番号</string>
     <string name="student_phone_hint">任意 · 生徒または保護者の番号。通話とメッセージ用</string>
@@ -195,13 +195,13 @@
     <string name="student_form_add">生徒を追加</string>
     <string name="student_form_subject_has_lessons">レッスンがあるのでそのままです</string>
     <string name="student_form_subjects_required">科目を1つ以上選び、時間単価を設定してください</string>
-    <string name="student_form_no_subjects">最初に件名を追加します</string>
+    <string name="student_form_no_subjects">まず科目を追加してください</string>
     <string name="student_mode_label">場所</string>
-    <string name="student_subjects_title">被験者</string>
-    <string name="student_no_subjects">被験者が選択されていません</string>
-    <string name="student_add_subject">件名を追加します</string>
+    <string name="student_subjects_title">科目</string>
+    <string name="student_no_subjects">科目が選択されていません</string>
+    <string name="student_add_subject">科目を追加</string>
     <string name="student_all_subjects_added">すべての科目が追加されました</string>
-    <string name="student_subject_remove_blocked">件名を削除できません: レッスンがあります</string>
+    <string name="student_subject_remove_blocked">科目を外せません: レッスンがあります</string>
     <string name="student_archive_balance_part">この生徒の残高は決済されていません (%1$s)。彼らの履歴はレポートに残りますが、毎週の未払い金督促では除外されます。</string>
     <string name="student_archive_question">とにかくアーカイブしますか?</string>
     <plurals name="student_archive_lessons_part">
@@ -267,22 +267,22 @@
     <string name="action_copy">コピー</string>
     <string name="clipboard_copied">コピーしました</string>
     <string name="student_contact_failed">この携帯電話にはそれを実行できるアプリはありません</string>
-    <string name="subjects_title">被験者</string>
-    <string name="subjects_empty">被験者はまだいません</string>
+    <string name="subjects_title">科目</string>
+    <string name="subjects_empty">科目はまだありません</string>
     <string name="subjects_empty_detail">科目は教える内容です。科目ごとに授業料を設定し、レッスンを予約します。</string>
-    <string name="subjects_add">件名を追加します</string>
+    <string name="subjects_add">科目を追加</string>
     <string name="subject_add_title">新しい科目</string>
-    <string name="subject_edit_title">件名を編集</string>
+    <string name="subject_edit_title">科目を編集</string>
     <string name="subject_name_label">科目名</string>
-    <string name="subject_name_taken">この名前のサブジェクトはすでに存在します</string>
+    <string name="subject_name_taken">この名前の科目はすでに存在します</string>
     <string name="subject_delete_named">%1$sを削除</string>
-    <string name="subject_deleted">件名が削除されました</string>
-    <string name="subject_delete_blocked">件名を削除できません。レッスンが含まれています。まずそれらを削除してください。</string>
-    <string name="subject_delete_blocked_group">件名は削除できません。グループで研究しています。まずグループの件名を変更します。</string>
+    <string name="subject_deleted">科目を削除しました</string>
+    <string name="subject_delete_blocked">科目を削除できません: レッスンがあります。先にレッスンを削除してください。</string>
+    <string name="subject_delete_blocked_group">科目を削除できません: この科目を学ぶグループがあります。先にグループの科目を変更してください。</string>
     <string name="subject_delete_blocked_students">科目を削除できません。生徒が受講しています。まずプロフィールから削除してください。</string>
     <string name="groups_title">グループ</string>
     <string name="groups_empty">グループはまだありません</string>
-    <string name="groups_empty_detail">グループとは、1 つの料金を共有する数人の学生です。 1つのレッスンを全員同時に予約します。</string>
+    <string name="groups_empty_detail">グループとは、1 つの料金を共有する複数の生徒です。1 回のレッスンを全員まとめて予約します。</string>
     <string name="groups_add">グループを作成する</string>
     <string name="group_form_create">グループの作成</string>
     <string name="group_add_title">新しいグループ</string>
@@ -290,7 +290,7 @@
     <string name="group_name_label">名前</string>
     <string name="group_subject_label">科目</string>
     <string name="group_subject_none">科目なし</string>
-    <string name="group_subject_hint">この科目の料金を持つ学生のみがグループに参加できます</string>
+    <string name="group_subject_hint">この科目の料金が設定された生徒だけがグループに参加できます</string>
     <string name="group_subject_none_hint">科目なし: 任意の生徒、および科目はレッスンの予約時に選択されます</string>
     <string name="group_price_label">生徒1人あたりの時間単価</string>
     <string name="group_price_hint">グループの全メンバーに同じ時間単価が適用されます</string>
@@ -314,7 +314,7 @@
     <plurals name="group_lesson_attended">
         <item quantity="other">%1$d人のメンバー</item>
     </plurals>
-    <string name="more_subjects">被験者</string>
+    <string name="more_subjects">科目</string>
     <string name="more_backup">バックアップ</string>
     <string name="calendar_denied">カレンダーにアクセスできません</string>
     <string name="calendar_rationale">Klas は、このデバイスのカレンダーでレッスンを表示するにはカレンダーへのアクセスが必要です</string>
@@ -376,7 +376,7 @@
     <string name="settings_calendar_sync_desc">このデバイスのカレンダーにレッスンを表示します</string>
     <string name="settings_calendar_sync_blocked">カレンダーへのアクセスが取り消されました — レッスンはコピーされていません</string>
     <string name="settings_email_invites">電子メールで生徒を招待する</string>
-    <string name="settings_email_invites_desc">電子メール アドレスを持つ学生をカレンダー イベントに追加します。カレンダー アカウントは招待状を処理します。既存の同期イベントが更新されます。</string>
+    <string name="settings_email_invites_desc">電子メール アドレスが登録された生徒をカレンダーの予定に追加します。招待はカレンダー アカウントから送信され、同期済みの予定も更新されます。</string>
     <string name="settings_reminder_lead">レッスン前</string>
     <string name="settings_reminder_lead_custom">カスタム…</string>
     <string name="settings_reminder_amount">金額</string>
@@ -423,7 +423,7 @@
     <string name="settings_default_lesson">デフォルトのレッスン期間</string>
     <string name="settings_currency">通貨</string>
     <string name="settings_default_group_price">デフォルトのグループ時給</string>
-    <string name="settings_default_group_price_desc">新しいグループを事前に入力します: 学生ごとの時間あたりの料金</string>
+    <string name="settings_default_group_price_desc">新しいグループの初期値: 生徒 1 人あたりの時間単価</string>
     <string name="settings_not_set">未設定</string>
     <string name="settings_theme">テーマ</string>
     <string name="theme_system">システム</string>
@@ -454,13 +454,13 @@
     <string name="onboarding_restore">バックアップを復元する</string>
     <string name="onboarding_restore_desc">ファイルのデータはここにあるものと置き換わります</string>
     <string name="onboarding_skip">スキップ</string>
-    <string name="onboarding_skip_desc">被験者と生徒は後で追加できます</string>
+    <string name="onboarding_skip_desc">科目と生徒は後で追加できます</string>
     <string name="onboarding_step">%2$d のステップ %1$d</string>
     <string name="onboarding_locale_title">基本</string>
     <string name="onboarding_locale_desc">すでに選ばれています。今すぐ、または後で設定で何かを変更してください。</string>
     <string name="onboarding_lesson_length_desc">新しいレッスンを事前に入力します。料金は時間単位なので、各レッスンの長さに応じて請求されます。</string>
     <string name="onboarding_locale_currency_desc">金額にはラベルが付けられるだけであり、何も変換されません。</string>
-    <string name="onboarding_subjects_title">被験者</string>
+    <string name="onboarding_subjects_title">科目</string>
     <string name="onboarding_subjects_desc">教えた内容をタップするか、独自の内容を追加します。後で変更することもできます。</string>
     <string-array name="onboarding_subject_suggestions">
         <item>数学</item>
@@ -472,8 +472,8 @@
         <item>コンピューターサイエンス</item>
         <item>ピアノ</item>
     </string-array>
-    <string name="onboarding_subject_removed">件名が削除されました</string>
-    <string name="onboarding_subject_remove_failed">件名を削除できませんでした</string>
+    <string name="onboarding_subject_removed">科目を削除しました</string>
+    <string name="onboarding_subject_remove_failed">科目を削除できませんでした</string>
     <string name="onboarding_student_title">最初の生徒</string>
     <string name="onboarding_student_desc">名前と時間単価だけ。電話、電子メール、メモは後で生徒のプロフィールに追加できます。</string>
     <string name="onboarding_continue">次へ</string>
@@ -511,7 +511,7 @@
     <string name="people_next_weekday">%1$s %2$s</string>
     <string name="people_last_lesson">最後のレッスン %1$s</string>
     <string name="people_no_lessons">レッスンはまだありません</string>
-    <string name="people_pick_card">学生またはグループを選択してください</string>
+    <string name="people_pick_card">生徒またはグループを選択してください</string>
     <string name="settings_pick_page">セクションを選択してください</string>
     <plurals name="students_count">
         <item quantity="other">%1$d\u2060人の生徒</item>
@@ -543,7 +543,7 @@
     <string name="reports_by_kind">レッスンタイプ別の収入</string>
     <string name="reports_by_group">グループ別収入</string>
     <string name="reports_by_subject">科目別収入</string>
-    <string name="reports_by_student">学生別の収入</string>
+    <string name="reports_by_student">生徒別の収入</string>
     <string name="reports_debts">未収金</string>
     <string name="reports_no_debts">誰も何も借りていません</string>
     <string name="reports_total_outstanding">未収金合計</string>
@@ -677,7 +677,7 @@
     <string name="payment_choose_student">誰が支払いをしましたか?</string>
     <string name="subject_set_price">時間単価を設定</string>
     <string name="group_member_set_price">時間単価を設定</string>
-    <string name="subject_add">件名を追加</string>
+    <string name="subject_add">科目を追加</string>
     <string name="group_price_setup_hint">これらの生徒を追加するには、個別の科目料金を設定します。グループレッスンはグループ料金となります。</string>
     <string name="class_completed_message">マーク付きの教示</string>
     <string name="class_cancelled_message">レッスンがキャンセルになりました</string>
@@ -736,7 +736,6 @@
     <string name="today_lessons">今日のレッスン</string>
     <string name="today_no_lessons">今日はレッスンはありません</string>
     <string name="today_owed">あなたに借りがあります</string>
-    <string name="today_homework">提出予定の宿題</string>
     <string name="today_backup_old">最終バックアップ %1$s</string>
     <string name="today_backup_never">バックアップがまだありません</string>
     <string name="today_backup_detail">あなたのデータはこの電話にのみ保存されます。</string>
@@ -744,7 +743,7 @@
     <plurals name="today_marked">
         <item quantity="other">%1$d回のレッスンを実施済みにしました</item>
     </plurals>
-    <string name="settings_subjects_none">被験者はまだいません</string>
+    <string name="settings_subjects_none">科目はまだありません</string>
     <string name="settings_backup_never">決して · 毎週設定しない</string>
     <string name="settings_backup_last">最終 %1$s · 毎週設定</string>
     <string name="schedule_pick_date">日付を選択してください</string>
@@ -770,7 +769,7 @@
     <string name="form_gap_name">名前</string>
     <string name="form_gap_subject">科目</string>
     <string name="form_gap_price">時間単価</string>
-    <string name="form_gap_members">のメンバー</string>
+    <string name="form_gap_members">メンバー</string>
     <string name="filter_more">フィルター</string>
     <plurals name="batch_selected">
         <item quantity="other">%1$d が選択されました</item>
@@ -812,14 +811,14 @@
     <string name="reports_earned">売上</string>
     <string name="reports_export_menu">エクスポート</string>
     <string name="reports_filter">レポートをフィルタリングする</string>
-    <string name="reports_filter_all">すべての生徒と被験者</string>
+    <string name="reports_filter_all">すべての生徒と科目</string>
     <string name="onboarding_subject_field_hint">名前を入力して Enter キーを押します</string>
     <string name="reports_share_ledger">台帳を送信します</string>
     <string name="reports_export_ledger">台帳を CSV として保存します</string>
     <string name="reports_ledger_filename">klas-ledger.csv</string>
     <string name="reports_ledger_day">日付</string>
     <string name="reports_ledger_entry">取引</string>
-    <string name="reports_ledger_student">学生</string>
+    <string name="reports_ledger_student">生徒</string>
     <string name="reports_ledger_detail">科目または方法</string>
     <string name="reports_ledger_lesson">レッスン</string>
     <string name="reports_ledger_payment">支払い</string>
@@ -835,7 +834,7 @@
     <string name="class_step_earlier_to">以前、%1$s へ</string>
     <string name="class_step_later_to">その後、%1$sへ</string>
     <string name="class_step_first_free">- または + には %1$s がかかり、最初の空き時間になります</string>
-    <string name="fab_new_student">新入生</string>
+    <string name="fab_new_student">新しい生徒</string>
     <string name="fab_new_group">新しいグループ</string>
     <string name="today_next_in">次へ · %1$s</string>
     <string name="today_open">オープン</string>
@@ -843,12 +842,12 @@
     <string name="today_never_paid">まだ支払いがありません</string>
     <string name="today_recent_marks">アプリ外にマークあり</string>
     <string name="today_marked_at">実施済み · %1$sに記録</string>
-    <plurals name="today_members">
+    <plurals name="members_count">
         <item quantity="other">%1$d人のメンバー</item>
     </plurals>
     <string name="people_owes">未払いあり · %1$d</string>
     <string name="people_archived">アーカイブ済み</string>
-    <string name="people_all_subjects">すべての被験者</string>
+    <string name="people_all_subjects">すべての科目</string>
     <string name="people_filter">絞り込みと並べ替え</string>
     <string name="people_show">表示</string>
     <string name="people_subject">科目</string>

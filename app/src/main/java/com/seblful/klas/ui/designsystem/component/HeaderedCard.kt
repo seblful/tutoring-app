@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -20,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import com.seblful.klas.ui.common.SectionCard
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.sectionSurface
+import com.seblful.klas.ui.theme.KlasIcons
 
 /**
  * A section **with its header inside the card**: the title (a heading for TalkBack), then a count or summary,
@@ -95,6 +98,16 @@ private fun CardHeader(
                 )
             }
         }
-        action?.let { KlasButton(onClick = it.onClick, kind = ButtonKind.Text) { Text(it.label) } }
+        action?.let {
+            KlasButton(onClick = it.onClick, kind = if (it.destructive) ButtonKind.Destructive else ButtonKind.Text) {
+                Text(it.label)
+                if (it.opens) {
+                    Icon(KlasIcons.Filled.ChevronRight, contentDescription = null, Modifier.size(SeeAllIconSize))
+                }
+            }
+        }
     }
 }
+
+/** Material's button icon size, as the profiles' «See all ›» draws its chevron. */
+private val SeeAllIconSize = 18.dp

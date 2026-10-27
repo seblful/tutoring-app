@@ -34,9 +34,9 @@
         <item quantity="one">%1$d mer — förfina sökningen</item>
         <item quantity="other">%1$d mer — förfina sökningen</item>
     </plurals>
-    <string name="students_search_hint">Sök efter studenter</string>
-    <string name="groups_search_hint">Sök i grupper</string>
-    <string name="subjects_search_hint">Ämnesnamn</string>
+    <string name="students_search_hint">Sök efter elever</string>
+    <string name="groups_search_hint">Sök efter grupper</string>
+    <string name="subjects_search_hint">Sök efter ämnen</string>
     <string name="students_sort_name">Efter namn</string>
     <string name="students_sort_debt">Gäldenärer först</string>
     <string name="unsaved_save_title">Spara ändringar?</string>
@@ -87,7 +87,7 @@
     <string name="class_section_price">Timpris</string>
     <string name="class_section_format">Plats</string>
     <string name="class_terms_price_needed">Ange timpris</string>
-    <string name="class_who_label">Student eller grupp</string>
+    <string name="class_who_label">Elev eller grupp</string>
     <string name="class_book_action">Boka</string>
     <string name="class_still_needed">Behövs fortfarande</string>
     <string name="class_day_previous">Föregående dag</string>
@@ -97,12 +97,12 @@
     <string name="class_time_pick">Ställ in tid</string>
     <string name="class_step_earlier">15 minuter tidigare</string>
     <string name="class_step_later">15 minuter senare</string>
-    <string name="class_gap_who">student eller grupp</string>
-    <string name="class_gap_subject">Ämne</string>
+    <string name="class_gap_who">elev eller grupp</string>
+    <string name="class_gap_subject">ämne</string>
     <string name="class_gap_date">datum</string>
     <string name="class_gap_start">starttid</string>
     <string name="class_gap_length">längd</string>
-    <string name="class_gap_price">Timpris</string>
+    <string name="class_gap_price">timpris</string>
     <plurals name="class_series_lessons">
         <item quantity="one">%1$d lektion</item>
         <item quantity="other">%1$d lektioner</item>
@@ -183,12 +183,12 @@
     <string name="lesson_kind_group">Grupp</string>
     <string name="lesson_kind_individual_one">Individuell</string>
     <string name="lesson_kind_count">%1$s · %2$d</string>
-    <string name="students_title">Studenter</string>
-    <string name="students_empty">Inga studenter än</string>
-    <string name="students_empty_detail">En student är ett namn, deras ämnen och ett pris per timme. Efter det kan du boka lektioner och spåra betalningar.</string>
+    <string name="students_title">Elever</string>
+    <string name="students_empty">Inga elever än</string>
+    <string name="students_empty_detail">En elev är ett namn, elevens ämnen och ett pris per timme. Efter det kan du boka lektioner och följa upp betalningar.</string>
     <string name="students_add">Lägg till en elev</string>
     <string name="student_archived_badge">Arkiverad</string>
-    <string name="student_add_title">Ny student</string>
+    <string name="student_add_title">Ny elev</string>
     <string name="student_edit_title">Redigera elev</string>
     <string name="student_name_label">Namn</string>
     <string name="student_phone_label">Kontakttelefon</string>
@@ -292,7 +292,7 @@
     <string name="subject_delete_blocked_students">Kan inte ta bort ämnet: en elev tar det. Ta bort det från deras profil först.</string>
     <string name="groups_title">Grupper</string>
     <string name="groups_empty">Inga grupper än</string>
-    <string name="groups_empty_detail">En grupp är flera studenter som delar en kurs. En lektion är bokad för alla på en gång.</string>
+    <string name="groups_empty_detail">En grupp är flera elever som delar ett timpris. En lektion bokas för alla på en gång.</string>
     <string name="groups_add">Skapa en grupp</string>
     <string name="group_form_create">Skapa grupp</string>
     <string name="group_add_title">Ny grupp</string>
@@ -473,7 +473,7 @@
     <string name="onboarding_restore">Återställ en säkerhetskopia</string>
     <string name="onboarding_restore_desc">Filens data kommer att ersätta det som finns här</string>
     <string name="onboarding_skip">Hoppa över</string>
-    <string name="onboarding_skip_desc">Ämnen och studenter kan läggas till senare</string>
+    <string name="onboarding_skip_desc">Ämnen och elever kan läggas till senare</string>
     <string name="onboarding_step">Steg %1$d av %2$d</string>
     <string name="onboarding_locale_title">Grunderna</string>
     <string name="onboarding_locale_desc">Redan valt för dig. Ändra något nu eller senare i Inställningar.</string>
@@ -493,7 +493,7 @@
     </string-array>
     <string name="onboarding_subject_removed">Ämnet raderat</string>
     <string name="onboarding_subject_remove_failed">Kunde inte ta bort ämnet</string>
-    <string name="onboarding_student_title">Första studenten</string>
+    <string name="onboarding_student_title">Första eleven</string>
     <string name="onboarding_student_desc">Bara ett namn och ett pris. Telefon, e-post och anteckning kan läggas till på elevens profil senare.</string>
     <string name="onboarding_continue">Nästa</string>
     <string name="onboarding_finish">Klart</string>
@@ -566,7 +566,7 @@
     <string name="reports_by_kind">Inkomst per lektionstyp</string>
     <string name="reports_by_group">Inkomst per grupp</string>
     <string name="reports_by_subject">Inkomst per ämne</string>
-    <string name="reports_by_student">Inkomst per student</string>
+    <string name="reports_by_student">Inkomst per elev</string>
     <string name="reports_debts">Skulder</string>
     <string name="reports_no_debts">Ingen är skyldig någonting</string>
     <string name="reports_total_outstanding">Totalt utestående</string>
@@ -705,7 +705,7 @@
     <string name="subject_set_price">Ange timpris</string>
     <string name="group_member_set_price">Ange timpris</string>
     <string name="subject_add">Lägg till ämne</string>
-    <string name="group_price_setup_hint">Ställ in en individuell ämnesfrekvens för att lägga till dessa elever. Grupplektioner använder grupptaxan.</string>
+    <string name="group_price_setup_hint">Ange ett individuellt timpris för ämnet för att lägga till dessa elever. Grupplektioner använder grupptaxan.</string>
     <string name="class_completed_message">Markerade undervisade</string>
     <string name="class_cancelled_message">Lektion avbruten</string>
     <string name="class_replanned_message">Lektionen planerad igen</string>
@@ -763,7 +763,6 @@
     <string name="today_lessons">Dagens lektioner</string>
     <string name="today_no_lessons">Inga lektioner idag</string>
     <string name="today_owed">Tack vare dig</string>
-    <string name="today_homework">Läxor att lämna in</string>
     <string name="today_backup_old">Senaste säkerhetskopian %1$s</string>
     <string name="today_backup_never">Ingen säkerhetskopia ännu</string>
     <string name="today_backup_detail">Din data finns endast på den här telefonen.</string>
@@ -795,9 +794,9 @@
     <string name="statement_credit">Betalas i förskott: %1$s</string>
     <string name="statement_settled">Inget att betala</string>
     <string name="groups_sort_next">Efter nästa lektion</string>
-    <string name="form_gap_name">ett namn</string>
-    <string name="form_gap_subject">Ämne</string>
-    <string name="form_gap_price">Timpris</string>
+    <string name="form_gap_name">namn</string>
+    <string name="form_gap_subject">ämne</string>
+    <string name="form_gap_price">timpris</string>
     <string name="form_gap_members">medlemmar</string>
     <string name="filter_more">Filter</string>
     <plurals name="batch_selected">
@@ -870,7 +869,7 @@
     <string name="class_step_earlier_to">Tidigare till %1$s</string>
     <string name="class_step_later_to">Senare, till %1$s</string>
     <string name="class_step_first_free">− eller + tar %1$s, den första lediga tiden</string>
-    <string name="fab_new_student">Ny student</string>
+    <string name="fab_new_student">Ny elev</string>
     <string name="fab_new_group">Ny grupp</string>
     <string name="today_next_in">Nästa · i %1$s</string>
     <string name="today_open">Öppna</string>
@@ -878,9 +877,9 @@
     <string name="today_never_paid">Ingen betalning ännu</string>
     <string name="today_recent_marks">Markerad utanför appen</string>
     <string name="today_marked_at">Genomförd · markerad kl. %1$s</string>
-    <plurals name="today_members">
-        <item quantity="one">%1$d medlem</item>
-        <item quantity="other">%1$d medlemmar</item>
+    <plurals name="members_count">
+        <item quantity="one">%1$d\u00A0medlem</item>
+        <item quantity="other">%1$d\u00A0medlemmar</item>
     </plurals>
     <string name="people_owes">Har skuld · %1$d</string>
     <string name="people_archived">Arkiverad</string>

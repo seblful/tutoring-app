@@ -6,17 +6,24 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import com.seblful.klas.R
 import com.seblful.klas.data.settings.AppSettings
+import com.seblful.klas.domain.model.AppLanguage
 import com.seblful.klas.domain.model.ThemeChoice
 import com.seblful.klas.domain.model.WeekStartChoice
 import com.seblful.klas.format.fullDisplayName
 import com.seblful.klas.ui.common.ChoiceRow
+import com.seblful.klas.ui.common.DialogRadioRow
 import com.seblful.klas.ui.common.LanguageChoices
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.languageLabel
+import com.seblful.klas.ui.designsystem.component.ChoiceDialog
 import com.seblful.klas.ui.designsystem.component.SettingsGroup
 import com.seblful.klas.ui.theme.dynamicColorAvailable
 import dev.zacsweers.metrox.viewmodel.metroViewModel
@@ -39,12 +46,7 @@ internal fun AppearanceSettingsContent(
 ) {
     Column(modifier.verticalScroll(rememberScrollState()).padding(bottom = Spacing.gutter).padding(bottomInset)) {
         SettingsGroup {
-            ChoiceRow(
-                title = stringResource(R.string.settings_language),
-                options = LanguageChoices.map { it to languageLabel(it) },
-                selected = settings.language,
-                onSelect = { picked -> if (picked != settings.language) onUpdate { it.copy(language = picked) } },
-            )
+            LanguageSetting(settings.language) { picked -> onUpdate { it.copy(language = picked) } }
             ChoiceRow(
                 title = stringResource(R.string.settings_week_start),
                 options = WeekStartChoice.entries.map { it to weekStartLabel(it) },
@@ -87,3 +89,31 @@ internal fun themeLabel(theme: ThemeChoice): String = stringResource(
         ThemeChoice.DARK -> R.string.theme_dark
     },
 )
+
+/**
+ * A value row opening the list, as Currency's does: past four choices [ChoiceRow] became an outlined field,
+ * and a form field in a settings card gave it two edges and two kinds of row.
+ */
+@Composable
+private fun LanguageSetting(language: AppLanguage, onPick: (AppLanguage) -> Unit) {
+    var picking by rememberSaveable { mutableStateOf(false) }
+    val title = stringResource(R.string.settings_language)
+    ValueRow(title = title, value = languageLabel(language), enabled = true) { picking = true }
+    if (picking) {
+        ChoiceDialog(title = title, onDismiss = { picking = false }) {
+            // Twenty-six short rows compose at once without a stall, so the list is a plain scrolling column.
+            Column(Modifier.verticalScroll(rememberScrollState())) {
+                LanguageChoices.forEach { choice ->
+                    DialogRadioRow(
+                        label = languageLabel(choice),
+                        selected = choice == language,
+                        onClick = {
+                            picking = false
+                            if (choice != language) onPick(choice)
+                        },
+                    )
+                }
+            }
+        }
+    }
+}

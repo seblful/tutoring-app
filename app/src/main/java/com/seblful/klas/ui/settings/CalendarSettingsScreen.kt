@@ -60,10 +60,11 @@ internal fun CalendarSettingsContent(
     Column(modifier.verticalScroll(rememberScrollState()).padding(bottom = Spacing.gutter).padding(bottomInset)) {
         SettingsGroup { CalendarSyncRows(settings, delivery, onSync, onUpdate, onFixCalendar) }
         SettingsGroup(stringResource(R.string.settings_reminder_timing)) {
-            SharedReminderTimingRow(
+            ReminderLeadRow(
                 minutes = settings.reminderLeadMinutes,
                 enabled = settings.canEditReminderLead,
                 onSelect = { minutes -> onUpdate { it.copy(reminderLeadMinutes = minutes) } },
+                description = reminderLeadDescription(settings.canEditReminderLead),
             )
         }
     }

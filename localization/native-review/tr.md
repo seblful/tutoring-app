@@ -11,22 +11,22 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 | `onboarding_value_schedule` | Lessons by day, week and month, with reminders | Hatırlatıcılarla birlikte güne, haftaya ve aya göre dersler | |
 | `onboarding_value_money` | Who has paid and who owes — worked out for you | Kimin ödediği ve kimin borcu olduğu otomatik hesaplanır | |
 | `onboarding_value_offline` | No internet and no account: your data stays on the phone | İnternet yok ve hesap yok: verileriniz telefonda kalıyor | |
-| `onboarding_welcome_desc` | Setup takes a minute: the basics, the subjects you teach and your first student. | Kurulum bir dakikanızı alır: temel bilgiler, öğrettiğiniz konular ve ilk öğrenciniz. | |
+| `onboarding_welcome_desc` | Setup takes a minute: the basics, the subjects you teach and your first student. | Kurulum bir dakikanızı alır: temel bilgiler, öğrettiğiniz dersler ve ilk öğrenciniz. | |
 | `onboarding_start` | Set up | Kurulum | |
 | `onboarding_restore` | Restore a backup | Bir yedeği geri yükleyin | |
 | `onboarding_restore_desc` | The file's data will replace what is here | Dosyanın verileri burada olanın yerini alacak | |
 | `onboarding_skip` | Skip | Atla | |
-| `onboarding_skip_desc` | Subjects and students can be added later | Konular ve öğrenciler daha sonra eklenebilir | |
+| `onboarding_skip_desc` | Subjects and students can be added later | Dersler ve öğrenciler daha sonra eklenebilir | |
 | `onboarding_step` | Step %1$d of %2$d | %2$d'nin %1$d adımı | |
 | `onboarding_locale_title` | The basics | Temel bilgiler | |
 | `onboarding_locale_desc` | Already chosen for you. Change anything now or later in Settings. | Zaten sizin için seçildik. İstediğiniz şeyi şimdi veya daha sonra Ayarlar'da değiştirin. | |
 | `onboarding_lesson_length_desc` | Pre-fills new lessons. Rates are per hour, so each lesson is billed for its length. | Yeni dersleri önceden doldurur. Fiyatlar saat başınadır, dolayısıyla her ders süresine göre faturalandırılır. | |
 | `onboarding_locale_currency_desc` | Amounts are only labelled with it — nothing is converted. | Tutarlar yalnızca onunla etiketlenir; hiçbir şey dönüştürülmez. | |
-| `onboarding_subjects_title` | Subjects | Konular | |
+| `onboarding_subjects_title` | Subjects | Dersler | |
 | `onboarding_subjects_desc` | Tap what you teach, or add your own. You can change them later. | Öğrettiğiniz şeye dokunun veya kendinizinkini ekleyin. Bunları daha sonra değiştirebilirsiniz. | |
 | `onboarding_subject_suggestions` | *0:* Math · *1:* English · *2:* Physics · *3:* Chemistry · *4:* Biology · *5:* History · *6:* Computer science · *7:* Piano | *0:* Matematik · *1:* İngilizce · *2:* Fizik · *3:* Kimya · *4:* Biyoloji · *5:* Geçmiş · *6:* Bilgisayar bilimi · *7:* Piyano | |
-| `onboarding_subject_removed` | Subject deleted | Konu silindi | |
-| `onboarding_subject_remove_failed` | Could not delete the subject | Konu silinemedi | |
+| `onboarding_subject_removed` | Subject deleted | Ders silindi | |
+| `onboarding_subject_remove_failed` | Could not delete the subject | Ders silinemedi | |
 | `onboarding_student_title` | First student | İlk öğrenci | |
 | `onboarding_student_desc` | Just a name and a rate. A phone, email and note can be added on the student's profile later. | Sadece bir isim ve oran. Daha sonra öğrencinin profiline telefon, e-posta ve not eklenebilir. | |
 | `onboarding_continue` | Next | Sonraki | |
@@ -81,7 +81,6 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 | `today_lessons` | Today's lessons | Bugünün dersleri | |
 | `today_no_lessons` | No lessons today | Bugün ders yok | |
 | `today_owed` | Owed to you | Sana borçluyum | |
-| `today_homework` | Homework due | Teslim edilecek ödevler | |
 | `today_backup_old` | Last backup %1$s | Son yedekleme %1$s | |
 | `today_backup_never` | No backup yet | Henüz yedekleme yok | |
 | `today_backup_detail` | Your data is on this phone only. | Verileriniz yalnızca bu telefonda. | |
@@ -93,7 +92,6 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 | `today_never_paid` | No payment yet | Henüz ödeme yapılmadı | |
 | `today_recent_marks` | Marked outside the app | Uygulamanın dışında işaretlendi | |
 | `today_marked_at` | Taught · marked at %1$s | Yapıldı · işaretlenme saati: %1$s | |
-| `today_members` | *one:* %1$d member · *other:* %1$d members | *one:* %1$d katılımcı · *other:* %1$d katılımcı | |
 
 ## Buttons
 
@@ -150,7 +148,7 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 | `schedule_next_week` | Next week | Gelecek hafta | |
 | `schedule_previous_month` | Previous month | Önceki ay | |
 | `schedule_next_month` | Next month | Gelecek ay | |
-| `schedule_need_setup` | Add a subject and a student first | Önce bir konu ve öğrenci ekleyin | |
+| `schedule_need_setup` | Add a subject and a student first | Önce bir ders ve bir öğrenci ekleyin | |
 | `schedule_pick_date` | Choose a date | Bir tarih seçin | |
 | `schedule_cancel_day` | Cancel day | Günü iptal et | |
 | `schedule_open_day` | Open day | Günü aç | |
@@ -210,7 +208,7 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 | `people_pick_card` | Choose a student or a group | Bir öğrenci veya grup seçin | |
 | `people_owes` | Owes · %1$d | Borcu olanlar · %1$d | |
 | `people_archived` | Archived | Arşivlendi | |
-| `people_all_subjects` | All subjects | Tüm konular | |
+| `people_all_subjects` | All subjects | Tüm dersler | |
 | `people_filter` | Filter and order | Filtrele ve sırala | |
 | `people_show` | Show | Göster | |
 | `people_subject` | Subject | Ders | |
@@ -225,7 +223,7 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 | `students_sort_debt` | Debtors first | Önce borçlular | |
 | `students_title` | Students | Öğrenciler | |
 | `students_empty` | No students yet | Henüz öğrenci yok | |
-| `students_empty_detail` | A student is a name, their subjects and a rate per hour. After that you can book lessons and track payments. | Bir öğrencinin adı, konuları ve saat başına oranıdır. Bundan sonra ders rezervasyonu yapabilir ve ödemeleri takip edebilirsiniz. | |
+| `students_empty_detail` | A student is a name, their subjects and a rate per hour. After that you can book lessons and track payments. | Öğrenci kaydı bir ad, dersler ve saatlik ücretten oluşur. Ardından ders rezervasyonu yapabilir ve ödemeleri takip edebilirsiniz. | |
 | `students_add` | Add a student | Bir öğrenci ekle | |
 | `students_count` | *one:* %1$d\u00A0student · *other:* %1$d\u00A0students | *one:* %1$d\u00A0öğrenci · *other:* %1$d\u00A0öğrenci | |
 

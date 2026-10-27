@@ -7,7 +7,7 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 
 | Key | English | Now | Why | Suggestion |
 |---|---|---|---|---|
-| `stat_debt` | Owes | 歐斯 | a transliteration of “owes”, not a word | |
+| `stat_debt` | Owes | 欠款 | a transliteration of “owes”, not a word | |
 
 ## Setup
 
@@ -87,7 +87,6 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 | `today_lessons` | Today's lessons | 今天的課程 | |
 | `today_no_lessons` | No lessons today | 今天沒有課 | |
 | `today_owed` | Owed to you | 欠你的 | |
-| `today_homework` | Homework due | 待交作業 | |
 | `today_backup_old` | Last backup %1$s | 最後備份 %1$s | |
 | `today_backup_never` | No backup yet | 尚未備份 | |
 | `today_backup_detail` | Your data is on this phone only. | 您的資料僅儲存在這部手機上。 | |
@@ -99,7 +98,6 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 | `today_never_paid` | No payment yet | 尚未付款 | |
 | `today_recent_marks` | Marked outside the app | 從應用程式外標記 | |
 | `today_marked_at` | Taught · marked at %1$s | 已完成 · 標記時間：%1$s | |
-| `today_members` | *one:* %1$d member · *other:* %1$d members | *other:* %1$d名成員 | |
 
 ## Buttons
 
@@ -176,7 +174,7 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 
 | Key | English | Now | OK / suggestion |
 |---|---|---|---|
-| `stat_debt` | Owes | 歐斯 | |
+| `stat_debt` | Owes | 欠款 | |
 | `stat_credit` | In credit | 預付餘額 | |
 | `stat_lessons` | Lessons | 課程 | |
 | `stat_hours` | Hours | 時間 | |

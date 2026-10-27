@@ -16,17 +16,17 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 | `onboarding_restore` | Restore a backup | バックアップを復元する | |
 | `onboarding_restore_desc` | The file's data will replace what is here | ファイルのデータはここにあるものと置き換わります | |
 | `onboarding_skip` | Skip | スキップ | |
-| `onboarding_skip_desc` | Subjects and students can be added later | 被験者と生徒は後で追加できます | |
+| `onboarding_skip_desc` | Subjects and students can be added later | 科目と生徒は後で追加できます | |
 | `onboarding_step` | Step %1$d of %2$d | %2$d のステップ %1$d | |
 | `onboarding_locale_title` | The basics | 基本 | |
 | `onboarding_locale_desc` | Already chosen for you. Change anything now or later in Settings. | すでに選ばれています。今すぐ、または後で設定で何かを変更してください。 | |
 | `onboarding_lesson_length_desc` | Pre-fills new lessons. Rates are per hour, so each lesson is billed for its length. | 新しいレッスンを事前に入力します。料金は時間単位なので、各レッスンの長さに応じて請求されます。 | |
 | `onboarding_locale_currency_desc` | Amounts are only labelled with it — nothing is converted. | 金額にはラベルが付けられるだけであり、何も変換されません。 | |
-| `onboarding_subjects_title` | Subjects | 被験者 | |
+| `onboarding_subjects_title` | Subjects | 科目 | |
 | `onboarding_subjects_desc` | Tap what you teach, or add your own. You can change them later. | 教えた内容をタップするか、独自の内容を追加します。後で変更することもできます。 | |
 | `onboarding_subject_suggestions` | *0:* Math · *1:* English · *2:* Physics · *3:* Chemistry · *4:* Biology · *5:* History · *6:* Computer science · *7:* Piano | *0:* 数学 · *1:* 英語 · *2:* 物理学 · *3:* 化学 · *4:* 生物学 · *5:* の歴史 · *6:* コンピューターサイエンス · *7:* ピアノ | |
-| `onboarding_subject_removed` | Subject deleted | 件名が削除されました | |
-| `onboarding_subject_remove_failed` | Could not delete the subject | 件名を削除できませんでした | |
+| `onboarding_subject_removed` | Subject deleted | 科目を削除しました | |
+| `onboarding_subject_remove_failed` | Could not delete the subject | 科目を削除できませんでした | |
 | `onboarding_student_title` | First student | 最初の生徒 | |
 | `onboarding_student_desc` | Just a name and a rate. A phone, email and note can be added on the student's profile later. | 名前と時間単価だけ。電話、電子メール、メモは後で生徒のプロフィールに追加できます。 | |
 | `onboarding_continue` | Next | 次へ | |
@@ -81,7 +81,6 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 | `today_lessons` | Today's lessons | 今日のレッスン | |
 | `today_no_lessons` | No lessons today | 今日はレッスンはありません | |
 | `today_owed` | Owed to you | あなたに借りがあります | |
-| `today_homework` | Homework due | 提出予定の宿題 | |
 | `today_backup_old` | Last backup %1$s | 最終バックアップ %1$s | |
 | `today_backup_never` | No backup yet | バックアップがまだありません | |
 | `today_backup_detail` | Your data is on this phone only. | あなたのデータはこの電話にのみ保存されます。 | |
@@ -93,7 +92,6 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 | `today_never_paid` | No payment yet | まだ支払いがありません | |
 | `today_recent_marks` | Marked outside the app | アプリ外にマークあり | |
 | `today_marked_at` | Taught · marked at %1$s | 実施済み · %1$sに記録 | |
-| `today_members` | *one:* %1$d member · *other:* %1$d members | *other:* %1$d人のメンバー | |
 
 ## Buttons
 
@@ -129,7 +127,7 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 | `schedule_add_class` | Book a lesson | レッスンを予約する | |
 | `schedule_week_empty` | No lessons this week | 今週はレッスンがありません | |
 | `schedule_empty_no_setup` | Nothing to plan yet | まだ何も計画していません | |
-| `schedule_empty_no_setup_detail` | A lesson is booked for a student and a subject with a rate. Start with a student. | レッスンは、生徒および対象に対して料金で予約されます。学生から始めましょう。 | |
+| `schedule_empty_no_setup_detail` | A lesson is booked for a student and a subject with a rate. Start with a student. | レッスンは、生徒と料金が設定された科目の組み合わせで予約します。生徒から始めましょう。 | |
 | `schedule_add_student` | Add a student | 生徒を追加する | |
 | `schedule_filter_everyone` | Everyone | みんな | |
 | `schedule_filter_any_status` | Any status | 任意のステータス | |
@@ -207,10 +205,10 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 | `people_next_weekday` | %1$s %2$s | %1$s %2$s | |
 | `people_last_lesson` | Last lesson %1$s | 最後のレッスン %1$s | |
 | `people_no_lessons` | No lessons yet | レッスンはまだありません | |
-| `people_pick_card` | Choose a student or a group | 学生またはグループを選択してください | |
+| `people_pick_card` | Choose a student or a group | 生徒またはグループを選択してください | |
 | `people_owes` | Owes · %1$d | 未払いあり · %1$d | |
 | `people_archived` | Archived | アーカイブ済み | |
-| `people_all_subjects` | All subjects | すべての被験者 | |
+| `people_all_subjects` | All subjects | すべての科目 | |
 | `people_filter` | Filter and order | 絞り込みと並べ替え | |
 | `people_show` | Show | 表示 | |
 | `people_subject` | Subject | 科目 | |
@@ -223,9 +221,9 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 | `students_search_hint` | Search students | 生徒を検索する | |
 | `students_sort_name` | By name | 名前で | |
 | `students_sort_debt` | Debtors first | 債務者第一 | |
-| `students_title` | Students | 学生 | |
+| `students_title` | Students | 生徒 | |
 | `students_empty` | No students yet | 生徒はまだいません | |
-| `students_empty_detail` | A student is a name, their subjects and a rate per hour. After that you can book lessons and track payments. | 学生とは、名前、科目、および時間当たりの料金です。その後、レッスンを予約し、支払いを追跡することができます。 | |
+| `students_empty_detail` | A student is a name, their subjects and a rate per hour. After that you can book lessons and track payments. | 生徒は、名前と科目、時間単価で登録します。その後、レッスンの予約と支払いの記録ができます。 | |
 | `students_add` | Add a student | 生徒を追加する | |
 | `students_count` | *one:* %1$d\u00A0student · *other:* %1$d\u00A0students | *other:* %1$d\u2060人の生徒 | |
 

@@ -53,19 +53,22 @@ internal fun BalanceCard(
     HeaderedCard(
         title = stringResource(R.string.student_balance_title),
         modifier = modifier,
-        action = SectionAction(stringResource(R.string.student_statement), onStatement),
+        action = SectionAction(stringResource(R.string.student_statement), onClick = onStatement),
     ) {
         // The button beside the amount, not beside all four lines: there the lines below get the card's whole
         // width, and a large font does not fold «Last payment …» into a column of single words.
         Column(BalanceInset, verticalArrangement = Arrangement.spacedBy(Spacing.tight)) {
-            Text(
-                stringResource(if (balance is Balance.Credit) R.string.stat_credit else R.string.stat_debt),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            // Settled, there is no amount to label: «Owes $0» read as a debt, and the People list shows none.
+            if (balance !is Balance.Settled) {
+                Text(
+                    stringResource(if (balance is Balance.Credit) R.string.stat_credit else R.string.stat_debt),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    balance.amount.text(),
+                    if (balance is Balance.Settled) balanceDescription(balance) else balance.amount.text(),
                     style = MaterialTheme.typography.headlineSmall,
                     color = if (balance is Balance.Owed) klasSemantics.debt else Color.Unspecified,
                     maxLines = 1,

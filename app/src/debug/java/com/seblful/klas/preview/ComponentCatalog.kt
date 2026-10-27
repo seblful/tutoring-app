@@ -177,7 +177,7 @@ private fun CardsAndBanners() {
     Column {
         SliceHeader(
             "Thu 22 Oct", SlicePosition.FIRST, summary = "2 lessons · 2 h",
-            action = SectionAction("Cancel day") {
+            action = SectionAction("Cancel day", destructive = true) {
             },
         )
         SurfaceRow(SlicePosition.LAST, onClick = {}) { KlasRow("16:00–17:00 Liam Carter", end = RowEnd.Opens) }

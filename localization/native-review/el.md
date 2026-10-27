@@ -16,17 +16,17 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 | `onboarding_restore` | Restore a backup | Επαναφέρετε ένα αντίγραφο ασφαλείας | |
 | `onboarding_restore_desc` | The file's data will replace what is here | Τα δεδομένα του αρχείου θα αντικαταστήσουν αυτό που υπάρχει εδώ | |
 | `onboarding_skip` | Skip | Παράλειψη | |
-| `onboarding_skip_desc` | Subjects and students can be added later | Τα θέματα και οι μαθητές μπορούν να προστεθούν αργότερα | |
+| `onboarding_skip_desc` | Subjects and students can be added later | Τα αντικείμενα και οι μαθητές μπορούν να προστεθούν αργότερα | |
 | `onboarding_step` | Step %1$d of %2$d | Βήμα %1$d από %2$d | |
 | `onboarding_locale_title` | The basics | Τα βασικά | |
 | `onboarding_locale_desc` | Already chosen for you. Change anything now or later in Settings. | Έχει ήδη επιλεγεί για εσάς. Αλλάξτε οτιδήποτε τώρα ή αργότερα στις Ρυθμίσεις. | |
 | `onboarding_lesson_length_desc` | Pre-fills new lessons. Rates are per hour, so each lesson is billed for its length. | Προσυμπληρώνει νέα μαθήματα. Οι τιμές είναι ανά ώρα, επομένως κάθε μάθημα χρεώνεται για τη διάρκειά του. | |
 | `onboarding_locale_currency_desc` | Amounts are only labelled with it — nothing is converted. | Τα ποσά επισημαίνονται μόνο με αυτό — τίποτα δεν μετατρέπεται. | |
-| `onboarding_subjects_title` | Subjects | Θέματα | |
+| `onboarding_subjects_title` | Subjects | Αντικείμενα | |
 | `onboarding_subjects_desc` | Tap what you teach, or add your own. You can change them later. | Πατήστε αυτό που διδάσκετε ή προσθέστε το δικό σας. Μπορείτε να τα αλλάξετε αργότερα. | |
 | `onboarding_subject_suggestions` | *0:* Math · *1:* English · *2:* Physics · *3:* Chemistry · *4:* Biology · *5:* History · *6:* Computer science · *7:* Piano | *0:* Μαθ · *1:* Αγγλικά · *2:* Φυσική · *3:* Χημεία · *4:* Βιολογία · *5:* Ιστορία · *6:* Πληροφορική · *7:* Πιάνο | |
-| `onboarding_subject_removed` | Subject deleted | Το θέμα διαγράφηκε | |
-| `onboarding_subject_remove_failed` | Could not delete the subject | Δεν ήταν δυνατή η διαγραφή του θέματος | |
+| `onboarding_subject_removed` | Subject deleted | Το αντικείμενο διαγράφηκε | |
+| `onboarding_subject_remove_failed` | Could not delete the subject | Δεν ήταν δυνατή η διαγραφή του αντικειμένου | |
 | `onboarding_student_title` | First student | Πρώτος μαθητής | |
 | `onboarding_student_desc` | Just a name and a rate. A phone, email and note can be added on the student's profile later. | Μόνο ένα όνομα και ένα ποσοστό. Ένα τηλέφωνο, ένα email και μια σημείωση μπορούν να προστεθούν στο προφίλ του μαθητή αργότερα. | |
 | `onboarding_continue` | Next | Επόμενο | |
@@ -81,7 +81,6 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 | `today_lessons` | Today's lessons | Τα σημερινά μαθήματα | |
 | `today_no_lessons` | No lessons today | Κανένα μάθημα σήμερα | |
 | `today_owed` | Owed to you | Σας οφείλω | |
-| `today_homework` | Homework due | Εργασίες προς παράδοση | |
 | `today_backup_old` | Last backup %1$s | Τελευταίο αντίγραφο ασφαλείας %1$s | |
 | `today_backup_never` | No backup yet | Δεν υπάρχει ακόμα αντίγραφο ασφαλείας | |
 | `today_backup_detail` | Your data is on this phone only. | Τα δεδομένα σας βρίσκονται μόνο σε αυτό το τηλέφωνο. | |
@@ -93,7 +92,6 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 | `today_never_paid` | No payment yet | Δεν υπάρχει πληρωμή ακόμη | |
 | `today_recent_marks` | Marked outside the app | Επισήμανση εκτός της εφαρμογής | |
 | `today_marked_at` | Taught · marked at %1$s | Πραγματοποιήθηκε · σημάνθηκε στις %1$s | |
-| `today_members` | *one:* %1$d member · *other:* %1$d members | *one:* %1$d μέλος · *other:* %1$d μέλη | |
 
 ## Buttons
 
@@ -129,7 +127,7 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 | `schedule_add_class` | Book a lesson | Κλείστε ένα μάθημα | |
 | `schedule_week_empty` | No lessons this week | Χωρίς μαθήματα αυτή την εβδομάδα | |
 | `schedule_empty_no_setup` | Nothing to plan yet | Δεν υπάρχει τίποτα να σχεδιάσουμε ακόμα | |
-| `schedule_empty_no_setup_detail` | A lesson is booked for a student and a subject with a rate. Start with a student. | Κλείνεται μάθημα για μαθητή και μάθημα με ποσοστό. Ξεκινήστε με έναν μαθητή. | |
+| `schedule_empty_no_setup_detail` | A lesson is booked for a student and a subject with a rate. Start with a student. | Το μάθημα κλείνεται για έναν μαθητή και ένα αντικείμενο με ωριαία τιμή. Ξεκινήστε με έναν μαθητή. | |
 | `schedule_add_student` | Add a student | Προσθήκη μαθητή | |
 | `schedule_filter_everyone` | Everyone | Όλοι | |
 | `schedule_filter_any_status` | Any status | Οποιαδήποτε κατάσταση | |
@@ -150,7 +148,7 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 | `schedule_next_week` | Next week | Την επόμενη εβδομάδα | |
 | `schedule_previous_month` | Previous month | Προηγούμενος μήνας | |
 | `schedule_next_month` | Next month | Τον επόμενο μήνα | |
-| `schedule_need_setup` | Add a subject and a student first | Προσθέστε πρώτα ένα θέμα και έναν μαθητή | |
+| `schedule_need_setup` | Add a subject and a student first | Προσθέστε πρώτα ένα αντικείμενο και έναν μαθητή | |
 | `schedule_pick_date` | Choose a date | Επιλέξτε μια ημερομηνία | |
 | `schedule_cancel_day` | Cancel day | Ακύρωση ημέρας | |
 | `schedule_open_day` | Open day | Άνοιγμα ημέρας | |
@@ -210,7 +208,7 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 | `people_pick_card` | Choose a student or a group | Επιλέξτε έναν μαθητή ή μια ομάδα | |
 | `people_owes` | Owes · %1$d | Με οφειλή · %1$d | |
 | `people_archived` | Archived | Αρχειοθετήθηκε | |
-| `people_all_subjects` | All subjects | Όλα τα θέματα | |
+| `people_all_subjects` | All subjects | Όλα τα αντικείμενα | |
 | `people_filter` | Filter and order | Φίλτρο και ταξινόμηση | |
 | `people_show` | Show | Εμφάνιση | |
 | `people_subject` | Subject | Μάθημα | |
@@ -225,7 +223,7 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 | `students_sort_debt` | Debtors first | Πρώτα οι οφειλέτες | |
 | `students_title` | Students | Μαθητές | |
 | `students_empty` | No students yet | Δεν υπάρχουν ακόμη μαθητές | |
-| `students_empty_detail` | A student is a name, their subjects and a rate per hour. After that you can book lessons and track payments. | Ένας μαθητής είναι ένα όνομα, τα θέματά του και ο ρυθμός ανά ώρα. Μετά από αυτό μπορείτε να κάνετε κράτηση μαθημάτων και να παρακολουθείτε τις πληρωμές. | |
+| `students_empty_detail` | A student is a name, their subjects and a rate per hour. After that you can book lessons and track payments. | Ένας μαθητής είναι ένα όνομα, τα αντικείμενά του και μια ωριαία τιμή. Μετά από αυτό μπορείτε να κάνετε κράτηση μαθημάτων και να παρακολουθείτε τις πληρωμές. | |
 | `students_add` | Add a student | Προσθήκη μαθητή | |
 | `students_count` | *one:* %1$d\u00A0student · *other:* %1$d\u00A0students | *one:* %1$d\u00A0μαθητής · *other:* %1$d\u00A0μαθητές | |
 

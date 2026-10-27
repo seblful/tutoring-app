@@ -338,8 +338,23 @@ private const val HomeworkPreviewLines = 4
  */
 @Composable
 private fun DueLine(row: HomeworkRow, prefix: String? = null, underSection: Boolean = false) {
+    Text(
+        bulletJoin(prefix.orEmpty(), lessonLine(row, underSection)),
+        style = MaterialTheme.typography.bodySmall,
+        color = if (row.due == HomeworkRules.Due.OVERDUE) klasSemantics.overdue
+        else MaterialTheme.colorScheme.onSurfaceVariant,
+        // Two lines: beside the row's menu, a group's name and the lesson's date left no room on one, and
+        // the time — when it is due — was what got cut.
+        maxLines = 2,
+        overflow = TextOverflow.Ellipsis,
+    )
+}
+
+/** [DueLine]'s words: the lesson the homework is for, as a row says it wherever homework is listed. */
+@Composable
+internal fun lessonLine(row: HomeworkRow, underSection: Boolean = false): String {
     val at = row.lessonAt
-    val text = when (row.due) {
+    return when (row.due) {
         HomeworkRules.Due.TODAY ->
             if (underSection) at?.timeText().orEmpty()
             else stringResource(R.string.homework_lesson_today, at?.timeText().orEmpty())
@@ -349,16 +364,6 @@ private fun DueLine(row: HomeworkRow, prefix: String? = null, underSection: Bool
         HomeworkRules.Due.UNBOOKED -> if (underSection) "" else stringResource(R.string.homework_unbooked)
         null -> stringResource(R.string.homework_set_on, row.homework.givenAt.formatDate())
     }
-    Text(
-        bulletJoin(prefix.orEmpty(), text),
-        style = MaterialTheme.typography.bodySmall,
-        color = if (row.due == HomeworkRules.Due.OVERDUE) klasSemantics.overdue
-        else MaterialTheme.colorScheme.onSurfaceVariant,
-        // Two lines: beside the row's menu, a group's name and the lesson's date left no room on one, and
-        // the time — when it is due — was what got cut.
-        maxLines = 2,
-        overflow = TextOverflow.Ellipsis,
-    )
 }
 
 /**

@@ -38,6 +38,8 @@ import com.seblful.klas.ui.common.ScrollsToTopOnReselect
 import com.seblful.klas.ui.common.SettingsGear
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.durationLabel
+import com.seblful.klas.ui.common.lessonBadgeColor
+import com.seblful.klas.ui.common.lessonBadgeLabel
 import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.common.text
@@ -53,9 +55,11 @@ import com.seblful.klas.ui.designsystem.component.HeaderedCard
 import com.seblful.klas.ui.designsystem.component.KlasButton
 import com.seblful.klas.ui.designsystem.component.KlasFab
 import com.seblful.klas.ui.designsystem.component.KlasRow
+import com.seblful.klas.ui.designsystem.component.RowBadge
 import com.seblful.klas.ui.designsystem.component.RowEnd
 import com.seblful.klas.ui.designsystem.component.RowStart
 import com.seblful.klas.ui.designsystem.component.SectionAction
+import com.seblful.klas.ui.homework.lessonLine
 import com.seblful.klas.ui.theme.KlasIcons
 import dev.zacsweers.metrox.viewmodel.metroViewModel
 import kotlin.time.Instant
@@ -201,7 +205,7 @@ private fun BackupBanner(at: Instant?, onBackup: () -> Unit) {
         kind = BannerKind.Advisory,
         modifier = Modifier.padding(top = Spacing.itemGap),
         detail = stringResource(R.string.today_backup_detail),
-        action = SectionAction(stringResource(R.string.today_backup_action), onBackup),
+        action = SectionAction(stringResource(R.string.today_backup_action), onClick = onBackup),
     )
 }
 
@@ -240,7 +244,7 @@ private fun NextCard(row: TodayLessonRow, onOpen: (Long) -> Unit) {
                             row.subject,
                             durationLabel(row.session.durationMinutes),
                             row.session.classes.size.takeIf { row.session.isGroup }?.let {
-                                pluralStringResource(R.plurals.today_members, it, it)
+                                pluralStringResource(R.plurals.members_count, it, it)
                             },
                         ),
                     ),
@@ -257,7 +261,8 @@ private fun ToMark(rows: List<TodayLessonRow>, actions: TodayActions) {
         title = stringResource(R.string.today_to_mark),
         summary = pluralStringResource(R.plurals.lessons_count, rows.size, rows.size),
         // One lesson has its own tick; the batch is for the evening with several.
-        action = SectionAction(stringResource(R.string.today_mark_all), actions.markAllTaught).takeIf { rows.size > 1 },
+        action = SectionAction(stringResource(R.string.today_mark_all), onClick = actions.markAllTaught)
+            .takeIf { rows.size > 1 },
     ) {
         val taught = stringResource(R.string.class_status_completed)
         rows.forEach { row ->
@@ -293,7 +298,7 @@ private fun DayLessons(state: TodayState, actions: TodayActions) {
     HeaderedCard(
         title = stringResource(R.string.today_lessons),
         summary = summary.takeIf { rows.isNotEmpty() },
-        action = SectionAction(stringResource(R.string.nav_schedule), actions.schedule),
+        action = SectionAction(stringResource(R.string.nav_schedule), onClick = actions.schedule),
     ) {
         if (rows.isEmpty()) {
             KlasRow(stringResource(R.string.today_no_lessons))
@@ -303,7 +308,8 @@ private fun DayLessons(state: TodayState, actions: TodayActions) {
             val open = { actions.openLesson(row.session.first.id) }
             KlasRow(
                 title = row.who,
-                supporting = bulletJoin(listOfNotNull(timeRange(row), row.subject, phaseWord(row.phase))),
+                supporting = bulletJoin(listOfNotNull(timeRange(row), row.subject)),
+                badge = phaseBadge(row),
                 onClick = open,
                 start = RowStart.Done(
                     done = row.session.status == LessonStatus.COMPLETED,
@@ -329,7 +335,7 @@ private fun Owed(state: TodayState, actions: TodayActions) {
             state.outstanding.total.text(),
             pluralStringResource(R.plurals.students_count, state.outstanding.students, state.outstanding.students),
         ),
-        action = SectionAction(stringResource(R.string.section_see_all), actions.debts),
+        action = SectionAction(stringResource(R.string.section_see_all), opens = true, onClick = actions.debts),
     ) {
         state.debtors.take(DEBTORS_SHOWN).forEach { debtor ->
             KlasRow(
@@ -365,21 +371,27 @@ private fun RecentlyMarked(marks: List<TodayMark>, onUndo: (TodayMark) -> Unit) 
 @Composable
 private fun HomeworkDue(rows: List<HomeworkRow>, onHomework: () -> Unit) {
     HeaderedCard(
-        title = stringResource(R.string.today_homework),
+        title = stringResource(R.string.student_homework_title),
         summary = rows.size.toString(),
-        action = SectionAction(stringResource(R.string.section_see_all), onHomework),
+        action = SectionAction(stringResource(R.string.section_see_all), opens = true, onClick = onHomework),
     ) {
         rows.take(HOMEWORK_SHOWN).forEach { row ->
-            KlasRow(row.title, supporting = row.homework.text, onClick = onHomework)
+            // The task leads, whom and which lesson under it, as on the Homework tab and a profile.
+            KlasRow(row.text, supporting = bulletJoin(row.title, lessonLine(row)), onClick = onHomework)
         }
     }
 }
 
-/** What a row adds beyond its time: a taught lesson says so; the rest are told apart by the sections. */
+/**
+ * What a row adds beyond its time, as the pill every lesson row's status is: one under way or taught says so;
+ * the rest are told apart by the sections.
+ */
 @Composable
-private fun phaseWord(phase: LessonPhase): String? = when (phase) {
-    LessonPhase.IN_PROGRESS -> stringResource(R.string.class_status_in_progress)
-    LessonPhase.SETTLED -> stringResource(R.string.class_status_completed)
+private fun phaseBadge(row: TodayLessonRow): RowBadge? = when (row.phase) {
+    LessonPhase.IN_PROGRESS, LessonPhase.SETTLED -> RowBadge(
+        lessonBadgeLabel(row.session.status, row.phase),
+        lessonBadgeColor(row.session.status, row.phase),
+    )
     LessonPhase.UPCOMING, LessonPhase.OVERDUE -> null
 }
 

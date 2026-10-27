@@ -3,7 +3,6 @@ package com.seblful.klas.ui.groups
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -21,7 +20,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalResources
@@ -38,7 +36,6 @@ import com.seblful.klas.queries.groups.GroupMemberRow
 import com.seblful.klas.ui.common.AddRow
 import com.seblful.klas.ui.common.AddRowInSection
 import com.seblful.klas.ui.common.ArchiveMenuItem
-import com.seblful.klas.ui.common.ArchivedBadge
 import com.seblful.klas.ui.common.ConfirmDialog
 import com.seblful.klas.ui.common.FactsLine
 import com.seblful.klas.ui.common.HeadlineCardInset
@@ -51,6 +48,7 @@ import com.seblful.klas.ui.common.MinTouchTarget
 import com.seblful.klas.ui.common.NamedIconButton
 import com.seblful.klas.ui.common.OverflowMenu
 import com.seblful.klas.ui.common.OverviewSection
+import com.seblful.klas.ui.common.PlaceLine
 import com.seblful.klas.ui.common.SectionCard
 import com.seblful.klas.ui.common.SectionNote
 import com.seblful.klas.ui.common.Spacing
@@ -274,20 +272,22 @@ internal fun ShowGroupMessages(viewModel: GroupDetailViewModel, messages: Messag
     }
 }
 
-/** Under the name, as the student's contact line is: what the group is taught, and for how much. */
+/**
+ * Under the name, as the student's contact block is: what the group is taught and for how much, then where —
+ * with the archived badge on that line, as a student's.
+ */
 @Composable
 private fun GroupHeader(state: GroupDetails, modifier: Modifier = Modifier) {
     val group = state.group ?: return
     Column(modifier.fillMaxWidth()) {
-        Row(Modifier.heightIn(min = MinTouchTarget), verticalAlignment = Alignment.CenterVertically) {
+        Column(Modifier.heightIn(min = MinTouchTarget), verticalArrangement = Arrangement.Center) {
             FactsLine(
                 listOf(
                     state.subjectName ?: stringResource(R.string.group_no_subject),
                     stringResource(R.string.price_per_hour_per_student, group.price.text()),
                 ),
-                modifier = Modifier.weight(1f, fill = false),
             )
-            if (group.archived) ArchivedBadge(Modifier.padding(start = Spacing.inline))
+            PlaceLine(group.defaultMode, group.archived)
         }
         if (group.note.isNotBlank()) {
             Text(
@@ -380,7 +380,7 @@ private fun MembersSection(
             GroupMemberItem(row, onClick = { onMemberClick(row.student.id) }, colors = sectionRowColors())
         }
         // A roster is changed on the group's form, so that is where this leads.
-        AddRow(stringResource(R.string.group_edit_members), onEditMembers, AddRowInSection)
+        AddRow(stringResource(R.string.group_edit_members), onEditMembers, AddRowInSection, KlasIcons.Outlined.Edit)
     }
 }
 

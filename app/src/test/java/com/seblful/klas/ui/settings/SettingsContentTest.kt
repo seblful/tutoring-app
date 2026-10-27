@@ -107,6 +107,7 @@ class SettingsContentTest {
         assertEquals(1, calendarFixes)
         assertTrue(settings.calendarSyncEnabled)
         compose.onNodeWithText("1 hour before").performScrollTo().performClick()
+        compose.onNodeWithText("Custom…").performClick()
         compose.onNode(hasSetTextAction()).performTextReplacement("2")
         compose.onNodeWithText("Done").performClick()
         assertEquals(120, settings.reminderLeadMinutes)
@@ -169,7 +170,7 @@ class SettingsContentTest {
     }
 
     @Test
-    fun `the language dropdown scrolls to new languages and applies immediately`() {
+    fun `the language list opens from its row, scrolls to new languages and applies immediately`() {
         compose.setContent {
             KlasTheme { AppearanceSettingsContent(settings, actions.update, showDynamicColor = false) }
         }

@@ -7,7 +7,7 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 
 | Key | English | Now | OK / suggestion |
 |---|---|---|---|
-| `onboarding_tagline` | Your students' lessons, payments and debts in one place | Урокі, плацяжы і запазычанасці вашых студэнтаў у адным месцы | |
+| `onboarding_tagline` | Your students' lessons, payments and debts in one place | Урокі, плацяжы і запазычанасці вашых вучняў у адным месцы | |
 | `onboarding_value_schedule` | Lessons by day, week and month, with reminders | Урокі па днях, тыднях і месяцах з напамінамі | |
 | `onboarding_value_money` | Who has paid and who owes — worked out for you | Хто заплаціў і хто мае доўг — разлічана аўтаматычна | |
 | `onboarding_value_offline` | No internet and no account: your data stays on the phone | Няма інтэрнэту і ўліковага запісу: вашы дадзеныя застаюцца на тэлефоне | |
@@ -16,7 +16,7 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 | `onboarding_restore` | Restore a backup | Аднавіць рэзервовую копію | |
 | `onboarding_restore_desc` | The file's data will replace what is here | Даныя файла заменяць тое, што ёсць тут | |
 | `onboarding_skip` | Skip | Прапусціць | |
-| `onboarding_skip_desc` | Subjects and students can be added later | Прадметы і студэнтаў можна дадаць пазней | |
+| `onboarding_skip_desc` | Subjects and students can be added later | Прадметы і вучняў можна дадаць пазней | |
 | `onboarding_step` | Step %1$d of %2$d | Крок %1$d з %2$d | |
 | `onboarding_locale_title` | The basics | Асновы | |
 | `onboarding_locale_desc` | Already chosen for you. Change anything now or later in Settings. | Ужо выбраны для вас. Змяніце што-небудзь зараз ці пазней у наладах. | |
@@ -25,10 +25,10 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 | `onboarding_subjects_title` | Subjects | Прадметы | |
 | `onboarding_subjects_desc` | Tap what you teach, or add your own. You can change them later. | Націсніце тое, што вы вучыце, або дадайце сваё. Вы можаце змяніць іх пазней. | |
 | `onboarding_subject_suggestions` | *0:* Math · *1:* English · *2:* Physics · *3:* Chemistry · *4:* Biology · *5:* History · *6:* Computer science · *7:* Piano | *0:* Матэматыка · *1:* Англійская мова · *2:* Фізіка · *3:* Хімія · *4:* Біялогія · *5:* Гісторыя · *6:* Інфарматыка · *7:* Фартэпіяна | |
-| `onboarding_subject_removed` | Subject deleted | Тэма выдалена | |
-| `onboarding_subject_remove_failed` | Could not delete the subject | Немагчыма выдаліць тэму | |
-| `onboarding_student_title` | First student | Першы студэнт | |
-| `onboarding_student_desc` | Just a name and a rate. A phone, email and note can be added on the student's profile later. | Проста назва і стаўка. Тэлефон, адрас электроннай пошты і нататку можна дадаць у профіль студэнта пазней. | |
+| `onboarding_subject_removed` | Subject deleted | Прадмет выдалены | |
+| `onboarding_subject_remove_failed` | Could not delete the subject | Немагчыма выдаліць прадмет | |
+| `onboarding_student_title` | First student | Першы вучань | |
+| `onboarding_student_desc` | Just a name and a rate. A phone, email and note can be added on the student's profile later. | Толькі імя і стаўка. Тэлефон, адрас электроннай пошты і нататку можна дадаць у профіль вучня пазней. | |
 | `onboarding_continue` | Next | Далей | |
 | `onboarding_finish` | Done | Гатова | |
 | `onboarding_subject_field_hint` | Type a name and press Enter | Увядзіце імя і націсніце Enter | |
@@ -81,7 +81,6 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 | `today_lessons` | Today's lessons | Сённяшнія ўрокі | |
 | `today_no_lessons` | No lessons today | Сёння ўрокаў няма | |
 | `today_owed` | Owed to you | У абавязку перад вамі | |
-| `today_homework` | Homework due | Хатнія заданні да здачы | |
 | `today_backup_old` | Last backup %1$s | Апошняя рэзервовая копія %1$s | |
 | `today_backup_never` | No backup yet | Рэзервовай копіі пакуль няма | |
 | `today_backup_detail` | Your data is on this phone only. | Вашы дадзеныя знаходзяцца толькі на гэтым тэлефоне. | |
@@ -93,7 +92,6 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 | `today_never_paid` | No payment yet | Аплаты пакуль няма | |
 | `today_recent_marks` | Marked outside the app | Пазначана па-за праграмай | |
 | `today_marked_at` | Taught · marked at %1$s | Праведзены · пазначана а %1$s | |
-| `today_members` | *one:* %1$d member · *other:* %1$d members | *one:* %1$d удзельнік · *few:* %1$d удзельнікі · *many:* %1$d ўдзельнікаў · *other:* %1$d удзельніка | |
 
 ## Buttons
 
@@ -129,8 +127,8 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 | `schedule_add_class` | Book a lesson | Замовіць урок | |
 | `schedule_week_empty` | No lessons this week | На гэтым тыдні ўрокаў няма | |
 | `schedule_empty_no_setup` | Nothing to plan yet | Пакуль няма чаго планаваць | |
-| `schedule_empty_no_setup_detail` | A lesson is booked for a student and a subject with a rate. Start with a student. | Урок запісваецца на студэнта і прадмет са стаўкай. Пачаць са студэнта. | |
-| `schedule_add_student` | Add a student | Дадаць студэнта | |
+| `schedule_empty_no_setup_detail` | A lesson is booked for a student and a subject with a rate. Start with a student. | Занятак запісваецца на вучня і прадмет са стаўкай. Пачніце з вучня. | |
+| `schedule_add_student` | Add a student | Дадаць вучня | |
 | `schedule_filter_everyone` | Everyone | Усе | |
 | `schedule_filter_any_status` | Any status | Любы статус | |
 | `schedule_filter` | Filter the schedule | Фільтр раскладу | |
@@ -150,7 +148,7 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 | `schedule_next_week` | Next week | На наступным тыдні | |
 | `schedule_previous_month` | Previous month | Папярэдні месяц | |
 | `schedule_next_month` | Next month | У наступным месяцы | |
-| `schedule_need_setup` | Add a subject and a student first | Спачатку дадайце прадмет і студэнта | |
+| `schedule_need_setup` | Add a subject and a student first | Спачатку дадайце прадмет і вучня | |
 | `schedule_pick_date` | Choose a date | Выберыце дату | |
 | `schedule_cancel_day` | Cancel day | Дзень адмены | |
 | `schedule_open_day` | Open day | Адкрыць дзень | |
@@ -170,7 +168,7 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 
 | Key | English | Now | OK / suggestion |
 |---|---|---|---|
-| `stat_debt` | Owes | Павінны | |
+| `stat_debt` | Owes | Доўг | |
 | `stat_credit` | In credit | Пераплата | |
 | `stat_lessons` | Lessons | Урокі | |
 | `stat_hours` | Hours | Гадзіны | |
@@ -207,7 +205,7 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 | `people_next_weekday` | %1$s %2$s | %1$s %2$s | |
 | `people_last_lesson` | Last lesson %1$s | Апошні ўрок %1$s | |
 | `people_no_lessons` | No lessons yet | Урокаў пакуль няма | |
-| `people_pick_card` | Choose a student or a group | Выберыце студэнта або групу | |
+| `people_pick_card` | Choose a student or a group | Выберыце вучня або групу | |
 | `people_owes` | Owes · %1$d | Маюць доўг · %1$d | |
 | `people_archived` | Archived | Заархівавана | |
 | `people_all_subjects` | All subjects | Усе прадметы | |
@@ -220,13 +218,13 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 
 | Key | English | Now | OK / suggestion |
 |---|---|---|---|
-| `students_search_hint` | Search students | Пошук студэнтаў | |
+| `students_search_hint` | Search students | Пошук вучняў | |
 | `students_sort_name` | By name | Па імені | |
 | `students_sort_debt` | Debtors first | Даўжнікі ў першую чаргу | |
-| `students_title` | Students | Студэнты | |
-| `students_empty` | No students yet | Студэнтаў пакуль няма | |
-| `students_empty_detail` | A student is a name, their subjects and a rate per hour. After that you can book lessons and track payments. | Студэнт - гэта імя, яго прадметы і стаўка за гадзіну. Пасля гэтага вы можаце браніраваць урокі і адсочваць плацяжы. | |
-| `students_add` | Add a student | Дадаць студэнта | |
+| `students_title` | Students | Вучні | |
+| `students_empty` | No students yet | Вучняў пакуль няма | |
+| `students_empty_detail` | A student is a name, their subjects and a rate per hour. After that you can book lessons and track payments. | Вучань — гэта імя, прадметы і стаўка за гадзіну. Далей можна запісваць заняткі і весці ўлік аплат. | |
+| `students_add` | Add a student | Дадаць вучня | |
 | `students_count` | *one:* %1$d\u00A0student · *other:* %1$d\u00A0students | *one:* %1$d\u00A0вучань · *few:* %1$d\u00A0вучні · *many:* %1$d\u00A0вучняў · *other:* %1$d\u00A0вучня | |
 
 ## Durations

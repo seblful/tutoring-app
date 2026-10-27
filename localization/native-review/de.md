@@ -16,7 +16,7 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 | `onboarding_restore` | Restore a backup | Stellen Sie ein Backup wieder her | |
 | `onboarding_restore_desc` | The file's data will replace what is here | Die Daten der Datei ersetzen, was hier ist | |
 | `onboarding_skip` | Skip | Überspringen | |
-| `onboarding_skip_desc` | Subjects and students can be added later | Fächer und Studierende können später hinzugefügt werden | |
+| `onboarding_skip_desc` | Subjects and students can be added later | Fächer und Schüler können später hinzugefügt werden | |
 | `onboarding_step` | Step %1$d of %2$d | Schritt %1$d von %2$d | |
 | `onboarding_locale_title` | The basics | Die Grundlagen | |
 | `onboarding_locale_desc` | Already chosen for you. Change anything now or later in Settings. | Bereits für Sie ausgewählt. Ändern Sie jetzt oder später alles in den Einstellungen. | |
@@ -27,7 +27,7 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 | `onboarding_subject_suggestions` | *0:* Math · *1:* English · *2:* Physics · *3:* Chemistry · *4:* Biology · *5:* History · *6:* Computer science · *7:* Piano | *0:* Mathe · *1:* Englisch · *2:* Physik · *3:* Chemie · *4:* Biologie · *5:* Geschichte · *6:* Informatik · *7:* Klavier | |
 | `onboarding_subject_removed` | Subject deleted | Fach gelöscht | |
 | `onboarding_subject_remove_failed` | Could not delete the subject | Das Fach konnte nicht gelöscht werden | |
-| `onboarding_student_title` | First student | Erster Student | |
+| `onboarding_student_title` | First student | Erster Schüler | |
 | `onboarding_student_desc` | Just a name and a rate. A phone, email and note can be added on the student's profile later. | Nur ein Name und ein Preis. Eine Telefonnummer, eine E-Mail-Adresse und eine Notiz können später zum Profil des Schülers hinzugefügt werden. | |
 | `onboarding_continue` | Next | Weiter | |
 | `onboarding_finish` | Done | Fertig | |
@@ -81,7 +81,6 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 | `today_lessons` | Today's lessons | Die heutigen Lektionen | |
 | `today_no_lessons` | No lessons today | Heute kein Unterricht | |
 | `today_owed` | Owed to you | Ihnen geschuldet | |
-| `today_homework` | Homework due | Fällige Hausaufgaben | |
 | `today_backup_old` | Last backup %1$s | Letzte Sicherung %1$s | |
 | `today_backup_never` | No backup yet | Noch kein Backup | |
 | `today_backup_detail` | Your data is on this phone only. | Ihre Daten befinden sich nur auf diesem Telefon. | |
@@ -93,7 +92,6 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 | `today_never_paid` | No payment yet | Noch keine Zahlung | |
 | `today_recent_marks` | Marked outside the app | Außerhalb der App markiert | |
 | `today_marked_at` | Taught · marked at %1$s | Gehalten · um %1$s markiert | |
-| `today_members` | *one:* %1$d member · *other:* %1$d members | *one:* %1$d Mitglied · *other:* %1$d Mitglieder | |
 
 ## Buttons
 
@@ -220,12 +218,12 @@ Read each line as it would appear on a phone. Mark **OK**, or write what a tutor
 
 | Key | English | Now | OK / suggestion |
 |---|---|---|---|
-| `students_search_hint` | Search students | Studenten suchen | |
+| `students_search_hint` | Search students | Schüler suchen | |
 | `students_sort_name` | By name | Nach Namen | |
 | `students_sort_debt` | Debtors first | Schuldner zuerst | |
-| `students_title` | Students | Studenten | |
-| `students_empty` | No students yet | Noch keine Studenten | |
-| `students_empty_detail` | A student is a name, their subjects and a rate per hour. After that you can book lessons and track payments. | Ein Student ist ein Name, seine Fächer und ein Stundensatz. Danach können Sie Unterrichtsstunden buchen und Zahlungen verfolgen. | |
+| `students_title` | Students | Schüler | |
+| `students_empty` | No students yet | Noch keine Schüler | |
+| `students_empty_detail` | A student is a name, their subjects and a rate per hour. After that you can book lessons and track payments. | Ein Schüler besteht aus einem Namen, seinen Fächern und einem Stundensatz. Danach können Sie Unterrichtsstunden buchen und Zahlungen verfolgen. | |
 | `students_add` | Add a student | Fügen Sie einen Schüler hinzu | |
 | `students_count` | *one:* %1$d\u00A0student · *other:* %1$d\u00A0students | *one:* %1$d\u00A0Schüler · *other:* %1$d\u00A0Schüler | |
 

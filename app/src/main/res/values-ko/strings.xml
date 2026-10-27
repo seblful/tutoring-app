@@ -35,7 +35,7 @@
     </plurals>
     <string name="students_search_hint">학생 검색</string>
     <string name="groups_search_hint">그룹 검색</string>
-    <string name="subjects_search_hint">과목 이름</string>
+    <string name="subjects_search_hint">과목 검색</string>
     <string name="students_sort_name">이름으로</string>
     <string name="students_sort_debt">채무자 우선</string>
     <string name="unsaved_save_title">변경사항을 저장하시겠습니까?</string>
@@ -151,7 +151,7 @@
     <string name="class_delete_completed_confirm">이미 진행한 수업입니다. 삭제하면 학생 잔액에서 해당 수업료가 제거됩니다. 삭제할까요?</string>
     <string name="class_target_group">그룹</string>
     <string name="class_group_label">그룹</string>
-    <string name="class_no_subjects_for_group">먼저 주제를 추가하세요.</string>
+    <string name="class_no_subjects_for_group">먼저 과목을 추가하세요</string>
     <string name="class_group_members_title">회원</string>
     <string name="class_group_no_active_members">이 그룹의 누구도 예약할 수 없습니다. 해당 구성원은 보관됩니다.</string>
     <string name="class_group_no_members_left">멤버를 한 명 이상 선택하세요.</string>
@@ -159,7 +159,7 @@
     <plurals name="class_member_drop_billed_confirm">
         <item quantity="other">이미 진행한 수업에서 학생 %1$d명을 제외합니다. 해당 학생의 수업과 수업료가 삭제됩니다. 저장할까요?</item>
     </plurals>
-    <string name="class_subject_from_group">그룹이 주제를 설정합니다.</string>
+    <string name="class_subject_from_group">그룹에서 과목을 정합니다</string>
     <string name="class_group_price_label">학생 1인당 수업료</string>
     <string name="class_mark_completed">진행 완료로 표시</string>
     <string name="class_series_availability">가능한 날짜: %1$d개. 이미 예약된 날짜는 건너뜁니다.</string>
@@ -177,12 +177,12 @@
     <string name="lesson_kind_group">그룹</string>
     <string name="lesson_kind_individual_one">개인</string>
     <string name="lesson_kind_count">%1$s · %2$d</string>
-    <string name="students_title">재학생</string>
+    <string name="students_title">학생</string>
     <string name="students_empty">아직 학생이 없습니다.</string>
     <string name="students_empty_detail">학생은 이름, 과목 및 시간당 요금입니다. 그 후에는 수업을 예약하고 결제를 추적할 수 있습니다.</string>
     <string name="students_add">학생 추가</string>
     <string name="student_archived_badge">보관됨</string>
-    <string name="student_add_title">신입생</string>
+    <string name="student_add_title">새 학생</string>
     <string name="student_edit_title">학생 수정</string>
     <string name="student_name_label">이름</string>
     <string name="student_phone_label">전화번호로 연락하기</string>
@@ -195,13 +195,13 @@
     <string name="student_form_add">학생 추가</string>
     <string name="student_form_subject_has_lessons">레슨이 있어서 그대로 유지됩니다</string>
     <string name="student_form_subjects_required">과목을 하나 이상 선택하고 시간당 수업료를 설정하세요</string>
-    <string name="student_form_no_subjects">먼저 주제를 추가하세요.</string>
+    <string name="student_form_no_subjects">먼저 과목을 추가하세요</string>
     <string name="student_mode_label">장소</string>
     <string name="student_subjects_title">과목</string>
     <string name="student_no_subjects">선택한 과목이 없습니다.</string>
-    <string name="student_add_subject">주제 추가</string>
+    <string name="student_add_subject">과목 추가</string>
     <string name="student_all_subjects_added">모든 과목이 추가되었습니다</string>
-    <string name="student_subject_remove_blocked">주제를 삭제할 수 없습니다. 강의가 있습니다.</string>
+    <string name="student_subject_remove_blocked">수업이 있어 과목을 제거할 수 없습니다</string>
     <string name="student_archive_balance_part">이 학생의 잔액이 정산되지 않았습니다(%1$s). 이들의 내역은 보고서에 남아 있지만 주간 부채 알림에서는 제외됩니다.</string>
     <string name="student_archive_question">그래도 보관처리하시겠습니까?</string>
     <plurals name="student_archive_lessons_part">
@@ -270,7 +270,7 @@
     <string name="subjects_title">과목</string>
     <string name="subjects_empty">아직 과목이 없습니다</string>
     <string name="subjects_empty_detail">과목은 가르치는 내용을 뜻합니다. 수업료와 수업은 과목을 기준으로 설정합니다.</string>
-    <string name="subjects_add">주제 추가</string>
+    <string name="subjects_add">과목 추가</string>
     <string name="subject_add_title">새 과목</string>
     <string name="subject_edit_title">과목 수정</string>
     <string name="subject_name_label">과목 이름</string>
@@ -736,7 +736,6 @@
     <string name="today_lessons">오늘의 수업</string>
     <string name="today_no_lessons">오늘 수업이 없습니다</string>
     <string name="today_owed">받을 금액</string>
-    <string name="today_homework">제출할 숙제</string>
     <string name="today_backup_old">최근 백업 %1$s</string>
     <string name="today_backup_never">아직 백업이 없습니다</string>
     <string name="today_backup_detail">데이터는 이 휴대전화에만 저장되어 있습니다.</string>
@@ -835,7 +834,7 @@
     <string name="class_step_earlier_to">더 이른 시간: %1$s</string>
     <string name="class_step_later_to">더 늦은 시간: %1$s</string>
     <string name="class_step_first_free">− 또는 +를 누르면 가장 빠른 빈 시간인 %1$s로 이동합니다</string>
-    <string name="fab_new_student">신입생</string>
+    <string name="fab_new_student">새 학생</string>
     <string name="fab_new_group">새 그룹</string>
     <string name="today_next_in">다음 수업 · %1$s 후</string>
     <string name="today_open">열기</string>
@@ -843,8 +842,8 @@
     <string name="today_never_paid">아직 결제가 없습니다</string>
     <string name="today_recent_marks">앱 외부에서 표시됨</string>
     <string name="today_marked_at">진행 완료 · %1$s에 표시</string>
-    <plurals name="today_members">
-        <item quantity="other">%1$d 명 구성원</item>
+    <plurals name="members_count">
+        <item quantity="other">%1$d\u00A0명 구성원</item>
     </plurals>
     <string name="people_owes">미납 학생 · %1$d</string>
     <string name="people_archived">보관됨</string>
