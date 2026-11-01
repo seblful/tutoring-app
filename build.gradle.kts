@@ -131,7 +131,7 @@ tasks.register<JacocoReport>("coverageReport") {
 tasks.register<Exec>("testStore") {
     group = "verification"
     description = "Run the store image and video tooling tests."
-    commandLine("node", "--test", "store/")
+    commandLine("node", "--test", "store/**/*.test.mjs")
 }
 
 tasks.register("testQuick") {
@@ -143,5 +143,5 @@ tasks.register("testQuick") {
 tasks.register<Exec>("testDeviceTools") {
     group = "verification"
     description = "Check Android relaunch orchestration and failure reporting without a device."
-    commandLine("node", "--test", "scripts/")
+    commandLine("node", "--test", "scripts/**/*.test.mjs")
 }
