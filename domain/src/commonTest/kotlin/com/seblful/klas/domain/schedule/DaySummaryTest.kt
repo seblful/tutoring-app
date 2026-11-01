@@ -77,7 +77,7 @@ class DaySummaryTest {
     }
 
     @Test
-    fun `a lesson not yet taught counts its time towards the day, but no money`() {
+    fun `a lesson not yet taught counts its time towards the day but no money`() {
         val scheduled = summaryOf(klass(at = at(9), lessonId = 1, status = LessonStatus.SCHEDULED))
 
         assertEquals(1, scheduled.lessons)
@@ -104,7 +104,7 @@ class DaySummaryTest {
     }
 
     @Test
-    fun `the day's money is what its rows billed, as the balances and the reports sum it`() {
+    fun `the day's money is what its rows billed as the balances and the reports sum it`() {
         val billed = summaryOf(
             klass(at = at(9), lessonId = 1, status = LessonStatus.COMPLETED, charge = Money.ofMajor(7)),
             klass(at = at(11), lessonId = 2, status = LessonStatus.COMPLETED, charge = Money.ZERO),
@@ -212,7 +212,7 @@ class DaySummaryTest {
     }
 
     @Test
-    fun `a day that billed nothing - still to come - names its lessons and hours, and no money`() {
+    fun `a day that billed nothing - still to come - names its lessons and hours but no money`() {
         val parts = summary(1, 60, Money.ZERO, cancelled = 0).parts
 
         assertEquals(listOf(DaySummary.Part.Lessons(1), DaySummary.Part.Hours(60)), parts)

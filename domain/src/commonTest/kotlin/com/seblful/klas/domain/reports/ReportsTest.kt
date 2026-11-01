@@ -334,7 +334,7 @@ class ReportsTest {
     }
 
     @Test
-    fun `what is outstanding carries who owes it, most first`() {
+    fun `what is outstanding carries who owes it with the most first`() {
         val balances = listOf(
             StudentBalance(1, charged = Money(5000), paid = Money(2000)), // owes 3000
             StudentBalance(2, charged = Money(4000), paid = Money(9000)), // credit
@@ -394,7 +394,7 @@ class ReportsTest {
     }
 
     @Test
-    fun `a bar's key encodes its month, which the module unpacks`() {
+    fun `a bar's key encodes its month and the module unpacks it`() {
         val classes = listOf(
             klass(1, 10, "2026-02-10T10:00:00Z", 6000),
             klass(1, 10, "2026-11-10T10:00:00Z", 3000),

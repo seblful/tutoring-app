@@ -35,7 +35,7 @@ class BackupRestoreLastBackupTest {
     }
 
     @Test
-    fun `a file dated in the future counts from the restore, so the weekly copy is not held off`() = runTest {
+    fun `a file dated in the future counts from the restore so the weekly copy is not held off`() = runTest {
         env.backupRestore.restore(backupMadeAt(env.clock.now() + 30.days))
 
         assertEquals(env.clock.now(), lastBackup())

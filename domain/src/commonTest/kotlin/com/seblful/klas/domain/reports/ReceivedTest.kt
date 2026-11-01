@@ -22,7 +22,7 @@ class ReceivedTest {
         Payment(studentId = studentId, date = Instant.parse(at), amount = Money(amount), method = method)
 
     @Test
-    fun `only the period's payments count, by the day they land on in the tutor's zone`() {
+    fun `only the period's payments count by the day they land on in the tutor's zone`() {
         val received = Reports.received(
             listOf(
                 paid("2026-06-01T10:00:00Z", 3000),
@@ -39,7 +39,7 @@ class ReceivedTest {
     }
 
     @Test
-    fun `the split follows the order methods are offered in, the unsaid last`() {
+    fun `the split follows the order methods are offered in with the unsaid last`() {
         val received = Reports.received(
             listOf(
                 paid("2026-06-02T10:00:00Z", 1000),
@@ -70,7 +70,7 @@ class ReceivedTest {
     }
 
     @Test
-    fun `received is money in, not income - a payment in advance counts with nothing taught`() {
+    fun `received is money in rather than income - a payment in advance counts with nothing taught`() {
         val report = Reports.of(
             period = june,
             classes = emptyList(),

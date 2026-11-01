@@ -34,7 +34,7 @@ class LessonHistoryTest {
     private val rows = listOf(planned, taught, taughtToo, cancelled)
 
     @Test
-    fun `lessons are cut into months in their order, each with what was held and earned`() {
+    fun `lessons are cut into months in their order each with what was held and earned`() {
         val months = LessonMonth.of(rows, TimeZone.UTC)
 
         assertEquals(listOf(YearMonth(2026, 11), YearMonth(2026, 10)), months.map { it.month })

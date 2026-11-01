@@ -114,7 +114,7 @@ class HomeworkQueryTest {
     }
 
     @Test
-    fun `the dialog puts the nearest lesson's student first, with the lesson it will go to`() =
+    fun `the dialog puts the nearest lesson's student first with the lesson it will go to`() =
         runTest {
             val maths = fixtures.subject()
             val anya = fixtures.pricedStudent("Аня", maths)
@@ -293,7 +293,7 @@ class HomeworkQueryTest {
     }
 
     @Test
-    fun `filtered to a student, the tab shows theirs and their group's`() = runTest {
+    fun `filtered to a student the tab shows theirs and their group's`() = runTest {
         val maths = fixtures.subject()
         val anya = fixtures.pricedStudent("Аня", maths)
         val boris = fixtures.pricedStudent("Борис", maths)
@@ -314,7 +314,7 @@ class HomeworkQueryTest {
     }
 
     @Test
-    fun `filtered to a group, then cleared, the tab shows the group's and then everybody's`() =
+    fun `filtered to a group and then cleared the tab shows the group's and then everybody's`() =
         runTest {
             val maths = fixtures.subject()
             val anya = fixtures.pricedStudent("Аня", maths)

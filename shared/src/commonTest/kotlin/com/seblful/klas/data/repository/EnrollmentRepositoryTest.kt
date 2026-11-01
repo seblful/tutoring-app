@@ -85,7 +85,7 @@ class EnrollmentRepositoryTest {
     }
 
     @Test
-    fun `setSubjects enrolls the new, reprices the moved and drops the left out in one go`() = runTest {
+    fun `setSubjects enrolls the new and reprices the moved and drops the left out in one go`() = runTest {
         repo.enroll(studentId = 1, subjectId = 1, price = Money.ofMajor(20))
         repo.enroll(studentId = 1, subjectId = 2, price = Money.ofMajor(30))
 

@@ -16,21 +16,21 @@ class HomeworkSectionTest {
     private fun later(at: String) = HomeworkSection.of(Due.LATER, Instant.parse(at), today, zone)
 
     @Test
-    fun `a later lesson within seven days is in the next seven days, and one a week out is later`() {
+    fun `a later lesson within seven days is in the next seven days and one a week out is later`() {
         assertEquals(HomeworkSection.NEXT_7_DAYS, later("2026-06-07T09:00:00Z"))
         assertEquals(HomeworkSection.NEXT_7_DAYS, later("2026-06-12T23:00:00Z"))
         assertEquals(HomeworkSection.LATER, later("2026-06-13T09:00:00Z"))
     }
 
     @Test
-    fun `overdue, today and unbooked keep their own sections`() {
+    fun `overdue and today and unbooked keep their own sections`() {
         assertEquals(HomeworkSection.OVERDUE, HomeworkSection.of(Due.OVERDUE, null, today, zone))
         assertEquals(HomeworkSection.TODAY, HomeworkSection.of(Due.TODAY, null, today, zone))
         assertEquals(HomeworkSection.UNBOOKED, HomeworkSection.of(Due.UNBOOKED, null, today, zone))
     }
 
     @Test
-    fun `rows are cut into their sections in order, empty sections left out, done rows dropped`() {
+    fun `rows are cut into their sections in order with empty sections left out and done rows dropped`() {
         fun row(id: Long, section: HomeworkSection?) = HomeworkRow(
             homework = Homework(id, Assignee.Student(1), "Task $id", Instant.parse("2026-06-01T09:00:00Z")),
             title = "Аня",

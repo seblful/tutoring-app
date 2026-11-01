@@ -54,7 +54,7 @@ class AutoBackupTest {
     }
 
     @Test
-    fun `a week passes between copies, and a manual export counts as the week's`() = runTest {
+    fun `a week passes between copies and a manual export counts as the week's`() = runTest {
         pick()
         exports.toDocument(DocumentRef("manual-backup"))
 
@@ -78,7 +78,7 @@ class AutoBackupTest {
     }
 
     @Test
-    fun `a backup dated after now is no evidence of one - due, and stale`() {
+    fun `a backup dated after now is no evidence of one - due and stale`() {
         val now = env.clock.now()
 
         assertTrue(AutoBackup.isDue(now + 1.days, now))
@@ -88,7 +88,7 @@ class AutoBackupTest {
     }
 
     @Test
-    fun `only the newest copies are kept, and files saved by hand are never touched`() = runTest {
+    fun `only the newest copies are kept and files saved by hand are never touched`() = runTest {
         pick()
         folders.files[FOLDER] = mutableMapOf("klas-backup-2026-05-01.json" to "{}", "notes.txt" to "")
 
@@ -105,7 +105,7 @@ class AutoBackupTest {
     }
 
     @Test
-    fun `a folder that can no longer be reached is flagged, and a later copy clears it`() = runTest {
+    fun `a folder that can no longer be reached is flagged and a later copy clears it`() = runTest {
         pick()
         folders.revoked += FOLDER
 

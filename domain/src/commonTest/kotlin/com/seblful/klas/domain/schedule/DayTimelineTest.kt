@@ -58,7 +58,7 @@ class DayTimelineTest {
     }
 
     @Test
-    fun `the free time a lesson fits in is written out, the last stretch running to the day's end`() {
+    fun `the free time a lesson fits in is written out with the last stretch running to the day's end`() {
         assertEquals(
             listOf(at(9) to at(15, 30), at(16, 30) to at(18), at(19, 30) to at(23)),
             thursday.freeFor(60),

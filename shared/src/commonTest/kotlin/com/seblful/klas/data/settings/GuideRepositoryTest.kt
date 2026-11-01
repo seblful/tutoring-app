@@ -47,7 +47,7 @@ class GuideRepositoryTest {
     }
 
     @Test
-    fun `seen tips and the hidden card are kept, and showing again brings both back`() = runTest {
+    fun `seen tips and the hidden card are kept and showing again brings both back`() = runTest {
         env.guideRepo.seen(Tip.LESSON_SWIPE)
         env.guideRepo.seen(Tip.SCHEDULE_DATE)
         env.guideRepo.setFirstStepsHidden(true)

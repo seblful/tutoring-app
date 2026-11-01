@@ -49,7 +49,7 @@ class CurrencyTest {
     }
 
     @Test
-    fun `the stored fallback is the app's oldest currency, not the region fallback`() {
+    fun `the stored fallback is the app's oldest currency rather than the region fallback`() {
         assertEquals(Currency.BYN, Currency.LEGACY)
         assertEquals(Currency.LEGACY, Currency.parse("XYZ"))
         assertNotEquals(Currency.LEGACY, Currency.FALLBACK)

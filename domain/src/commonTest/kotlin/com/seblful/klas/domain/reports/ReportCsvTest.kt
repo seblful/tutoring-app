@@ -72,7 +72,7 @@ class ReportCsvTest {
     }
 
     @Test
-    fun `money received follows the income, split by method when any payment said one`() {
+    fun `money received follows the income split by method when any payment said one`() {
         val report = Reports.Report(
             period = ReportPeriod(ReportPeriod.Kind.MONTH, YearMonth(2026, 6)),
             totalIncome = Money(9000),
@@ -94,7 +94,7 @@ class ReportCsvTest {
     }
 
     @Test
-    fun `a period nothing was paid in has no received section, and unsaid methods no split`() {
+    fun `a period nothing was paid in has no received section and unsaid methods no split`() {
         val period = ReportPeriod(ReportPeriod.Kind.MONTH, YearMonth(2026, 6))
         val unpaid = Reports.Report(period = period, totalIncome = Money(9000))
         val unsaid = unpaid.copy(
@@ -313,7 +313,7 @@ class ReportCsvTest {
     }
 
     @Test
-    fun `the ledger file is a row per entry - ISO day, kind, student, subject or method, amount`() {
+    fun `the ledger file is a row per entry - ISO day then kind then student then subject or method then amount`() {
         val report = ledgerOf(
             classes = listOf(taught(1, "2026-06-14T10:00:00Z", 3000)),
             payments = listOf(paid("2026-06-15T08:00:00Z", 6000)),

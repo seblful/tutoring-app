@@ -16,7 +16,7 @@ class PaymentSuggestionsTest {
     }
 
     @Test
-    fun `nothing owed offers no balance, but a lesson in advance`() {
+    fun `nothing owed offers no balance but a lesson in advance`() {
         assertEquals(
             PaymentSuggestions(fullBalance = null, oneLesson = Money(3000)),
             PaymentSuggestions.of(Balance.Settled, lastLessonCharge = Money(3000)),
@@ -28,7 +28,7 @@ class PaymentSuggestionsTest {
     }
 
     @Test
-    fun `one amount is never offered twice, and a free lesson is not offered`() {
+    fun `one amount is never offered twice and a free lesson is not offered`() {
         assertEquals(
             PaymentSuggestions(fullBalance = Money(3000), oneLesson = null),
             PaymentSuggestions.of(Balance.Owed(Money(3000)), lastLessonCharge = Money(3000)),

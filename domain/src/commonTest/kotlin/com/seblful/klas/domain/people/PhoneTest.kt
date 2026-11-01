@@ -50,7 +50,7 @@ class PhoneTest {
     }
 
     @Test
-    fun `a national number takes the code of the tutor's country, without its trunk prefix`() {
+    fun `a national number takes the code of the tutor's country without its trunk prefix`() {
         assertEquals("+375291234567", Phone.international("29 123-45-67", Currency.BYN))
         assertEquals("+375291234567", Phone.international("8 029 123-45-67", Currency.BYN))
         assertEquals("+79161234567", Phone.international("8 916 123-45-67", Currency.RUB))

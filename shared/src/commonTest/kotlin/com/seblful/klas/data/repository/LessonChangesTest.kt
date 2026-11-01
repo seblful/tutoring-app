@@ -118,7 +118,7 @@ class LessonChangesTest {
     }
 
     @Test
-    fun `an undo refuses an hour booked since, and the calendar catches up with the cancel`() = runTest {
+    fun `an undo refuses an hour booked since and the calendar catches up with the cancel`() = runTest {
         val changes = writer()
         val lesson = mirroredLesson()
         val receipt = changes.setStatus(lesson, LessonStatus.CANCELLED).change()

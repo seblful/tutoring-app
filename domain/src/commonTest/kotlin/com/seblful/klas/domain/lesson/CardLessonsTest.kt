@@ -26,7 +26,7 @@ class CardLessonsTest {
         CardLessons.preview(rows.toList(), now, limit = 2) { it }.map { it.id }
 
     @Test
-    fun `one under way is next, ahead of a later booking`() {
+    fun `one under way is next ahead of a later booking`() {
         val rows = arrayOf(
             lesson(1, "2026-06-14T16:00:00Z"),
             lesson(3, "2026-06-16T16:00:00Z"),
@@ -36,12 +36,12 @@ class CardLessonsTest {
     }
 
     @Test
-    fun `a cancelled lesson is never next, and with none left there is none`() {
+    fun `a cancelled lesson is never next and with none left there is none`() {
         assertNull(next(lesson(1, "2026-06-16T16:00:00Z", LessonStatus.CANCELLED), lesson(2, "2026-06-14T16:00:00Z")))
     }
 
     @Test
-    fun `the preview is the latest begun, newest first, without the next`() {
+    fun `the preview is the latest begun newest first without the next`() {
         val rows = arrayOf(
             lesson(1, "2026-06-10T16:00:00Z"),
             lesson(2, "2026-06-12T16:00:00Z"),
@@ -52,7 +52,7 @@ class CardLessonsTest {
     }
 
     @Test
-    fun `with nothing begun the preview is the bookings after the next, soonest first`() {
+    fun `with nothing begun the preview is the bookings after the next soonest first`() {
         val rows = arrayOf(
             lesson(3, "2026-06-20T16:00:00Z"),
             lesson(1, "2026-06-16T16:00:00Z"),

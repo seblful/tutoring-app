@@ -112,7 +112,7 @@ class PaymentRepositoryTest {
     }
 
     @Test
-    fun `a payment keeps how it was made, and a correction can change it`() = runTest {
+    fun `a payment keeps how it was made and a correction can change it`() = runTest {
         val sid = student()
         payments.record(sid, Money.ofMajor(40), today, PaymentMethod.CASH)
         val original = payments.observeForStudent(sid).first().single()
