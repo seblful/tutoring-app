@@ -104,6 +104,9 @@ android {
         unitTests.all {
             // Match device rendering for screenshot tests.
             it.systemProperty("robolectric.pixelCopyRenderMode", "hardware")
+            // The formatters write times in the device's zone, so the JVM's must be testClock()'s;
+            // otherwise a lesson set at 15:30 reads 12:30 on a UTC runner.
+            it.systemProperty("user.timezone", "Europe/Minsk")
             // The demo tutors' words, one demo.json per language (DemoTutor).
             it.systemProperty("klas.store.text", rootProject.file("store/text").absolutePath)
             it.inputs.files(rootProject.fileTree("store/text") { include("*/demo.json") })

@@ -134,6 +134,8 @@ class TutorWorkflowTest {
             }
 
             compose.onNodeWithText("Workflow student").performClick()
+            // The sheet opens over a list the undo is still redrawing; on a slower machine it is not there yet.
+            waitFor(R.string.homework_add)
             compose.onNodeWithText(text(R.string.homework_add)).performScrollTo().assertExists()
             compose.onNodeWithText(text(R.string.add_payment)).performScrollTo().assertExists()
             sheetClick(R.string.class_open_student)
