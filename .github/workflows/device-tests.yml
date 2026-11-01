@@ -74,6 +74,9 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v6
         with:
+          # The MIT provider: v6's default "enhanced" cache is a proprietary component under
+          # Gradle's Terms of Use.
+          cache-provider: basic
           cache-read-only: true
 
       # Hardware acceleration for the emulator; without it an x86_64 image boots for many minutes, if at all.
