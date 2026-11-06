@@ -25,7 +25,9 @@ concurrency:
 jobs:
   publish:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # All 25 languages' graphics, one upload at a time, take well over 15 minutes. Under 60: the
+    # service account's access token lasts an hour.
+    timeout-minutes: 50
     steps:
       - uses: actions/checkout@v7
 

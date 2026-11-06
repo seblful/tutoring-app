@@ -94,21 +94,24 @@ export async function publishListing(api, listing, { validate = false, log = con
   const edit = await api.insertEdit();
   const changed = [];
   try {
-    for (const local of listing) {
+    for (const [i, local] of listing.entries()) {
+      const before = changed.length;
       const remote = await api.getListing(edit, local.locale);
       const wanted = wantedListing(local, remote);
       if (!sameListing(wanted, remote)) {
         await api.putListing(edit, local.locale, wanted);
         changed.push(`${local.locale} words${wanted.video !== (remote?.video ?? "") ? " and video" : ""}`);
       }
-      if (!local.graphics) continue;
-      for (const type of IMAGE_TYPES) {
+      for (const type of local.graphics ? IMAGE_TYPES : []) {
         const paths = local.graphics[type];
         if (sameImages(paths, await api.listImages(edit, local.locale, type))) continue;
         await api.deleteAllImages(edit, local.locale, type);
         for (const path of paths) await api.uploadImage(edit, local.locale, type, readFileSync(path));
         changed.push(`${local.locale} ${type}`);
       }
+      // Uploading every language's graphics takes many minutes: a line per language shows it moving.
+      const sent = changed.slice(before).map((what) => what.slice(local.locale.length + 1));
+      log(`${i + 1}/${listing.length} ${local.locale}: ${sent.length ? sent.join(", ") : "unchanged"}`);
     }
     if (!changed.length) {
       log("Play already shows this listing; nothing to send.");

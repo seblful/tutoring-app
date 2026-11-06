@@ -110,6 +110,20 @@ test("changed words and a changed image type are sent, the type replaced whole, 
   ]);
 });
 
+test("each language is reported as it is done, so a long upload shows progress", async (t) => {
+  const listing = readListing(store(t, ["de-DE", "en-US"], { drawn: ["en-US"] }));
+  const play = fakePlay({
+    listings: { "de-DE": { title: "Klas", shortDescription: "Short de-DE", fullDescription: "Full de-DE", video: "" } },
+    images: { "en-US/icon": hashed("icon en-US") },
+  });
+  const lines = [];
+  await publishListing(play, listing, { log: (line) => lines.push(line) });
+  assert.deepEqual(lines.slice(0, 2), [
+    "1/2 de-DE: unchanged",
+    "2/2 en-US: words, featureGraphic, phoneScreenshots",
+  ]);
+});
+
 test("a language Play has no listing for yet is added", async (t) => {
   const listing = readListing(store(t, ["kk"]));
   const play = fakePlay();
