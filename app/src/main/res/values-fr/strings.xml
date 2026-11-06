@@ -428,7 +428,7 @@
     <string name="settings_agenda">Ordre du jour quotidien des cours</string>
     <string name="settings_agenda_desc">Envoyez quotidiennement les leçons du jour à l\'heure sélectionnée</string>
     <string name="settings_agenda_time">Quand envoyer</string>
-    <string name="settings_unfinished_digest">Cours non notés</string>
+    <string name="settings_unfinished_digest">Cours non marqués</string>
     <string name="settings_unfinished_digest_desc">À l’heure choisie, afficher les cours terminés aujourd’hui qui ne sont encore marqués ni comme donnés ni comme annulés</string>
     <string name="settings_unfinished_digest_time">Quand envoyer</string>
     <string name="settings_debt_digest">Récapitulatif de la dette</string>
@@ -744,12 +744,12 @@
     <string name="class_correction_changed">La leçon a changé. Ouvrez-le à nouveau pour corriger son état.</string>
     <string name="class_repeat_independent_hint">Crée des leçons séparées. Modifiez ou annulez chaque leçon individuellement.</string>
     <string name="reports_earned_hint">Montant gagné sur les cours donnés, payés ou non.</string>
-    <string name="widget_today_name">Les leçons du jour</string>
+    <string name="widget_today_name">Les cours du jour</string>
     <string name="widget_today_description">Marquez les cours du jour comme donnés en un geste</string>
     <string name="widget_today_locked">Débloquez pour voir les leçons du jour</string>
     <string name="widget_today_empty">Pas de cours aujourd\'hui</string>
     <string name="widget_quick_actions_name">Raccourcis Klas</string>
-    <string name="widget_quick_actions_description">Réservez un cours, ajoutez un élève ou ouvrez aujourd\'hui, devoirs et dettes</string>
+    <string name="widget_quick_actions_description">Réservez un cours, ajoutez un élève ou ouvrez Aujourd\'hui, les devoirs et les dettes</string>
     <string-array name="widget_preview_lessons">
         <item>Anna Sokolova</item>
         <item>Algèbre</item>
@@ -789,7 +789,7 @@
     <string name="today_mark_one">Marquer le cours avec %1$s, %2$s comme donné</string>
     <string name="today_lessons">Les leçons du jour</string>
     <string name="today_no_lessons">Pas de cours aujourd\'hui</string>
-    <string name="today_owed">Je vous dois</string>
+    <string name="today_owed">On vous doit</string>
     <string name="today_backup_old">Dernière sauvegarde %1$s</string>
     <string name="today_backup_never">Pas encore de sauvegarde</string>
     <string name="today_backup_detail">Vos données se trouvent uniquement sur ce téléphone.</string>

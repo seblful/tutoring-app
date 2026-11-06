@@ -149,7 +149,7 @@
     <string name="class_location_label">Plats</string>
     <string name="class_mode_in_person">Personligen</string>
     <string name="class_mode_remote">På distans</string>
-    <string name="class_move">Omschema</string>
+    <string name="class_move">Boka om</string>
     <string name="class_gone">Denna lektion finns inte längre</string>
     <string name="class_gone_detail">Den raderades efter att den öppnats. Gå tillbaka till schemat för att hitta den lektion du behöver.</string>
     <string name="class_delete_confirm">Ta bort den här lektionen?</string>
@@ -527,7 +527,7 @@
     <string name="debts_title">Skulder</string>
     <string name="upkeep_channel_name">Lektioner markerade undervisade</string>
     <string name="upkeep_channel_desc">En rapport över de lektioner som markerades automatiskt</string>
-    <string name="upkeep_completed_title">Lektioner markerade lärs ut automatiskt</string>
+    <string name="upkeep_completed_title">Lektioner markerade som genomförda automatiskt</string>
     <string name="people_next_today">Idag %1$s</string>
     <string name="people_next_tomorrow">I morgon %1$s</string>
     <string name="people_next_weekday">%1$s %2$s</string>
@@ -628,7 +628,7 @@
     <string name="backup_undo_restore_action">Lägg tillbaka</string>
     <string name="backup_restore_undone">Data från före importen är tillbaka</string>
     <string name="backup_stale_detail">För över två veckor sedan. Allt sedan dess finns bara på den här telefonen.</string>
-    <string name="backup_weekly_header">Veckoexemplar</string>
+    <string name="backup_weekly_header">Veckokopia</string>
     <string name="backup_weekly_off">Spara en kopia varje vecka</string>
     <string name="backup_weekly_off_desc">Välj en mapp på den här telefonen eller i en molnenhet.</string>
     <plurals name="backup_weekly_keeps">
@@ -722,7 +722,7 @@
     <string name="widget_today_locked">Lås upp för att se dagens lektioner</string>
     <string name="widget_today_empty">Inga lektioner idag</string>
     <string name="widget_quick_actions_name">Klas genvägar</string>
-    <string name="widget_quick_actions_description">Boka en lektion, lägg till en elev eller öppna idag, läxor och skulder</string>
+    <string name="widget_quick_actions_description">Boka en lektion, lägg till en elev eller öppna Idag, läxor och skulder</string>
     <string-array name="widget_preview_lessons">
         <item>Anna Sokolova</item>
         <item>Algebra</item>
@@ -758,11 +758,11 @@
     <string name="nav_today">Idag</string>
     <string name="today_now">Nu</string>
     <string name="today_to_mark">Avslutade, men inte markerade</string>
-    <string name="today_mark_all">Markera alla undervisade</string>
-    <string name="today_mark_one">Mark %1$s, %2$s lärde ut</string>
+    <string name="today_mark_all">Markera alla som genomförda</string>
+    <string name="today_mark_one">Markera som genomförd: %1$s, %2$s</string>
     <string name="today_lessons">Dagens lektioner</string>
     <string name="today_no_lessons">Inga lektioner idag</string>
-    <string name="today_owed">Tack vare dig</string>
+    <string name="today_owed">Du har att fordra</string>
     <string name="today_backup_old">Senaste säkerhetskopian %1$s</string>
     <string name="today_backup_never">Ingen säkerhetskopia ännu</string>
     <string name="today_backup_detail">Din data finns endast på den här telefonen.</string>
@@ -812,7 +812,7 @@
         <item quantity="other">Lektioner som ändrats efter valet: %1$d. De lämnades oförändrade.</item>
     </plurals>
     <string name="batch_select">Välj</string>
-    <string name="batch_mark_taught">Mark undervisade</string>
+    <string name="batch_mark_taught">Markera som genomförda</string>
     <string name="batch_cancel">Avbryt lektioner</string>
     <string name="batch_none_marked">Bara planerade lektioner kan markeras som genomförda</string>
     <string name="batch_none_cancelled">Dessa lektioner är redan inställda</string>
@@ -902,7 +902,7 @@
         <item quantity="other">%1$d grupper</item>
     </plurals>
     <string name="money_range" translatable="false">%1$s–%2$s</string>
-    <string name="widget_mark_lesson">Mark %1$s, %2$s lärde ut</string>
+    <string name="widget_mark_lesson">Markera som genomförd: %1$s, %2$s</string>
     <string name="widget_lesson_taught">%1$s, %2$s: genomförd</string>
     <string name="batch_clear">Rensa val</string>
     <string name="onboarding_ready_title">Allt klart</string>

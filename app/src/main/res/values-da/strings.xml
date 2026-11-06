@@ -149,7 +149,7 @@
     <string name="class_location_label">Placering</string>
     <string name="class_mode_in_person">Personligt</string>
     <string name="class_mode_remote">Online</string>
-    <string name="class_move">Omplan</string>
+    <string name="class_move">Skift tidspunkt</string>
     <string name="class_gone">Denne lektion eksisterer ikke længere</string>
     <string name="class_gone_detail">Den blev slettet efter at denne blev åbnet. Gå tilbage til skemaet for at finde den lektion, du har brug for.</string>
     <string name="class_delete_confirm">Vil du slette denne lektion?</string>
@@ -527,7 +527,7 @@
     <string name="debts_title">Gæld</string>
     <string name="upkeep_channel_name">Lektioner mærket undervist</string>
     <string name="upkeep_channel_desc">En rapport over de lektioner, der er markeret undervist automatisk</string>
-    <string name="upkeep_completed_title">Lektioner markeret undervises automatisk</string>
+    <string name="upkeep_completed_title">Lektioner automatisk markeret som afholdt</string>
     <string name="people_next_today">I dag %1$s</string>
     <string name="people_next_tomorrow">I morgen %1$s</string>
     <string name="people_next_weekday">%1$s %2$s</string>
@@ -628,7 +628,7 @@
     <string name="backup_undo_restore_action">Sæt tilbage</string>
     <string name="backup_restore_undone">Dataene fra før importen er tilbage</string>
     <string name="backup_stale_detail">For over to uger siden. Alt siden da er kun på denne telefon.</string>
-    <string name="backup_weekly_header">Ugentligt eksemplar</string>
+    <string name="backup_weekly_header">Ugentlig kopi</string>
     <string name="backup_weekly_off">Gem en kopi hver uge</string>
     <string name="backup_weekly_off_desc">Vælg en mappe på denne telefon eller i et skydrev.</string>
     <plurals name="backup_weekly_keeps">
@@ -722,7 +722,7 @@
     <string name="widget_today_locked">Lås op for at se dagens lektioner</string>
     <string name="widget_today_empty">Ingen undervisning i dag</string>
     <string name="widget_quick_actions_name">Klas genveje</string>
-    <string name="widget_quick_actions_description">Book en lektion, tilføj en elev, eller åbn i dag, lektier og gæld</string>
+    <string name="widget_quick_actions_description">Book en lektion, tilføj en elev eller åbn I dag, lektier og gæld</string>
     <string-array name="widget_preview_lessons">
         <item>Anna Sokolova</item>
         <item>Algebra</item>
@@ -758,8 +758,8 @@
     <string name="nav_today">I dag</string>
     <string name="today_now">Nu</string>
     <string name="today_to_mark">Afsluttet, men ikke markeret</string>
-    <string name="today_mark_all">Marker alle underviste</string>
-    <string name="today_mark_one">Mark %1$s, %2$s underviste</string>
+    <string name="today_mark_all">Markér alle som afholdt</string>
+    <string name="today_mark_one">Markér som afholdt: %1$s, %2$s</string>
     <string name="today_lessons">Dagens lektioner</string>
     <string name="today_no_lessons">Ingen undervisning i dag</string>
     <string name="today_owed">Skyldes dig</string>
@@ -812,7 +812,7 @@
         <item quantity="other">Lektioner ændret efter valget: %1$d. De er ikke blevet ændret igen.</item>
     </plurals>
     <string name="batch_select">Vælg</string>
-    <string name="batch_mark_taught">Mark underviste</string>
+    <string name="batch_mark_taught">Markér som afholdt</string>
     <string name="batch_cancel">Aflys lektioner</string>
     <string name="batch_none_marked">Kun planlagte lektioner kan markeres som afholdt</string>
     <string name="batch_none_cancelled">Disse lektioner er allerede aflyst</string>
@@ -829,7 +829,7 @@
         <item quantity="one">%1$d markeret udført</item>
         <item quantity="other">%1$d markeret udført</item>
     </plurals>
-    <string name="homework_batch_mark_done">Mark færdig</string>
+    <string name="homework_batch_mark_done">Markér som færdig</string>
     <string name="homework_section_past">Tidligere lektioner</string>
     <string name="homework_section_today">Dagens lektioner</string>
     <string name="homework_section_next_7_days">Lektioner i de næste 7 dage</string>
@@ -902,7 +902,7 @@
         <item quantity="other">%1$d grupper</item>
     </plurals>
     <string name="money_range" translatable="false">%1$s–%2$s</string>
-    <string name="widget_mark_lesson">Mark %1$s, %2$s underviste</string>
+    <string name="widget_mark_lesson">Markér som afholdt: %1$s, %2$s</string>
     <string name="widget_lesson_taught">%1$s, %2$s: afholdt</string>
     <string name="batch_clear">Ryd markeringen</string>
     <string name="onboarding_ready_title">Alt i orden</string>

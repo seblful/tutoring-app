@@ -776,7 +776,7 @@
     <string name="widget_today_locked">Odblokuj, aby zobaczyć dzisiejsze lekcje</string>
     <string name="widget_today_empty">Dzisiaj nie ma lekcji</string>
     <string name="widget_quick_actions_name">Skróty Klas</string>
-    <string name="widget_quick_actions_description">Zarezerwuj lekcję, dodaj ucznia lub otwórz już dziś zadanie domowe i długi</string>
+    <string name="widget_quick_actions_description">Zarezerwuj lekcję, dodaj ucznia lub otwórz Dzisiaj, prace domowe i długi</string>
     <string-array name="widget_preview_lessons">
         <item>Anna Sokołowa</item>
         <item>Algebra</item>
@@ -816,7 +816,7 @@
     <string name="today_mark_one">Oznacz lekcję z %1$s, %2$s jako przeprowadzoną</string>
     <string name="today_lessons">Dzisiejsze lekcje</string>
     <string name="today_no_lessons">Dzisiaj nie ma lekcji</string>
-    <string name="today_owed">Jestem ci dłużny</string>
+    <string name="today_owed">Do odebrania</string>
     <string name="today_backup_old">Ostatnia kopia zapasowa %1$s</string>
     <string name="today_backup_never">Nie ma jeszcze kopii zapasowej</string>
     <string name="today_backup_detail">Twoje dane znajdują się tylko w tym telefonie.</string>

@@ -396,7 +396,7 @@
     <string name="settings_agenda">毎日のレッスンの予定</string>
     <string name="settings_agenda_desc">今日のレッスンを毎日選択した時間に送信します</string>
     <string name="settings_agenda_time">いつ送信するか</string>
-    <string name="settings_unfinished_digest">マークのないレッスン</string>
+    <string name="settings_unfinished_digest">状態未記録のレッスン</string>
     <string name="settings_unfinished_digest_desc">選択した時間に、まだ指導済みまたはキャンセル済みとしてマークされていない、終了した今日のレッスンをリストします</string>
     <string name="settings_unfinished_digest_time">いつ送信するか</string>
     <string name="settings_debt_digest">負債の概要</string>
@@ -501,11 +501,11 @@
         <item quantity="other">未記録のレッスン：%1$d回</item>
     </plurals>
     <string name="debts_channel_name">未払い金</string>
-    <string name="debts_channel_desc">毎週の要約: 誰が何を借りているのか</string>
+    <string name="debts_channel_desc">週次まとめ：生徒ごとの未払い金</string>
     <string name="debts_title">未払い金</string>
     <string name="upkeep_channel_name">教えられたとマークされたレッスン</string>
     <string name="upkeep_channel_desc">自動的に教えられたとマークされたレッスンのレポート</string>
-    <string name="upkeep_completed_title">マークが付いたレッスンは自動的に教えられます</string>
+    <string name="upkeep_completed_title">レッスンを自動で実施済みにしました</string>
     <string name="people_next_today">今日 %1$s</string>
     <string name="people_next_tomorrow">明日 %1$s</string>
     <string name="people_next_weekday">%1$s %2$s</string>
@@ -602,7 +602,7 @@
     <string name="backup_undo_restore_action">元に戻す</string>
     <string name="backup_restore_undone">インポート前のデータが戻ってきました</string>
     <string name="backup_stale_detail">2週間以上前。それ以降はすべてこの電話上でのみ保存されます。</string>
-    <string name="backup_weekly_header">週刊コピー</string>
+    <string name="backup_weekly_header">毎週のコピー</string>
     <string name="backup_weekly_off">毎週コピーを保存します</string>
     <string name="backup_weekly_off_desc">この電話上またはクラウド ドライブ内のフォルダを選択します。</string>
     <plurals name="backup_weekly_keeps">
@@ -695,7 +695,7 @@
     <string name="widget_today_locked">ロックを解除して今日のレッスンをご覧ください</string>
     <string name="widget_today_empty">今日はレッスンはありません</string>
     <string name="widget_quick_actions_name">Klas ショートカット</string>
-    <string name="widget_quick_actions_description">レッスンを予約したり、生徒を追加したり、今日から宿題や未払い金をオープンしたりできます</string>
+    <string name="widget_quick_actions_description">レッスンの予約、生徒の追加、「今日」・宿題・未払い金を開く</string>
     <string-array name="widget_preview_lessons">
         <item>アンナ・ソコロワ</item>
         <item>代数</item>
@@ -731,11 +731,11 @@
     <string name="nav_today">今日</string>
     <string name="today_now">今</string>
     <string name="today_to_mark">終了・状態未記録</string>
-    <string name="today_mark_all">教えられたすべてにマークを付ける</string>
-    <string name="today_mark_one">マーク %1$s、%2$s が教えました</string>
+    <string name="today_mark_all">すべて実施済みにする</string>
+    <string name="today_mark_one">実施済みにする：%1$s、%2$s</string>
     <string name="today_lessons">今日のレッスン</string>
     <string name="today_no_lessons">今日はレッスンはありません</string>
-    <string name="today_owed">あなたに借りがあります</string>
+    <string name="today_owed">受け取る金額</string>
     <string name="today_backup_old">最終バックアップ %1$s</string>
     <string name="today_backup_never">バックアップがまだありません</string>
     <string name="today_backup_detail">あなたのデータはこの電話にのみ保存されます。</string>
@@ -781,7 +781,7 @@
         <item quantity="other">選択後に変更された%1$d回のレッスンは、そのままにしました。</item>
     </plurals>
     <string name="batch_select">選択してください</string>
-    <string name="batch_mark_taught">マークが教えた</string>
+    <string name="batch_mark_taught">実施済みにする</string>
     <string name="batch_cancel">レッスンをキャンセルする</string>
     <string name="batch_none_marked">予定済みのレッスンだけを実施済みにできます</string>
     <string name="batch_none_cancelled">これらのレッスンはすでにキャンセルされています</string>
@@ -864,7 +864,7 @@
         <item quantity="other">%1$dグループ</item>
     </plurals>
     <string name="money_range" translatable="false">%1$s–%2$s</string>
-    <string name="widget_mark_lesson">マーク %1$s、%2$s が教えました</string>
+    <string name="widget_mark_lesson">実施済みにする：%1$s、%2$s</string>
     <string name="widget_lesson_taught">%1$s、%2$s：実施済み</string>
     <string name="batch_clear">選択をクリア</string>
     <string name="onboarding_ready_title">すべて準備完了</string>

@@ -26,7 +26,7 @@
     <string name="action_search">Пошук</string>
     <string name="search_clear">Ачысціць</string>
     <string name="search_close">Зачыніць пошук</string>
-    <string name="sheet_drag_handle">Марка перацягвання</string>
+    <string name="sheet_drag_handle">Ручка перацягвання</string>
     <string name="sheet_dismiss">Закрыць панэль</string>
     <string name="search_no_results">Нічога не знойдзена</string>
     <string name="search_no_results_detail">Паспрабуйце іншы пошук</string>
@@ -444,7 +444,7 @@
     <string name="settings_agenda">Штодзённы расклад урокаў</string>
     <string name="settings_agenda_desc">Адпраўляць сённяшнія ўрокі штодня ў выбраны час</string>
     <string name="settings_agenda_time">Калі адпраўляць</string>
-    <string name="settings_unfinished_digest">Урокі без адзнак</string>
+    <string name="settings_unfinished_digest">Непазначаныя ўрокі</string>
     <string name="settings_unfinished_digest_desc">Спіс скончаных сёння ўрокаў, якія яшчэ не пазначаны як праведзеныя або адмененыя, у выбраны час</string>
     <string name="settings_unfinished_digest_time">Калі адпраўляць</string>
     <string name="settings_debt_digest">Рэзюмэ запазычанасці</string>
@@ -571,7 +571,7 @@
     <string name="debts_title">Даўгі</string>
     <string name="upkeep_channel_name">Урокі пазначаны як праведзеныя</string>
     <string name="upkeep_channel_desc">Справаздача аб уроках, пазначаных як праведзеныя аўтаматычна</string>
-    <string name="upkeep_completed_title">Урокі, пазначаныя як выкладзеныя аўтаматычна</string>
+    <string name="upkeep_completed_title">Заняткі аўтаматычна пазначаны праведзенымі</string>
     <string name="people_next_today">Сёння %1$s</string>
     <string name="people_next_tomorrow">Заўтра %1$s</string>
     <string name="people_next_weekday">%1$s %2$s</string>
@@ -776,7 +776,7 @@
     <string name="widget_today_locked">Разблакіруйце, каб убачыць сённяшнія ўрокі</string>
     <string name="widget_today_empty">Сёння ўрокаў няма</string>
     <string name="widget_quick_actions_name">Ярлыкі Klas</string>
-    <string name="widget_quick_actions_description">Замоўце ўрок, дадайце вучня або адкрыйце сёння, хатняе заданне і даўгі</string>
+    <string name="widget_quick_actions_description">Замоўце ўрок, дадайце вучня або адкрыйце «Сёння», хатнія заданні і даўгі</string>
     <string-array name="widget_preview_lessons">
         <item>Ганна Сакалова</item>
         <item>Алгебра</item>
@@ -812,11 +812,11 @@
     <string name="nav_today">Сёння</string>
     <string name="today_now">Зараз</string>
     <string name="today_to_mark">Завершаныя, але яшчэ не пазначаныя</string>
-    <string name="today_mark_all">Адзначыць усё выкладзенае</string>
-    <string name="today_mark_one">Марка %1$s, %2$s выкладаў</string>
+    <string name="today_mark_all">Пазначыць усе праведзенымі</string>
+    <string name="today_mark_one">Пазначыць праведзеным: %1$s, %2$s</string>
     <string name="today_lessons">Сённяшнія ўрокі</string>
     <string name="today_no_lessons">Сёння ўрокаў няма</string>
-    <string name="today_owed">У абавязку перад вамі</string>
+    <string name="today_owed">Вам вінны</string>
     <string name="today_backup_old">Апошняя рэзервовая копія %1$s</string>
     <string name="today_backup_never">Рэзервовай копіі пакуль няма</string>
     <string name="today_backup_detail">Вашы дадзеныя знаходзяцца толькі на гэтым тэлефоне.</string>
@@ -874,7 +874,7 @@
         <item quantity="other">Заняткаў, змененых пасля выбару: %1$d. Яны пакінуты без змен.</item>
     </plurals>
     <string name="batch_select">Выберыце</string>
-    <string name="batch_mark_taught">Марк вучыў</string>
+    <string name="batch_mark_taught">Пазначыць праведзенымі</string>
     <string name="batch_cancel">Адмяніць урокі</string>
     <string name="batch_none_marked">Праведзенымі можна пазначыць толькі запланаваныя ўрокі</string>
     <string name="batch_none_cancelled">Гэтыя ўрокі ўжо скасаваныя</string>
@@ -897,7 +897,7 @@
         <item quantity="many">Пазначана як выкананыя: %1$d</item>
         <item quantity="other">Пазначана як выкананыя: %1$d</item>
     </plurals>
-    <string name="homework_batch_mark_done">Адзначыць зроблена</string>
+    <string name="homework_batch_mark_done">Пазначыць зробленымі</string>
     <string name="homework_section_past">Мінулыя ўрокі</string>
     <string name="homework_section_today">Сённяшнія ўрокі</string>
     <string name="homework_section_next_7_days">Урокі ў наступныя 7 дзён</string>
@@ -978,7 +978,7 @@
         <item quantity="other">%1$d групы</item>
     </plurals>
     <string name="money_range" translatable="false">%1$s–%2$s</string>
-    <string name="widget_mark_lesson">Марка %1$s, %2$s выкладаў</string>
+    <string name="widget_mark_lesson">Пазначыць праведзеным: %1$s, %2$s</string>
     <string name="widget_lesson_taught">%1$s, %2$s: праведзены</string>
     <string name="batch_clear">Ачысціць выбар</string>
     <string name="onboarding_ready_title">Усё гатова</string>

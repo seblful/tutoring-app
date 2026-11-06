@@ -149,7 +149,7 @@
     <string name="class_location_label">Plassering</string>
     <string name="class_mode_in_person">Personlig</string>
     <string name="class_mode_remote">På nett</string>
-    <string name="class_move">Omplan</string>
+    <string name="class_move">Endre tidspunkt</string>
     <string name="class_gone">Denne leksjonen eksisterer ikke lenger</string>
     <string name="class_gone_detail">Den ble slettet etter at denne ble åpnet. Gå tilbake til timeplanen for å finne leksjonen du trenger.</string>
     <string name="class_delete_confirm">Vil du slette denne leksjonen?</string>
@@ -527,7 +527,7 @@
     <string name="debts_title">Gjeld</string>
     <string name="upkeep_channel_name">Leksjoner merket undervist</string>
     <string name="upkeep_channel_desc">En rapport over timene som er merket automatisk</string>
-    <string name="upkeep_completed_title">Leksjoner merket undervises automatisk</string>
+    <string name="upkeep_completed_title">Timer automatisk merket som gjennomført</string>
     <string name="people_next_today">I dag %1$s</string>
     <string name="people_next_tomorrow">I morgen %1$s</string>
     <string name="people_next_weekday">%1$s %2$s</string>
@@ -722,7 +722,7 @@
     <string name="widget_today_locked">Lås opp for å se dagens leksjoner</string>
     <string name="widget_today_empty">Ingen leksjoner i dag</string>
     <string name="widget_quick_actions_name">Klas snarveier</string>
-    <string name="widget_quick_actions_description">Bestill en leksjon, legg til en elev, eller åpne i dag, lekser og gjeld</string>
+    <string name="widget_quick_actions_description">Bestill en leksjon, legg til en elev eller åpne I dag, lekser og gjeld</string>
     <string-array name="widget_preview_lessons">
         <item>Anna Sokolova</item>
         <item>Algebra</item>
@@ -758,8 +758,8 @@
     <string name="nav_today">I dag</string>
     <string name="today_now">Nå</string>
     <string name="today_to_mark">Avsluttet, men ikke markert</string>
-    <string name="today_mark_all">Merk alle underviste</string>
-    <string name="today_mark_one">Mark %1$s, %2$s lærte</string>
+    <string name="today_mark_all">Merk alle som gjennomført</string>
+    <string name="today_mark_one">Merk som gjennomført: %1$s, %2$s</string>
     <string name="today_lessons">Dagens leksjoner</string>
     <string name="today_no_lessons">Ingen leksjoner i dag</string>
     <string name="today_owed">Skyldes deg</string>
@@ -812,7 +812,7 @@
         <item quantity="other">Timer som er endret etter valget: %1$d. De ble stående uendret.</item>
     </plurals>
     <string name="batch_select">Velg</string>
-    <string name="batch_mark_taught">Mark underviste</string>
+    <string name="batch_mark_taught">Merk som gjennomført</string>
     <string name="batch_cancel">Avbryt leksjoner</string>
     <string name="batch_none_marked">Bare planlagte timer kan merkes som gjennomført</string>
     <string name="batch_none_cancelled">Disse timene er allerede avlyst</string>
@@ -902,7 +902,7 @@
         <item quantity="other">%1$d grupper</item>
     </plurals>
     <string name="money_range" translatable="false">%1$s–%2$s</string>
-    <string name="widget_mark_lesson">Mark %1$s, %2$s lærte</string>
+    <string name="widget_mark_lesson">Merk som gjennomført: %1$s, %2$s</string>
     <string name="widget_lesson_taught">%1$s, %2$s: gjennomført</string>
     <string name="batch_clear">Fjern valget</string>
     <string name="onboarding_ready_title">Alt klart</string>

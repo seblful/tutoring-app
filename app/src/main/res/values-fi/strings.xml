@@ -758,8 +758,8 @@
     <string name="nav_today">Tänään</string>
     <string name="today_now">Nyt</string>
     <string name="today_to_mark">Päättyneet ilman tilamerkintää</string>
-    <string name="today_mark_all">Merkitse kaikki opetetut</string>
-    <string name="today_mark_one">Mark %1$s, %2$s opetti</string>
+    <string name="today_mark_all">Merkitse kaikki pidetyiksi</string>
+    <string name="today_mark_one">Merkitse pidetyksi: %1$s, %2$s</string>
     <string name="today_lessons">Tämän päivän oppitunnit</string>
     <string name="today_no_lessons">Ei oppitunteja tänään</string>
     <string name="today_owed">Velkaa sinulle</string>
@@ -812,7 +812,7 @@
         <item quantity="other">Valinnan jälkeen muuttuneita oppitunteja: %1$d. Ne jätettiin ennalleen.</item>
     </plurals>
     <string name="batch_select">Valitse</string>
-    <string name="batch_mark_taught">Mark opetti</string>
+    <string name="batch_mark_taught">Merkitse pidetyiksi</string>
     <string name="batch_cancel">Peruuta oppitunnit</string>
     <string name="batch_none_marked">Vain suunnitellut tunnit voi merkitä pidetyiksi</string>
     <string name="batch_none_cancelled">Nämä tunnit on jo peruttu</string>
@@ -902,7 +902,7 @@
         <item quantity="other">%1$d ryhmää</item>
     </plurals>
     <string name="money_range" translatable="false">%1$s–%2$s</string>
-    <string name="widget_mark_lesson">Mark %1$s, %2$s opetti</string>
+    <string name="widget_mark_lesson">Merkitse pidetyksi: %1$s, %2$s</string>
     <string name="widget_lesson_taught">%1$s, %2$s: pidetty</string>
     <string name="batch_clear">Tyhjennä valinta</string>
     <string name="onboarding_ready_title">Kaikki valmiina</string>

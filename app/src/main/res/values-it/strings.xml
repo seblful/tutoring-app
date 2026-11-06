@@ -428,7 +428,7 @@
     <string name="settings_agenda">Agenda quotidiana delle lezioni</string>
     <string name="settings_agenda_desc">Invia quotidianamente le lezioni di oggi all\'orario selezionato</string>
     <string name="settings_agenda_time">Quando inviare</string>
-    <string name="settings_unfinished_digest">Lezioni non corrette</string>
+    <string name="settings_unfinished_digest">Lezioni non contrassegnate</string>
     <string name="settings_unfinished_digest_desc">All’orario scelto, elenca le lezioni terminate oggi che non sono ancora segnate come svolte o annullate</string>
     <string name="settings_unfinished_digest_time">Quando inviare</string>
     <string name="settings_debt_digest">Riepilogo debiti</string>
@@ -749,7 +749,7 @@
     <string name="widget_today_locked">Sblocca per vedere le lezioni di oggi</string>
     <string name="widget_today_empty">Nessuna lezione oggi</string>
     <string name="widget_quick_actions_name">Scorciatoie Klas</string>
-    <string name="widget_quick_actions_description">Prenota una lezione, aggiungi uno studente, oppure apri oggi, compiti e debiti</string>
+    <string name="widget_quick_actions_description">Prenota una lezione, aggiungi uno studente oppure apri Oggi, compiti e debiti</string>
     <string-array name="widget_preview_lessons">
         <item>Anna Sokolova</item>
         <item>Algebra</item>
@@ -789,7 +789,7 @@
     <string name="today_mark_one">Segna la lezione con %1$s, %2$s come svolta</string>
     <string name="today_lessons">Le lezioni di oggi</string>
     <string name="today_no_lessons">Nessuna lezione oggi</string>
-    <string name="today_owed">Dovuto a te</string>
+    <string name="today_owed">Da incassare</string>
     <string name="today_backup_old">Ultimo backup %1$s</string>
     <string name="today_backup_never">Ancora nessun backup</string>
     <string name="today_backup_detail">I tuoi dati sono solo su questo telefono.</string>

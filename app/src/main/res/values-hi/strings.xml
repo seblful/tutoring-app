@@ -527,7 +527,7 @@
     <string name="debts_title">ऋण</string>
     <string name="upkeep_channel_name">पढ़ाए गए पाठ चिह्नित</string>
     <string name="upkeep_channel_desc">स्वचालित रूप से पढ़ाए गए चिह्नित पाठों की एक रिपोर्ट</string>
-    <string name="upkeep_completed_title">स्वचालित रूप से पढ़ाए गए पाठ चिह्नित</string>
+    <string name="upkeep_completed_title">पाठ अपने-आप संपन्न चिह्नित किए गए</string>
     <string name="people_next_today">आज %1$s</string>
     <string name="people_next_tomorrow">कल %1$s</string>
     <string name="people_next_weekday">%1$s %2$s</string>
@@ -722,7 +722,7 @@
     <string name="widget_today_locked">आज के पाठ देखने के लिए अनलॉक करें</string>
     <string name="widget_today_empty">आज कोई पाठ नहीं</string>
     <string name="widget_quick_actions_name">Klas शॉर्टकट</string>
-    <string name="widget_quick_actions_description">एक पाठ बुक करें, एक छात्र जोड़ें, या आज ही होमवर्क और ऋण खोलें</string>
+    <string name="widget_quick_actions_description">पाठ बुक करें, छात्र जोड़ें, या \"आज\", गृहकार्य और ऋण खोलें</string>
     <string-array name="widget_preview_lessons">
         <item>अन्ना सोकोलोवा</item>
         <item>बीजगणित</item>
@@ -758,11 +758,11 @@
     <string name="nav_today">आज</string>
     <string name="today_now">अब</string>
     <string name="today_to_mark">समाप्त, लेकिन स्थिति दर्ज नहीं</string>
-    <string name="today_mark_all">सभी पढ़ाए गए को चिह्नित करें</string>
-    <string name="today_mark_one">मार्क %1$s, %2$s ने पढ़ाया</string>
+    <string name="today_mark_all">सभी को संपन्न चिह्नित करें</string>
+    <string name="today_mark_one">संपन्न चिह्नित करें: %1$s, %2$s</string>
     <string name="today_lessons">आज के पाठ</string>
     <string name="today_no_lessons">आज कोई पाठ नहीं</string>
-    <string name="today_owed">आपका ऋणी</string>
+    <string name="today_owed">आपको मिलना बाकी</string>
     <string name="today_backup_old">अंतिम बैकअप %1$s</string>
     <string name="today_backup_never">अभी तक कोई बैकअप नहीं है</string>
     <string name="today_backup_detail">आपका डेटा केवल इस फ़ोन पर है।</string>
@@ -812,7 +812,7 @@
         <item quantity="other">चयन के बाद बदली गई कक्षाओं की संख्या: %1$d। उन्हें जैसा था वैसा ही रखा गया।</item>
     </plurals>
     <string name="batch_select">चुनें</string>
-    <string name="batch_mark_taught">मार्क ने सिखाया</string>
+    <string name="batch_mark_taught">संपन्न चिह्नित करें</string>
     <string name="batch_cancel">पाठ रद्द करें</string>
     <string name="batch_none_marked">केवल नियोजित कक्षाओं को पढ़ाई गई के रूप में चिह्नित किया जा सकता है</string>
     <string name="batch_none_cancelled">ये कक्षाएँ पहले ही रद्द हो चुकी हैं</string>
@@ -829,7 +829,7 @@
         <item quantity="one">%1$d को पूर्ण चिह्नित किया गया</item>
         <item quantity="other">%1$d को पूर्ण चिह्नित किया गया</item>
     </plurals>
-    <string name="homework_batch_mark_done">मार्क हो गया</string>
+    <string name="homework_batch_mark_done">पूरा चिह्नित करें</string>
     <string name="homework_section_past">पिछले पाठ</string>
     <string name="homework_section_today">आज के पाठ</string>
     <string name="homework_section_next_7_days">अगले 7 दिनों में पाठ</string>
@@ -902,7 +902,7 @@
         <item quantity="other">%1$d समूह</item>
     </plurals>
     <string name="money_range" translatable="false">%1$s–%2$s</string>
-    <string name="widget_mark_lesson">मार्क %1$s, %2$s ने पढ़ाया</string>
+    <string name="widget_mark_lesson">संपन्न चिह्नित करें: %1$s, %2$s</string>
     <string name="widget_lesson_taught">%1$s, %2$s: संपन्न</string>
     <string name="batch_clear">स्पष्ट चयन</string>
     <string name="onboarding_ready_title">सब तैयार</string>

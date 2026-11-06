@@ -501,11 +501,11 @@
         <item quantity="other">尚未标记的课程：%1$d节</item>
     </plurals>
     <string name="debts_channel_name">债务</string>
-    <string name="debts_channel_desc">每周总结：谁欠了什么</string>
+    <string name="debts_channel_desc">每周总结：谁欠多少</string>
     <string name="debts_title">债务</string>
     <string name="upkeep_channel_name">标记为已教授的课程</string>
     <string name="upkeep_channel_desc">标记为自动教授的课程报告</string>
-    <string name="upkeep_completed_title">标记为自动教授的课程</string>
+    <string name="upkeep_completed_title">课程已自动标记为已完成</string>
     <string name="people_next_today">今天%1$s</string>
     <string name="people_next_tomorrow">明天%1$s</string>
     <string name="people_next_weekday">%1$s %2$s</string>
@@ -602,7 +602,7 @@
     <string name="backup_undo_restore_action">放回去</string>
     <string name="backup_restore_undone">导入前的数据回来了</string>
     <string name="backup_stale_detail">两周前。从那时起，所有的事情都只能在这部手机上进行。</string>
-    <string name="backup_weekly_header">每周文案</string>
+    <string name="backup_weekly_header">每周副本</string>
     <string name="backup_weekly_off">每周保存一份副本</string>
     <string name="backup_weekly_off_desc">选择此手机上或云驱动器中的文件夹。</string>
     <plurals name="backup_weekly_keeps">
@@ -695,7 +695,7 @@
     <string name="widget_today_locked">解锁看今天的课程</string>
     <string name="widget_today_empty">今天没有课</string>
     <string name="widget_quick_actions_name">Klas 快捷键</string>
-    <string name="widget_quick_actions_description">预订课程，添加学生，或今天开放，作业和债务</string>
+    <string name="widget_quick_actions_description">预约课程、添加学生，或打开“今天”、作业和债务</string>
     <string-array name="widget_preview_lessons">
         <item>安娜·索科洛娃</item>
         <item>代数</item>
@@ -731,11 +731,11 @@
     <string name="nav_today">今天</string>
     <string name="today_now">现在</string>
     <string name="today_to_mark">已结束，状态待标记</string>
-    <string name="today_mark_all">标记所有已教过的内容</string>
-    <string name="today_mark_one">马克%1$s、%2$s教导</string>
+    <string name="today_mark_all">全部标记为已完成</string>
+    <string name="today_mark_one">标记为已完成：%1$s、%2$s</string>
     <string name="today_lessons">今天的课程</string>
     <string name="today_no_lessons">今天没有课</string>
-    <string name="today_owed">欠你的</string>
+    <string name="today_owed">待收款</string>
     <string name="today_backup_old">最后备份 %1$s</string>
     <string name="today_backup_never">尚未备份</string>
     <string name="today_backup_detail">您的数据仅存储在这部手机上。</string>
@@ -781,7 +781,7 @@
         <item quantity="other">%1$d节课在选择后发生了变更，因此保持原样。</item>
     </plurals>
     <string name="batch_select">选择</string>
-    <string name="batch_mark_taught">马克教导</string>
+    <string name="batch_mark_taught">标记为已完成</string>
     <string name="batch_cancel">取消课程</string>
     <string name="batch_none_marked">只能将已计划的课程标记为已授课</string>
     <string name="batch_none_cancelled">这些课程已经取消</string>
@@ -864,7 +864,7 @@
         <item quantity="other">%1$d个小组</item>
     </plurals>
     <string name="money_range" translatable="false">%1$s–%2$s</string>
-    <string name="widget_mark_lesson">马克%1$s、%2$s教导</string>
+    <string name="widget_mark_lesson">标记为已完成：%1$s、%2$s</string>
     <string name="widget_lesson_taught">%1$s，%2$s：已完成</string>
     <string name="batch_clear">清除选择</string>
     <string name="onboarding_ready_title">全部准备好</string>

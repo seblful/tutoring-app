@@ -476,8 +476,8 @@
     <string name="settings_agenda">جدول الدروس اليومية</string>
     <string name="settings_agenda_desc">إرسال دروس اليوم يوميا في الوقت المحدد</string>
     <string name="settings_agenda_time">متى يتم الإرسال</string>
-    <string name="settings_unfinished_digest">دروس غير مميزة</string>
-    <string name="settings_unfinished_digest_desc">قم بإدراج دروس اليوم المنتهية والتي لم يتم وضع علامة عليها كمدرس أو ملغاة، في الوقت المحدد</string>
+    <string name="settings_unfinished_digest">دروس لم تُحدَّد حالتها</string>
+    <string name="settings_unfinished_digest_desc">في الوقت المحدد، اعرض دروس اليوم المنتهية التي لم تُعلَّم بعد كمكتملة أو ملغاة</string>
     <string name="settings_unfinished_digest_time">متى يتم الإرسال</string>
     <string name="settings_debt_digest">ملخص الديون</string>
     <string name="settings_debt_digest_desc">مرة واحدة في الأسبوع أرسل لمن يدين بماذا</string>
@@ -615,7 +615,7 @@
     <string name="debts_title">الديون</string>
     <string name="upkeep_channel_name">تم وضع علامة على الدروس التي تم تدريسها</string>
     <string name="upkeep_channel_desc">تقرير بالدروس التي تم تعليمها تلقائيا</string>
-    <string name="upkeep_completed_title">تم وضع علامة على الدروس التي يتم تدريسها تلقائيًا</string>
+    <string name="upkeep_completed_title">تم تعليم الدروس كمكتملة تلقائيًا</string>
     <string name="people_next_today">اليوم %1$s</string>
     <string name="people_next_tomorrow">غدا %1$s</string>
     <string name="people_next_weekday">%1$s %2$s</string>
@@ -830,7 +830,7 @@
     <string name="widget_today_locked">افتح القفل لمشاهدة دروس اليوم</string>
     <string name="widget_today_empty">لا توجد دروس اليوم</string>
     <string name="widget_quick_actions_name">اختصارات Klas</string>
-    <string name="widget_quick_actions_description">حجز درس أو إضافة طالب أو فتح اليوم الواجبات والديون</string>
+    <string name="widget_quick_actions_description">حجز درس أو إضافة طالب أو فتح «اليوم» والواجبات والديون</string>
     <string-array name="widget_preview_lessons">
         <item>آنا سوكولوفا</item>
         <item>الجبر</item>
@@ -846,7 +846,7 @@
     <string name="privacy_lock_screen_details_desc">إظهار الأسماء والمبالغ في الإشعارات أثناء قفل الهاتف</string>
     <string name="privacy_lock_screen_widgets">الدروس في أداة قفل الشاشة</string>
     <string name="privacy_lock_screen_widgets_desc">قم بإدراج دروس اليوم حيث توجد أداة اليوم على شاشة القفل</string>
-    <string name="privacy_app_lock">قفل التطبيقات</string>
+    <string name="privacy_app_lock">قفل التطبيق</string>
     <string name="privacy_app_lock_desc">اطلب بصمة الإصبع أو الوجه أو قفل الشاشة لفتح التطبيق</string>
     <string name="privacy_app_lock_unavailable">قم بتعيين قفل الشاشة على هذا الهاتف أولاً</string>
     <string name="privacy_relock">القفل مرة أخرى بعد ذلك</string>
@@ -866,8 +866,8 @@
     <string name="nav_today">اليوم</string>
     <string name="today_now">الآن</string>
     <string name="today_to_mark">انتهت ولم تُحدَّد حالتها</string>
-    <string name="today_mark_all">ضع علامة على كل ما تم تدريسه</string>
-    <string name="today_mark_one">مارك %1$s، %2$s قام بالتدريس</string>
+    <string name="today_mark_all">تعليم الكل كمكتمل</string>
+    <string name="today_mark_one">تعليم كمكتمل: %1$s، %2$s</string>
     <string name="today_lessons">دروس اليوم</string>
     <string name="today_no_lessons">لا توجد دروس اليوم</string>
     <string name="today_owed">مستحق لك</string>
@@ -936,7 +936,7 @@
         <item quantity="other">عدد الدروس التي تغيرت منذ التحديد: %1$d. تُركت دون تغيير.</item>
     </plurals>
     <string name="batch_select">اختر</string>
-    <string name="batch_mark_taught">علم مارك</string>
+    <string name="batch_mark_taught">تعليم كمكتملة</string>
     <string name="batch_cancel">إلغاء الدروس</string>
     <string name="batch_none_marked">يمكن وضع علامة «تم التدريس» على الدروس المخططة فقط</string>
     <string name="batch_none_cancelled">هذه الدروس ملغاة بالفعل</string>
@@ -965,7 +965,7 @@
         <item quantity="many">عدد الواجبات التي عُلّمت كمنجزة: %1$d</item>
         <item quantity="other">عدد الواجبات التي عُلّمت كمنجزة: %1$d</item>
     </plurals>
-    <string name="homework_batch_mark_done">علامة الانتهاء</string>
+    <string name="homework_batch_mark_done">تعليم كمنجز</string>
     <string name="homework_section_past">الدروس السابقة</string>
     <string name="homework_section_today">دروس اليوم</string>
     <string name="homework_section_next_7_days">الدروس في الـ 7 أيام القادمة</string>
@@ -1054,7 +1054,7 @@
         <item quantity="other">عدد المجموعات: %1$d</item>
     </plurals>
     <string name="money_range" translatable="false">%1$s–%2$s</string>
-    <string name="widget_mark_lesson">مارك %1$s، %2$s قام بالتدريس</string>
+    <string name="widget_mark_lesson">تعليم كمكتمل: %1$s، %2$s</string>
     <string name="widget_lesson_taught">%1$s، %2$s: مكتمل</string>
     <string name="batch_clear">مسح التحديد</string>
     <string name="onboarding_ready_title">جاهز تمامًا</string>

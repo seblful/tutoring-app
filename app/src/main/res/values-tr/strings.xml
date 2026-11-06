@@ -722,7 +722,7 @@
     <string name="widget_today_locked">Bugünün derslerini görmek için kilidi açın</string>
     <string name="widget_today_empty">Bugün ders yok</string>
     <string name="widget_quick_actions_name">Klas kısayolları</string>
-    <string name="widget_quick_actions_description">Ders rezervasyonu yapın, öğrenci ekleyin veya bugün açın, ödevler ve borçlar</string>
+    <string name="widget_quick_actions_description">Ders planlayın, öğrenci ekleyin veya Bugün, Ödevler ve Borçlar\'ı açın</string>
     <string-array name="widget_preview_lessons">
         <item>Anna Sokolova</item>
         <item>Cebir</item>
@@ -762,7 +762,7 @@
     <string name="today_mark_one">%1$s ile %2$s dersini yapıldı olarak işaretle</string>
     <string name="today_lessons">Bugünün dersleri</string>
     <string name="today_no_lessons">Bugün ders yok</string>
-    <string name="today_owed">Sana borçluyum</string>
+    <string name="today_owed">Alacaklarınız</string>
     <string name="today_backup_old">Son yedekleme %1$s</string>
     <string name="today_backup_never">Henüz yedekleme yok</string>
     <string name="today_backup_detail">Verileriniz yalnızca bu telefonda.</string>

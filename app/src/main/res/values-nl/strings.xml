@@ -527,7 +527,7 @@
     <string name="debts_title">Schulden</string>
     <string name="upkeep_channel_name">Lessen gemarkeerd als geleerd</string>
     <string name="upkeep_channel_desc">Een rapport van de lessen die gemarkeerd zijn als automatisch geleerd</string>
-    <string name="upkeep_completed_title">Lessen gemarkeerd als automatisch geleerd</string>
+    <string name="upkeep_completed_title">Lessen automatisch als gegeven gemarkeerd</string>
     <string name="people_next_today">Vandaag %1$s</string>
     <string name="people_next_tomorrow">Morgen %1$s</string>
     <string name="people_next_weekday">%1$s %2$s</string>
@@ -722,7 +722,7 @@
     <string name="widget_today_locked">Ontgrendel om de lessen van vandaag te zien</string>
     <string name="widget_today_empty">Geen lessen vandaag</string>
     <string name="widget_quick_actions_name">Klas-snelkoppelingen</string>
-    <string name="widget_quick_actions_description">Boek een les, voeg een leerling toe, of open vandaag nog, huiswerk en schulden</string>
+    <string name="widget_quick_actions_description">Boek een les, voeg een leerling toe of open Vandaag, huiswerk en schulden</string>
     <string-array name="widget_preview_lessons">
         <item>Anna Sokolova</item>
         <item>Algebra</item>
@@ -758,8 +758,8 @@
     <string name="nav_today">Vandaag</string>
     <string name="today_now">Nu</string>
     <string name="today_to_mark">Afgelopen, nog geen status</string>
-    <string name="today_mark_all">Markeer alles onderwezen</string>
-    <string name="today_mark_one">Mark %1$s, %2$s geleerd</string>
+    <string name="today_mark_all">Alle als gegeven markeren</string>
+    <string name="today_mark_one">Als gegeven markeren: %1$s, %2$s</string>
     <string name="today_lessons">De lessen van vandaag</string>
     <string name="today_no_lessons">Geen lessen vandaag</string>
     <string name="today_owed">Aan jou verschuldigd</string>
@@ -812,7 +812,7 @@
         <item quantity="other">Lessen gewijzigd sinds de selectie: %1$d. Ze zijn ongewijzigd gelaten.</item>
     </plurals>
     <string name="batch_select">Selecteer</string>
-    <string name="batch_mark_taught">Mark gaf les</string>
+    <string name="batch_mark_taught">Als gegeven markeren</string>
     <string name="batch_cancel">Lessen annuleren</string>
     <string name="batch_none_marked">Alleen geplande lessen kunnen als gegeven worden gemarkeerd</string>
     <string name="batch_none_cancelled">Deze lessen zijn al geannuleerd</string>
@@ -829,7 +829,7 @@
         <item quantity="one">%1$d gemarkeerd als voltooid</item>
         <item quantity="other">%1$d gemarkeerd als voltooid</item>
     </plurals>
-    <string name="homework_batch_mark_done">Markeren klaar</string>
+    <string name="homework_batch_mark_done">Als klaar markeren</string>
     <string name="homework_section_past">Eerdere lessen</string>
     <string name="homework_section_today">De lessen van vandaag</string>
     <string name="homework_section_next_7_days">Lessen in de komende 7 dagen</string>
@@ -902,7 +902,7 @@
         <item quantity="other">%1$d groepen</item>
     </plurals>
     <string name="money_range" translatable="false">%1$s–%2$s</string>
-    <string name="widget_mark_lesson">Mark %1$s, %2$s geleerd</string>
+    <string name="widget_mark_lesson">Als gegeven markeren: %1$s, %2$s</string>
     <string name="widget_lesson_taught">%1$s, %2$s: gegeven</string>
     <string name="batch_clear">Selectie wissen</string>
     <string name="onboarding_ready_title">Alles ingesteld</string>

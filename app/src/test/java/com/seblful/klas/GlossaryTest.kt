@@ -38,6 +38,20 @@ class GlossaryTest {
         assertEquals(emptyList<String>(), long)
     }
 
+    /** Machine translation read the verb in «Mark taught» as a name: «马克教导», «Mark underviste». */
+    @Test
+    fun `no translation reads the verb mark as a name`() {
+        val translations = ProjectFiles.moduleFile("src/main/res").listFiles().orEmpty()
+            .filter { it.name.startsWith("values-") && File(it, "strings.xml").exists() }
+            .map { it.name }
+        val found = translations.flatMap { folder ->
+            stringsIn(folder).filter { (_, text) -> MARK_AS_NAME.containsMatchIn(text) }
+                .map { (name, text) -> "$folder/$name: «$text»" }
+        }
+
+        assertEquals("«Mark» is the verb: mark a lesson as taught.", emptyList<String>(), found)
+    }
+
     private class Retired(regex: String, val use: String, private val only: String? = null) {
         val pattern = Regex(regex, setOf(RegexOption.IGNORE_CASE))
 
@@ -59,6 +73,9 @@ class GlossaryTest {
     private companion object {
         val FAB_LABELS = listOf("class_book", "fab_new_student", "fab_new_group", "homework_add")
         const val MAX_FAB_LABEL = 14
+
+        /** The name Mark, as the translators wrote it: English left as is, or transliterated. */
+        val MARK_AS_NAME = Regex("""(?U)\bMark\b|\bМарк(а|у)?\b|\bΜάρκος\b|\bMarcos\b|马克|馬克|マーク(が教え| %)|मार्क|مارك""")
 
         // `(?U)` makes `\b` see Cyrillic letters as word letters.
         val RETIRED: Map<String, List<Retired>> = mapOf(

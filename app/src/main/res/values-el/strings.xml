@@ -527,7 +527,7 @@
     <string name="debts_title">Χρέη</string>
     <string name="upkeep_channel_name">Μαθήματα με επισήμανση που διδάχθηκαν</string>
     <string name="upkeep_channel_desc">Μια αναφορά των μαθημάτων που επισημάνθηκαν ότι διδάχθηκαν αυτόματα</string>
-    <string name="upkeep_completed_title">Τα μαθήματα που επισημάνθηκαν διδάσκονται αυτόματα</string>
+    <string name="upkeep_completed_title">Μαθήματα σημειώθηκαν αυτόματα ως πραγματοποιημένα</string>
     <string name="people_next_today">Σήμερα %1$s</string>
     <string name="people_next_tomorrow">Αύριο %1$s</string>
     <string name="people_next_weekday">%1$s %2$s</string>
@@ -722,7 +722,7 @@
     <string name="widget_today_locked">Ξεκλειδώστε για να δείτε τα σημερινά μαθήματα</string>
     <string name="widget_today_empty">Κανένα μάθημα σήμερα</string>
     <string name="widget_quick_actions_name">Συντομεύσεις Klas</string>
-    <string name="widget_quick_actions_description">Κλείστε ένα μάθημα, προσθέστε έναν μαθητή ή ανοίξτε σήμερα, εργασίες και χρέη</string>
+    <string name="widget_quick_actions_description">Κλείστε ένα μάθημα, προσθέστε έναν μαθητή ή ανοίξτε το Σήμερα, τις εργασίες και τα χρέη</string>
     <string-array name="widget_preview_lessons">
         <item>Άννα Σοκόλοβα</item>
         <item>Άλγεβρα</item>
@@ -758,11 +758,11 @@
     <string name="nav_today">Σήμερα</string>
     <string name="today_now">Τώρα</string>
     <string name="today_to_mark">Ολοκληρώθηκαν, χωρίς επισήμανση</string>
-    <string name="today_mark_all">Σημειώστε όλοι διδασκόμενοι</string>
-    <string name="today_mark_one">Mark %1$s, %2$s διδάσκεται</string>
+    <string name="today_mark_all">Σήμανση όλων ως πραγματοποιημένων</string>
+    <string name="today_mark_one">Σήμανση ως πραγματοποιημένο: %1$s, %2$s</string>
     <string name="today_lessons">Τα σημερινά μαθήματα</string>
     <string name="today_no_lessons">Κανένα μάθημα σήμερα</string>
-    <string name="today_owed">Σας οφείλω</string>
+    <string name="today_owed">Σας οφείλουν</string>
     <string name="today_backup_old">Τελευταίο αντίγραφο ασφαλείας %1$s</string>
     <string name="today_backup_never">Δεν υπάρχει ακόμα αντίγραφο ασφαλείας</string>
     <string name="today_backup_detail">Τα δεδομένα σας βρίσκονται μόνο σε αυτό το τηλέφωνο.</string>
@@ -812,7 +812,7 @@
         <item quantity="other">Μαθήματα που άλλαξαν μετά την επιλογή: %1$d. Παρέμειναν ως έχουν.</item>
     </plurals>
     <string name="batch_select">Επιλέξτε</string>
-    <string name="batch_mark_taught">Ο Μάρκος δίδαξε</string>
+    <string name="batch_mark_taught">Σήμανση ως πραγματοποιημένα</string>
     <string name="batch_cancel">Ακύρωση μαθημάτων</string>
     <string name="batch_none_marked">Μόνο προγραμματισμένα μαθήματα μπορούν να σημειωθούν ως διδαγμένα</string>
     <string name="batch_none_cancelled">Αυτά τα μαθήματα έχουν ήδη ακυρωθεί</string>
@@ -902,7 +902,7 @@
         <item quantity="other">%1$d ομάδες</item>
     </plurals>
     <string name="money_range" translatable="false">%1$s–%2$s</string>
-    <string name="widget_mark_lesson">Mark %1$s, %2$s διδάσκεται</string>
+    <string name="widget_mark_lesson">Σήμανση ως πραγματοποιημένο: %1$s, %2$s</string>
     <string name="widget_lesson_taught">%1$s, %2$s: πραγματοποιήθηκε</string>
     <string name="batch_clear">Εκκαθάριση επιλογής</string>
     <string name="onboarding_ready_title">Όλα έτοιμα</string>

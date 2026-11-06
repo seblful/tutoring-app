@@ -680,7 +680,7 @@
     <string name="backup_undo_restore_action">Поставте назад</string>
     <string name="backup_restore_undone">Дані до імпорту повернуто</string>
     <string name="backup_stale_detail">Більше двох тижнів тому. Усе, що відтоді було, лише на цьому телефоні.</string>
-    <string name="backup_weekly_header">Щотижневий примірник</string>
+    <string name="backup_weekly_header">Щотижнева копія</string>
     <string name="backup_weekly_off">Зберігайте копію щотижня</string>
     <string name="backup_weekly_off_desc">Виберіть папку на цьому телефоні або на хмарному диску.</string>
     <plurals name="backup_weekly_keeps">
@@ -776,7 +776,7 @@
     <string name="widget_today_locked">Розблокуйте, щоб переглянути сьогоднішні уроки</string>
     <string name="widget_today_empty">Сьогодні нема уроків</string>
     <string name="widget_quick_actions_name">Комбінації клавіш Klas</string>
-    <string name="widget_quick_actions_description">Забронюйте урок, додайте учня або відкрийте сьогодні, домашнє завдання та борги</string>
+    <string name="widget_quick_actions_description">Забронюйте урок, додайте учня або відкрийте «Сьогодні», домашні завдання та борги</string>
     <string-array name="widget_preview_lessons">
         <item>Анна Соколова</item>
         <item>Алгебра</item>
@@ -816,7 +816,7 @@
     <string name="today_mark_one">Позначити заняття з %1$s, %2$s як проведене</string>
     <string name="today_lessons">Сьогоднішні уроки</string>
     <string name="today_no_lessons">Сьогодні нема уроків</string>
-    <string name="today_owed">В боргу перед тобою</string>
+    <string name="today_owed">Вам винні</string>
     <string name="today_backup_old">Остання резервна копія %1$s</string>
     <string name="today_backup_never">Резервної копії ще немає</string>
     <string name="today_backup_detail">Ваші дані знаходяться лише на цьому телефоні.</string>

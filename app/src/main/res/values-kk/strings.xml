@@ -527,7 +527,7 @@
     <string name="debts_title">Қарыздар</string>
     <string name="upkeep_channel_name">Сабақтар оқытылды деп белгіленген</string>
     <string name="upkeep_channel_desc">Автоматты түрде оқытылды деп белгіленген сабақтардың есебі</string>
-    <string name="upkeep_completed_title">Автоматты түрде оқытылды деп белгіленген сабақтар</string>
+    <string name="upkeep_completed_title">Сабақтар автоматты түрде өткізілді деп белгіленді</string>
     <string name="people_next_today">Бүгін %1$s</string>
     <string name="people_next_tomorrow">Ертең %1$s</string>
     <string name="people_next_weekday">%1$s %2$s</string>
@@ -722,7 +722,7 @@
     <string name="widget_today_locked">Бүгінгі сабақтарды көру үшін құлыпты ашыңыз</string>
     <string name="widget_today_empty">Бүгін сабақ жоқ</string>
     <string name="widget_quick_actions_name">Klas таңбашалары</string>
-    <string name="widget_quick_actions_description">Сабақ жазу, оқушы қосу немесе бүгінгі күнді, үй тапсырмалары мен қарыздарды ашу</string>
+    <string name="widget_quick_actions_description">Сабақ жазу, оқушы қосу немесе «Бүгін», үй тапсырмалары мен қарыздарды ашу</string>
     <string-array name="widget_preview_lessons">
         <item>Анна Соколова</item>
         <item>Алгебра</item>
@@ -758,11 +758,11 @@
     <string name="nav_today">Бүгін</string>
     <string name="today_now">Қазір</string>
     <string name="today_to_mark">Аяқталған, бірақ белгіленбеген</string>
-    <string name="today_mark_all">Барлығын оқытыңыз деп белгілеңіз</string>
-    <string name="today_mark_one">Марк %1$s, %2$s оқытты</string>
+    <string name="today_mark_all">Барлығын өткізілді деп белгілеу</string>
+    <string name="today_mark_one">Өткізілді деп белгілеу: %1$s, %2$s</string>
     <string name="today_lessons">Бүгінгі сабақтар</string>
     <string name="today_no_lessons">Бүгін сабақ жоқ</string>
-    <string name="today_owed">Сізге қарыздармын</string>
+    <string name="today_owed">Сізге қарыз</string>
     <string name="today_backup_old">Соңғы сақтық көшірме %1$s</string>
     <string name="today_backup_never">Сақтық көшірме әлі жоқ</string>
     <string name="today_backup_detail">Деректеріңіз тек осы телефонда.</string>
@@ -812,7 +812,7 @@
         <item quantity="other">Таңдаудан кейін өзгерген сабақ саны: %1$d. Олар өзгеріссіз қалдырылды.</item>
     </plurals>
     <string name="batch_select">таңдаңыз</string>
-    <string name="batch_mark_taught">Марк үйретті</string>
+    <string name="batch_mark_taught">Өткізілді деп белгілеу</string>
     <string name="batch_cancel">Сабақтарды тоқтату</string>
     <string name="batch_none_marked">Тек жоспарланған сабақтарды өткізілді деп белгілеуге болады</string>
     <string name="batch_none_cancelled">Бұл сабақтар әлдеқашан тоқтатылған</string>
@@ -902,7 +902,7 @@
         <item quantity="other">%1$d топ</item>
     </plurals>
     <string name="money_range" translatable="false">%1$s–%2$s</string>
-    <string name="widget_mark_lesson">Марк %1$s, %2$s оқытты</string>
+    <string name="widget_mark_lesson">Өткізілді деп белгілеу: %1$s, %2$s</string>
     <string name="widget_lesson_taught">%1$s, %2$s: өткізілді</string>
     <string name="batch_clear">Таңдауды өшіру</string>
     <string name="onboarding_ready_title">Барлығы орнатылған</string>

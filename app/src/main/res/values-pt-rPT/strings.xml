@@ -428,7 +428,7 @@
     <string name="settings_agenda">Agenda de aulas diárias</string>
     <string name="settings_agenda_desc">Envie as aulas de hoje diariamente no horário selecionado</string>
     <string name="settings_agenda_time">Quando enviar</string>
-    <string name="settings_unfinished_digest">Lições não marcadas</string>
+    <string name="settings_unfinished_digest">Aulas sem estado</string>
     <string name="settings_unfinished_digest_desc">Listar as aulas encerradas de hoje ainda não marcadas como lecionadas ou canceladas, no horário selecionado</string>
     <string name="settings_unfinished_digest_time">Quando enviar</string>
     <string name="settings_debt_digest">Resumo da dívida</string>
@@ -549,7 +549,7 @@
     <string name="debts_title">Dívidas</string>
     <string name="upkeep_channel_name">Lições marcadas como ensinadas</string>
     <string name="upkeep_channel_desc">Um relatório das aulas marcadas como lecionadas automaticamente</string>
-    <string name="upkeep_completed_title">Lições marcadas como ensinadas automaticamente</string>
+    <string name="upkeep_completed_title">Aulas marcadas automaticamente como realizadas</string>
     <string name="people_next_today">Hoje %1$s</string>
     <string name="people_next_tomorrow">Amanhã %1$s</string>
     <string name="people_next_weekday">%1$s %2$s</string>
@@ -749,7 +749,7 @@
     <string name="widget_today_locked">Desbloqueie para ver as lições de hoje</string>
     <string name="widget_today_empty">Não há aulas hoje</string>
     <string name="widget_quick_actions_name">Atalhos Klas</string>
-    <string name="widget_quick_actions_description">Marcar uma aula, adicionar um aluno ou abrir hoje, trabalhos de casa e dívidas</string>
+    <string name="widget_quick_actions_description">Marcar uma aula, adicionar um aluno ou abrir Hoje, trabalhos de casa e dívidas</string>
     <string-array name="widget_preview_lessons">
         <item>Ana Sokolova</item>
         <item>Álgebra</item>
@@ -765,7 +765,7 @@
     <string name="privacy_lock_screen_details_desc">Mostrar nomes e valores nas notificações enquanto o telefone está bloqueado</string>
     <string name="privacy_lock_screen_widgets">Lições no widget do ecrã de bloqueio</string>
     <string name="privacy_lock_screen_widgets_desc">Liste as lições de hoje onde o widget Hoje fica no ecrã de bloqueio</string>
-    <string name="privacy_app_lock">Bloqueio de aplicações</string>
+    <string name="privacy_app_lock">Bloqueio da aplicação</string>
     <string name="privacy_app_lock_desc">Peça a sua impressão digital, rosto ou bloqueio de ecrã para abrir a aplicação</string>
     <string name="privacy_app_lock_unavailable">Defina primeiro um bloqueio de ecrã neste telefone</string>
     <string name="privacy_relock">Bloquear novamente após</string>
@@ -785,11 +785,11 @@
     <string name="nav_today">Hoje</string>
     <string name="today_now">Agora</string>
     <string name="today_to_mark">Terminadas, sem estado definido</string>
-    <string name="today_mark_all">Marcar tudo ensinado</string>
-    <string name="today_mark_one">Marca %1$s, %2$s ensinado</string>
+    <string name="today_mark_all">Marcar todas como realizadas</string>
+    <string name="today_mark_one">Marcar a aula com %1$s, %2$s como realizada</string>
     <string name="today_lessons">Lições de hoje</string>
     <string name="today_no_lessons">Não há aulas hoje</string>
-    <string name="today_owed">Devido a si</string>
+    <string name="today_owed">A receber</string>
     <string name="today_backup_old">Último backup %1$s</string>
     <string name="today_backup_never">Ainda não há backup</string>
     <string name="today_backup_detail">Os seus dados estão apenas neste telefone.</string>
@@ -843,7 +843,7 @@
         <item quantity="other">Aulas alteradas desde a seleção: %1$d. Foram mantidas como estão.</item>
     </plurals>
     <string name="batch_select">Selecione</string>
-    <string name="batch_mark_taught">Marcos ensinou</string>
+    <string name="batch_mark_taught">Marcar como realizadas</string>
     <string name="batch_cancel">Cancelar aulas</string>
     <string name="batch_none_marked">Só as aulas planeadas podem ser marcadas como dadas</string>
     <string name="batch_none_cancelled">Estas aulas já estão canceladas</string>
@@ -940,7 +940,7 @@
         <item quantity="other">%1$d grupos</item>
     </plurals>
     <string name="money_range" translatable="false">%1$s–%2$s</string>
-    <string name="widget_mark_lesson">Marca %1$s, %2$s ensinado</string>
+    <string name="widget_mark_lesson">Marcar a aula com %1$s, %2$s como realizada</string>
     <string name="widget_lesson_taught">%1$s, %2$s: realizada</string>
     <string name="batch_clear">Limpar seleção</string>
     <string name="onboarding_ready_title">Tudo pronto</string>

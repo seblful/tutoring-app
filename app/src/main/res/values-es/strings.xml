@@ -749,7 +749,7 @@
     <string name="widget_today_locked">Desbloquea para ver las lecciones de hoy</string>
     <string name="widget_today_empty">No hay lecciones hoy</string>
     <string name="widget_quick_actions_name">Atajos de Klas</string>
-    <string name="widget_quick_actions_description">Reserve una lección, agregue un alumno o abra hoy, tareas y deudas</string>
+    <string name="widget_quick_actions_description">Reserve una lección, agregue un alumno o abra Hoy, tareas y deudas</string>
     <string-array name="widget_preview_lessons">
         <item>Anna Sokolova</item>
         <item>Álgebra</item>
@@ -765,7 +765,7 @@
     <string name="privacy_lock_screen_details_desc">Mostrar nombres y montos en notificaciones mientras el teléfono está bloqueado</string>
     <string name="privacy_lock_screen_widgets">Lecciones en el widget de pantalla de bloqueo</string>
     <string name="privacy_lock_screen_widgets_desc">Enumere las lecciones de hoy donde el widget Hoy se encuentra en la pantalla de bloqueo</string>
-    <string name="privacy_app_lock">Bloqueo de aplicaciones</string>
+    <string name="privacy_app_lock">Bloqueo de la app</string>
     <string name="privacy_app_lock_desc">Solicita tu huella digital, rostro o bloqueo de pantalla para abrir la aplicación</string>
     <string name="privacy_app_lock_unavailable">Primero establezca un bloqueo de pantalla en este teléfono</string>
     <string name="privacy_relock">Bloquear nuevamente después</string>
@@ -789,7 +789,7 @@
     <string name="today_mark_one">Marcar la clase con %1$s, %2$s como impartida</string>
     <string name="today_lessons">Lecciones de hoy</string>
     <string name="today_no_lessons">No hay lecciones hoy</string>
-    <string name="today_owed">Te lo debo</string>
+    <string name="today_owed">Te deben</string>
     <string name="today_backup_old">Última copia de seguridad %1$s</string>
     <string name="today_backup_never">Aún no hay copia de seguridad</string>
     <string name="today_backup_detail">Tus datos están solo en este teléfono.</string>
