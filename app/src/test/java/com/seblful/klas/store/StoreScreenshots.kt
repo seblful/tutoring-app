@@ -340,6 +340,7 @@ class StoreScreenshots(play: String) {
         waitFor(tutor.group.homework)
         capture("film-homework-list", marks = mapOf("swipe" to homework, "add" to add))
         swipe(homework, "film-homework-swipe")
+        waitGone(homework, "film-homework-done")
         capture("film-homework-done", marks = mapOf("add" to add))
 
         runBlocking { seeded.giveTypedHomework() }
@@ -647,6 +648,17 @@ class StoreScreenshots(play: String) {
             val seen = File(out, "_failed.png")
             captureScreenRoboImage(seen, RoborazziOptions(taskType = RoborazziTaskType.Record))
             throw AssertionError("Never saw «$text» on screen — what was there: $seen", e)
+        }
+    }
+
+    /** The video closes the list up over a swiped row, so the capture after must not still show it. */
+    private fun waitGone(matcher: SemanticsMatcher, name: String) {
+        try {
+            compose.waitUntil(TIMEOUT_MS) { compose.onAllNodes(matcher).fetchSemanticsNodes().isEmpty() }
+        } catch (e: ComposeTimeoutException) {
+            val seen = File(out, "_failed.png")
+            captureScreenRoboImage(seen, RoborazziOptions(taskType = RoborazziTaskType.Record))
+            throw AssertionError("«$name»: the swiped row never left the list — what was there: $seen", e)
         }
     }
 
