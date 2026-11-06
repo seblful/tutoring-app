@@ -1,44 +1,54 @@
-Klas ist das Unterrichtsbuch für Nachhilfelehrer: Ihr Stundenplan, Ihre Schüler, wer bezahlt hat und wer noch etwas schuldet — automatisch berechnet, auf Ihrem Handy.
+Klas ist das Unterrichtsbuch für Nachhilfelehrer und Privatlehrer. Ihr Nachhilfe-Stundenplan, Ihre Schüler, Hausaufgaben und Ihr Geld — wer bezahlt hat, wer noch etwas schuldet und was Sie diesen Monat verdient haben — in einer App, die offline funktioniert und nie eine Registrierung verlangt.
 
-IHR UNTERRICHTSTAG AUF EINEN BLICK
-• Tages-, Wochen- und Monatsansicht aller Lektionen
-• Sehen Sie, was gehalten wurde, was gerade läuft und wer als Nächstes kommt
-• Eine Lektion einmalig buchen oder jede Woche bzw. alle zwei Wochen wiederholen
-• Überschneidungen werden abgelehnt, so gibt es nie Doppelbuchungen
-• Lektion per Wischgeste als gehalten markieren — oder Klas erledigt das nach Ende der Lektion selbst
+Weniger Zeit mit Tabellen und dem Nachhaken bei Zahlungen. Mehr Zeit zum Unterrichten.
 
-GELD OHNE TABELLENKALKULATION
-• Ein Stundensatz pro Schüler und Fach, samt bisheriger Stundensätze
-• Ein neuer Stundensatz ändert nie bereits gehaltene Lektionen
-• Zahlungen erfassen; Salden, Schulden und Guthaben werden automatisch berechnet
+IHR TAG AUF EINEN BLICK
+Öffnen Sie Klas und sehen Sie, welche Lektion gerade läuft, wer als Nächstes kommt, welche Lektionen noch markiert werden müssen und wer Ihnen etwas schuldet. Wischen Sie über eine Lektion, um sie als gehalten zu markieren, oder lassen Sie Klas Lektionen nach ihrem Ende automatisch markieren.
+
+EIN STUNDENPLAN, DER MIT IHNEN SCHRITT HÄLT
+• Tages-, Wochen- und Monatsansicht
+• Eine Lektion einmalig, jede Woche oder alle zwei Wochen buchen
+• Mit einem Tippen neu planen oder absagen — und rückgängig machen, wenn Sie es sich anders überlegen
+• Überschneidende Buchungen werden abgelehnt, so gibt es nie Doppelbuchungen
+
+WISSEN, WER SCHULDET — OHNE NACHZURECHNEN
+• Ein Stundensatz pro Schüler und Fach, mit allen bisherigen Stundensätzen
+• Eine Preiserhöhung ändert nie bereits gehaltene Lektionen
+• Volle Zahlungen, Teil- und Vorauszahlungen erfassen; Salden, Schulden und Guthaben aktualisieren sich von selbst
 • Schüler danach sortieren, wer am meisten schuldet
+• Schülern oder Eltern einen Kontoauszug mit Lektionen und Zahlungen als PDF senden
+• Schüler direkt aus ihrem Profil anrufen, ihnen schreiben oder eine E-Mail senden
 
-GRUPPEN
+GRUPPENUNTERRICHT, FAIR ABGERECHNET
 • Eine Lektion für die ganze Gruppe zum Gruppenpreis buchen
-• Abgerechnet wird weiterhin pro Schüler — auch „dieser war nicht da“
+• Anwesenheit pro Schüler erfassen: abwesend ohne Berechnung oder abwesend mit Berechnung
+• Jeder Schüler behält seinen eigenen Saldo
 
 HAUSAUFGABEN, DIE DIE NÄCHSTE LEKTION FINDEN
 • Hausaufgaben für einen Schüler oder eine Gruppe in wenigen Worten aufgeben
 • Sie werden automatisch der nächsten Lektion zugeordnet
-• Mit einem Tippen an den Schüler senden, abhaken, wenn erledigt
+• Mit einem Tippen teilen, abhaken, wenn sie erledigt sind
 
-BERICHTE
-• Einnahmen für einen Monat, ein Jahr oder den gesamten Zeitraum, im Vergleich zum Vorzeitraum
-• Aufschlüsselung nach Monat, Fach, Schüler und Gruppe, Einzel- vs. Gruppenunterricht
-• Offene Schulden in einer Liste
-• Export als CSV für die Tabellenkalkulation oder Ihren Steuerberater
+BERICHTE, DIE IHR WACHSTUM ZEIGEN
+• Einkommen für einen Monat, ein Jahr oder den gesamten Zeitraum, im Vergleich zum Vorzeitraum
+• Aufschlüsselung nach Monat, Fach, Schüler und Gruppe
+• Alle offenen Schulden in einer Liste
+• Export als PDF oder CSV für Ihre Unterlagen oder Ihren Steuerberater
 
-ERINNERUNGEN UND KALENDER
-• Eine Benachrichtigung vor jeder Lektion, pünktlich
+KEINE LEKTION MEHR VERPASSEN
+• Eine Erinnerung vor jeder Lektion
 • Optional: Tagesplan am Morgen, abends eine Liste nicht markierter Lektionen und eine wöchentliche Schuldenübersicht
+• Widgets für den Startbildschirm: die heutigen Lektionen zum Abhaken mit einem Tippen, dazu Verknüpfungen zum Buchen, zu Hausaufgaben und zu Schulden
 • Optional: Synchronisierung mit dem Kalender Ihres Handys, mit E-Mail-Einladungen für Schüler
 
-PRIVAT VON GRUND AUF
+IHRE DATEN GEHÖREN IHNEN
 • Kein Konto, keine Registrierung, kein Internet nötig
-• Ihre Daten bleiben auf Ihrem Handy — Klas hat keine Server, an die sie gehen könnten
-• Vollständige Sicherung in eine Datei, die Sie behalten, und Wiederherstellung auf einem neuen Handy
-• Keine Werbung, keine Tracker
+• Alles bleibt auf Ihrem Handy — Klas hat keine Server, an die es gehen könnte
+• App-Sperre mit Fingerabdruck, Gesichtserkennung oder Bildschirmsperre
+• Keine Namen und Beträge auf dem Sperrbildschirm
+• Passwortgeschützte Sicherungen, eine automatische wöchentliche Kopie in einen Ordner oder ein Cloud-Laufwerk Ihrer Wahl und eine Vorschau vor dem Wiederherstellen
+• Kostenlos, ohne Werbung, ohne Abos und ohne Tracker
 
-Für Nachhilfelehrer, die allein arbeiten. Helles und dunkles Design. 25 Sprachen und über 150 Währungen.
+Für selbstständige Nachhilfelehrer und Privatlehrer in jedem Fach — Sprachen, Mathe, Musik, Abi-Vorbereitung und mehr. 25 Sprachen, über 150 Währungen, helles und dunkles Design.
 
 Klas ist Open Source unter der GNU GPL v3.

@@ -1,44 +1,54 @@
-O Klas é a caderneta de aulas do professor particular: sua agenda, seus alunos, quem pagou e quem deve — tudo calculado para você, no seu celular.
+O Klas é a caderneta de aulas para professores particulares e tutores. Sua agenda de aulas particulares, seus alunos, as lições de casa e o dinheiro — quem pagou, quem deve e quanto você ganhou no mês — em um só app, que funciona offline e nunca pede cadastro.
 
-SEU DIA DE AULAS EM UM SÓ OLHAR
-• Visualização por dia, semana e mês de todas as aulas
-• Veja o que já foi dado, o que está acontecendo agora e quem é o próximo
-• Agende uma aula uma única vez ou repita toda semana ou a cada duas semanas
-• Horários sobrepostos são recusados, então você nunca marca duas aulas ao mesmo tempo
-• Marque uma aula como realizada com um deslize — ou deixe o Klas fazer isso quando a aula terminar
+Menos tempo com planilhas e cobranças. Mais tempo dando aula.
 
-DINHEIRO SEM PLANILHA
-• Um valor por hora para cada aluno e matéria, com histórico de valores
-• Mudar o valor nunca altera as aulas já realizadas
-• Registre os pagamentos; saldos, dívidas e créditos são calculados para você
+SEU DIA EM UM SÓ OLHAR
+Abra o Klas e veja a aula que está acontecendo agora, quem é o próximo, quais aulas ainda falta marcar e quem está devendo. Deslize uma aula para marcá-la como realizada, ou deixe o Klas marcar as aulas automaticamente assim que terminarem.
+
+UMA AGENDA QUE ACOMPANHA O SEU RITMO
+• Visualização por dia, semana e mês
+• Agende uma aula uma vez só, toda semana ou a cada duas semanas
+• Reagende ou cancele com um toque — e desfaça se mudar de ideia
+• Aulas sobrepostas são recusadas, então você nunca agenda duas aulas ao mesmo tempo
+
+SAIBA QUEM DEVE — SEM FAZER CONTA
+• Valor por hora para cada aluno e matéria, com histórico completo de valores
+• Aumentar o valor nunca altera as aulas já realizadas
+• Registre pagamentos integrais, parciais ou adiantados; saldos, dívidas e saldo a favor se atualizam sozinhos
 • Ordene os alunos por quem deve mais
+• Envie ao aluno ou aos pais um extrato em PDF das aulas e pagamentos
+• Ligue, mande mensagem ou e-mail para o aluno direto do perfil dele
 
-GRUPOS
-• Agende uma aula para o grupo todo com o valor do grupo
-• A cobrança continua sendo por aluno — inclusive “este não veio”
+AULAS EM GRUPO, COBRANÇA JUSTA
+• Agende uma aula para o grupo todo, com o valor do grupo
+• Controle a presença de cada aluno: ausente sem cobrança ou ausente com cobrança
+• Cada aluno mantém o próprio saldo
 
-TAREFAS QUE ENCONTRAM A PRÓXIMA AULA
-• Passe uma tarefa para um aluno ou um grupo em poucas palavras
+LIÇÃO DE CASA QUE ENCONTRA A PRÓXIMA AULA
+• Passe lição de casa para um aluno ou um grupo em poucas palavras
 • Ela se vincula sozinha à próxima aula deles
-• Compartilhe com o aluno com um toque e marque quando estiver feita
+• Compartilhe com um toque e marque quando estiver feita
 
-RELATÓRIOS
+RELATÓRIOS QUE MOSTRAM SEU NEGÓCIO CRESCER
 • Receita do mês, do ano ou de todo o período, comparada com o período anterior
-• Detalhamento por mês, matéria, aluno e grupo, aulas individuais e em grupo
-• Todas as dívidas em aberto em uma lista
-• Exportação para CSV para uma planilha ou seu contador
+• Detalhamento por mês, matéria, aluno e grupo
+• Todas as dívidas em aberto em uma só lista
+• Exporte para PDF ou CSV para o seu controle ou para o seu contador
 
-LEMBRETES E CALENDÁRIO
-• Uma notificação antes de cada aula, na hora certa
-• Opcional: agenda pela manhã, lista à noite das aulas não marcadas e resumo semanal de dívidas
-• Opcional: sincronização com o calendário do celular, com convites por e-mail para os alunos
+NUNCA MAIS ESQUEÇA UMA AULA
+• Um lembrete antes de cada aula
+• Agenda pela manhã, lista à noite das aulas não marcadas e resumo semanal de dívidas, se você quiser
+• Widgets na tela inicial: as aulas de hoje, marcadas com um toque, e atalhos para agendar, lição de casa e dívidas
+• Sincronização opcional com o calendário do celular, com convites por e-mail para os alunos
 
-PRIVADO POR PRINCÍPIO
+SEUS DADOS SÃO SÓ SEUS
 • Sem conta, sem cadastro, sem precisar de internet
-• Seus dados ficam no seu celular — o Klas não tem servidores para onde enviá-los
-• Backup completo em um arquivo que fica com você e restauração em um celular novo
-• Sem anúncios e sem rastreadores
+• Tudo fica no seu celular — o Klas não tem servidores para onde enviar seus dados
+• Bloqueio do aplicativo com impressão digital, rosto ou bloqueio de tela
+• Nomes e valores não aparecem na tela de bloqueio
+• Backups protegidos por senha, cópia semanal automática para uma pasta ou nuvem que você escolher e prévia antes de restaurar
+• Grátis, sem anúncios, sem assinaturas e sem rastreadores
 
-Feito para o professor particular que trabalha sozinho. Temas claro e escuro. 25 idiomas e mais de 150 moedas.
+Feito para tutores autônomos e professores particulares de qualquer matéria — inglês, matemática, música, ENEM e vestibular e muito mais. 25 idiomas, mais de 150 moedas, temas claro e escuro.
 
 O Klas é de código aberto, sob a licença GNU GPL v3.

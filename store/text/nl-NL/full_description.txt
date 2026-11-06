@@ -1,44 +1,54 @@
-Klas is het lesboek van een bijlesdocent: je rooster, je leerlingen, wie heeft betaald en wie nog moet betalen — automatisch berekend, op je telefoon.
+Klas is het lesboek voor bijlesdocenten en privéleraren. Je bijlesrooster, je leerlingen, huiswerk en geld — wie heeft betaald, wie nog moet betalen en wat je deze maand hebt verdiend — in één app die offline werkt en waarvoor je je nooit hoeft te registreren.
 
-JE LESDAG IN ÉÉN OOGOPSLAG
-• Dag-, week- en maandweergave van al je lessen
-• Zie wat er gegeven is, wat nu bezig is en wie de volgende is
-• Plan een les één keer in of herhaal hem elke week of om de week
-• Overlappende tijden worden geweigerd, dus je hebt nooit twee lessen tegelijk
-• Markeer een les als gegeven met een veeg — of laat Klas het doen zodra de les voorbij is
+Minder tijd kwijt aan spreadsheets en achter betalingen aan zitten. Meer tijd om les te geven.
 
-GELD ZONDER SPREADSHEET
-• Een uurtarief per leerling en vak, met tariefgeschiedenis
-• Een nieuw tarief verandert nooit lessen die al gegeven zijn
-• Leg betalingen vast; saldo, schulden en tegoed worden voor je berekend
-• Sorteer leerlingen op wie het meest schuldig is
+JE DAG IN ÉÉN OOGOPSLAG
+Open Klas en zie welke les nu bezig is, wie de volgende is, welke lessen nog gemarkeerd moeten worden en wie je nog geld schuldig is. Veeg over een les om hem als gegeven te markeren, of laat Klas lessen automatisch markeren zodra ze voorbij zijn.
 
-GROEPEN
+EEN ROOSTER DAT MET JE MEEBEWEEGT
+• Dag-, week- en maandweergave
+• Plan een les één keer, elke week of om de week
+• Verplaats of annuleer met één tik, en maak het ongedaan als je je bedenkt
+• Overlappende lessen worden geweigerd, dus je bent nooit dubbel geboekt
+
+WETEN WIE MOET BETALEN — ZONDER REKENWERK
+• Een uurtarief per leerling en vak, met volledige tariefgeschiedenis
+• Een hoger tarief verandert nooit lessen die al gegeven zijn
+• Leg volledige betalingen, deelbetalingen en vooruitbetalingen vast; saldo, schulden en tegoed worden vanzelf bijgewerkt
+• Sorteer leerlingen op wie het meest moet betalen
+• Stuur een leerling of ouder een rekeningoverzicht van lessen en betalingen als PDF
+• Bel, stuur een bericht of mail een leerling rechtstreeks vanuit het profiel
+
+GROEPSLESSEN, EERLIJK AFGEREKEND
 • Plan één les voor de hele groep tegen het groepstarief
-• De afrekening blijft per leerling — inclusief 'deze kwam niet'
+• Houd aanwezigheid per leerling bij: afwezig zonder kosten, of afwezig met kosten
+• Elke leerling houdt een eigen saldo
 
 HUISWERK DAT DE VOLGENDE LES VINDT
 • Geef huiswerk op voor een leerling of groep in een paar woorden
-• Het wordt vanzelf aan hun volgende les gekoppeld
-• Deel het met één tik met de leerling en vink het af als het klaar is
+• Het wordt automatisch aan de volgende les gekoppeld
+• Deel het met één tik en vink het af als het klaar is
 
-RAPPORTEN
-• Inkomsten per maand, per jaar of over de hele periode, vergeleken met de periode ervoor
-• Uitsplitsing per maand, vak, leerling en groep, individueel tegenover groep
-• Openstaande schulden in één lijst
-• Export naar CSV voor een spreadsheet of je boekhouder
+RAPPORTEN DIE JE GROEI LATEN ZIEN
+• Inkomen per maand, per jaar of over de hele periode, vergeleken met de periode ervoor
+• Uitsplitsing per maand, vak, leerling en groep
+• Alle openstaande schulden in één lijst
+• Exporteer naar PDF of CSV voor je administratie of je boekhouder
 
-HERINNERINGEN EN KALENDER
-• Een melding vóór elke les, op tijd
-• Optioneel: 's ochtends een dagoverzicht, 's avonds een lijst met ongemarkeerde lessen en een wekelijks schuldenoverzicht
+MIS NOOIT MEER EEN LES
+• Een herinnering vóór elke les
+• Optioneel: 's ochtends een lesagenda, 's avonds een lijst met ongemarkeerde lessen en een wekelijks schuldenoverzicht
+• Widgets voor je startscherm: de lessen van vandaag, met één tik afgevinkt, plus snelkoppelingen om een les in te plannen en naar huiswerk en schulden
 • Optioneel: synchronisatie met de kalender van je telefoon, met uitnodigingen per e-mail voor leerlingen
 
-PRIVÉ VANAF HET ONTWERP
+JE GEGEVENS BLIJVEN VAN JOU
 • Geen account, geen registratie, geen internet nodig
-• Je gegevens blijven op je telefoon — Klas heeft geen servers om ze naartoe te sturen
-• Volledige back-up naar een bestand dat je zelf bewaart, en herstel op een nieuwe telefoon
-• Geen advertenties en geen trackers
+• Alles blijft op je telefoon — Klas heeft geen servers om het naartoe te sturen
+• App-vergrendeling met je vingerafdruk, gezicht of schermvergrendeling
+• Geen namen en bedragen op je vergrendelscherm
+• Back-ups met wachtwoord, een automatische wekelijkse kopie naar een map of clouddrive naar keuze, en een voorbeeld voordat je iets herstelt
+• Gratis, zonder advertenties, abonnementen of trackers
 
-Gemaakt voor een bijlesdocent die zelfstandig werkt. Licht en donker thema. 25 talen en meer dan 150 valuta's.
+Gemaakt voor zelfstandige bijlesdocenten en privéleraren in elk vak — talen, wiskunde, muziek, examentraining en meer. 25 talen, meer dan 150 valuta's, licht en donker thema.
 
 Klas is open source onder de GNU GPL v3.

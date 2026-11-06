@@ -1,44 +1,54 @@
-Klas è il registro di chi dà lezioni private: il tuo orario, i tuoi studenti, chi ha pagato e chi deve ancora — tutto calcolato per te, sul tuo telefono.
+Klas è il registro delle lezioni per tutor e insegnanti privati. L'orario delle tue ripetizioni e lezioni private, gli studenti, i compiti e i soldi — chi ha pagato, chi ti deve ancora e quanto hai guadagnato questo mese — in un'unica app che funziona offline e non ti chiede mai di registrarti.
 
-LA TUA GIORNATA DI LEZIONI A COLPO D'OCCHIO
-• Viste per giorno, settimana e mese di tutte le lezioni
-• Vedi cosa è stato svolto, cosa è in corso e chi è il prossimo
-• Prenota una lezione una sola volta o ripetila ogni settimana o ogni due settimane
-• Gli orari sovrapposti vengono rifiutati, così non hai mai due lezioni insieme
-• Segna una lezione come svolta con uno scorrimento, o lascia che lo faccia Klas a fine lezione
+Meno tempo sui fogli di calcolo e a rincorrere i pagamenti. Più tempo per insegnare.
 
-SOLDI SENZA FOGLI DI CALCOLO
-• Una tariffa oraria per studente e materia, con storico delle tariffe
-• Cambiare una tariffa non modifica mai le lezioni già svolte
-• Registra i pagamenti: saldi, debiti e crediti vengono calcolati per te
+LA TUA GIORNATA A COLPO D'OCCHIO
+Apri Klas e vedi la lezione in corso, chi viene dopo, quali lezioni sono ancora da segnare e chi ti deve dei soldi. Scorri una lezione per segnarla come svolta, oppure lascia che Klas segni le lezioni in automatico appena finiscono.
+
+UN ORARIO CHE TIENE IL TUO PASSO
+• Viste per giorno, settimana e mese
+• Prenota una lezione una volta sola, ogni settimana o ogni due settimane
+• Riprogramma o annulla con un tocco, e torna indietro se cambi idea
+• Le prenotazioni sovrapposte vengono rifiutate: mai due lezioni alla stessa ora
+
+CHI TI DEVE COSA, SENZA FARE CONTI
+• Una tariffa oraria per studente e materia, con tutto lo storico delle tariffe
+• Aumentare una tariffa non modifica mai le lezioni già svolte
+• Registra pagamenti completi, parziali o anticipati: saldi, debiti e crediti si aggiornano da soli
 • Ordina gli studenti per chi deve di più
+• Invia allo studente o ai genitori un estratto conto in PDF di lezioni e pagamenti
+• Chiama, scrivi o manda un'e-mail a uno studente direttamente dal suo profilo
 
-GRUPPI
+LEZIONI DI GRUPPO, CONTI GIUSTI
 • Prenota una lezione per tutto il gruppo alla tariffa del gruppo
-• Il conteggio resta per singolo studente, compreso «questo non è venuto»
+• Segna le presenze di ogni studente: assente senza addebito o assente con addebito
+• Ogni studente ha il proprio saldo
 
 COMPITI CHE TROVANO LA PROSSIMA LEZIONE
 • Assegna i compiti a uno studente o a un gruppo in poche parole
-• Si collegano da soli alla loro prossima lezione
-• Inviali allo studente con un tocco e spuntali quando sono fatti
+• Si collegano da soli alla sua prossima lezione
+• Condividili con un tocco e spuntali quando sono fatti
 
-RAPPORTI
-• Entrate di un mese, un anno o di sempre, a confronto con il periodo precedente
-• Dettaglio per mese, materia, studente e gruppo, lezioni individuali e di gruppo
+RAPPORTI CHE MOSTRANO LA TUA ATTIVITÀ CRESCERE
+• Entrate di un mese, di un anno o di sempre, a confronto con il periodo precedente
+• Dettaglio per mese, materia, studente e gruppo
 • Tutti i debiti in sospeso in un'unica lista
-• Esportazione in CSV per un foglio di calcolo o il tuo commercialista
+• Esportazione in PDF o CSV per il tuo archivio o il commercialista
 
-PROMEMORIA E CALENDARIO
-• Una notifica prima di ogni lezione, puntuale
-• A scelta: programma del giorno al mattino, elenco serale delle lezioni non segnate e riepilogo settimanale dei debiti
-• A scelta: sincronizzazione con il calendario del telefono, con inviti via email per gli studenti
+MAI PIÙ UNA LEZIONE DIMENTICATA
+• Un promemoria prima di ogni lezione
+• A scelta: agenda del mattino, elenco serale delle lezioni non segnate e riepilogo settimanale dei debiti
+• Widget per la schermata Home: le lezioni di oggi da spuntare con un tocco, più scorciatoie per prenotare, compiti e debiti
+• A scelta: sincronizzazione con il calendario del telefono, con inviti via e-mail per gli studenti
 
-RISERVATEZZA FIN DALLA PROGETTAZIONE
+I TUOI DATI RESTANO TUOI
 • Nessun account, nessuna registrazione, nessuna connessione necessaria
-• I tuoi dati restano sul telefono: Klas non ha server a cui inviarli
-• Backup completo in un file che conservi tu e ripristino su un nuovo telefono
-• Niente pubblicità e niente tracker
+• Tutto resta sul tuo telefono: Klas non ha server a cui inviarlo
+• Blocco app con impronta digitale, volto o blocco schermo
+• Nomi e importi nascosti nella schermata di blocco
+• Backup protetti da password, una copia settimanale automatica nella cartella o nel cloud che scegli e un'anteprima prima del ripristino
+• Gratis, senza pubblicità, senza abbonamenti e senza tracker
 
-Pensato per un insegnante privato che lavora da solo. Tema chiaro e scuro. 25 lingue e oltre 150 valute.
+Pensato per tutor indipendenti e insegnanti privati che danno lezioni e ripetizioni di qualsiasi materia: lingue, matematica, musica, preparazione alla maturità e molto altro. 25 lingue, oltre 150 valute, tema chiaro e scuro.
 
 Klas è open source con licenza GNU GPL v3.

@@ -1,44 +1,54 @@
-Klas es la libreta de clases de un profesor particular: tu horario, tus alumnos, quién ha pagado y quién debe, todo calculado automáticamente en tu móvil.
+Klas es la libreta de clases para profesores particulares y docentes. Tu horario de clases particulares, tus alumnos, las tareas y el dinero —quién ha pagado, quién te debe y cuánto has ganado este mes— en una sola app que funciona sin conexión y nunca te pide registrarte.
 
-TU DÍA DE CLASES DE UN VISTAZO
-• Vistas por día, semana y mes de todas las clases
-• Mira lo que ya se ha impartido, lo que está en curso y quién va después
-• Reserva una clase una sola vez o repítela cada semana o cada dos semanas
-• Se rechazan los horarios que se solapan, así que nunca tendrás dos clases a la vez
-• Marca una clase como impartida deslizando el dedo, o deja que Klas lo haga cuando termine
+Menos tiempo con hojas de cálculo y reclamando pagos. Más tiempo para enseñar.
 
-DINERO SIN HOJAS DE CÁLCULO
-• Una tarifa por hora para cada alumno y asignatura, con historial de tarifas
-• Cambiar una tarifa nunca modifica las clases ya impartidas
-• Registra los pagos; saldos, deudas y saldo a favor se calculan solos
+TU DÍA DE UN VISTAZO
+Abre Klas y verás la clase en curso, quién va después, qué clases faltan por marcar y quién te debe. Desliza una clase para marcarla como impartida, o deja que Klas marque las clases automáticamente en cuanto terminen.
+
+UN HORARIO QUE VA A TU RITMO
+• Vistas por día, semana y mes
+• Reserva una clase una sola vez, cada semana o cada dos semanas
+• Reprograma o cancela con un toque, y deshazlo si cambias de idea
+• Se rechazan las reservas que se solapan, así nunca tendrás dos clases a la vez
+
+QUIÉN TE DEBE, SIN HACER CUENTAS
+• Una tarifa por hora para cada alumno y asignatura, con todo el historial de tarifas
+• Subir una tarifa nunca modifica las clases ya impartidas
+• Registra pagos completos, parciales o por adelantado; saldos, deudas y saldo a favor se actualizan solos
 • Ordena a los alumnos según quién debe más
+• Envía al alumno o a sus padres un estado de cuenta en PDF con las clases y los pagos
+• Llama, escribe o envía un correo a un alumno directamente desde su ficha
 
-GRUPOS
+CLASES EN GRUPO, COBRADAS CON JUSTICIA
 • Reserva una sola clase para todo el grupo con la tarifa del grupo
-• La facturación sigue siendo por alumno, incluido «este no vino»
+• Controla la asistencia de cada alumno: ausente sin cargo o ausente con cargo
+• Cada alumno mantiene su propio saldo
 
 TAREAS QUE ENCUENTRAN LA SIGUIENTE CLASE
 • Asigna tareas a un alumno o a un grupo en pocas palabras
 • Se vinculan solas a su siguiente clase
-• Compártelas con el alumno con un toque y márcalas cuando estén hechas
+• Compártelas con un toque y márcalas cuando estén hechas
 
-INFORMES
+INFORMES QUE MUESTRAN CÓMO CRECE TU NEGOCIO
 • Ingresos de un mes, un año o de todo el tiempo, comparados con el periodo anterior
-• Desglose por mes, asignatura, alumno y grupo, clases individuales frente a grupales
-• Todas las deudas pendientes en una lista
-• Exportación a CSV para una hoja de cálculo o tu contable
+• Desglose por mes, asignatura, alumno y grupo
+• Todas las deudas pendientes en una sola lista
+• Exportación a PDF o CSV para tus archivos o tu gestor
 
-RECORDATORIOS Y CALENDARIO
-• Una notificación antes de cada clase, a tiempo
+NUNCA TE PIERDAS UNA CLASE
+• Un recordatorio antes de cada clase
 • Opcional: agenda por la mañana, lista nocturna de clases sin marcar y resumen semanal de deudas
+• Widgets en la pantalla de inicio: las clases de hoy para marcar con un toque, y accesos directos para reservar, tareas y deudas
 • Opcional: sincronización con el calendario del móvil, con invitaciones por correo para los alumnos
 
-PRIVACIDAD DESDE EL DISEÑO
+TUS DATOS SON SOLO TUYOS
 • Sin cuenta, sin registro y sin necesidad de internet
-• Tus datos se quedan en tu móvil: Klas no tiene servidores a los que enviarlos
-• Copia de seguridad completa en un archivo que guardas tú y restauración en un móvil nuevo
-• Sin anuncios ni rastreadores
+• Todo se queda en tu móvil: Klas no tiene servidores a los que enviarlo
+• Bloqueo de la app con tu huella, tu cara o el bloqueo de pantalla
+• Nombres e importes ocultos en la pantalla de bloqueo
+• Copias de seguridad protegidas con contraseña, una copia semanal automática en la carpeta o la nube que elijas y una vista previa antes de restaurar
+• Gratis, sin anuncios, sin suscripciones y sin rastreadores
 
-Pensada para un profesor particular que trabaja por su cuenta. Temas claro y oscuro. 25 idiomas y más de 150 monedas.
+Pensada para profesores particulares autónomos y docentes que dan clases particulares de cualquier materia: idiomas, matemáticas, música, preparación de Selectividad y mucho más. 25 idiomas, más de 150 monedas, temas claro y oscuro.
 
 Klas es de código abierto, con licencia GNU GPL v3.

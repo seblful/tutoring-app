@@ -1,1 +1,1 @@
-Horário, pagamentos e dívidas para professores particulares. Offline, sem conta.
+Horário, TPC, pagamentos e dívidas para explicadores. Offline e sem registo.

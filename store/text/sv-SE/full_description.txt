@@ -1,44 +1,54 @@
-Klas är lektionsboken för en privatlärare: ditt schema, dina elever, vem som har betalat och vem som är skyldig — uträknat åt dig, i din telefon.
+Klas är lektionsboken för privatlärare och lärare. Ditt schema för privatlektioner, dina elever, läxor och pengar — vem som har betalat, vem som är skyldig och vad du har tjänat den här månaden — i en app som fungerar offline och aldrig ber dig registrera dig.
 
-DIN UNDERVISNINGSDAG I EN BLICK
-• Dag-, vecko- och månadsvy över alla lektioner
-• Se vad som är genomfört, vad som pågår nu och vem som är nästa
-• Boka en lektion en gång eller upprepa den varje vecka eller varannan vecka
-• Överlappande tider nekas, så du blir aldrig dubbelbokad
-• Markera en lektion som genomförd med en svepning — eller låt Klas göra det när lektionen är slut
+Mindre tid åt kalkylark och åt att jaga betalningar. Mer tid för undervisning.
 
-PENGAR UTAN KALKYLARK
-• Ett timpris per elev och ämne, med prishistorik
-• Ett nytt pris ändrar aldrig redan genomförda lektioner
-• Registrera betalningar; saldo, skulder och tillgodo räknas ut åt dig
+DIN DAG I EN BLICK
+Öppna Klas och se vilken lektion som pågår, vem som är nästa, vilka lektioner som fortfarande behöver markeras och vem som är skyldig dig. Svep en lektion för att markera den som genomförd, eller låt Klas markera lektioner automatiskt när de är slut.
+
+ETT SCHEMA SOM HÄNGER MED
+• Dag-, vecko- och månadsvy
+• Boka en lektion en gång, varje vecka eller varannan vecka
+• Flytta eller ställ in med ett tryck, och ångra om du ändrar dig
+• Överlappande bokningar nekas, så du blir aldrig dubbelbokad
+
+VET VEM SOM ÄR SKYLDIG — UTAN ATT RÄKNA
+• Ett timpris per elev och ämne, med fullständig prishistorik
+• En prishöjning ändrar aldrig lektioner som redan är genomförda
+• Registrera hela betalningar, delbetalningar och förskott; saldo, skulder och tillgodo uppdateras av sig själva
 • Sortera eleverna efter vem som är skyldig mest
+• Skicka ett kontoutdrag över lektioner och betalningar som PDF till en elev eller förälder
+• Ring, skriv eller mejla en elev direkt från profilen
 
-GRUPPER
-• Boka en lektion för hela gruppen till gruppens eget pris
-• Debiteringen sker fortfarande per elev — även ”den här kom inte”
+GRUPPLEKTIONER, RÄTTVIST DEBITERADE
+• Boka en lektion för hela gruppen till gruppens pris
+• Registrera närvaro per elev: frånvarande utan debitering eller frånvarande med debitering
+• Varje elev har sitt eget saldo
 
 LÄXOR SOM HITTAR NÄSTA LEKTION
 • Ge läxa till en elev eller en grupp med några få ord
 • Den kopplas automatiskt till nästa lektion
-• Dela den med eleven med ett tryck och bocka av när den är gjord
+• Dela den med ett tryck och bocka av när den är klar
 
-RAPPORTER
-• Intäkter för en månad, ett år eller hela tiden, jämfört med perioden innan
-• Uppdelat per månad, ämne, elev och grupp, individuellt och i grupp
+RAPPORTER SOM VISAR HUR DIN VERKSAMHET VÄXER
+• Inkomst för en månad, ett år eller hela tiden, jämfört med perioden innan
+• Uppdelat per månad, ämne, elev och grupp
 • Alla utestående skulder i en lista
-• Export till CSV för kalkylark eller din redovisningskonsult
+• Exportera till PDF eller CSV för din bokföring eller din redovisningskonsult
 
-PÅMINNELSER OCH KALENDER
-• En avisering före varje lektion, i tid
-• Valfritt: dagsagenda på morgonen, kvällslista över omärkta lektioner och veckovis skuldsammanfattning
+MISSA ALDRIG EN LEKTION
+• En påminnelse före varje lektion
+• Valfritt: lektionsagenda på morgonen, kvällslista över omärkta lektioner och veckovis skuldsammanfattning
+• Widgetar för hemskärmen: dagens lektioner som bockas av med ett tryck, plus genvägar till bokning, läxor och skulder
 • Valfritt: synkning med telefonens kalender, med inbjudningar via e-post till eleverna
 
-PRIVAT FRÅN GRUNDEN
+DINA DATA ÄR DINA
 • Inget konto, ingen registrering, inget internet behövs
-• Dina data stannar i din telefon — Klas har inga servrar att skicka dem till
-• Fullständig säkerhetskopia till en fil du själv sparar, och återställning på en ny telefon
-• Ingen reklam och inga spårare
+• Allt stannar i din telefon — Klas har inga servrar att skicka det till
+• Applås med fingeravtryck, ansikte eller skärmlås
+• Namn och belopp hålls borta från låsskärmen
+• Lösenordsskyddade säkerhetskopior, en automatisk kopia varje vecka till en mapp eller molnlagring som du väljer, och en förhandsgranskning innan du återställer
+• Gratis, utan reklam, prenumerationer och spårare
 
-Gjord för en privatlärare som arbetar på egen hand. Ljust och mörkt tema. 25 språk och över 150 valutor.
+Gjord för privatlärare som arbetar på egen hand och lärare som ger privatlektioner i alla ämnen — språk, matte, musik, provförberedelser och mycket mer. 25 språk, över 150 valutor, ljust och mörkt tema.
 
 Klas är öppen källkod under GNU GPL v3.

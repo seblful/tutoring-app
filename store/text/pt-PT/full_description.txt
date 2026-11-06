@@ -1,44 +1,54 @@
-O Klas é o caderno de aulas do professor particular: o seu horário, os seus alunos, quem pagou e quem deve — tudo calculado automaticamente, no seu telemóvel.
+O Klas é o caderno de aulas para explicadores e professores particulares. O horário das suas explicações, os seus alunos, os trabalhos de casa e o dinheiro — quem pagou, quem deve e quanto ganhou este mês — numa só aplicação, que funciona offline e nunca lhe pede registo.
 
-O SEU DIA DE AULAS NUM RELANCE
-• Vistas por dia, semana e mês de todas as aulas
-• Veja o que já foi dado, o que está a decorrer e quem é o seguinte
-• Marque uma aula uma única vez ou repita-a todas as semanas ou de duas em duas semanas
-• Horários sobrepostos são recusados, por isso nunca tem duas aulas à mesma hora
-• Assinale uma aula como realizada com um deslizar do dedo — ou deixe o Klas fazê-lo quando a aula terminar
+Menos tempo em folhas de cálculo e a cobrar pagamentos. Mais tempo a ensinar.
 
-DINHEIRO SEM FOLHAS DE CÁLCULO
-• Um preço por hora para cada aluno e disciplina, com histórico de preços
-• Alterar um preço nunca altera as aulas já realizadas
-• Registe os pagamentos; saldos, dívidas e créditos são calculados automaticamente
+O SEU DIA NUM RELANCE
+Abra o Klas e veja a aula que está a decorrer, quem vem a seguir, que aulas ainda falta assinalar e quem lhe deve. Deslize uma aula para a marcar como realizada, ou deixe o Klas marcar as aulas automaticamente quando terminam.
+
+UM HORÁRIO QUE ACOMPANHA O SEU RITMO
+• Vistas por dia, semana e mês
+• Marque uma aula uma só vez, todas as semanas ou de duas em duas semanas
+• Reagende ou cancele com um toque — e desfaça se mudar de ideias
+• Marcações sobrepostas são recusadas, por isso nunca tem duas aulas à mesma hora
+
+SAIBA QUEM DEVE — SEM FAZER CONTAS
+• Preço por hora para cada aluno e disciplina, com histórico completo de preços
+• Subir um preço nunca altera as aulas já realizadas
+• Registe pagamentos totais, parciais ou adiantados; saldos, dívidas e saldo a favor atualizam-se sozinhos
 • Ordene os alunos por quem deve mais
+• Envie ao aluno ou ao encarregado de educação um extrato em PDF das aulas e pagamentos
+• Ligue, envie uma mensagem ou um e-mail ao aluno diretamente a partir do perfil
 
-GRUPOS
+AULAS DE GRUPO, COBRADAS COM JUSTIÇA
 • Marque uma aula para o grupo inteiro, ao preço do grupo
-• A faturação continua a ser por aluno — incluindo «este não veio»
+• Registe a presença de cada aluno: ausente sem cobrança ou ausente com cobrança
+• Cada aluno mantém o seu próprio saldo
 
 TRABALHOS DE CASA QUE ENCONTRAM A PRÓXIMA AULA
-• Marque trabalhos de casa a um aluno ou a um grupo em poucas palavras
-• Ficam associados sozinhos à próxima aula
-• Partilhe-os com o aluno com um toque e assinale-os quando estiverem feitos
+• Mande trabalhos de casa a um aluno ou a um grupo em poucas palavras
+• Ficam associados automaticamente à próxima aula
+• Partilhe-os com um toque e assinale-os quando estiverem feitos
 
-RELATÓRIOS
+RELATÓRIOS QUE MOSTRAM O SEU NEGÓCIO A CRESCER
 • Receitas de um mês, de um ano ou de sempre, comparadas com o período anterior
-• Discriminação por mês, disciplina, aluno e grupo, aulas individuais e de grupo
+• Discriminação por mês, disciplina, aluno e grupo
 • Todas as dívidas por saldar numa só lista
-• Exportação para CSV para uma folha de cálculo ou para o seu contabilista
+• Exporte para PDF ou CSV para os seus registos ou para o seu contabilista
 
-LEMBRETES E CALENDÁRIO
-• Uma notificação antes de cada aula, a horas
-• Opcional: agenda de manhã, lista à noite das aulas não assinaladas e resumo semanal das dívidas
-• Opcional: sincronização com o calendário do telemóvel, com convites por e-mail para os alunos
+NUNCA MAIS FALHE UMA AULA
+• Um lembrete antes de cada aula
+• Agenda de manhã, lista à noite das aulas por assinalar e resumo semanal das dívidas, se quiser
+• Widgets no ecrã principal: as aulas de hoje, assinaladas com um toque, e atalhos para marcar aulas, trabalhos de casa e dívidas
+• Sincronização opcional com o calendário do telemóvel, com convites por e-mail para os alunos
 
-PRIVACIDADE DE RAIZ
+OS SEUS DADOS SÃO SÓ SEUS
 • Sem conta, sem registo, sem precisar de internet
-• Os seus dados ficam no seu telemóvel — o Klas não tem servidores para onde os enviar
-• Backup completo para um ficheiro que guarda consigo e restauro num telemóvel novo
-• Sem anúncios nem rastreadores
+• Tudo fica no seu telemóvel — o Klas não tem servidores para onde o enviar
+• Bloqueio da aplicação com impressão digital, rosto ou bloqueio de ecrã
+• Nomes e valores escondidos no ecrã de bloqueio
+• Backups protegidos por palavra-passe, uma cópia semanal automática para uma pasta ou unidade na nuvem à sua escolha, e pré-visualização antes de restaurar
+• Gratuito, sem anúncios, sem subscrições e sem rastreadores
 
-Feito para o professor particular que trabalha sozinho. Temas claro e escuro. 25 idiomas e mais de 150 moedas.
+Feito para explicadores independentes e professores particulares de qualquer disciplina — línguas, matemática, música, preparação para exames nacionais e muito mais. 25 idiomas, mais de 150 moedas, temas claro e escuro.
 
 O Klas é de código aberto, com licença GNU GPL v3.

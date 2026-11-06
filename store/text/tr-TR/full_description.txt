@@ -1,44 +1,54 @@
-Klas, özel ders veren öğretmenin ders defteridir: ders programınız, öğrencileriniz, kimin ödediği ve kimin borçlu olduğu — hepsi sizin için hesaplanır, telefonunuzda.
+Klas, özel ders veren öğretmenler ve eğitmenler için bir ders defteridir. Özel ders programınız, öğrencileriniz, ödevler ve para — kim ödedi, kim borçlu ve bu ay ne kadar kazandınız — çevrimdışı çalışan ve asla üyelik istemeyen tek bir uygulamada.
 
-DERS GÜNÜNÜZ TEK BAKIŞTA
-• Tüm dersler için günlük, haftalık ve aylık görünüm
-• Hangi derslerin yapıldığını, şu an hangisinin sürdüğünü ve sırada kimin olduğunu görün
-• Bir dersi tek seferlik planlayın ya da her hafta veya iki haftada bir tekrarlayın
-• Çakışan saatler kabul edilmez, böylece aynı saate asla iki ders yazılmaz
-• Bir dersi tek kaydırmayla yapıldı olarak işaretleyin ya da ders bitince Klas bunu kendisi yapsın
+Tablolarla uğraşmaya ve ödeme kovalamaya daha az, ders vermeye daha çok zaman ayırın.
 
-TABLOSUZ PARA TAKİBİ
-• Her öğrenci ve ders için saatlik ücret, ücret geçmişiyle birlikte
-• Ücreti değiştirmek, yapılmış dersleri asla değiştirmez
-• Ödemeleri kaydedin; bakiye, borç ve fazla ödemeler otomatik hesaplanır
+GÜNÜNÜZ TEK BAKIŞTA
+Klas'ı açın; şu an süren dersi, sırada kimin olduğunu, hâlâ işaretlenmeyi bekleyen dersleri ve kimin size borçlu olduğunu görün. Bir dersi kaydırarak yapıldı olarak işaretleyin ya da dersler bittiğinde Klas onları kendiliğinden işaretlesin.
+
+SİZE AYAK UYDURAN BİR DERS PROGRAMI
+• Günlük, haftalık ve aylık görünüm
+• Bir dersi tek seferlik, her hafta ya da iki haftada bir planlayın
+• Tek dokunuşla yeniden planlayın ya da iptal edin; fikrinizi değiştirirseniz geri alın
+• Çakışan dersler kabul edilmez, böylece aynı saate asla iki ders yazılmaz
+
+KİM NE KADAR BORÇLU — HESAP YAPMADAN
+• Her öğrenci ve ders için saatlik ücret, ücret geçmişinin tamamıyla
+• Ücreti artırmak, yapılmış dersleri asla değiştirmez
+• Tam, kısmi ya da peşin ödemeleri kaydedin; bakiye, borç ve fazla ödemeler kendiliğinden güncellenir
 • Öğrencileri en çok borcu olandan başlayarak sıralayın
+• Öğrenciye ya da veliye dersleri ve ödemeleri gösteren PDF hesap dökümü gönderin
+• Öğrenciyi profilinden doğrudan arayın, mesaj ya da e-posta gönderin
 
-GRUPLAR
-• Tüm grup için tek bir ders, grubun kendi ücretiyle
-• Ücretlendirme yine öğrenci bazında yapılır — "bu öğrenci gelmedi" dahil
+GRUP DERSLERİ, ADİL ÜCRETLENDİRME
+• Tüm grup için grubun ücretiyle tek bir ders planlayın
+• Her öğrenci için ayrı yoklama: katılmadı, ücret alınmaz ya da katılmadı, ücret alınır
+• Her öğrencinin kendi bakiyesi olur
 
 SONRAKİ DERSİ KENDİ BULAN ÖDEVLER
-• Bir öğrenciye veya gruba birkaç kelimeyle ödev verin
+• Bir öğrenciye ya da gruba birkaç kelimeyle ödev verin
 • Ödev kendiliğinden bir sonraki derse eklenir
-• Tek dokunuşla öğrenciyle paylaşın, tamamlanınca işaretleyin
+• Tek dokunuşla paylaşın, tamamlanınca işaretleyin
 
-RAPORLAR
-• Aylık, yıllık veya tüm zamanların geliri, önceki dönemle karşılaştırmalı
-• Ay, ders, öğrenci ve gruba göre dağılım; bireysel ve grup dersleri
+İŞİNİZİN BÜYÜDÜĞÜNÜ GÖSTEREN RAPORLAR
+• Bir ayın, bir yılın ya da tüm zamanların geliri, önceki dönemle karşılaştırmalı
+• Aya, derse, öğrenciye ve gruba göre dağılım
 • Ödenmemiş tüm borçlar tek listede
-• Elektronik tablo ya da muhasebeciniz için CSV'ye aktarma
+• Kayıtlarınız ya da muhasebeciniz için PDF veya CSV olarak dışa aktarma
 
-HATIRLATICILAR VE TAKVİM
-• Her dersten önce, zamanında bir bildirim
+HİÇBİR DERSİ KAÇIRMAYIN
+• Her dersten önce bir hatırlatma
 • İsteğe bağlı: sabah günün programı, akşam işaretlenmemiş dersler listesi ve haftalık borç özeti
+• Ana ekran widget'ları: tek dokunuşla işaretlenen bugünün dersleri, ayrıca ders planlama, ödevler ve borçlar için kısayollar
 • İsteğe bağlı: telefonunuzun takvimiyle eşitleme ve öğrencilere e-posta davetleri
 
-GİZLİLİK ESASLI TASARIM
-• Hesap yok, kayıt yok, internet gerekmez
-• Verileriniz telefonunuzda kalır — Klas'ın onları gönderebileceği bir sunucusu yoktur
-• Sakladığınız bir dosyaya tam yedekleme ve yeni telefona geri yükleme
-• Reklam yok, izleyici yok
+VERİLERİNİZ SİZDE KALIR
+• Hesap yok, üyelik yok, internet gerekmez
+• Her şey telefonunuzda kalır — Klas'ın verilerinizi gönderebileceği bir sunucusu yoktur
+• Parmak izi, yüz ya da ekran kilidiyle uygulama kilidi
+• Kilit ekranında adlar ve tutarlar gizli kalır
+• Parola korumalı yedekler, seçtiğiniz klasöre ya da bulut sürücüsüne otomatik haftalık kopya ve geri yüklemeden önce ön izleme
+• Ücretsiz; reklam yok, abonelik yok, izleyici yok
 
-Tek başına çalışan özel ders öğretmenleri için. Açık ve koyu tema. 25 dil ve 150'den fazla para birimi.
+Her branştan bağımsız özel ders öğretmenleri ve eğitmenler için tasarlandı — yabancı dil, matematik, müzik, LGS ve YKS hazırlığı ve çok daha fazlası. 25 dil, 150'den fazla para birimi, açık ve koyu tema.
 
 Klas, GNU GPL v3 lisansı altında açık kaynaklıdır.

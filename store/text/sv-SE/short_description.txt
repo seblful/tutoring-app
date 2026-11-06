@@ -1,1 +1,1 @@
-Schema, betalningar och skulder för privatlärare. Offline, utan konto.
+Schema, läxor, betalningar och skulder för privatlärare. Offline, utan konto.

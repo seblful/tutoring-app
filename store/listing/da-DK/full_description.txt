@@ -1,44 +1,54 @@
-Klas er lektionsbogen for en privatlærer: dit skema, dine elever, hvem der har betalt, og hvem der skylder — regnet ud for dig, på din telefon.
+Klas er lektionsbogen for privatlærere og lærere. Dit skema for privatundervisning, dine elever, lektier og penge — hvem der har betalt, hvem der skylder, og hvad du har tjent denne måned — samlet i én app, der virker offline og aldrig beder dig om at tilmelde dig.
 
-DIN UNDERVISNINGSDAG PÅ ET ØJEBLIK
-• Dags-, uge- og månedsvisning af alle lektioner
-• Se, hvad der er afholdt, hvad der foregår nu, og hvem der er den næste
-• Book en lektion én gang, eller gentag den hver uge eller hver anden uge
-• Overlappende tider afvises, så du aldrig er dobbeltbooket
-• Markér en lektion som afholdt med et swipe — eller lad Klas gøre det, når lektionen slutter
+Mindre tid på regneark og på at rykke for betalinger. Mere tid til at undervise.
 
-PENGE UDEN REGNEARK
-• En timepris pr. elev og fag med prishistorik
-• En ændret pris ændrer aldrig lektioner, der allerede er afholdt
-• Registrér betalinger; saldo, gæld og tilgodehavende regnes ud for dig
+DIN DAG PÅ ET ØJEBLIK
+Åbn Klas, og se hvilken lektion der er i gang, hvem der er den næste, hvilke lektioner der mangler at blive markeret, og hvem der skylder dig. Swipe en lektion for at markere den som afholdt, eller lad Klas markere lektionerne automatisk, når de slutter.
+
+ET SKEMA, DER FØLGER MED DIG
+• Dags-, uge- og månedsvisning
+• Book en lektion én gang, hver uge eller hver anden uge
+• Flyt eller aflys med ét tryk, og fortryd, hvis du skifter mening
+• Overlappende bookinger afvises, så du aldrig bliver dobbeltbooket
+
+VID, HVEM DER SKYLDER — UDEN AT REGNE
+• En timepris pr. elev og fag med fuld prishistorik
+• En prisstigning ændrer aldrig lektioner, der allerede er afholdt
+• Registrér fulde betalinger, delbetalinger og forudbetalinger; saldo, gæld og tilgodehavende opdateres af sig selv
 • Sortér eleverne efter, hvem der skylder mest
+• Send en elev eller forælder et kontoudtog over lektioner og betalinger som PDF
+• Ring, skriv eller send en e-mail til en elev direkte fra profilen
 
-GRUPPER
-• Book én lektion for hele gruppen til gruppens egen pris
-• Afregningen sker stadig pr. elev — også »denne kom ikke«
+GRUPPELEKTIONER, RETFÆRDIGT AFREGNET
+• Book én lektion for hele gruppen til gruppens pris
+• Registrér fremmøde pr. elev: fraværende uden betaling eller fraværende med betaling
+• Hver elev har sin egen saldo
 
 LEKTIER, DER FINDER NÆSTE LEKTION
 • Giv en elev eller en gruppe lektier for med få ord
-• De knyttes automatisk til deres næste lektion
-• Del dem med eleven med ét tryk, og sæt flueben, når de er lavet
+• De knyttes automatisk til næste lektion
+• Del dem med ét tryk, og sæt flueben, når de er lavet
 
-RAPPORTER
-• Indtægter for en måned, et år eller hele perioden sammenlignet med perioden før
-• Fordelt på måned, fag, elev og gruppe, individuel vs. gruppe
+RAPPORTER, DER VISER DIN FORRETNING VOKSE
+• Indkomst for en måned, et år eller hele perioden sammenlignet med perioden før
+• Fordelt på måned, fag, elev og gruppe
 • Al udestående gæld på én liste
-• Eksport til CSV til et regneark eller din revisor
+• Eksportér til PDF eller CSV til dit regnskab eller din revisor
 
-PÅMINDELSER OG KALENDER
-• En notifikation før hver lektion, til tiden
-• Valgfrit: morgenoversigt over dagen, aftenliste over umarkerede lektioner og ugentlig gældsoversigt
+GÅ ALDRIG GLIP AF EN LEKTION
+• En påmindelse før hver lektion
+• Valgfrit: morgenoversigt over dagens lektioner, aftenliste over umarkerede lektioner og ugentlig gældsoversigt
+• Widgets til startskærmen: dagens lektioner, der markeres med ét tryk, plus genveje til booking, lektier og gæld
 • Valgfrit: synkronisering med telefonens kalender med invitationer til eleverne via e-mail
 
-PRIVAT FRA BUNDEN
+DINE DATA ER DINE
 • Ingen konto, ingen tilmelding, intet internet nødvendigt
-• Dine data bliver på din telefon — Klas har ingen servere at sende dem til
-• Fuld sikkerhedskopi til en fil, du selv gemmer, og gendannelse på en ny telefon
-• Ingen reklamer og ingen trackere
+• Alt bliver på din telefon — Klas har ingen servere at sende det til
+• App-lås med fingeraftryk, ansigt eller skærmlås
+• Navne og beløb holdes væk fra låseskærmen
+• Adgangskodebeskyttede sikkerhedskopier, en automatisk ugentlig kopi til en mappe eller et skydrev efter eget valg og en forhåndsvisning, før du gendanner
+• Gratis, uden reklamer, abonnementer og trackere
 
-Lavet til en privatlærer, der arbejder alene. Lyst og mørkt tema. 25 sprog og over 150 valutaer.
+Lavet til selvstændige privatlærere og lærere, der giver privatundervisning i alle fag — sprog, matematik, musik, eksamensforberedelse og meget mere. 25 sprog, over 150 valutaer, lyst og mørkt tema.
 
 Klas er open source under GNU GPL v3.

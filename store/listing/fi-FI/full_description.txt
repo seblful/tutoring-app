@@ -1,44 +1,54 @@
-Klas on yksityisopettajan tuntikirja: lukujärjestyksesi, oppilaasi, kuka on maksanut ja kuka on velkaa — laskettuna puolestasi, puhelimessasi.
+Klas on tuntikirja yksityisopettajille ja opettajille, jotka antavat yksityistunteja. Lukujärjestys, oppilaat, kotitehtävät ja rahat — kuka on maksanut, kuka on velkaa ja paljonko olet tienannut tässä kuussa — samassa sovelluksessa, joka toimii ilman nettiä eikä koskaan pyydä rekisteröitymään.
 
-OPETUSPÄIVÄ YHDELLÄ SILMÄYKSELLÄ
-• Päivä-, viikko- ja kuukausinäkymä kaikista oppitunneista
-• Näet, mitkä tunnit on pidetty, mikä on käynnissä ja kuka on seuraavana
-• Varaa tunti kerran tai toista se joka viikko tai joka toinen viikko
-• Päällekkäisiä aikoja ei hyväksytä, joten kahta tuntia ei koskaan varata samaan aikaan
-• Merkitse tunti pidetyksi pyyhkäisyllä — tai anna Klasin tehdä se, kun tunti päättyy
+Vähemmän aikaa taulukoiden parissa ja maksujen perässä juoksemiseen. Enemmän aikaa opettamiseen.
 
-RAHAT ILMAN TAULUKKOA
-• Tuntihinta oppilas- ja oppiainekohtaisesti, hintahistorian kanssa
-• Hinnan muutos ei koskaan muuta jo pidettyjä tunteja
-• Kirjaa maksut; saldot, velat ja ennakkomaksut lasketaan puolestasi
+PÄIVÄSI YHDELLÄ SILMÄYKSELLÄ
+Avaa Klas ja näet, mikä tunti on käynnissä, kuka on seuraavana, mitkä tunnit odottavat vielä merkintää ja kuka on sinulle velkaa. Pyyhkäise tunti pidetyksi tai anna Klasin merkitä tunnit automaattisesti, kun ne päättyvät.
+
+LUKUJÄRJESTYS, JOKA PYSYY PERÄSSÄSI
+• Päivä-, viikko- ja kuukausinäkymä
+• Varaa tunti kerran, joka viikko tai joka toinen viikko
+• Siirrä tai peru tunti yhdellä napautuksella ja kumoa, jos muutat mielesi
+• Päällekkäisiä varauksia ei hyväksytä, joten kahta tuntia ei koskaan varata samaan aikaan
+
+TIEDÄ, KUKA ON VELKAA — ILMAN LASKEMISTA
+• Tuntihinta oppilas- ja oppiainekohtaisesti, täydellä hintahistorialla
+• Hinnankorotus ei koskaan muuta jo pidettyjä tunteja
+• Kirjaa maksut kokonaan, osittain tai etukäteen; saldot, velat ja ennakkomaksut päivittyvät itsestään
 • Järjestä oppilaat sen mukaan, kuka on eniten velkaa
+• Lähetä oppilaalle tai vanhemmalle PDF-tiliote tunneista ja maksuista
+• Soita, lähetä viesti tai sähköpostia suoraan oppilaan profiilista
 
-RYHMÄT
-• Varaa yksi tunti koko ryhmälle ryhmän omalla hinnalla
-• Laskutus pysyy oppilaskohtaisena — myös ”tämä ei tullut”
+RYHMÄTUNNIT REILUSTI LASKUTETTUINA
+• Varaa yksi tunti koko ryhmälle ryhmän hinnalla
+• Kirjaa läsnäolo oppilaskohtaisesti: poissa ilman veloitusta tai poissa veloituksella
+• Jokaisella oppilaalla on oma saldonsa
 
 KOTITEHTÄVÄT, JOTKA LÖYTÄVÄT SEURAAVAN TUNNIN
 • Anna kotitehtävä oppilaalle tai ryhmälle muutamalla sanalla
-• Se liittyy itsestään heidän seuraavaan tuntiinsa
-• Jaa se oppilaalle yhdellä napautuksella ja kuittaa, kun se on tehty
+• Se liittyy automaattisesti seuraavaan tuntiin
+• Jaa se yhdellä napautuksella ja kuittaa, kun se on tehty
 
-RAPORTIT
+RAPORTIT, JOISTA NÄET TOIMINTASI KASVUN
 • Tulot kuukaudelta, vuodelta tai koko ajalta verrattuna edelliseen jaksoon
-• Erittely kuukausittain, oppiaineittain, oppilaittain ja ryhmittäin, yksilö- ja ryhmätunnit
-• Avoimet velat yhdellä listalla
-• Vienti CSV-muotoon taulukkolaskentaan tai kirjanpitäjälle
+• Erittelyt kuukausittain, oppiaineittain, oppilaittain ja ryhmittäin
+• Kaikki avoimet velat yhdellä listalla
+• Vienti PDF- tai CSV-muotoon omaan kirjanpitoon tai kirjanpitäjälle
 
-MUISTUTUKSET JA KALENTERI
-• Ilmoitus ennen jokaista tuntia, ajallaan
-• Valinnaisesti: aamuinen päiväohjelma, illalla lista merkitsemättömistä tunneista ja viikoittainen velkayhteenveto
-• Valinnaisesti: synkronointi puhelimen kalenteriin ja sähköpostikutsut oppilaille
+YKSIKÄÄN TUNTI EI UNOHDU
+• Muistutus ennen jokaista tuntia
+• Valinnaisesti aamun päiväohjelma, illalla lista merkitsemättömistä tunneista ja viikoittainen velkayhteenveto
+• Aloitusnäytön widgetit: päivän tunnit, jotka kuittaat yhdellä napautuksella, sekä pikakuvakkeet varaamiseen, kotitehtäviin ja velkoihin
+• Valinnainen synkronointi puhelimen kalenteriin ja sähköpostikutsut oppilaille
 
-YKSITYISYYS LÄHTÖKOHTANA
-• Ei tiliä, ei rekisteröitymistä, ei internetyhteyttä
-• Tietosi pysyvät puhelimessasi — Klasilla ei ole palvelimia, joille niitä lähettää
-• Täysi varmuuskopio tiedostoon, jonka säilytät itse, ja palautus uuteen puhelimeen
-• Ei mainoksia eikä seurantaa
+TIETOSI PYSYVÄT SINUN
+• Ei tiliä, ei rekisteröitymistä, ei nettiyhteyttä
+• Kaikki pysyy puhelimessasi — Klasilla ei ole palvelimia, joille tiedot voisi lähettää
+• Sovelluksen lukitus sormenjäljellä, kasvoilla tai näytön lukituksella
+• Nimet ja summat eivät näy lukitusnäytöllä
+• Salasanalla suojatut varmuuskopiot, automaattinen viikoittainen kopio valitsemaasi kansioon tai pilvipalveluun sekä esikatselu ennen palautusta
+• Ilmainen, ilman mainoksia, tilauksia ja seurantaa
 
-Tehty yksin työskentelevälle yksityisopettajalle. Vaalea ja tumma teema. 25 kieltä ja yli 150 valuuttaa.
+Tehty itsenäisille yksityisopettajille ja opettajille aineesta riippumatta — kielet, matematiikka, musiikki, yo-valmennus ja paljon muuta. 25 kieltä, yli 150 valuuttaa, vaalea ja tumma teema.
 
 Klas on avointa lähdekoodia GNU GPL v3 -lisenssillä.

@@ -1,44 +1,54 @@
-Klas is a lesson book for a private tutor: your schedule, your students, who has paid and who owes — worked out for you, on your phone.
+Klas is the lesson book for private tutors and teachers. Your tutoring schedule, students, homework and money — who has paid, who owes and what you earned this month — in one app that works offline and never asks you to sign up.
 
-YOUR TEACHING DAY AT A GLANCE
-• Day, week and month views of every lesson
-• See what's taught, what's on now and who's next
-• Book a lesson once or repeat it every week or two
-• An overlapping time is refused, so you're never double-booked
-• Mark a lesson taught with a swipe — or let Klas do it once the lesson ends
+Less time on spreadsheets and chasing payments. More time teaching.
 
-MONEY WITHOUT THE SPREADSHEET
-• An hourly price per student and subject, with a price history
-• Changing a price never rewrites lessons already taught
-• Record payments; balances, debts and credit are worked out for you
+YOUR DAY AT A GLANCE
+Open Klas and see the lesson on now, who's next, which lessons still need marking and who owes you. Swipe a lesson to mark it taught, or let Klas mark lessons automatically once they end.
+
+A SCHEDULE THAT KEEPS UP WITH YOU
+• Day, week and month views
+• Book a lesson once, every week or every two weeks
+• Reschedule or cancel in a tap, and undo it if you change your mind
+• Overlapping bookings are refused, so you're never double-booked
+
+KNOW WHO OWES — WITHOUT DOING THE MATH
+• An hourly rate per student and subject, with a full rate history
+• Raising a rate never rewrites lessons already taught
+• Record full, partial or advance payments; balances, debts and credit update on their own
 • Sort students by who owes the most
+• Send a student or parent a PDF statement of lessons and payments
+• Call, message or email a student straight from their profile
 
-GROUPS
-• Book one lesson for the whole group at the group's own price
-• Billing stays per student — including "this one didn't come"
+GROUP LESSONS, BILLED FAIRLY
+• Book one lesson for the whole group at the group's rate
+• Track attendance per student: absent and not charged, or absent and charged
+• Every student keeps their own balance
 
 HOMEWORK THAT FINDS THE NEXT LESSON
 • Set homework for a student or a group in a few words
-• It attaches to their next lesson on its own
-• Share it with the student in one tap, tick it off when it's done
+• It attaches to their next lesson automatically
+• Share it in one tap, tick it off when it's done
 
-REPORTS
+REPORTS THAT SHOW YOUR BUSINESS GROWING
 • Income for a month, a year or all time, compared with the period before
-• Breakdowns by month, subject, student and group, individual vs group
-• Outstanding debts in one list
-• Export to CSV for a spreadsheet or your accountant
+• Breakdowns by month, subject, student and group
+• Every outstanding debt in one list
+• Export to PDF or CSV for your records or your accountant
 
-REMINDERS AND CALENDAR
-• A notification before each lesson, on time
+NEVER MISS A LESSON
+• A reminder before every lesson
 • Optional morning agenda, evening list of unmarked lessons and weekly debt summary
-• Optional sync to your phone's calendar, with email invitations for students
+• Home-screen widgets: today's lessons with a one-tap tick, plus shortcuts to booking, homework and debts
+• Optional sync with your phone's calendar, with email invitations for students
 
-PRIVATE BY DESIGN
+YOUR DATA STAYS YOURS
 • No account, no sign-up, no internet needed
-• Your data stays on your phone — Klas has no servers to send it to
-• Full backup to a file you keep, and restore on a new phone
-• No ads and no trackers
+• Everything stays on your phone — Klas has no servers to send it to
+• App lock with your fingerprint, face or screen lock
+• Names and amounts kept off the lock screen
+• Password-protected backups, an automatic weekly copy to a folder or cloud drive you choose, and a preview before you restore
+• Free, with no ads, no subscriptions and no trackers
 
-Made for a tutor who works alone. 25 languages and over 150 currencies. Light and dark themes.
+Made for independent tutors and private teachers of any subject — languages, math, music, exam prep and more. 25 languages, over 150 currencies, light and dark themes.
 
 Klas is open source under the GNU GPL v3.

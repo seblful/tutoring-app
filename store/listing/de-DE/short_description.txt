@@ -1,1 +1,1 @@
-Stundenplan, Zahlungen und Schulden für Nachhilfelehrer. Offline, ohne Konto.
+Nachhilfestunden, Hausaufgaben, Zahlungen und Schulden. Offline, ohne Konto.

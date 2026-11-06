@@ -1,1 +1,1 @@
-Horario, pagos y deudas para un profesor particular. Sin internet ni cuenta.
+Clases particulares: horario, tareas, pagos y deudas. Sin conexión ni registro.

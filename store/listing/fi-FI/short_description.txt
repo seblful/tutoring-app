@@ -1,1 +1,1 @@
-Lukujärjestys, maksut ja velat yksityisopettajalle. Offline, ilman tiliä.
+Lukujärjestys, läksyt, maksut ja velat yksityisopettajille. Offline, ei tiliä.

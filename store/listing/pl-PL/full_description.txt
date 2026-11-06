@@ -1,44 +1,54 @@
-Klas to dziennik prywatnego korepetytora: plan zajęć, uczniowie, kto zapłacił, a kto zalega — wszystko policzone za Ciebie, w Twoim telefonie.
+Klas to dziennik lekcji dla korepetytorów i nauczycieli udzielających korepetycji. Plan zajęć, uczniowie, prace domowe i pieniądze — kto zapłacił, kto zalega i ile udało się zarobić w tym miesiącu — w jednej aplikacji, która działa offline i nigdy nie każe Ci zakładać konta.
 
-CAŁY DZIEŃ NA JEDNYM EKRANIE
-• Widok dnia, tygodnia i miesiąca ze wszystkimi lekcjami
-• Widać, co już się odbyło, co trwa teraz i kto jest następny
-• Zaplanuj lekcję jednorazowo albo powtarzaj ją co tydzień lub co dwa tygodnie
+Mniej czasu na arkusze kalkulacyjne i upominanie się o zapłatę. Więcej czasu na nauczanie.
+
+TWÓJ DZIEŃ NA PIERWSZY RZUT OKA
+Otwórz Klas i zobacz, która lekcja trwa teraz, kto jest następny, które lekcje czekają na oznaczenie i kto jest Ci winien pieniądze. Przesuń lekcję palcem, by oznaczyć ją jako przeprowadzoną, albo pozwól, by Klas oznaczał lekcje automatycznie po ich zakończeniu.
+
+PLAN ZAJĘĆ, KTÓRY NADĄŻA ZA TOBĄ
+• Widok dnia, tygodnia i miesiąca
+• Zaplanuj lekcję jednorazowo, co tydzień lub co dwa tygodnie
+• Zmień termin lub odwołaj lekcję jednym dotknięciem — i cofnij, jeśli zmienisz zdanie
 • Nakładające się terminy są odrzucane, więc nigdy nie umówisz dwóch lekcji naraz
-• Oznacz lekcję jako przeprowadzoną jednym przesunięciem — albo pozwól, by Klas zrobił to sam po jej zakończeniu
 
-PIENIĄDZE BEZ ARKUSZA KALKULACYJNEGO
-• Stawka godzinowa dla każdego ucznia i przedmiotu, z historią stawek
-• Zmiana stawki nigdy nie zmienia lekcji, które już się odbyły
-• Zapisuj płatności — saldo, długi i nadpłaty policzą się same
-• Sortuj uczniów według tego, kto jest winien najwięcej
+WIESZ, KTO ZALEGA — BEZ LICZENIA
+• Stawka godzinowa dla każdego ucznia i przedmiotu, z pełną historią stawek
+• Podwyżka stawki nigdy nie zmienia lekcji, które już się odbyły
+• Zapisuj płatności pełne, częściowe i z góry; saldo, zaległości i nadpłaty aktualizują się same
+• Sortuj uczniów według tego, kto zalega najwięcej
+• Wyślij uczniowi lub rodzicowi zestawienie rozliczeń w PDF z lekcjami i płatnościami
+• Zadzwoń, napisz wiadomość lub e-mail do ucznia prosto z jego profilu
 
-GRUPY
-• Jedna lekcja dla całej grupy według stawki grupy
-• Rozliczenia pozostają osobne dla każdego ucznia — także „ten nie przyszedł”
+LEKCJE GRUPOWE, ROZLICZANE UCZCIWIE
+• Zaplanuj jedną lekcję dla całej grupy według stawki grupy
+• Zaznaczaj obecność każdego ucznia: nieobecność bez opłaty lub nieobecność z opłatą
+• Każdy uczeń ma własne saldo
 
-PRACE DOMOWE, KTÓRE SAME TRAFIAJĄ NA LEKCJĘ
+PRACE DOMOWE, KTÓRE SAME TRAFIAJĄ NA NASTĘPNĄ LEKCJĘ
 • Zadaj pracę domową uczniowi lub grupie w kilku słowach
-• Sama przypisze się do ich najbliższej lekcji
-• Wyślij ją uczniowi jednym dotknięciem, odhacz, gdy jest zrobiona
+• Automatycznie trafia na ich najbliższą lekcję
+• Udostępnij ją jednym dotknięciem i odhacz, gdy jest zrobiona
 
-RAPORTY
+RAPORTY, KTÓRE POKAZUJĄ, JAK ROŚNIE TWOJA DZIAŁALNOŚĆ
 • Dochód za miesiąc, rok lub cały czas, w porównaniu z poprzednim okresem
-• Podział według miesięcy, przedmiotów, uczniów i grup, lekcje indywidualne i grupowe
+• Podział według miesięcy, przedmiotów, uczniów i grup
 • Wszystkie zaległości na jednej liście
-• Eksport do CSV — do arkusza kalkulacyjnego lub dla księgowego
+• Eksport do PDF lub CSV — do własnej dokumentacji lub dla księgowego
 
-PRZYPOMNIENIA I KALENDARZ
-• Powiadomienie przed każdą lekcją, na czas
-• Opcjonalnie: poranny plan dnia, wieczorna lista nieoznaczonych lekcji i cotygodniowe podsumowanie długów
-• Opcjonalnie: synchronizacja z kalendarzem telefonu i zaproszenia e-mail dla uczniów
+ŻADNA LEKCJA CI NIE UMKNIE
+• Przypomnienie przed każdą lekcją
+• Opcjonalnie: poranny plan dnia, wieczorna lista nieoznaczonych lekcji i cotygodniowe podsumowanie zaległości
+• Widżety na ekranie głównym: dzisiejsze lekcje do odhaczenia jednym dotknięciem oraz skróty do planowania lekcji, prac domowych i długów
+• Opcjonalna synchronizacja z kalendarzem telefonu i zaproszenia e-mail dla uczniów
 
-PRYWATNOŚĆ OD PODSTAW
+TWOJE DANE NALEŻĄ DO CIEBIE
 • Bez konta, bez rejestracji, bez internetu
-• Twoje dane zostają w telefonie — Klas nie ma serwerów, na które mógłby je wysłać
-• Pełna kopia zapasowa do pliku, który zachowujesz, i przywracanie na nowym telefonie
-• Bez reklam i bez trackerów
+• Wszystko zostaje w telefonie — Klas nie ma serwerów, na które mógłby to wysłać
+• Blokada aplikacji odciskiem palca, rozpoznawaniem twarzy lub blokadą ekranu
+• Imiona i kwoty nie pojawiają się na ekranie blokady
+• Kopie zapasowe chronione hasłem, automatyczna cotygodniowa kopia do wybranego folderu lub dysku w chmurze oraz podgląd przed przywróceniem
+• Za darmo, bez reklam, subskrypcji i trackerów
 
-Dla korepetytora, który pracuje sam. Jasny i ciemny motyw. 25 języków i ponad 150 walut.
+Dla niezależnych korepetytorów i nauczycieli prywatnych lekcji z każdego przedmiotu — od języków obcych, przez matematykę i muzykę, po przygotowanie do matury i egzaminu ósmoklasisty. 25 języków, ponad 150 walut, jasny i ciemny motyw.
 
 Klas to oprogramowanie open source na licencji GNU GPL v3.
