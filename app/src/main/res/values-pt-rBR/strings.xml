@@ -744,7 +744,7 @@
     <string name="class_correction_changed">A lição mudou. Abra-o novamente para corrigir seu status.</string>
     <string name="class_repeat_independent_hint">Cria aulas separadas. Edite ou cancele cada lição individualmente.</string>
     <string name="reports_earned_hint">Valor gerado pelas aulas realizadas, pagas ou não.</string>
-    <string name="widget_today_name">Lições de hoje</string>
+    <string name="widget_today_name">Aulas de hoje</string>
     <string name="widget_today_description">Marque as aulas de hoje como realizadas com um toque</string>
     <string name="widget_today_locked">Desbloqueie para ver as lições de hoje</string>
     <string name="widget_today_empty">Não há aulas hoje</string>
@@ -787,7 +787,7 @@
     <string name="today_to_mark">Encerradas, sem status definido</string>
     <string name="today_mark_all">Marcar todas como realizadas</string>
     <string name="today_mark_one">Marcar a aula com %1$s, %2$s como realizada</string>
-    <string name="today_lessons">Lições de hoje</string>
+    <string name="today_lessons">Aulas de hoje</string>
     <string name="today_no_lessons">Não há aulas hoje</string>
     <string name="today_owed">A receber</string>
     <string name="today_backup_old">Último backup %1$s</string>

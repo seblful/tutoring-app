@@ -717,7 +717,7 @@
     <string name="class_correction_changed">Die Lektion hat sich geändert. Öffnen Sie es erneut, um seinen Status zu korrigieren.</string>
     <string name="class_repeat_independent_hint">Erstellt separate Lektionen. Bearbeiten oder stornieren Sie jede Lektion einzeln.</string>
     <string name="reports_earned_hint">Einnahmen aus gehaltenen Stunden, unabhängig vom Zahlungsstatus.</string>
-    <string name="widget_today_name">Die heutigen Lektionen</string>
+    <string name="widget_today_name">Heutige Stunden</string>
     <string name="widget_today_description">Heutige Stunden mit einem Tippen als gehalten markieren</string>
     <string name="widget_today_locked">Schalten Sie es frei, um die heutigen Lektionen zu sehen</string>
     <string name="widget_today_empty">Heute kein Unterricht</string>
@@ -760,7 +760,7 @@
     <string name="today_to_mark">Beendet und noch nicht markiert</string>
     <string name="today_mark_all">Alle als gehalten markieren</string>
     <string name="today_mark_one">Stunde mit %1$s um %2$s als gehalten markieren</string>
-    <string name="today_lessons">Die heutigen Lektionen</string>
+    <string name="today_lessons">Heutige Stunden</string>
     <string name="today_no_lessons">Heute kein Unterricht</string>
     <string name="today_owed">Ihnen geschuldet</string>
     <string name="today_backup_old">Letzte Sicherung %1$s</string>

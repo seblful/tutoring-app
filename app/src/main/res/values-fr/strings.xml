@@ -787,7 +787,7 @@
     <string name="today_to_mark">Terminés, sans statut indiqué</string>
     <string name="today_mark_all">Tout marquer comme donné</string>
     <string name="today_mark_one">Marquer le cours avec %1$s, %2$s comme donné</string>
-    <string name="today_lessons">Les leçons du jour</string>
+    <string name="today_lessons">Les cours du jour</string>
     <string name="today_no_lessons">Pas de cours aujourd\'hui</string>
     <string name="today_owed">On vous doit</string>
     <string name="today_backup_old">Dernière sauvegarde %1$s</string>
