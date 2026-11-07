@@ -78,8 +78,10 @@ first configuring Play App Signing can preserve compatibility, provided Play acc
 Personal developer accounts created after 13 November 2023 need a closed test with at least 12 testers
 opted in continuously for 14 days before applying for production access; see
 [Google's testing requirements](https://support.google.com/googleplay/android-developer/answer/14151465).
-The [tester instructions](../store/tester-instructions.md) currently link to the internal test;
-that track is separate from the required closed test.
+Klas passed this and got production access on 7 November 2026; 0.5.1 is its first production release.
+Production needs countries chosen under Production → Countries/regions (Klas: all) or the app is
+available nowhere. The [tester instructions](../store/tester-instructions.md) still link to the
+internal test, which is separate from the closed test.
 
 1. Create the app in Play Console with Russian as default language. Prepare the
    [store listing](store-listing.md), questionnaires and a public privacy-policy URL.
@@ -132,8 +134,8 @@ After the first bundle exists in Play Console:
 
 | Variable | Default | Use |
 |---|---|---|
-| `PLAY_TRACK` | `internal` | `internal`, `alpha` (default closed track), `beta`, `production` or custom closed-track name. |
-| `PLAY_STATUS` | `completed` | Use `draft` until first-release review allows publishing; finish drafts in the Console. |
+| `PLAY_TRACK` | `internal` | `internal`, `alpha` (default closed track), `beta`, `production` or custom closed-track name. Klas: `production`. |
+| `PLAY_STATUS` | `completed` | Use `draft` until first-release review allows publishing; finish drafts in the Console. Klas: `draft` until its first production release is live, then delete the variable. |
 
 Without Play setup, tags still produce GitHub artifacts for manual upload. Promote releases between
 tracks in the Console. [Dependabot](../.github/dependabot.yml) maintains workflow actions; Gradle
