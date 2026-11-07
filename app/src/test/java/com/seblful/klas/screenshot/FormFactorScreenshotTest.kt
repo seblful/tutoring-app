@@ -159,6 +159,8 @@ class FormFactorScreenshotTest {
             // Back again: on a phone the card's bar has no gear, People's does.
             back(scenario)
             gear()
+            // The index arrives whole, after the page beside it on a wide window; its last row says it is in.
+            waitFor(string(R.string.settings_diagnostics_none))
             click(R.string.settings_lessons_title)
             waitFor(string(R.string.settings_autocomplete))
             capture(formFactor, "settings-lessons")

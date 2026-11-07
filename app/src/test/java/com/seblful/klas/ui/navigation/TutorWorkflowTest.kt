@@ -112,7 +112,8 @@ class TutorWorkflowTest {
     }
 
     private fun waitForText(value: String) {
-        compose.waitUntil(10_000) { compose.onAllNodesWithText(value).fetchSemanticsNodes().isNotEmpty() }
+        // Generous: a shared CI runner can take over 10 s to draw a screen, and a pass returns at once.
+        compose.waitUntil(30_000) { compose.onAllNodesWithText(value).fetchSemanticsNodes().isNotEmpty() }
     }
 
     private fun click(res: Int) = compose.onNodeWithText(text(res)).performClick()
@@ -144,8 +145,9 @@ class TutorWorkflowTest {
             }
             compose.onNodeWithContentDescription(text(R.string.class_book)).performClick()
             waitFor(R.string.class_add_title)
-            compose.onNodeWithText("Workflow student").assertExists()
-            compose.onNodeWithText("Maths").assertExists()
+            // The title is drawn while the form still loads; who and what come with the loaded form.
+            waitForText("Workflow student")
+            waitForText("Maths")
         }
     }
 
@@ -177,8 +179,8 @@ class TutorWorkflowTest {
             waitFor(R.string.group_add_title)
             click(R.string.group_form_create)
             waitFor(R.string.class_add_title)
-            compose.onNodeWithText("After school").assertExists()
-            compose.onNodeWithText("Science").assertExists()
+            waitForText("After school")
+            waitForText("Science")
             val saved = runBlocking { graph.groups.observeAll().first().single() }
             assertEquals(Money.ofMajor(20), saved.price)
             assertEquals(1, runBlocking { graph.groups.getMemberIds(saved.id).size })
@@ -339,7 +341,8 @@ class TutorWorkflowTest {
             waitForText("Workflow student")
             compose.onNodeWithContentDescription(text(R.string.class_book)).performClick()
             waitFor(R.string.class_add_title)
-            // Price is folded to a line; the rate is typed once it is opened.
+            // Price is folded to a line, drawn with the loaded form; the rate is typed once it is opened.
+            waitFor(R.string.class_section_price)
             compose.onNodeWithText(text(R.string.class_section_price)).performScrollTo().performClick()
             compose.onNodeWithText(text(R.string.price_label)).performScrollTo().performTextReplacement("35")
             val arrivals = listOf(
@@ -362,7 +365,7 @@ class TutorWorkflowTest {
                 compose.waitForIdle()
                 Espresso.pressBack()
                 waitFor(R.string.class_add_title)
-                compose.onNodeWithText("35").assertExists()
+                waitForText("35")
             }
             assertTrue(runBlocking { graph.classes.getAll().size == 1 })
         }

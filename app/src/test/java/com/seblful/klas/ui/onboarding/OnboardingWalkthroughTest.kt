@@ -1,5 +1,7 @@
 package com.seblful.klas.ui.onboarding
 
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotSelected
@@ -80,6 +82,7 @@ class OnboardingWalkthroughTest {
             waitFor(R.string.onboarding_subjects_desc)
             compose.onNodeWithText(MATH).performClick()
             stored { graph.subjects.observeAll().first().isNotEmpty() }
+            mathShown(selected = true)
             compose.onAllNodesWithText(MATH).onFirst().assertIsSelected()
             tap(R.string.onboarding_continue)
 
@@ -126,9 +129,11 @@ class OnboardingWalkthroughTest {
 
             compose.onNodeWithText(MATH).performClick()
             stored { graph.subjects.observeAll().first().isNotEmpty() }
+            mathShown(selected = true)
             compose.onAllNodesWithText(MATH).onFirst().performClick()
             stored { graph.subjects.observeAll().first().isEmpty() }
 
+            mathShown(selected = false)
             compose.onNodeWithText(MATH).assertIsNotSelected()
             assertTrue(compose.onAllNodesWithText(text(R.string.action_undo)).fetchSemanticsNodes().isNotEmpty())
         }
@@ -160,6 +165,15 @@ class OnboardingWalkthroughTest {
     private fun stored(check: suspend () -> Boolean) = compose.waitUntil(TIMEOUT) {
         compose.waitForIdle()
         runBlocking { check() }
+    }
+
+    /**
+     * Waits for the suggestion to show [selected]. The chip acts on what it shows, which trails the database:
+     * tapped before it catches up, it adds the subject again instead of taking it back.
+     */
+    private fun mathShown(selected: Boolean) = compose.waitUntil(TIMEOUT) {
+        compose.onAllNodesWithText(MATH).fetchSemanticsNodes().firstOrNull()
+            ?.config?.getOrNull(SemanticsProperties.Selected) == selected
     }
 
     private fun tap(res: Int) {
