@@ -68,7 +68,7 @@ tasks.register("verify") {
         "testStore",
         "testDeviceTools",
         gradle.includedBuild("build-logic").task(":test"),
-        ":domain:jvmTest", ":shared:jvmTest", ":app:verifyRoborazziDebug", ":app:lintDebug",
+        ":domain:jvmTest", ":shared:jvmTest", ":ui:testAndroidHostTest", ":app:verifyRoborazziDebug", ":app:lintDebug",
         ":app:assembleDebug", ":app:assembleDebugAndroidTest",
     )
     listOf(":app", ":domain", ":shared", ":ui", ":baselineprofile").forEach { module ->
@@ -77,8 +77,8 @@ tasks.register("verify") {
 }
 
 // Coverage of the JVM suites. :app is measured by its behavior tests, not the preview screenshots, which
-// render code without asserting on it. :shared is measured by its own tests only: :app runs its Android
-// build, whose classes do not match the JVM ones the report reads.
+// render code without asserting on it; they also cover the :ui screens they drive. :shared is measured by
+// its own tests only: :app runs its Android build, whose classes do not match the JVM ones the report reads.
 val jacocoVersion = libs.versions.jacoco.get()
 jacoco { toolVersion = jacocoVersion }
 val coverageTests = mapOf(":app" to "testDebugBehavior", ":domain" to "jvmTest", ":shared" to "jvmTest")
@@ -113,6 +113,7 @@ tasks.register<JacocoReport>("coverageReport") {
     classDirectories.from(
         listOf(
             "app/build/intermediates/built_in_kotlinc/debug/compileDebugKotlin/classes",
+            "ui/build/classes/kotlin/android/main",
             "domain/build/classes/kotlin/jvm/main",
             "shared/build/classes/kotlin/jvm/main",
         ).map { fileTree(it) { exclude(generated) } },
@@ -120,6 +121,8 @@ tasks.register<JacocoReport>("coverageReport") {
     sourceDirectories.from(
         "app/src/main/java",
         "app/src/debug/java",
+        "ui/src/commonMain/kotlin",
+        "ui/src/androidMain/kotlin",
         "domain/src/commonMain/kotlin",
         "shared/src/commonMain/kotlin",
         "shared/src/jvmMain/kotlin",
@@ -138,8 +141,11 @@ tasks.register<Exec>("testStore") {
 
 tasks.register("testQuick") {
     group = "verification"
-    description = "Run domain, shared, Android behavior and store tooling tests without screenshots."
-    dependsOn(":domain:jvmTest", ":shared:jvmTest", ":app:testDebugBehavior", "testStore", "testDeviceTools")
+    description = "Run domain, shared, UI, Android behavior and store tooling tests without screenshots."
+    dependsOn(
+        ":domain:jvmTest", ":shared:jvmTest", ":ui:testAndroidHostTest", ":app:testDebugBehavior", "testStore",
+        "testDeviceTools",
+    )
     dependsOn(gradle.includedBuild("build-logic").task(":test"))
 }
 

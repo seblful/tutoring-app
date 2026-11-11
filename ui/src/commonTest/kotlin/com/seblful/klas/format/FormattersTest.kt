@@ -2,7 +2,6 @@ package com.seblful.klas.format
 
 import com.seblful.klas.domain.lesson.ClassRules
 import com.seblful.klas.domain.model.Money
-import com.seblful.klas.testutil.AppLocaleRule
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
@@ -11,18 +10,29 @@ import kotlinx.datetime.YearMonth
 import kotlinx.datetime.atTime
 import kotlinx.datetime.number
 import kotlinx.datetime.toInstant
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotEquals
-import org.junit.Assert.assertNull
-import org.junit.Assert.assertTrue
-import org.junit.Rule
-import org.junit.Test
+import kotlin.test.AfterTest
+import kotlin.test.BeforeTest
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertNotEquals
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
 import kotlin.time.Instant
 
 class FormattersTest {
 
-    @get:Rule
-    val locale = AppLocaleRule.russian()
+    private var previous = AppLocale.tag
+
+    @BeforeTest
+    fun inRussian() {
+        previous = AppLocale.tag
+        AppLocale.tag = RUSSIAN
+    }
+
+    @AfterTest
+    fun restore() {
+        AppLocale.tag = previous
+    }
 
     @Test
     fun `a month index names its month`() {
@@ -32,13 +42,13 @@ class FormattersTest {
     }
 
     @Test
-    fun `formatMonth labels a month with its year, capitalised`() {
+    fun `formatMonth labels a month with its year - capitalised`() {
         val june = formatMonth(YearMonth(2026, 6))
 
-        assertTrue("carries the year", june.contains("2026"))
-        assertTrue("capitalised", june.first().isUpperCase())
+        assertTrue(june.contains("2026"), "carries the year")
+        assertTrue(june.first().isUpperCase(), "capitalised")
         assertNotEquals(june, formatMonth(YearMonth(2026, 7)))
-        assertNotEquals("the year is part of the label", june, formatMonth(YearMonth(2027, 6)))
+        assertNotEquals(june, formatMonth(YearMonth(2027, 6)), "the year is part of the label")
     }
 
     @Test
@@ -46,8 +56,8 @@ class FormattersTest {
         val names = DayOfWeek.entries.map { it.shortName() }
 
         assertEquals("пн", DayOfWeek.MONDAY.shortName())
-        assertEquals("all seven differ", 7, names.toSet().size)
-        assertTrue("stay short enough for a calendar header", names.all { it.length <= 4 })
+        assertEquals(7, names.toSet().size, "all seven differ")
+        assertTrue(names.all { it.length <= 4 }, "stay short enough for a calendar header")
     }
 
     @Test
@@ -68,8 +78,8 @@ class FormattersTest {
     fun `a week crossing a year carries both years`() {
         val label = formatWeekRange(LocalDate(2026, 12, 28), LocalDate(2027, 1, 3))
 
-        assertTrue("names the old year", label.contains("2026"))
-        assertTrue("names the new year", label.contains("2027"))
+        assertTrue(label.contains("2026"), "names the old year")
+        assertTrue(label.contains("2027"), "names the new year")
     }
 
     @Test
@@ -80,7 +90,7 @@ class FormattersTest {
         )
         worst.forEach { (start, end) ->
             val label = formatWeekRange(start, end)
-            assertTrue("«$label» is too long for the navigator", label.length <= 26)
+            assertTrue(label.length <= 26, "«$label» is too long for the navigator")
         }
     }
 
@@ -92,7 +102,7 @@ class FormattersTest {
     }
 
     @Test
-    fun `the 12-hour clock names the half of the day, midnight and noon included`() {
+    fun `the 12-hour clock names the half of the day - midnight and noon included`() {
         assertEquals("9:00 PM", LocalTime(21, 0).formatTime(hour12 = true))
         assertEquals("9:05 AM", LocalTime(9, 5).formatTime(hour12 = true))
         assertEquals("12:00 AM", LocalTime(0, 0).formatTime(hour12 = true))
@@ -106,9 +116,9 @@ class FormattersTest {
 
         val label = at.formatDateTime(hour12 = true)
 
-        assertTrue("«$label» says neither AM nor PM", label.endsWith("AM") || label.endsWith("PM"))
-        assertTrue("«$label» has lost its date", label.contains("июл"))
-        assertNotEquals("the two faces are the same label", at.formatDateTime(hour12 = false), label)
+        assertTrue(label.endsWith("AM") || label.endsWith("PM"), "«$label» says neither AM nor PM")
+        assertTrue(label.contains("июл"), "«$label» has lost its date")
+        assertNotEquals(at.formatDateTime(hour12 = false), label, "the two faces are the same label")
     }
 
     @Test
@@ -121,7 +131,7 @@ class FormattersTest {
     @Test
     fun `an amount typed past two decimals rounds to the nearest kopeck`() {
         assertEquals(Money(200), parseMoneyOrNull("1,999"))
-        assertEquals("half goes up", Money(124), parseMoneyOrNull("1,235"))
+        assertEquals(Money(124), parseMoneyOrNull("1,235"), "half goes up")
         assertEquals(Money(4505), parseMoneyOrNull("45,05"))
         assertEquals(Money(5), parseMoneyOrNull("0,05"))
     }
@@ -152,11 +162,11 @@ class FormattersTest {
     }
 
     @Test
-    fun `the ceiling itself parses, and still bills a positive charge over the longest lesson`() {
+    fun `the ceiling itself parses - and still bills a positive charge over the longest lesson`() {
         assertEquals(Money.MAX, parseMoneyOrNull(Money.MAX.amountText(',')))
 
         val charge = ClassRules.chargeFor(Money.MAX, durationMinutes = 24 * 60)
-        assertTrue("the ceiling exists so this cannot wrap", charge.minor > 0)
+        assertTrue(charge.minor > 0, "the ceiling exists so this cannot wrap")
     }
 
     @Test
@@ -166,7 +176,7 @@ class FormattersTest {
     }
 
     @Test
-    fun `facts about a lesson go on one line, separated by a bullet`() {
+    fun `facts about a lesson go on one line - separated by a bullet`() {
         assertEquals("21:00 · Математика · Иван Петров", bulletJoin("21:00", "Математика", "Иван Петров"))
     }
 

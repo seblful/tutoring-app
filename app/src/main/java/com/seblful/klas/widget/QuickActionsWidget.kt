@@ -35,22 +35,22 @@ class QuickActionsWidget : GlanceAppWidget() {
     override val previewSizeMode = SizeMode.Responsive(setOf(DpSize(256.dp, 48.dp), DpSize(296.dp, 72.dp)))
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val locales = context.appGraph.widgets.displayLocale.observe()
-        val initial = locales.first()
+        val languages = context.appGraph.widgets.displayLocale.observe()
+        val initial = languages.first()
         provideContent {
-            val locale by produceState(initial) { locales.collect { value = it } }
-            Content(context, locale)
+            val tag by produceState(initial) { languages.collect { value = it } }
+            Content(context, tag)
         }
     }
 
     override suspend fun providePreview(context: Context, widgetCategory: Int) {
-        val locale = context.appGraph.widgets.displayLocale.observe().first()
-        provideContent { Content(context, locale) }
+        val tag = context.appGraph.widgets.displayLocale.observe().first()
+        provideContent { Content(context, tag) }
     }
 
     @Composable
-    private fun Content(context: Context, locale: Locale) {
-        val words = Texts.of(locale.toLanguageTag())
+    private fun Content(context: Context, tag: String) {
+        val words = Texts.of(tag)
         fun button(iconRes: Int, labelRes: StringResource, action: String) =
             ToolBarButton(iconRes, words.string(labelRes), openApp(context, action))
 

@@ -70,7 +70,11 @@ database module supplies only the database lifetime. Room is an implementation d
 Low-level Room types remain accessible for migration and schema tests; hosts do not need to wire them.
 Close collectors and finish store work before closing `KlasDatabase`.
 
-Android `RootViewModel` publishes the foreground `AppLocale` before its settings reach screens.
+`RootViewModel` publishes the foreground `AppLocale` tag before its settings reach screens.
+Formatting is common code over a per-language `LocaleData` (date patterns, month and weekday names,
+number separators, currency side) that each platform reads from its own CLDR tables: `java.text` and
+`java.time` on Android, Foundation on iOS. Languages cross module boundaries as BCP 47 tags; only Android
+adapters turn them into `java.util.Locale`.
 Background calendar and notification adapters resolve `DisplayLocale` directly from shared language
 state, so formatting does not depend on a screen collecting settings. `ObservableWallClock` supplies
 zone-change events; fixed clocks emit their chosen zone once.

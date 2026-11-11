@@ -10,22 +10,21 @@ import dev.zacsweers.metro.SingleIn
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
-import java.util.Locale
 
-/** Resolves shared language state at the point Android renders background content. */
+/** Resolves shared language state at the point a platform renders background content. */
 @SingleIn(AppScope::class)
 class DisplayLocale @Inject constructor(
     private val settings: SettingsRepository,
     private val devicePreferences: DevicePreferences,
 ) {
     /** The language last read or written; the phone's until something reads the settings row. */
-    val current: Locale get() = settings.language.value.locale()
+    val tag: String get() = settings.language.value.resolved()
 
-    /** [current]'s words, for what is written in the background: notifications, calendar events. */
-    val texts: Texts get() = Texts.of(current.toLanguageTag())
+    /** [tag]'s words, for what is written in the background: notifications, calendar events. */
+    val texts: Texts get() = Texts.of(tag)
 
     /** The tutor's language as stored, now and on each change: for what stays on screen, such as a widget. */
-    fun observe(): Flow<Locale> = settings.observe().map { it.language.locale() }.distinctUntilChanged()
+    fun observe(): Flow<String> = settings.observe().map { it.language.resolved() }.distinctUntilChanged()
 
-    private fun AppLanguage.locale(): Locale = Locale.forLanguageTag(tagFor(devicePreferences.languageTags))
+    private fun AppLanguage.resolved(): String = tagFor(devicePreferences.languageTags)
 }

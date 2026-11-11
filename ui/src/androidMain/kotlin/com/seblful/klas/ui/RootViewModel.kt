@@ -4,12 +4,11 @@ import androidx.lifecycle.ViewModel
 import com.seblful.klas.data.settings.AppSettings
 import com.seblful.klas.data.settings.SettingsRepository
 import com.seblful.klas.di.ApplicationScope
-import com.seblful.klas.di.DeviceLocales
 import com.seblful.klas.domain.model.AppLanguage
 import com.seblful.klas.format.AppLocale
-import com.seblful.klas.format.localeFor
 import com.seblful.klas.lock.AppLock
 import com.seblful.klas.maintenance.Maintenance
+import com.seblful.klas.settings.DevicePreferences
 import com.seblful.klas.ui.common.state.hold
 import com.seblful.klas.ui.onboarding.FirstLesson
 import dev.zacsweers.metro.AppScope
@@ -21,7 +20,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
-import java.util.Locale
 
 /**
  * Which of the three things the app is showing at the very top.
@@ -50,7 +48,7 @@ enum class RootRoute {
 class RootViewModel @Inject constructor(
     settings: SettingsRepository,
 
-    @param:DeviceLocales private val deviceLocales: List<Locale>,
+    private val devicePreferences: DevicePreferences,
     private val maintenance: Maintenance,
     // In [ApplicationScope] so the pass outlives this view model, and starts from the UI coming up rather
     // than from whichever screen happened to be showing.
@@ -67,7 +65,7 @@ class RootViewModel @Inject constructor(
     }
 
     val settings: StateFlow<AppSettings?> = settings.observe()
-        .onEach { AppLocale.current = it.language.localeFor(deviceLocales) }
+        .onEach { AppLocale.tag = languageFor(it) }
         .hold(this, null)
 
     /** What to show for [settings], whatever state they are in. */
@@ -81,6 +79,6 @@ class RootViewModel @Inject constructor(
      * Which locale to display [settings] in — the strings, their plural rules, the month names and the
      * decimal separator, which all have to be the same one.
      */
-    fun localeFor(settings: AppSettings?): Locale =
-        (settings?.language ?: AppLanguage.SYSTEM).localeFor(deviceLocales)
+    fun languageFor(settings: AppSettings?): String =
+        (settings?.language ?: AppLanguage.SYSTEM).tagFor(devicePreferences.languageTags)
 }

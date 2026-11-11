@@ -8,7 +8,6 @@ import com.seblful.klas.di.ApplicationContext
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
-import java.util.Locale
 
 /**
  * The widget picker's previews on Android 15+: each widget's own layout, drawn by its `providePreview`, rather
@@ -19,10 +18,9 @@ import java.util.Locale
 @Inject
 class WidgetPreviews(@param:ApplicationContext private val context: Context) {
 
-    suspend fun publish(locale: Locale) {
+    suspend fun publish(tag: String) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.VANILLA_ICE_CREAM) return
-        val published = "${context.packageManager.getPackageInfo(context.packageName, 0).lastUpdateTime}/" +
-            locale.toLanguageTag()
+        val published = "${context.packageManager.getPackageInfo(context.packageName, 0).lastUpdateTime}/$tag"
         if (prefs().getString(KEY_PUBLISHED, null) == published) return
         val manager = GlanceAppWidgetManager(context)
         val results = listOf(TodayWidgetReceiver::class, QuickActionsWidgetReceiver::class)

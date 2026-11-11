@@ -1,7 +1,7 @@
 # Testing
 
 Choose tests by the behavior they prove. Quick build commands are in the [README](../README.md#build--test).
-Run `./gradlew testQuick` during development: domain and shared JVM tests, Android behavior tests and
+Run `./gradlew testQuick` during development: domain, shared and UI JVM tests, Android behavior tests and
 `node --test store/` plus the Android host-script tests, without screenshot rendering. Node 22+ is
 required for the tooling suites.
 `./gradlew verify` also runs screenshot comparisons, Android lint, ktlint, detekt and debug app/test
@@ -13,7 +13,8 @@ builds used by CI. Device and iOS simulator execution are separate checks.
 |---|---|
 | `domain/src/commonTest` | Pure rules with `kotlin.test`; the same tests run on JVM and iOS. |
 | `shared/src/commonTest` | Repository atomicity and race cases, backup contracts, feature queries, parsing and clock events over real Room databases. Platform test source sets provide database creation. |
-| `app/src/test` | Android locale/graph behavior, view models, mappers, formatters and source/artifact tripwires. Unmocked Android calls fail (`isReturnDefaultValues` is off). |
+| `ui/src/commonTest` | Date, time and money formatting in each language. The JVM run reads Android's `java.text`/`java.time` tables; the iOS run reads Foundation's, so both platforms' CLDR data meet the same expectations. |
+| `app/src/test` | Android locale/graph behavior, view models, mappers and source/artifact tripwires. Unmocked Android calls fail (`isReturnDefaultValues` is off). |
 
 - Seed valid application states through `testutil/Fixtures`; use `storedClass` for raw persisted states.
   `DirectSeedingRatchetTest` lists the few direct-write exceptions by file and purpose, and fails if an
@@ -45,12 +46,14 @@ builds used by CI. Device and iOS simulator execution are separate checks.
   previews. General source restrictions belong to detekt; avoid filename and call-spelling assertions.
 - `./gradlew :app:testDebugBehavior` runs Android JVM behavior tests without previews or screenshots.
   The underlying `:app:testDebugUnitTest` remains the full JVM suite used by Roborazzi.
-- `./gradlew :domain:jvmTest :shared:jvmTest` runs common tests on the JVM without Android.
+- `./gradlew :domain:jvmTest :shared:jvmTest :ui:testAndroidHostTest` runs common tests on the JVM without
+  a device.
 - Common tests use `kotlin.test` assertions and `assertFailsWith`, without JVM-only annotation
   parameters or plain `assert`. Keep commas out of backtick function names; Kotlin/Native rejects them.
-- On an Apple Silicon Mac, run `./gradlew :domain:iosSimulatorArm64Test :shared:iosSimulatorArm64Test`.
+- On an Apple Silicon Mac, run `./gradlew :domain:iosSimulatorArm64Test :shared:iosSimulatorArm64Test
+  :ui:iosSimulatorArm64Test`.
   Set `KMP_IOS_SIMULATOR_ID` to an available simulator UDID to select a device. CI selects an available
-  iPhone, runs both suites and compiles shared iOS device code. Windows can compile native Kotlin
+  iPhone, runs the three suites and compiles the iOS device code. Windows can compile native Kotlin
   libraries but cannot link or run the simulator tests. CI also builds the [SwiftUI host](ios.md)
   and runs its create/book/terminate/relaunch test.
 
@@ -91,7 +94,8 @@ bare `Application`); native graphics, resources and JDK access flags live in `ap
 ## Coverage
 
 `./gradlew coverageReport` runs `:app:testDebugBehavior`, `:domain:jvmTest` and `:shared:jvmTest` with
-the JaCoCo agent and writes one merged HTML/XML report to `build/reports/jacoco/coverageReport/`.
+the JaCoCo agent and writes one merged HTML/XML report to `build/reports/jacoco/coverageReport/`. The
+`:ui` screens count through the `:app` behavior tests that drive them.
 Preview screenshots are left out: they render code without asserting on it. `:shared` counts only its
 own tests, because `:app` runs its Android build, whose classes differ from the JVM ones the report
 reads. Metro, Room and Compose-generated classes and debug previews are excluded. Device, iOS and

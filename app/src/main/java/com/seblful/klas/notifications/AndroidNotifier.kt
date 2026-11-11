@@ -116,7 +116,7 @@ class AndroidNotifier @Inject constructor(
         // 12- or 24-hour from the phone, like every other time the tutor is shown. A reminder is read
         // *on* the phone, so a lesson booked at 9:00 PM must not be announced as «21:00»: one clock to
         // set it on and another to be reminded of it.
-        val time = klass.start.formatTime(hour12 = hour12(), locale = displayLocale.current)
+        val time = klass.start.formatTime(hour12 = hour12(), tag = displayLocale.tag)
         val headline = bulletJoin(time, subjectName, whoName)
         // In the expanded text only: the collapsed line stays the lesson, which is what the tray is sorted by
         // at a glance, and the homework is what the tutor opens it to read.
@@ -177,7 +177,7 @@ class AndroidNotifier @Inject constructor(
 
         // The same sentence the schedule prints under the day it names — see [daySummaryText]. Never
         // null here: `Agenda.isWorthPosting` has already refused an empty day, and it is the only way in.
-        val summary = daySummaryText(words, agenda.summary, currency, displayLocale.current).orEmpty()
+        val summary = daySummaryText(words, agenda.summary, currency, displayLocale.tag).orEmpty()
 
         val notification = builder(Kind.AGENDA, Strings.agenda_title)
             .setContentText(summary.forSystemFont())
@@ -219,7 +219,7 @@ class AndroidNotifier @Inject constructor(
 
         val body = bulletJoin(
             words.plural(Plurals.students_count, debts.students, debts.students),
-            debts.total.money(currency, displayLocale.current),
+            debts.total.money(currency, displayLocale.tag),
         )
         val notification = builder(Kind.DEBTS, Strings.debts_title)
             .setContentText(body.forSystemFont())
@@ -237,7 +237,7 @@ class AndroidNotifier @Inject constructor(
 
         val body = bulletJoin(
             words.plural(Plurals.lessons_count, lessons, lessons),
-            billed.money(currency, displayLocale.current),
+            billed.money(currency, displayLocale.tag),
         )
         val notification = builder(Kind.UPKEEP, Strings.upkeep_completed_title)
             .setContentText(body.forSystemFont())
@@ -280,7 +280,7 @@ class AndroidNotifier @Inject constructor(
         posting.lines.forEach { entry ->
             style.addLine(
                 bulletJoin(
-                    entry.start.formatTime(hour12 = hour12, locale = displayLocale.current), entry.subject, entry.who,
+                    entry.start.formatTime(hour12 = hour12, tag = displayLocale.tag), entry.subject, entry.who,
                 ),
             )
         }

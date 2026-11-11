@@ -115,7 +115,7 @@ jobs:
               env.write("KMP_IOS_SIMULATOR_ID=" + devices[0]["udid"] + "\n")
           PY
       - name: Compile iOS device code and run common tests on iOS
-        run: ./gradlew :shared:compileKotlinIosArm64 :domain:iosSimulatorArm64Test :shared:iosSimulatorArm64Test --stacktrace
+        run: ./gradlew :shared:compileKotlinIosArm64 :ui:compileKotlinIosArm64 :domain:iosSimulatorArm64Test :shared:iosSimulatorArm64Test :ui:iosSimulatorArm64Test --stacktrace
       - name: Generate the iOS pilot project
         run: |
           command -v xcodegen >/dev/null || brew install xcodegen

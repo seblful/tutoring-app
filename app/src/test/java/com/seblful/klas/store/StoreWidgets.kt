@@ -69,7 +69,9 @@ internal class StoreWidgets(private val graph: StoreGraph, private val locale: L
         val texts = words.todayTexts()
         val now = graph.widgets.now()
         val hour12 = !DateFormat.is24HourFormat(activity)
-        val rows = runBlocking { graph.widgets.lessons.observe().first() }.map { it.toRow(hour12, locale, now, texts) }
+        val rows = runBlocking {
+            graph.widgets.lessons.observe().first()
+        }.map { it.toRow(hour12, locale.toLanguageTag(), now, texts) }
         val onNow = rows.single { it.onNow }
         val ticked = rows.map {
             if (it == onNow) it.copy(taught = true, canMarkTaught = false, onNow = false) else it

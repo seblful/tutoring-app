@@ -52,6 +52,7 @@ and pure rules in `:domain`.
 ./gradlew :app:assembleDebug            # debug APK
 ./gradlew :domain:jvmTest               # domain unit tests (billing, scheduling, reminders, reports)
 ./gradlew :shared:jvmTest               # shared parsing, clock and real-database contracts
+./gradlew :ui:testAndroidHostTest       # date, time and money formatting in each language
 ./gradlew :app:verifyRoborazziDebug     # app unit tests + preview screenshot comparisons
 ./gradlew coverageReport               # JVM test coverage → build/reports/jacoco/coverageReport/
 ./gradlew :app:lintDebug ktlintCheck detekt

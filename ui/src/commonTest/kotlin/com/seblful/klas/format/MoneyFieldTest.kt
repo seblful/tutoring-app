@@ -1,11 +1,11 @@
 package com.seblful.klas.format
 
 import com.seblful.klas.domain.model.Money
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNull
-import org.junit.Assert.assertTrue
-import org.junit.Test
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 class MoneyFieldTest {
 
@@ -50,17 +50,17 @@ class MoneyFieldTest {
     }
 
     @Test
-    fun `junk is never an amount, whatever the kind`() {
+    fun `junk is never an amount - whatever the kind`() {
         for (text in listOf("abc", "1,2,3", "NaN", "Infinity", "1e9999", "-5")) {
             for (field in listOf(rate(text), payment(text), optional(text))) {
-                assertNull("${field.kind} accepted \"$text\"", field.amount)
+                assertNull(field.amount, "${field.kind} accepted \"$text\"")
                 assertFalse(field.isValid)
             }
         }
     }
 
     @Test
-    fun `a thousands space is typed, not junk`() {
+    fun `a thousands space is typed - not junk`() {
         assertEquals(Money.ofMajor(1000), rate("1 000").amount)
     }
 
@@ -69,19 +69,19 @@ class MoneyFieldTest {
         val texts = listOf("25", "25,50", "25.50", "1 000", "0,01", "abc", "NaN", "-5", "1,")
 
         texts.forEach { text ->
-            assertEquals("rate and payment disagreed about \"$text\"", rate(text).amount, payment(text).amount)
-            assertEquals("rate and optional disagreed about \"$text\"", rate(text).amount, optional(text).amount)
+            assertEquals(rate(text).amount, payment(text).amount, "rate and payment disagreed about \"$text\"")
+            assertEquals(rate(text).amount, optional(text).amount, "rate and optional disagreed about \"$text\"")
         }
 
         assertEquals(Money.ZERO, rate("0").amount)
-        assertNull("a payment of nothing is a slip", payment("0").amount)
-        assertNull("a blank rate is unanswered", rate("").amount)
-        assertEquals("a blank optional rate is «not set»", Money.ZERO, optional("").amount)
+        assertNull(payment("0").amount, "a payment of nothing is a slip")
+        assertNull(rate("").amount, "a blank rate is unanswered")
+        assertEquals(Money.ZERO, optional("").amount, "a blank optional rate is «not set»")
     }
 
     @Test
     fun `an empty field is never marked wrong`() {
-        assertFalse("nobody should see an error for a box they haven't reached", rate("").isError)
+        assertFalse(rate("").isError, "nobody should see an error for a box they haven't reached")
         assertFalse(payment("").isError)
         assertFalse(optional("").isError)
     }
@@ -90,7 +90,7 @@ class MoneyFieldTest {
     fun `a field is marked wrong once something unusable has been typed`() {
         assertTrue(rate("abc").isError)
         assertTrue(optional("abc").isError)
-        assertTrue("zero is a slip for a payment", payment("0").isError)
+        assertTrue(payment("0").isError, "zero is a slip for a payment")
     }
 
     @Test
@@ -101,17 +101,17 @@ class MoneyFieldTest {
     }
 
     @Test
-    fun `unreadable text says so, whatever the field is for`() {
+    fun `unreadable text says so - whatever the field is for`() {
         assertEquals(MoneyField.Error.UNREADABLE, rate("abc").error)
         assertEquals(MoneyField.Error.UNREADABLE, payment("2,5,5").error)
         assertEquals(MoneyField.Error.UNREADABLE, optional("-").error)
     }
 
     @Test
-    fun `a zero payment is its own complaint, and only for a payment`() {
+    fun `a zero payment is its own complaint - and only for a payment`() {
         assertEquals(MoneyField.Error.ZERO_PAYMENT, payment("0").error)
-        assertNull("a free lesson is a real rate", rate("0").error)
-        assertNull("blank optional means «not set», which is zero and fine", optional("").error)
+        assertNull(rate("0").error, "a free lesson is a real rate")
+        assertNull(optional("").error, "blank optional means «not set», which is zero and fine")
     }
 
     @Test
@@ -138,9 +138,9 @@ class MoneyFieldTest {
 
         fields.forEach { field ->
             assertEquals(
-                "`isError` disagreed with `error` for ${field.kind} «${field.text}»",
                 field.error != null,
                 field.isError,
+                "`isError` disagreed with `error` for ${field.kind} «${field.text}»",
             )
         }
     }

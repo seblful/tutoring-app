@@ -1,4 +1,5 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.targets.native.tasks.KotlinNativeSimulatorTest
 
 // The app's screens for Android and iOS: Compose Multiplatform UI, view models, navigation, theme, text and
 // formatting. Platform hosts (`:app`, `iosApp/`) supply adapters and the window.
@@ -26,6 +27,8 @@ kotlin {
         compilerOptions { jvmTarget = JvmTarget.JVM_11 }
         // Compose resources reach the APK as Android assets.
         androidResources { enable = true }
+        // commonTest on the JVM, against Android's java.text tables; iOS runs it on the simulator.
+        withHostTest {}
     }
     iosArm64()
     iosSimulatorArm64()
@@ -58,6 +61,9 @@ kotlin {
             api(libs.metrox.viewmodel.compose)
             implementation(libs.kotlinx.serialization.json)
         }
+        commonTest.dependencies {
+            implementation(kotlin("test"))
+        }
         androidMain.dependencies {
             implementation(libs.androidx.core.ktx)
             implementation(libs.androidx.activity.compose)
@@ -75,4 +81,8 @@ compose.resources {
 composeCompiler {
     // Domain models and kotlinx-datetime values are immutable; see the file.
     stabilityConfigurationFiles.add(rootProject.layout.projectDirectory.file("app/compose-stability.conf"))
+}
+
+tasks.withType<KotlinNativeSimulatorTest>().configureEach {
+    providers.environmentVariable("KMP_IOS_SIMULATOR_ID").orNull?.let { device.set(it) }
 }

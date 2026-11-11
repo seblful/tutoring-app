@@ -86,20 +86,20 @@ class SettingsRepositoryTest {
     @Test
     fun `language state updates without changing the foreground locale`() = runTest {
         val display = DisplayLocale(repo, RussianMinskPhone.toDevicePreferences())
-        AppLocale.current = Locale.ROOT
+        AppLocale.tag = "und"
         repo.update { it.copy(language = AppLanguage.ENGLISH) }
-        assertEquals(Locale.forLanguageTag("en"), display.current)
+        assertEquals("en", display.tag)
 
         repo.update { it.copy(language = AppLanguage.RUSSIAN) }
-        assertEquals(Locale.forLanguageTag("ru"), display.current)
+        assertEquals("ru", display.tag)
 
         repo.update { it.copy(language = AppLanguage.SYSTEM) }
-        assertEquals(Locale.forLanguageTag("ru"), display.current)
+        assertEquals("ru", display.tag)
 
-        AppLocale.current = Locale.ROOT
+        AppLocale.tag = "und"
         repo.observe().first()
         assertEquals(AppLanguage.SYSTEM, repo.language.value)
-        assertEquals("persistence does not change presentation globals", Locale.ROOT, AppLocale.current)
+        assertEquals("persistence does not change presentation globals", "und", AppLocale.tag)
     }
 
     @Test
@@ -108,11 +108,11 @@ class SettingsRepositoryTest {
         val freshProcess = SettingsRepository(dao, RussianMinskPhone.toDevicePreferences())
         val display = DisplayLocale(freshProcess, RussianMinskPhone.toDevicePreferences())
 
-        assertEquals("nothing has read the row yet", Locale.forLanguageTag("ru"), display.current)
-        assertEquals(Locale.forLanguageTag("en"), display.observe().first())
+        assertEquals("nothing has read the row yet", "ru", display.tag)
+        assertEquals("en", display.observe().first())
 
         freshProcess.update { it.copy(language = AppLanguage.RUSSIAN) }
-        assertEquals(Locale.forLanguageTag("ru"), display.observe().first())
+        assertEquals("ru", display.observe().first())
     }
 
     @Test
@@ -122,7 +122,7 @@ class SettingsRepositoryTest {
         american.update { it.copy(language = AppLanguage.SYSTEM) }
 
         val display = DisplayLocale(american, listOf(Locale.US).toDevicePreferences())
-        assertEquals(Locale.forLanguageTag("en"), display.current)
+        assertEquals("en", display.tag)
     }
 
     @Test

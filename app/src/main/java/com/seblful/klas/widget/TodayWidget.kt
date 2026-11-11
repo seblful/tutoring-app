@@ -59,9 +59,9 @@ class TodayWidget : GlanceAppWidget() {
     )
 
     override suspend fun providePreview(context: Context, widgetCategory: Int) {
-        val locale = context.appGraph.widgets.displayLocale.observe().first()
-        val words = Texts.of(locale.toLanguageTag())
-        val rows = words.sampleRows(hour12 = !DateFormat.is24HourFormat(context), locale)
+        val tag = context.appGraph.widgets.displayLocale.observe().first()
+        val words = Texts.of(tag)
+        val rows = words.sampleRows(hour12 = !DateFormat.is24HourFormat(context), tag)
         provideContent {
             GlanceTheme(colors = KlasWidgetColors) {
                 TodayLayout(
@@ -86,9 +86,9 @@ class TodayWidget : GlanceAppWidget() {
 
         provideContent {
             val state by produceState(initial) { states.collect { value = it } }
-            val (today, locale, privacy) = state
+            val (today, tag, privacy) = state
             val hour12 = !DateFormat.is24HourFormat(context)
-            val words = Texts.of(locale.toLanguageTag())
+            val words = Texts.of(tag)
             val shown = listsLessons(LocalAppWidgetOptions.current.hostCategory(), privacy)
             GlanceTheme(colors = KlasWidgetColors) {
                 TodayLayout(
@@ -98,7 +98,7 @@ class TodayWidget : GlanceAppWidget() {
                     rows = if (shown) {
                         val now = widgets.now()
                         val texts = words.todayTexts()
-                        today.map { it.toRow(hour12, locale, now, texts) }
+                        today.map { it.toRow(hour12, tag, now, texts) }
                     } else {
                         emptyList()
                     },
@@ -137,7 +137,7 @@ internal fun Texts.todayTexts() = TodayTexts(
 )
 
 /** The picker's sample day, from [this], a context in the app's language: the first lesson taught. */
-internal fun Texts.sampleRows(hour12: Boolean, locale: Locale): List<TodayRow> {
+internal fun Texts.sampleRows(hour12: Boolean, tag: String): List<TodayRow> {
     val today = Clock.System.todayIn(TimeZone.currentSystemDefault())
     return array(StringArrays.widget_preview_lessons).chunked(2)
         .zip(listOf("09:00", "14:30", "17:00").map(LocalTime::parse))
@@ -151,14 +151,14 @@ internal fun Texts.sampleRows(hour12: Boolean, locale: Locale): List<TodayRow> {
                 subject = lesson[1],
                 taught = index == 0,
                 canMarkTaught = index != 0,
-            ).toRow(hour12, locale, now = Instant.DISTANT_PAST, texts = todayTexts())
+            ).toRow(hour12, tag, now = Instant.DISTANT_PAST, texts = todayTexts())
         }
 }
 
 /** The row for this lesson as it stands at [now]: «10:00–11:00 · Maths», «On now» while it is taught. */
-internal fun TodayLesson.toRow(hour12: Boolean, locale: Locale, now: Instant, texts: TodayTexts): TodayRow {
-    val starts = start.formatTime(hour12, locale)
-    val range = "$starts–${end.formatTime(hour12, locale)}"
+internal fun TodayLesson.toRow(hour12: Boolean, tag: String, now: Instant, texts: TodayTexts): TodayRow {
+    val starts = start.formatTime(hour12, tag)
+    val range = "$starts–${end.formatTime(hour12, tag)}"
     return TodayRow(
         classId = classId,
         title = who,
@@ -166,7 +166,12 @@ internal fun TodayLesson.toRow(hour12: Boolean, locale: Locale, now: Instant, te
         taught = taught,
         canMarkTaught = canMarkTaught,
         onNow = isOnAt(now),
-        tickLabel = String.format(locale, if (taught) texts.lessonTaught else texts.markLesson, who, starts),
+        tickLabel = String.format(
+            Locale.forLanguageTag(tag),
+            if (taught) texts.lessonTaught else texts.markLesson,
+            who,
+            starts,
+        ),
     )
 }
 

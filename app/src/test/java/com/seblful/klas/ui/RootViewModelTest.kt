@@ -7,6 +7,7 @@ import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.ThemeChoice
 import com.seblful.klas.format.AppLocale
+import com.seblful.klas.format.toDevicePreferences
 import com.seblful.klas.lock.AppLock
 import com.seblful.klas.testutil.AppLocaleRule
 import com.seblful.klas.testutil.MainDispatcherRule
@@ -41,7 +42,8 @@ class RootViewModelTest {
 
     private fun vm() = mainRule.own(
         RootViewModel(
-            env.settingsRepo, env.deviceLocales, env.maintenance, mainRule.appScope, AppLock(), FirstLesson(),
+            env.settingsRepo, env.deviceLocales.toDevicePreferences(), env.maintenance, mainRule.appScope, AppLock(),
+            FirstLesson(),
         ),
     )
 
@@ -55,11 +57,11 @@ class RootViewModelTest {
         advanceUntilIdle()
 
         assertEquals(AppLanguage.ENGLISH, vm.settings.value?.language)
-        assertEquals(Locale.forLanguageTag("en"), AppLocale.current)
+        assertEquals("en", AppLocale.tag)
 
         env.settingsRepo.update { it.copy(language = AppLanguage.RUSSIAN) }
         advanceUntilIdle()
-        assertEquals(Locale.forLanguageTag("ru"), AppLocale.current)
+        assertEquals("ru", AppLocale.tag)
     }
 
     @Test

@@ -54,9 +54,9 @@ class WidgetUpdates(
         launch { lessons.observe().collect { update { TodayWidget().updateAll(context) } } }
         launch { privacy().collect { update { TodayWidget().updateAll(context) } } }
         launch {
-            displayLocale.observe().collect { locale ->
+            displayLocale.observe().collect { tag ->
                 refresh()
-                update { previews.publish(locale) }
+                update { previews.publish(tag) }
             }
         }
     }

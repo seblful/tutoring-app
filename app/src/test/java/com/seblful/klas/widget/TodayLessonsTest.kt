@@ -13,7 +13,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
-import java.util.Locale
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Instant
@@ -53,7 +52,7 @@ class TodayLessonsTest {
 
     // Times are shown in the phone's zone, whatever the build machine's is.
     private val nine = LocalDateTime(2026, 6, 1, 9, 0).toInstant(TimeZone.currentSystemDefault())
-    private val russian = Locale.forLanguageTag("ru")
+    private val russian = "ru"
     private val texts = TodayTexts(
         "Today", "", "", "Mark as taught", "Taught", "On now",
         markLesson = "Mark %1${'$'}s, %2${'$'}s taught", lessonTaught = "%1${'$'}s, %2${'$'}s: taught",
@@ -61,7 +60,7 @@ class TodayLessonsTest {
 
     @Test
     fun `the picker's sample day is in the app's language, its first lesson taught`() {
-        val russian = Locale.forLanguageTag("ru")
+        val russian = "ru"
         val rows = Texts.of("ru").sampleRows(hour12 = false, russian)
 
         assertEquals(listOf("Аня Соколова", "11 «А»", "Иван Петров"), rows.map { it.title })

@@ -87,9 +87,9 @@ class MainActivity : FragmentActivity() {
         // The launcher's shortcuts, in the app's language — again whenever that changes.
         lifecycleScope.launch {
             rootViewModel.settings
-                .map { rootViewModel.localeFor(it) }
+                .map { rootViewModel.languageFor(it) }
                 .distinctUntilChanged()
-                .collect { AppShortcuts.publish(this@MainActivity, Texts.of(it.toLanguageTag())) }
+                .collect { AppShortcuts.publish(this@MainActivity, Texts.of(it)) }
         }
         // Whatever the app lock hides must not show in recent apps either, or the lock hides nothing.
         lifecycleScope.launch {

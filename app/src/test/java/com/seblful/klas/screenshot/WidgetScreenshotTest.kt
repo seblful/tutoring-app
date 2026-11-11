@@ -40,7 +40,6 @@ import org.robolectric.Robolectric
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.GraphicsMode
-import java.util.Locale
 import kotlin.math.roundToInt
 
 /**
@@ -72,7 +71,7 @@ class WidgetScreenshotTest {
     fun todayPreview() = capture("Today.preview", DpSize(160.dp, 180.dp), night = false) { words ->
         TodayLayout(
             texts = words.todayTexts(),
-            rows = words.sampleRows(hour12 = false, Locale.forLanguageTag("ru")),
+            rows = words.sampleRows(hour12 = false, "ru"),
             openToday = Tap,
             bookLesson = Tap,
             openLesson = { Tap },

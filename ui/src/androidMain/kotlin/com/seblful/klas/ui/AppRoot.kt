@@ -82,6 +82,7 @@ import com.seblful.klas.ui.onboarding.OnboardingScreen
 import com.seblful.klas.ui.theme.KlasTheme
 import dev.zacsweers.metrox.viewmodel.metroViewModel
 import kotlinx.coroutines.launch
+import java.util.Locale
 
 @Composable
 fun AppRoot(rootViewModel: RootViewModel = metroViewModel(), onUnlock: (title: String) -> Unit = {}) {
@@ -112,7 +113,7 @@ fun AppRoot(rootViewModel: RootViewModel = metroViewModel(), onUnlock: (title: S
         // cannot be `MainActivity`'s, is [ProvideLocalizedResources]'. Resolving «follow the system» is
         // `localeFor`'s, because that answer comes from the platform; a composable may not be the second
         // place that knows what either of those means.
-        ProvideLocalizedResources(rootViewModel.localeFor(settings)) {
+        ProvideLocalizedResources(Locale.forLanguageTag(rootViewModel.languageFor(settings))) {
             // The currency while the row is loading is the app's oldest, not the phone's: nothing is drawn
             // in this state (the splash is still up), and `SettingsRepository` is the one place that knows
             // what an unwritten row means on this device.

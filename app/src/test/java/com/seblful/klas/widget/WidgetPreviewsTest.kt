@@ -31,7 +31,7 @@ import java.util.Locale
 class WidgetPreviewsTest {
 
     private val app = ApplicationProvider.getApplicationContext<StoreApp>()
-    private val russian = Locale.forLanguageTag("ru")
+    private val russian = "ru"
 
     @Before
     fun graph() {
@@ -39,7 +39,7 @@ class WidgetPreviewsTest {
             context = app,
             clock = DemoTutor.CLOCK,
             firstDayOfWeek = DemoTutor.russian.firstDayOfWeek,
-            deviceLocales = listOf(russian),
+            deviceLocales = listOf(Locale.forLanguageTag(russian)),
             reminders = RecordingReminderScheduler(),
             digests = RecordingDigestScheduler(),
             calendar = FakeCalendarSync(),
@@ -63,7 +63,7 @@ class WidgetPreviewsTest {
         assertNotNull(preview())
         assertEquals("ru", published()?.substringAfter('/'))
 
-        WidgetPreviews(app).publish(Locale.ENGLISH)
+        WidgetPreviews(app).publish("en")
         assertEquals("en", published()?.substringAfter('/'))
     }
 

@@ -7,21 +7,20 @@ import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
-import java.util.Locale
 
 class MonthNameCaseTest {
 
-    private var previous: Locale = Locale.ROOT
+    private var previous: String = "und"
 
     @Before
     fun pinRussian() {
-        previous = AppLocale.current
-        AppLocale.current = Locale.forLanguageTag("ru")
+        previous = AppLocale.tag
+        AppLocale.tag = "ru"
     }
 
     @After
     fun restore() {
-        AppLocale.current = previous
+        AppLocale.tag = previous
     }
 
     @Test
@@ -47,7 +46,7 @@ class MonthNameCaseTest {
 
     @Test
     fun englishMonthsAreNotInflected() {
-        AppLocale.current = Locale.forLanguageTag("en")
+        AppLocale.tag = "en"
         assertEquals("Thursday, September 24", LocalDate(2026, 9, 24).formatDay())
         assertEquals("May 5, 2026", LocalDate(2026, 5, 5).formatDate())
     }

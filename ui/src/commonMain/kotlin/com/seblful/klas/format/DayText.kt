@@ -1,18 +1,15 @@
 package com.seblful.klas.format
 
-import android.content.res.Resources
 import com.seblful.klas.domain.model.Currency
 import com.seblful.klas.domain.schedule.DaySummary
 import com.seblful.klas.domain.time.MINUTES_PER_HOUR
 import com.seblful.klas.text.Plurals
 import com.seblful.klas.text.Strings
 import com.seblful.klas.text.Texts
-import java.text.DecimalFormatSymbols
-import java.util.Locale
 
 /**
- * Formats [DaySummary.parts] with localized Android resources. Returns null when the summary has no parts.
- * [Resources] is passed explicitly so screens and notifications use the app's selected language.
+ * Formats [DaySummary.parts] in [res]'s words and [tag]'s numbers. Returns null when the summary has no
+ * parts. Both are passed explicitly so screens and notifications use the language each one shows.
  *
  * @param currency the display currency.
  */
@@ -20,20 +17,20 @@ fun daySummaryText(
     res: Texts,
     summary: DaySummary,
     currency: Currency,
-    locale: Locale = AppLocale.current,
+    tag: String = AppLocale.tag,
 ): String? {
     val parts = summary.parts
     if (parts.isEmpty()) return null
-    return bulletJoin(parts.map { it.text(res, currency, locale) })
+    return bulletJoin(parts.map { it.text(res, currency, tag) })
 }
 
-private fun DaySummary.Part.text(res: Texts, currency: Currency, locale: Locale): String = when (this) {
+private fun DaySummary.Part.text(res: Texts, currency: Currency, tag: String): String = when (this) {
     is DaySummary.Part.Lessons -> res.plural(Plurals.lessons_count, count, count)
     is DaySummary.Part.Hours -> res.string(
         Strings.hours_value,
-        formatHours(minutes, DecimalFormatSymbols.getInstance(locale).decimalSeparator),
+        formatHours(minutes, localeData(tag).decimalSeparator),
     )
-    is DaySummary.Part.Earned -> money.money(currency, locale)
+    is DaySummary.Part.Earned -> money.money(currency, tag)
     is DaySummary.Part.Cancelled -> res.string(Strings.schedule_summary_cancelled, count)
 }
 
