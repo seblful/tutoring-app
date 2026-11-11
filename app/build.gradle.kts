@@ -28,8 +28,8 @@ android {
         applicationId = "com.seblful.klas"
         minSdk = libs.versions.minSdk.get().toInt()
         targetSdk = libs.versions.targetSdk.get().toInt()
-        versionCode = 16
-        versionName = "0.5.1"
+        versionCode = 17
+        versionName = "0.6.0"
 
         testInstrumentationRunner = "com.seblful.klas.KlasTestRunner"
     }
