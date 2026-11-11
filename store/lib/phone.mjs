@@ -8,6 +8,8 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 export const RES = join(ROOT, "app", "src", "main", "res");
 /** The text catalog's Android-format string files, one `values…` folder per language. */
 export const STRINGS = join(ROOT, "ui", "src", "commonMain", "strings");
+/** The app's typeface, a Compose resource of the shared UI. */
+export const FONTS = join(ROOT, "ui", "src", "commonMain", "composeResources", "font");
 export const LOGO = join(RES, "drawable-nodpi", "ic_logo.png");
 
 /**
@@ -21,7 +23,7 @@ export const ICON_MARK = (1 - 2 * 0.2037) * (108 / 72);
 /** The app's own font, Golos Text, in the four weights it ships. */
 export function fontFaces() {
   const font = (file, weight) =>
-    `@font-face { font-family: Golos; font-weight: ${weight}; src: url("${url(join(RES, "font", file))}"); }`;
+    `@font-face { font-family: Golos; font-weight: ${weight}; src: url("${url(join(FONTS, file))}"); }`;
   return `${font("golos_text_regular.ttf", 400)} ${font("golos_text_medium.ttf", 500)}
     ${font("golos_text_semibold.ttf", 600)} ${font("golos_text_bold.ttf", 700)}`;
 }

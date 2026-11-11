@@ -17,17 +17,6 @@ import dev.zacsweers.metro.binding
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext
 
-/** Keeping and giving up access to a picked folder, and naming it for the screen. */
-interface FolderGrants {
-    /** Keeps access to [folder] across restarts. Throws if the picker granted none to keep. */
-    fun keep(folder: String)
-
-    fun release(folder: String)
-
-    /** The folder's own name, or null when the provider no longer answers for it. */
-    suspend fun name(folder: String): String?
-}
-
 /**
  * [BackupFolder] over a SAF document tree — a folder on the phone, an SD card or a cloud provider's — through
  * `DocumentsContract`, so it needs no library and works back to API 24. Only folders kept with [keep]

@@ -481,7 +481,7 @@
     <string name="about_offline">Works without the internet. Your data is stored on this device only — nobody but you can see it.</string>
     <string name="about_backup_hint">Make a backup so you do not lose everything when you change phones.</string>
     <!-- The bundled typeface's credit, and the way to read its licence. The OFL asks that its notice
-         travel with the font: res/raw/golos_text_ofl.txt is that notice, and this is what opens it. -->
+         travel with the font: composeResources/files/golos_text_ofl.txt is that notice, and this is what opens it. -->
     <string name="about_typeface">Golos Text by ParaType, licensed under OFL 1.1</string>
     <string name="about_typeface_licence">Font licence</string>
 

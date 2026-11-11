@@ -72,9 +72,9 @@ def main() -> None:
     if bounds.bounds is None:
         raise ValueError("The Belarusian ruble path is empty")
     x_min, y_min, _, y_max = bounds.bounds
-    with TTFont(root / "app/src/main/res/font/golos_text_regular.ttf") as regular:
+    with TTFont(root / "ui/src/commonMain/composeResources/font/golos_text_regular.ttf") as regular:
         regular_thickness = hyphen_thickness(regular)
-    for font_path in sorted((root / "app/src/main/res/font").glob("golos_text_*.ttf")):
+    for font_path in sorted((root / "ui/src/commonMain/composeResources/font").glob("golos_text_*.ttf")):
         with TTFont(font_path, recalcTimestamp=False) as font:
             repair_vertical_metrics(font)
             scale = font["OS/2"].sCapHeight / (y_max - y_min)

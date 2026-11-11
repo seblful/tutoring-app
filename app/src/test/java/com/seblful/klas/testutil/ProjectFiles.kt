@@ -27,10 +27,11 @@ object ProjectFiles {
     fun moduleFile(relative: String): File = moduleFileOrNull(relative)
         ?: error("Could not find `$relative` from ${System.getProperty("user.dir")}")
 
-    /** An Android, shared or UI common source file, relative to its package root. */
+    /** An Android, shared or UI source file, relative to its package root. */
     fun sourceFileOrNull(relative: String): File? = moduleFileOrNull("$SOURCE_ROOT/$relative")
         ?: siblingModuleFileOrNull("shared", "src/commonMain/kotlin/com/seblful/klas/$relative")
         ?: siblingModuleFileOrNull("ui", "src/commonMain/kotlin/com/seblful/klas/$relative")
+        ?: siblingModuleFileOrNull("ui", "src/androidMain/kotlin/com/seblful/klas/$relative")
 
     /**
      * An Android or shared common source file, e.g. `data/lessons/LessonsDaos.kt`. A test asserts
@@ -73,6 +74,11 @@ object ProjectFiles {
      */
     fun strings(): File = siblingModuleFileOrNull("ui", "src/commonMain/strings")
         ?: error("Could not find `ui/src/commonMain/strings` from ${System.getProperty("user.dir")}")
+
+    /** A Compose resource of the shared UI, e.g. `font/golos_text_bold.ttf`. */
+    fun composeResource(relative: String): File =
+        siblingModuleFileOrNull("ui", "src/commonMain/composeResources/$relative")
+            ?: error("Could not find compose resource `$relative` from ${System.getProperty("user.dir")}")
 
     /** Feature DAOs, excluding SnapshotDao's intentional whole-table operations. */
     fun daoSources(): List<File> = sources().filter {

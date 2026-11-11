@@ -19,7 +19,6 @@ import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.DependencyGraph
 import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.Provides
-import dev.zacsweers.metro.Qualifier
 import dev.zacsweers.metro.SingleIn
 import dev.zacsweers.metrox.viewmodel.ManualViewModelAssistedFactory
 import dev.zacsweers.metrox.viewmodel.MetroViewModelFactory
@@ -73,11 +72,6 @@ interface KlasGraph : AppGraph, KlasStore {
 
 /** The graph of the process this [Context] runs in, for a class Android instantiated itself. */
 val Context.appGraph: AppGraph get() = (applicationContext as AppGraph.Holder).graph
-
-/** The application's `Context`, as opposed to an activity's — the only one the graph holds. */
-@Qualifier
-@Retention(AnnotationRetention.BINARY)
-annotation class ApplicationContext
 
 /** Builds every screen's view model from the graph; `metroViewModel()` finds it in the composition. */
 @Inject

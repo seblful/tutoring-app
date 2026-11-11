@@ -22,8 +22,8 @@ import com.seblful.klas.domain.model.AppLanguage
 import com.seblful.klas.format.deviceLocales
 import com.seblful.klas.format.inLanguage
 import com.seblful.klas.format.localeFor
-import com.seblful.klas.lock.UNLOCK_WITH
 import com.seblful.klas.lock.canUnlock
+import com.seblful.klas.lock.unlockPrompt
 import com.seblful.klas.notifications.AppShortcuts
 import com.seblful.klas.text.Texts
 import com.seblful.klas.ui.AppRoot
@@ -154,10 +154,7 @@ class MainActivity : FragmentActivity() {
             },
         )
         lock.prompting(true)
-        // No negative button: with the screen lock allowed, the prompt offers it itself.
-        prompt.authenticate(
-            BiometricPrompt.PromptInfo.Builder().setTitle(title).setAllowedAuthenticators(UNLOCK_WITH).build(),
-        )
+        prompt.authenticate(unlockPrompt(title))
     }
 
     /** A blank preview in recent apps: its own switch from Android 13, the secure flag (no screenshots) before. */

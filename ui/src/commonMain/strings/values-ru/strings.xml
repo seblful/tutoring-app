@@ -561,7 +561,7 @@
     <string name="about_offline">Работает без интернета. Данные хранятся только на этом устройстве — их не видит никто, кроме вас.</string>
     <string name="about_backup_hint">Чтобы не потерять данные при смене телефона, сделайте резервную копию.</string>
     <!-- The bundled typeface's credit, and the way to read its licence. The OFL asks that its notice
-         travel with the font: res/raw/golos_text_ofl.txt is that notice, and this is what opens it. -->
+         travel with the font: composeResources/files/golos_text_ofl.txt is that notice, and this is what opens it. -->
     <string name="about_typeface">Шрифт Golos Text — ParaType, лицензия OFL 1.1</string>
     <string name="about_typeface_licence">Лицензия шрифта</string>
 

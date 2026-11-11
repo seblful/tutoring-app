@@ -8,7 +8,6 @@ import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.BindingContainer
 import dev.zacsweers.metro.ContributesTo
 import dev.zacsweers.metro.Provides
-import dev.zacsweers.metro.Qualifier
 import kotlinx.datetime.DayOfWeek
 
 /*
@@ -25,18 +24,6 @@ import kotlinx.datetime.DayOfWeek
  * unreachable. With this, a test moves both together and the midnight boundary becomes an ordinary
  * assertion.
  */
-/**
- * Where a week starts, for the schedule's calendar — the phone's answer, read once (see
- * [com.seblful.klas.format.deviceFirstDayOfWeek]).
- *
- * Injected for the same reason the [WallClock] is: the week strip and the month grid are anchored on it, so a
- * test has to be able to say "this tutor's week starts on Sunday" without a device set that way. Read once
- * per component rather than observed, because changing a regional preference restarts the activity anyway.
- */
-@Qualifier
-@Retention(AnnotationRetention.BINARY)
-annotation class FirstDayOfWeek
-
 @ContributesTo(AppScope::class)
 @BindingContainer
 object TimeModule {

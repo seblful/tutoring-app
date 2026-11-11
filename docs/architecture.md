@@ -1,15 +1,18 @@
 # Architecture
 
 Room is the source of truth. Calendar events and notifications are best-effort mirrors, never inputs.
-MVVM and Android integrations live in `:app`. Shared persistence and workflows live in `:shared`;
-pure rules live in `:domain`. Both libraries use Kotlin Multiplatform with iOS targets. `:baselineprofile`
+Screens, view models, theme, text and display formatting live in `:ui` (Compose Multiplatform). `:app` is
+the Android host: device adapters, workers, widgets and the Metro graph. Shared persistence and workflows live
+in `:shared`; pure rules live in `:domain`. The three libraries use Kotlin Multiplatform with iOS targets. `:baselineprofile`
 drives the app to collect its baseline profile and ships nothing. Shared common
 sources reject Android/JDK APIs. Dates use kotlinx-datetime; instants/durations use `kotlin.time`.
 Device preferences cross as BCP 47 tags and ISO currency codes.
 
 ```mermaid
 flowchart TB
-    App["app: Android UI, workers and adapters"] --> Shared["shared: repositories and workflows"]
+    App["app: Android host, workers and adapters"] --> Ui["ui: screens, view models and theme"]
+    Ui --> Shared["shared: repositories and workflows"]
+    App --> Shared
     Ios["iOS pilot: SwiftUI host"] --> Shared
     Shared --> Domain["domain: models and pure rules"]
     Shared --> Room[(Room DB)]
@@ -28,13 +31,13 @@ Paths below are inside `com.seblful.klas`; follow the linked sources for individ
 | [Shared settings](../shared/src/commonMain/kotlin/com/seblful/klas/settings/) / [maintenance](../shared/src/commonMain/kotlin/com/seblful/klas/maintenance/) | Settings side effects and upkeep, independent of screens and background scheduling. |
 | [Shared queries](../shared/src/commonMain/kotlin/com/seblful/klas/queries/) | Today's lessons, student/group details and reports join repository flows into portable results. `HomeworkQuery` owns homework visibility, attachment history, date changes and projections for lists, sheets, reminders and the calendar. Hosts own loading state, collection lifetime, events and navigation. |
 | [Shared calendar](../shared/src/commonMain/kotlin/com/seblful/klas/calendar/) / [notifications](../shared/src/commonMain/kotlin/com/seblful/klas/notifications/) / [storage](../shared/src/commonMain/kotlin/com/seblful/klas/storage/) | Calendar mirroring, reminder/digest posting decisions and device interfaces. |
-| [Android calendar](../app/src/main/java/com/seblful/klas/calendar/) / [notifications](../app/src/main/java/com/seblful/klas/notifications/) / [work](../app/src/main/java/com/seblful/klas/work/) | Device adapters, permission prompts, tray navigation, receivers and WorkManager scheduling. |
+| [Android calendar](../app/src/main/java/com/seblful/klas/calendar/) / [notifications](../app/src/main/java/com/seblful/klas/notifications/) / [work](../app/src/main/java/com/seblful/klas/work/) | Device adapters, receivers and WorkManager scheduling. The permission prompts and tray navigation the screens use are in `:ui` ([calendar](../ui/src/androidMain/kotlin/com/seblful/klas/calendar/), [notifications](../ui/src/androidMain/kotlin/com/seblful/klas/notifications/)). |
 | [Android widgets](../app/src/main/java/com/seblful/klas/widget/) | Glance home-screen widgets: today's lessons and shortcuts. Today and its widget read the same shared lesson query. Both open the app through `TrayNavigation`; the check marks a lesson taught through `ReminderActions`. They speak the stored language (`DisplayLocale.observe`), not the last one read. `WidgetUpdates` redraws them while the process lives — on lesson or language changes, and on a clock change via `ClockChangeReceiver` — and Today at its next lesson's start or end (when «On now» moves; `TodayLessons.nextChange`), else at midnight, through a non-waking alarm. Its rows give start–end like the Day view, its tick is read as «Mark Olivia Brooks, 15:00 taught», and its spacing is the app's `Spacing`; only the type stays Glance's (sp, system font). `WidgetPreviews` publishes the Android 15+ picker previews once per install and language. |
-| [Android storage](../app/src/main/java/com/seblful/klas/storage/) / [diagnostics](../app/src/main/java/com/seblful/klas/diagnostics/) | Document picker/sharing adapters and a capped local crash log. |
-| [Print](../app/src/main/java/com/seblful/klas/print/) | `Sheet` (title, sections of label–amount rows, paginated purely) and `PdfSheetPrinter` over `PdfDocument`; the report summary and the statement print through it. Only a device can write the PDF, so its test is in `androidTest`. |
-| [Shared format](../shared/src/commonMain/kotlin/com/seblful/klas/format/) / [Android format](../app/src/main/java/com/seblful/klas/format/) | Portable exact amount parsing and observable-clock interface; Android owns localized display and device preferences. |
-| [UI](../app/src/main/java/com/seblful/klas/ui/) | Screens and view models by feature; generic design-system parts (no domain types) in `designsystem/`, shared atoms/state in `common/`, routes in `navigation/`, the start tab in `today/`, booking in `schedule/booking/`, settings index/categories and permission UI in `settings/`. Feature-only parts stay with their feature. |
-| [DI](../app/src/main/java/com/seblful/klas/di/) | Metro graph and platform bindings. `KlasApp` owns the graph/upkeep; `MainActivity` hosts `AppRoot`. |
+| [Android storage](../app/src/main/java/com/seblful/klas/storage/) / [diagnostics](../app/src/main/java/com/seblful/klas/diagnostics/) | SAF document store, sharing and backup-folder adapters and the file-backed crash log; the screens' side (`FolderGrants`, `SharedDocuments`, `CrashLogStore`) is in `:ui`. |
+| [Print](../ui/src/androidMain/kotlin/com/seblful/klas/print/) | `Sheet` (title, sections of label–amount rows, paginated purely) and the `SheetPrinter` port in `:ui`; Android's [`PdfSheetPrinter`](../app/src/main/java/com/seblful/klas/print/PdfSheetPrinter.kt) draws it over `PdfDocument`. The report summary and the statement print through it. Only a device can write the PDF, so its test is in `androidTest`. |
+| [Shared format](../shared/src/commonMain/kotlin/com/seblful/klas/format/) / [display format](../ui/src/androidMain/kotlin/com/seblful/klas/format/) / [device preferences](../app/src/main/java/com/seblful/klas/format/) | Portable exact amount parsing and observable-clock interface; `:ui` owns localized display, the host reads the device clock, language and week start. |
+| [UI](../ui/src/androidMain/kotlin/com/seblful/klas/ui/) | Screens and view models by feature; generic design-system parts (no domain types) in `designsystem/`, shared atoms/state in `common/`, routes in `navigation/`, the start tab in `today/`, booking in `schedule/booking/`, settings index/categories and permission UI in `settings/`. Feature-only parts stay with their feature. |
+| [DI](../app/src/main/java/com/seblful/klas/di/) | Metro graph and platform bindings; the qualifiers the screens inject are in [`:ui`](../ui/src/commonMain/kotlin/com/seblful/klas/di/Qualifiers.kt). `KlasApp` owns the graph/upkeep; `MainActivity` hosts `AppRoot`. |
 
 ## Who owns writes
 
