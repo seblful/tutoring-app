@@ -1,0 +1,72 @@
+package com.seblful.klas.ui.settings
+
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.repeatOnLifecycle
+import com.seblful.klas.PermissionPrompt
+import com.seblful.klas.notifications.rememberNotificationPermissionRequest
+import com.seblful.klas.text.Strings
+import com.seblful.klas.text.stringResource
+import com.seblful.klas.ui.common.Messages
+import com.seblful.klas.ui.common.rememberRejectFeedback
+
+@Composable
+internal fun RefreshSettingsPermissions(viewModel: SettingsViewModel) {
+    val lifecycle = LocalLifecycleOwner.current
+    LaunchedEffect(lifecycle, viewModel) {
+        lifecycle.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) { viewModel.refreshPermissions() }
+    }
+}
+
+@Composable
+internal fun rememberNotificationAction(
+    viewModel: SettingsViewModel,
+    messages: Messages,
+): (NotificationsIntent) -> Unit {
+    val denied = stringResource(Strings.settings_notifications_denied)
+    val openLabel = stringResource(Strings.action_open_settings)
+    val rationale = stringResource(Strings.settings_notifications_rationale)
+    val allowLabel = stringResource(Strings.action_allow)
+    val openSettings = rememberOpenSystemSettings(messages, SystemSettingsPage.AppNotifications)
+    val reject = rememberRejectFeedback()
+    val request = rememberNotificationPermissionRequest { granted ->
+        viewModel.refreshPermissions()
+        if (!granted) {
+            reject()
+            messages.show(denied, openLabel, openSettings)
+        }
+    }
+    return { intent ->
+        when (intent) {
+            NotificationsIntent.Request -> messages.ask(request, rationale, allowLabel)
+            NotificationsIntent.BlockedBySystem -> openSettings()
+            NotificationsIntent.Nothing -> Unit
+        }
+    }
+}
+
+/**
+ * Shows [prompt] — or, when the tutor refused it before, first says why in [rationale], whose
+ * [allowLabel] action shows it. Ignoring that snackbar asks nothing.
+ */
+fun Messages.ask(prompt: PermissionPrompt, rationale: String, allowLabel: String) {
+    if (prompt.rationaleDue()) show(rationale, allowLabel, prompt.launch) else prompt.launch()
+}
+
+/** A page of the phone's own settings the app sends the tutor to. */
+internal enum class SystemSettingsPage {
+    /** The app's notification switches. */
+    AppNotifications,
+
+    /** The app's own page: its permissions. */
+    AppDetails,
+
+    /** Alarms & reminders, which lets the app ring at the minute (Android 12+). */
+    ExactAlarms,
+}
+
+/** Opens [page], saying in [messages]' snackbar when the phone has no such page. */
+@Composable
+internal expect fun rememberOpenSystemSettings(messages: Messages, page: SystemSettingsPage): () -> Unit

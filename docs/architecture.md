@@ -31,12 +31,12 @@ Paths below are inside `com.seblful.klas`; follow the linked sources for individ
 | [Shared settings](../shared/src/commonMain/kotlin/com/seblful/klas/settings/) / [maintenance](../shared/src/commonMain/kotlin/com/seblful/klas/maintenance/) | Settings side effects and upkeep, independent of screens and background scheduling. |
 | [Shared queries](../shared/src/commonMain/kotlin/com/seblful/klas/queries/) | Today's lessons, student/group details and reports join repository flows into portable results. `HomeworkQuery` owns homework visibility, attachment history, date changes and projections for lists, sheets, reminders and the calendar. Hosts own loading state, collection lifetime, events and navigation. |
 | [Shared calendar](../shared/src/commonMain/kotlin/com/seblful/klas/calendar/) / [notifications](../shared/src/commonMain/kotlin/com/seblful/klas/notifications/) / [storage](../shared/src/commonMain/kotlin/com/seblful/klas/storage/) | Calendar mirroring, reminder/digest posting decisions and device interfaces. |
-| [Android calendar](../app/src/main/java/com/seblful/klas/calendar/) / [notifications](../app/src/main/java/com/seblful/klas/notifications/) / [work](../app/src/main/java/com/seblful/klas/work/) | Device adapters, receivers and WorkManager scheduling. The permission prompts and tray navigation the screens use are in `:ui` ([calendar](../ui/src/androidMain/kotlin/com/seblful/klas/calendar/), [notifications](../ui/src/androidMain/kotlin/com/seblful/klas/notifications/)). |
+| [Android calendar](../app/src/main/java/com/seblful/klas/calendar/) / [notifications](../app/src/main/java/com/seblful/klas/notifications/) / [work](../app/src/main/java/com/seblful/klas/work/) | Device adapters, receivers and WorkManager scheduling. The permission prompts and tray navigation the screens use are in `:ui` ([calendar](../ui/src/commonMain/kotlin/com/seblful/klas/calendar/), [notifications](../ui/src/commonMain/kotlin/com/seblful/klas/notifications/)). |
 | [Android widgets](../app/src/main/java/com/seblful/klas/widget/) | Glance home-screen widgets: today's lessons and shortcuts. Today and its widget read the same shared lesson query. Both open the app through `TrayNavigation`; the check marks a lesson taught through `ReminderActions`. They speak the stored language (`DisplayLocale.observe`), not the last one read. `WidgetUpdates` redraws them while the process lives — on lesson or language changes, and on a clock change via `ClockChangeReceiver` — and Today at its next lesson's start or end (when «On now» moves; `TodayLessons.nextChange`), else at midnight, through a non-waking alarm. Its rows give start–end like the Day view, its tick is read as «Mark Olivia Brooks, 15:00 taught», and its spacing is the app's `Spacing`; only the type stays Glance's (sp, system font). `WidgetPreviews` publishes the Android 15+ picker previews once per install and language. |
 | [Android storage](../app/src/main/java/com/seblful/klas/storage/) / [diagnostics](../app/src/main/java/com/seblful/klas/diagnostics/) | SAF document store, sharing and backup-folder adapters and the file-backed crash log; the screens' side (`FolderGrants`, `SharedDocuments`, `CrashLogStore`) is in `:ui`. |
-| [Print](../ui/src/androidMain/kotlin/com/seblful/klas/print/) | `Sheet` (title, sections of label–amount rows, paginated purely) and the `SheetPrinter` port in `:ui`; Android's [`PdfSheetPrinter`](../app/src/main/java/com/seblful/klas/print/PdfSheetPrinter.kt) draws it over `PdfDocument`. The report summary and the statement print through it. Only a device can write the PDF, so its test is in `androidTest`. |
-| [Shared format](../shared/src/commonMain/kotlin/com/seblful/klas/format/) / [display format](../ui/src/androidMain/kotlin/com/seblful/klas/format/) / [device preferences](../app/src/main/java/com/seblful/klas/format/) | Portable exact amount parsing and observable-clock interface; `:ui` owns localized display, the host reads the device clock, language and week start. |
-| [UI](../ui/src/androidMain/kotlin/com/seblful/klas/ui/) | Screens and view models by feature; generic design-system parts (no domain types) in `designsystem/`, shared atoms/state in `common/`, routes in `navigation/`, the start tab in `today/`, booking in `schedule/booking/`, settings index/categories and permission UI in `settings/`. Feature-only parts stay with their feature. |
+| [Print](../ui/src/commonMain/kotlin/com/seblful/klas/print/) | `Sheet` (title, sections of label–amount rows, paginated purely) and the `SheetPrinter` port in `:ui`; Android's [`PdfSheetPrinter`](../app/src/main/java/com/seblful/klas/print/PdfSheetPrinter.kt) draws it over `PdfDocument`. The report summary and the statement print through it. Only a device can write the PDF, so its test is in `androidTest`. |
+| [Shared format](../shared/src/commonMain/kotlin/com/seblful/klas/format/) / [display format](../ui/src/commonMain/kotlin/com/seblful/klas/format/) / [device preferences](../app/src/main/java/com/seblful/klas/format/) | Portable exact amount parsing and observable-clock interface; `:ui` owns localized display, the host reads the device clock, language and week start. |
+| [UI](../ui/src/commonMain/kotlin/com/seblful/klas/ui/) | Screens and view models by feature; generic design-system parts (no domain types) in `designsystem/`, shared atoms/state in `common/`, routes in `navigation/`, the start tab in `today/`, booking in `schedule/booking/`, settings index/categories and permission UI in `settings/`. Feature-only parts stay with their feature. |
 | [DI](../app/src/main/java/com/seblful/klas/di/) | Metro graph and platform bindings; the qualifiers the screens inject are in [`:ui`](../ui/src/commonMain/kotlin/com/seblful/klas/di/Qualifiers.kt). `KlasApp` owns the graph/upkeep; `MainActivity` hosts `AppRoot`. |
 
 ## Who owns writes
@@ -101,6 +101,21 @@ one. That is why the catalog is not Compose Multiplatform's string resources, wh
 `PluralRules`, which `PluralRulesTest` holds to Android's ICU; `%d` takes the language's digits from the
 platform's number formatter. Strings that Android reads from XML — the launcher label and the widget
 picker's names — stay Android resources in `app/src/main/res/values…/launcher_strings.xml`.
+
+## Platforms
+
+Every screen, view model and the theme are `commonMain` code in `:ui`, so a screen is written once for
+Android and iOS. Where a screen needs the platform it calls an `expect` declaration in the common file,
+and the platform's answer sits beside it at the same package path as `X.android.kt` and `X.ios.kt`:
+pickers (`DocumentPickers`, `ContactPicker`), other apps (`ExternalApp`), system settings pages
+(`SettingsPermissions`), permission prompts, notification and link arrivals (`TrayArrivals`), the
+platform's language plumbing (`AppLanguage`), theme facts (`Theme`) and the small facts in `PlatformUi`.
+An `expect` names what the screen needs, never a platform type. Android-only helpers with no iOS
+counterpart (`PermissionPrompts`, `KeyboardShortcuts`, `Localization`) live in `androidMain` only.
+
+`:ui:compileKotlinIosSimulatorArm64` is the purity check: it compiles common code without Android or the
+JDK and runs on Windows. Formatting reads `LocaleData` from each platform (see [Text](#text)), so
+`:ui` common tests hold both platforms to the same expectations.
 
 ## Dependency injection
 

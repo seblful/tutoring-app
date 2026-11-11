@@ -38,6 +38,8 @@ class LocaleData(
     val groupingSeparator: Char,
     /** Which side of an amount the currency sign goes, from the language's currency pattern. */
     val currencyPlacement: SymbolPlacement,
+    /** Whether the language is written right to left: Arabic, Hebrew, Persian. */
+    val rightToLeft: Boolean,
 )
 
 /** [tag]'s tables, read once per language: every formatted date and amount asks. */
@@ -52,7 +54,13 @@ private var localeDataCache: Map<String, LocaleData> = emptyMap()
 internal expect fun platformLocaleData(tag: String): LocaleData
 
 /** [text] with its first letter in title case as [tag] writes it: Turkish «i» becomes «İ». */
-internal expect fun titlecaseFirst(text: String, tag: String): String
+expect fun titlecaseFirst(text: String, tag: String): String
+
+/** [code]'s name in the language [tag], «Белорусский рубль»; null where the platform has none. */
+expect fun currencyDisplayName(code: String, tag: String): String?
+
+/** Orders words the way the language [tag] alphabetizes them: «Ё» beside «Е», "é" beside "e". */
+expect fun collatorFor(tag: String): Comparator<String>
 
 /** The phone's own locale as a BCP 47 tag, before the app has read which language the tutor chose. */
 internal expect fun platformDefaultTag(): String

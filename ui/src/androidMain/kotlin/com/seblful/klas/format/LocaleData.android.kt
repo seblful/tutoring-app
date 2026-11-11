@@ -1,5 +1,6 @@
 package com.seblful.klas.format
 
+import java.text.Collator
 import java.text.DateFormat
 import java.text.DateFormatSymbols
 import java.text.DecimalFormat
@@ -50,10 +51,32 @@ internal actual fun platformLocaleData(tag: String): LocaleData {
         currencyPlacement = currencyPlacementOf(
             (NumberFormat.getCurrencyInstance(locale) as? DecimalFormat)?.toPattern().orEmpty(),
         ),
+        rightToLeft = isRightToLeft(locale),
     )
 }
 
-internal actual fun titlecaseFirst(text: String, tag: String): String =
+/**
+ * The direction of the script the language writes its own name in — how Android's `TextUtils` decides a
+ * locale's layout direction, without needing Android to answer.
+ */
+private fun isRightToLeft(locale: Locale): Boolean {
+    val name = locale.getDisplayName(locale).ifEmpty { return false }
+    return when (Character.getDirectionality(name.codePointAt(0))) {
+        Character.DIRECTIONALITY_RIGHT_TO_LEFT, Character.DIRECTIONALITY_RIGHT_TO_LEFT_ARABIC -> true
+        else -> false
+    }
+}
+
+/** Older Androids predate VES, MRU, STN, SLE and ZWG: no name for those. */
+actual fun currencyDisplayName(code: String, tag: String): String? =
+    runCatching { java.util.Currency.getInstance(code).getDisplayName(Locale.forLanguageTag(tag)) }.getOrNull()
+
+actual fun collatorFor(tag: String): Comparator<String> {
+    val collator = Collator.getInstance(Locale.forLanguageTag(tag))
+    return Comparator { first, second -> collator.compare(first, second) }
+}
+
+actual fun titlecaseFirst(text: String, tag: String): String =
     text.replaceFirstChar { it.titlecase(Locale.forLanguageTag(tag)) }
 
 internal actual fun platformDefaultTag(): String = Locale.getDefault().toLanguageTag()

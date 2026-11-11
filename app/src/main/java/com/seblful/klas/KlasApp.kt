@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.work.Configuration
 import com.seblful.klas.di.AppGraph
 import com.seblful.klas.di.KlasGraph
+import com.seblful.klas.diagnostics.install
 import dev.zacsweers.metro.createGraphFactory
 import kotlinx.coroutines.launch
 

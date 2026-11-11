@@ -27,7 +27,7 @@ class TimeTextTest {
     @Config(qualifiers = "en-rUS")
     fun `an English phone keeps its 12-hour clock under a Russian app`() {
         compose.setContent {
-            ProvideLocalizedResources(Locale.forLanguageTag("ru")) { Text(lesson.timeText()) }
+            ProvideAppLanguage("ru") { Text(lesson.timeText()) }
         }
         compose.onNodeWithText("4:30", substring = true).assertExists()
     }
@@ -36,7 +36,7 @@ class TimeTextTest {
     @Config(qualifiers = "ru-rRU")
     fun `a Russian phone keeps its 24-hour clock under an English app`() {
         compose.setContent {
-            ProvideLocalizedResources(Locale.ENGLISH) { Text(lesson.timeText()) }
+            ProvideAppLanguage("en") { Text(lesson.timeText()) }
         }
         compose.onNodeWithText("16:30").assertExists()
     }

@@ -1,5 +1,6 @@
 package com.seblful.klas.format
 
+import kotlinx.cinterop.ExperimentalForeignApi
 import platform.Foundation.NSCalendar
 import platform.Foundation.NSCalendarIdentifierGregorian
 import platform.Foundation.NSDateFormatter
@@ -9,12 +10,18 @@ import platform.Foundation.NSDateFormatterNoStyle
 import platform.Foundation.NSDateFormatterShortStyle
 import platform.Foundation.NSDateFormatterStyle
 import platform.Foundation.NSLocale
+import platform.Foundation.NSLocaleCurrencyCode
+import platform.Foundation.NSLocaleLanguageDirectionRightToLeft
+import platform.Foundation.NSMakeRange
 import platform.Foundation.NSNumberFormatter
 import platform.Foundation.NSNumberFormatterCurrencyStyle
 import platform.Foundation.NSNumberFormatterDecimalStyle
 import platform.Foundation.NSString
 import platform.Foundation.canonicalLocaleIdentifierFromString
+import platform.Foundation.characterDirectionForLanguage
+import platform.Foundation.compare
 import platform.Foundation.currentLocale
+import platform.Foundation.languageCode
 import platform.Foundation.localeIdentifier
 import platform.Foundation.preferredLanguages
 import platform.Foundation.uppercaseStringWithLocale
@@ -63,11 +70,26 @@ internal actual fun platformLocaleData(tag: String): LocaleData {
         decimalSeparator = latin.decimalSeparator.firstOrNull() ?: '.',
         groupingSeparator = latin.groupingSeparator.firstOrNull() ?: ',',
         currencyPlacement = currencyPlacementOf(currency.positiveFormat),
+        rightToLeft = NSLocale.characterDirectionForLanguage(locale.languageCode) ==
+            NSLocaleLanguageDirectionRightToLeft,
     )
 }
 
+actual fun currencyDisplayName(code: String, tag: String): String? =
+    nsLocale(tag).displayNameForKey(NSLocaleCurrencyCode, value = code)
+
+@OptIn(ExperimentalForeignApi::class)
 @Suppress("CAST_NEVER_SUCCEEDS")
-internal actual fun titlecaseFirst(text: String, tag: String): String {
+actual fun collatorFor(tag: String): Comparator<String> {
+    val locale = nsLocale(tag)
+    return Comparator { first, second ->
+        val text = first as NSString
+        text.compare(second, options = 0u, range = NSMakeRange(0u, text.length), locale = locale).toInt()
+    }
+}
+
+@Suppress("CAST_NEVER_SUCCEEDS")
+actual fun titlecaseFirst(text: String, tag: String): String {
     if (text.isEmpty()) return text
     val first = text.substring(0, if (text[0].isHighSurrogate()) 2 else 1)
     return (first as NSString).uppercaseStringWithLocale(nsLocale(tag)) + text.substring(first.length)

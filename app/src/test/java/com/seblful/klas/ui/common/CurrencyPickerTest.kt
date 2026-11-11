@@ -65,7 +65,7 @@ class CurrencyPickerTest {
     @Test
     fun `all currencies are ordered by localized names in each app language`() {
         for (locale in listOf(Locale.ENGLISH, Locale.forLanguageTag("ru"))) {
-            val choices = currencyChoices(locale)
+            val choices = currencyChoices(locale.toLanguageTag())
             val collator = Collator.getInstance(locale)
             val expected = Currency.entries.map { java.util.Currency.getInstance(it.name).getDisplayName(locale) }
                 .sortedWith(collator)
