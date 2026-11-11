@@ -19,7 +19,7 @@ flowchart TB
     IosUi --> Ui
     Shared --> Domain["domain: models and pure rules"]
     Shared --> Room[(Room DB)]
-    Shared --> Ports[Calendar, notifications and documents]
+    Shared --> Ports[Calendar, notifications, documents and the store]
     App -. implements .-> Ports
     IosUi -. implements .-> Ports
 ```
@@ -57,6 +57,7 @@ Paths below are inside `com.seblful.klas`; follow the linked sources for individ
 | `PaymentRepository` | Payment dates, corrections and derived instants. |
 | `SettingsRepository` | Serialized `update {}` returns required side effects and publishes portable language state. Device currency defaults arrive through `DevicePreferences`. |
 | `GuideRepository` | The new tutor's guide: tips seen and the first-steps card in the settings row, and whether each first step has happened (`GuideDao`). |
+| `ProAccess` | Whether the tutor has Klas Pro (`Access`, `ProGate`): caches the store's answer in `proOwned`, buys through `ProStore`, and on losing Pro switches calendar sync and digests off through `SettingsWorkflow`. Android's store is `PlayProStore` (Play Billing, Play's sheet opened on `ResumedActivity`); iOS's `IosProStore` sells nothing yet. Screens ask `LocalPro` (`ProDoor`), which `AppRoot` provides; `ProGated` stands the Klas Pro screen in for a form a free tutor has no room for. See [Klas Pro](domain-rules.md#klas-pro). |
 | `SettingsWorkflow` | Applies a settings update, calendar changes and maintenance; returns the number of lessons settled. Permission prompts and confirmation remain with the host UI. |
 | `BackupExports` | Manual and weekly snapshot export, optional sealing and awaited history recording; weekly folder guards and failure flags. Hosts own scope and result messages; `AutoBackup` owns due checks and retention. |
 | `StudentRepository` / `SubjectRepository` | Archiving cancels a student's planned lessons and writes the stored row in the same transaction; subject and group deletion recheck their references inside it. |
@@ -121,7 +122,7 @@ platform's language plumbing (`AppLanguage`), theme facts (`Theme`) and the smal
 An `expect` names what the screen needs, never a platform type. Android-only helpers with no iOS
 counterpart (`PermissionPrompts`, `KeyboardShortcuts`, `Localization`) live in `androidMain` only.
 
-Below the screens the same rule holds: each port (`Notifier`, `CalendarSync`, `DocumentStore`,
+Below the screens the same rule holds: each port (`Notifier`, `CalendarSync`, `DocumentStore`, `ProStore`,
 `BackupCipher`, `SheetPrinter`…) has an Android adapter in `:app` and an iOS one in `:iosHost`, and
 whatever the two would both decide stays in common code — each notification as a `TrayNotice` that both
 `TrayNotifier`s only draw, its words in `TrayText`, which lessons a

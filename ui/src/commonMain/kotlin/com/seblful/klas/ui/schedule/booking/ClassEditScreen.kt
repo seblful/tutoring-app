@@ -14,6 +14,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.seblful.klas.domain.pro.ProFeature
 import com.seblful.klas.format.formatDate
 import com.seblful.klas.notifications.rememberNotificationPermissionRequest
 import com.seblful.klas.text.Plurals
@@ -34,6 +35,8 @@ import com.seblful.klas.ui.common.rememberMessages
 import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.common.timeText
 import com.seblful.klas.ui.designsystem.template.FormScreen
+import com.seblful.klas.ui.pro.LocalPro
+import com.seblful.klas.ui.pro.ProDoor
 import com.seblful.klas.ui.theme.KlasIcons
 import dev.zacsweers.metrox.viewmodel.assistedMetroViewModel
 
@@ -135,7 +138,13 @@ private fun ClassEditForm(
     // Whether saving needs asking about, and how many billed lessons the question counts, are both
     // `state.saveIntent`'s — see [SaveIntent]. What is held here is only whether the dialog is up.
     var confirmingDrops by remember { mutableStateOf<SaveIntent.ConfirmBilledDrops?>(null) }
+    val pro = LocalPro.current
     fun requestSave() {
+        // A new group lesson is Klas Pro's; a group lesson already booked stays the tutor's to change.
+        if (pro.refusesGroupBooking(viewModel.isNew, form.target)) {
+            pro.open(ProFeature.GROUPS)
+            return
+        }
         when (val intent = state.saveIntent) {
             is SaveIntent.ConfirmBilledDrops -> confirmingDrops = intent
             SaveIntent.Save -> viewModel.save(onBack)
@@ -220,3 +229,7 @@ internal fun endsAtText(ends: ClassForm.Ending): String {
 
 // PickerField and DropdownField live in ui/common/Fields.kt — every screen that hides a value
 // behind a tap has to draw it the same way, which is exactly what this form was not doing.
+
+/** Whether a new lesson for a group needs Klas Pro the tutor does not have. */
+private fun ProDoor.refusesGroupBooking(isNew: Boolean, target: ClassTarget): Boolean =
+    isNew && target == ClassTarget.GROUP && !allows(ProFeature.GROUPS)

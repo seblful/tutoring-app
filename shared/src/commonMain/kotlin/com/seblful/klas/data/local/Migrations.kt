@@ -282,6 +282,20 @@ object Migrations {
         }
     }
 
+    /**
+     * Klas Pro: a tutor already through setup when Pro arrives keeps everything free (`earlyUser`); nothing is
+     * owned yet on any phone.
+     */
+    val MIGRATION_16_17 = object : Migration(16, 17) {
+        override fun migrate(connection: SQLiteConnection) {
+            connection.execSQL("ALTER TABLE settings ADD COLUMN earlyUser INTEGER NOT NULL DEFAULT 0")
+            connection.execSQL("ALTER TABLE settings ADD COLUMN proOwned TEXT NOT NULL DEFAULT ''")
+            connection.execSQL("ALTER TABLE settings ADD COLUMN proEnded INTEGER NOT NULL DEFAULT 0")
+            connection.execSQL("ALTER TABLE settings ADD COLUMN setupAtMillis INTEGER")
+            connection.execSQL("UPDATE settings SET earlyUser = 1 WHERE onboardingComplete = 1")
+        }
+    }
+
     /** Everything above, in the order Room should be handed it. See [buildDatabase]. */
     val ALL: Array<Migration> = arrayOf(
         MIGRATION_5_6,
@@ -295,5 +309,6 @@ object Migrations {
         MIGRATION_13_14,
         MIGRATION_14_15,
         MIGRATION_15_16,
+        MIGRATION_16_17,
     )
 }

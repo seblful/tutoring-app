@@ -16,6 +16,7 @@ import androidx.navigation3.runtime.result.LocalResultEventBus
 import androidx.navigation3.runtime.result.ResultEffect
 import androidx.savedstate.serialization.encodeToSavedState
 import com.seblful.klas.domain.model.Assignee
+import com.seblful.klas.domain.pro.ProFeature
 import com.seblful.klas.text.StringResource
 import com.seblful.klas.text.Strings
 import com.seblful.klas.text.stringResource
@@ -29,6 +30,8 @@ import com.seblful.klas.ui.groups.GroupListScreen
 import com.seblful.klas.ui.homework.HomeworkScreen
 import com.seblful.klas.ui.more.AboutScreen
 import com.seblful.klas.ui.people.PeopleScreen
+import com.seblful.klas.ui.pro.ProGated
+import com.seblful.klas.ui.pro.ProScreen
 import com.seblful.klas.ui.reports.ReportsScreen
 import com.seblful.klas.ui.schedule.ScheduleScreen
 import com.seblful.klas.ui.schedule.ScheduleTarget
@@ -82,8 +85,8 @@ class KlasGraph(private val navigator: KlasNavigator) {
             )
             Routes.People -> People()
             Routes.Homework -> HomeworkScreen(onAddStudent = { go(Routes.StudentAdd) }, onSettings = settings)
-            Routes.StudentAdd -> StudentFormScreen(onBack = back)
-            is Routes.StudentAddForSubject -> StudentAddForSubject(route, back)
+            Routes.StudentAdd -> ProGated(ProFeature.STUDENTS, back) { StudentFormScreen(onBack = back) }
+            is Routes.StudentAddForSubject -> ProGated(ProFeature.STUDENTS, back) { StudentAddForSubject(route, back) }
             is Routes.StudentDetail -> StudentDetail(route, back)
             is Routes.StudentEdit -> StudentFormScreen(onBack = back, studentId = route.id)
             is Routes.StudentList -> StudentListScreen(
@@ -92,7 +95,7 @@ class KlasGraph(private val navigator: KlasNavigator) {
                 onLessonClick = { go(Routes.classEdit(it)) },
                 viewModel = routeViewModel(route),
             )
-            Routes.GroupAdd -> GroupForm(editing = null, back)
+            Routes.GroupAdd -> ProGated(ProFeature.GROUPS, back) { GroupForm(editing = null, back) }
             is Routes.GroupDetail -> GroupDetail(route, back)
             is Routes.GroupList -> GroupListScreen(
                 section = route.section,
@@ -114,6 +117,7 @@ class KlasGraph(private val navigator: KlasNavigator) {
             // About is where the app makes the "your data is on this device and nowhere else" promise, which
             // is also where its one obligation is stated — so the way to act on it is here.
             Routes.About -> AboutScreen(onBack = back, onBackup = { go(Routes.Backup) })
+            is Routes.Pro -> ProScreen(feature = route.feature, onBack = back)
         }
     }
 
@@ -276,6 +280,7 @@ class KlasGraph(private val navigator: KlasNavigator) {
                 subjects = { go(Routes.Subjects) },
                 backup = { go(Routes.Backup) },
                 about = { go(Routes.About) },
+                pro = { go(Routes.Pro()) },
             ),
             open = SettingsPages.entries.firstOrNull { it.value == open }?.key,
         )

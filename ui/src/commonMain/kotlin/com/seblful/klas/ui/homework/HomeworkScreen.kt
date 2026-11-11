@@ -58,6 +58,7 @@ import com.seblful.klas.ui.common.rememberScreenTip
 import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.designsystem.component.KlasFab
 import com.seblful.klas.ui.designsystem.component.rememberTouchExploration
+import com.seblful.klas.ui.pro.ProAction
 import com.seblful.klas.ui.theme.KlasIcons
 import com.seblful.klas.ui.theme.klasSemantics
 import dev.zacsweers.metrox.viewmodel.metroViewModel
@@ -116,6 +117,7 @@ fun HomeworkScreen(
         selection = Selection(picked.size, viewModel.batch::clear) { MarkPickedDone(viewModel.batch, messages) },
         actions = {
             loaded?.let { HomeworkFilterAction(it, viewModel::setFilter) }
+            ProAction()
             SettingsGear(onSettings)
         },
         // The cards lay themselves out in columns (see [HomeworkList]); the tabs above them keep a column's width.

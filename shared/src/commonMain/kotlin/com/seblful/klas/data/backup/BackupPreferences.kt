@@ -9,15 +9,17 @@ import com.seblful.klas.domain.time.MINUTES_PER_DAY
 import kotlinx.serialization.Serializable
 
 /**
- * The settings that travel with the data — **v11 and later**. Two kinds, for two reasons:
+ * The settings that travel with the data — **v11 and later**. Three kinds, for three reasons:
  *
  * - What the rows mean: the currency every amount is captioned in, and what bookings and groups are pre-filled
  *   with and whether lessons are marked taught by themselves. Without them a restored «489» reads in another
  *   currency. A restore applies them.
  * - What the phone the file came from had on that no file can carry — reminders, a calendar mirror, a weekly
  *   copy — so the phone it lands on asks for exactly those again ([PhoneSetup]). A restore only reads them.
+ * - Whether the tutor predates Klas Pro ([earlyUser]), so a new phone keeps everything free for them too.
  *
- * The rest of the settings row stays on its phone: its look, its digests, its lock, its guide.
+ * The rest of the settings row stays on its phone: its look, its digests, its lock, its guide, what its store says
+ * is bought.
  */
 @Serializable
 data class BackupPreferences(
@@ -28,6 +30,11 @@ data class BackupPreferences(
     val remindersOn: Boolean,
     val calendarSyncOn: Boolean,
     val weeklyCopyOn: Boolean,
+    /**
+     * Whether the file's tutor predates Klas Pro. Null in a file written before Pro existed — whose tutor does, by
+     * that fact ([earlyUser]). Optional, so an older build reading a newer file only drops it.
+     */
+    val earlyUser: Boolean? = null,
 )
 
 internal fun AppSettings.toBackupPreferences() = BackupPreferences(
@@ -38,7 +45,11 @@ internal fun AppSettings.toBackupPreferences() = BackupPreferences(
     remindersOn = notificationsEnabled,
     calendarSyncOn = calendarSyncEnabled,
     weeklyCopyOn = autoBackupFolder != null,
+    earlyUser = earlyUser,
 )
+
+/** Whether the tutor a file came from predates Klas Pro: said so, or the file is older than Pro. */
+internal fun BackupPreferences?.earlyUser(): Boolean = this?.earlyUser ?: true
 
 /**
  * [this] with what [preferences] brings to the data. A currency this build does not know, or a length or rate no

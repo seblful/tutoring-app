@@ -18,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.seblful.klas.domain.model.Assignee
 import com.seblful.klas.domain.model.Payment
+import com.seblful.klas.domain.pro.ProFeature
 import com.seblful.klas.queries.students.ArchiveIntent
 import com.seblful.klas.queries.students.StudentDetails
 import com.seblful.klas.text.Plurals
@@ -47,6 +48,7 @@ import com.seblful.klas.ui.common.text
 import com.seblful.klas.ui.homework.HomeworkSection
 import com.seblful.klas.ui.homework.rememberCardHomework
 import com.seblful.klas.ui.people.NextLessonCard
+import com.seblful.klas.ui.pro.LocalPro
 import com.seblful.klas.ui.theme.KlasIcons
 import dev.zacsweers.metrox.viewmodel.assistedMetroViewModel
 import kotlin.time.Instant
@@ -163,6 +165,7 @@ private fun StudentCard(
     }
     val shares = rememberAccountShares(state, externalApps, noAppMsg, viewModel::shareStatement)
     var choosingStatement by remember { mutableStateOf(false) }
+    val pro = LocalPro.current
     if (choosingStatement) StatementChoice(shares) { choosingStatement = false }
     KlasScreen(
         title = student?.name,
@@ -190,7 +193,8 @@ private fun StudentCard(
                         when (state.archiveIntent) {
                             is ArchiveIntent.Confirm -> confirmingArchive = true
                             ArchiveIntent.Archive -> viewModel.setArchived(true)
-                            ArchiveIntent.Restore -> viewModel.setArchived(false)
+                            // Back among the active students, so it needs room for one more.
+                            ArchiveIntent.Restore -> pro.guard(ProFeature.STUDENTS) { viewModel.setArchived(false) }
                             ArchiveIntent.Nothing -> Unit
                         }
                     },
@@ -233,7 +237,7 @@ private fun StudentCard(
                 BalanceCard(
                     state,
                     onAddPayment = cardPayments::add,
-                    onStatement = { choosingStatement = true },
+                    onStatement = { pro.guard(ProFeature.STATEMENTS) { choosingStatement = true } },
                     modifier = animateInPlace(cardModifier),
                 )
             }

@@ -1,6 +1,7 @@
 package com.seblful.klas.ui.navigation
 
 import androidx.compose.ui.graphics.vector.ImageVector
+import com.seblful.klas.domain.pro.ProFeature
 import com.seblful.klas.text.StringResource
 import com.seblful.klas.text.Strings
 import com.seblful.klas.ui.groups.GroupSection
@@ -70,6 +71,10 @@ object Routes {
 
     @Serializable
     data object About : Route
+
+    /** Klas Pro; opened for a [feature] a free tutor reached for, it leads with that one. */
+    @Serializable
+    data class Pro(val feature: ProFeature? = null) : Route
 
     @Serializable
     data object StudentAdd : Route

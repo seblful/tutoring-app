@@ -59,6 +59,7 @@ class BackupRestore @Inject constructor(
             backedUpAt = data.exportedAtMillis?.let { Instant.fromEpochMilliseconds(it) }
                 ?.coerceAtMost(takenAt) ?: takenAt,
             phoneSetup = data.preferences.phoneSetup(),
+            earlyUser = data.preferences.earlyUser(),
         )
         // The restore has happened whether or not its undo could be kept, so a failure here is not its.
         // The one still kept would put back older data than what was just replaced, so it goes.
@@ -75,13 +76,21 @@ class BackupRestore @Inject constructor(
      */
     suspend fun undoRestore(): Boolean {
         val kept = snapshots.read() ?: return false
-        replaceWith(backup.parse(kept), backedUpAt = null, phoneSetup = null)
+        replaceWith(backup.parse(kept), backedUpAt = null, phoneSetup = null, earlyUser = false)
         snapshots.clear()
         return true
     }
 
-    /** @param phoneSetup what this phone is to be asked for; null leaves what it is already asked for. */
-    private suspend fun replaceWith(data: BackupData, backedUpAt: Instant?, phoneSetup: Set<PhoneStep>?) {
+    /**
+     * @param phoneSetup what this phone is to be asked for; null leaves what it is already asked for.
+     * @param earlyUser the data's tutor predates Klas Pro. Only ever grants: a phone that is early stays early.
+     */
+    private suspend fun replaceWith(
+        data: BackupData,
+        backedUpAt: Instant?,
+        phoneSetup: Set<PhoneStep>?,
+        earlyUser: Boolean,
+    ) {
         calendar.remirrorAfter {
             backup.import(data)
             // Whoever restores already knows the app, so the new tutor's guide is not shown to them.
@@ -92,6 +101,7 @@ class BackupRestore @Inject constructor(
                     guide = Guide.DONE,
                     lastExportAt = listOfNotNull(current.lastExportAt, backedUpAt).maxOrNull(),
                     phoneSetup = phoneSetup ?: current.phoneSetup,
+                    earlyUser = current.earlyUser || earlyUser,
                 )
             }
         }

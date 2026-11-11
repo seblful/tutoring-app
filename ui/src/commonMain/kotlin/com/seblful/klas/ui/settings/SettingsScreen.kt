@@ -19,6 +19,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.seblful.klas.data.settings.AppSettings
 import com.seblful.klas.domain.model.AppLanguage
+import com.seblful.klas.domain.pro.Access
+import com.seblful.klas.domain.pro.ProSource
 import com.seblful.klas.format.formatDate
 import com.seblful.klas.format.toLocalDate
 import com.seblful.klas.text.Plurals
@@ -45,6 +47,7 @@ import com.seblful.klas.ui.designsystem.component.BannerKind
 import com.seblful.klas.ui.designsystem.component.SectionAction
 import com.seblful.klas.ui.designsystem.component.SettingsGroup
 import com.seblful.klas.ui.designsystem.component.settingsRowColors
+import com.seblful.klas.ui.pro.LocalPro
 import com.seblful.klas.ui.theme.KlasIcons
 import dev.zacsweers.metrox.viewmodel.metroViewModel
 
@@ -89,6 +92,7 @@ class SettingsNavigation(
     val subjects: () -> Unit = {},
     val backup: () -> Unit = {},
     val about: () -> Unit = {},
+    val pro: () -> Unit = {},
 )
 
 /** The pages the index opens. */
@@ -113,6 +117,7 @@ fun SettingsIndex(
         if (notifications == NotificationDelivery.BLOCKED) {
             NotificationsBlockedBanner(onAllowNotifications, Modifier.padding(horizontal = Spacing.gutter))
         }
+        ProRow(navigation.pro)
         SettingsGroup { SettingsCategories(settings, notifications, reminders, calendar, navigation, open) }
         // Its own card: the app's data and the app itself. Secondary to the settings above, and the break
         // between them says so.
@@ -165,6 +170,22 @@ fun SettingsIndex(
                 selected = open == SettingsCategory.DIAGNOSTICS,
             )
         }
+    }
+}
+
+/** Klas Pro, first on its own card — absent where no store sells it. */
+@Composable
+private fun ProRow(onOpen: () -> Unit) {
+    val access = LocalPro.current.access
+    if (access == null || access == Access.Pro(ProSource.NO_STORE)) return
+    SettingsGroup {
+        SettingsCategoryRow(
+            KlasIcons.Outlined.WorkspacePremium,
+            stringResource(Strings.pro_title),
+            stringResource(if (access.isPro) Strings.pro_settings_has else Strings.pro_settings_free),
+            onOpen,
+            selected = false,
+        )
     }
 }
 

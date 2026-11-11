@@ -5,6 +5,8 @@ import com.seblful.klas.data.settings.SettingsRepository
 import com.seblful.klas.format.DisplayLocale
 import com.seblful.klas.lock.AppLock
 import com.seblful.klas.notifications.Shortcuts
+import com.seblful.klas.pro.ProAccess
+import com.seblful.klas.runCatchingCancellable
 import com.seblful.klas.text.Texts
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.Inject
@@ -27,7 +29,8 @@ interface HostEffects {
 /**
  * The app coming and going, as both hosts report it, and what the settings make of that: the app lock, the
  * switcher's picture and the icon's shortcuts. One owner, so a setting cannot be honoured on one platform
- * and forgotten on the other; the hosts only forward their lifecycle and implement [HostEffects].
+ * and forgotten on the other; the hosts only forward their lifecycle and implement [HostEffects]. It also asks the
+ * store what Klas Pro the tutor owns, once each time the app opens, which is when a lapsed subscription is noticed.
  */
 @SingleIn(AppScope::class)
 @Inject
@@ -35,6 +38,7 @@ class AppSession(
     private val settings: SettingsRepository,
     private val displayLocale: DisplayLocale,
     private val appLock: AppLock,
+    private val pro: ProAccess,
 ) {
     /**
      * Keeps [host] in step with the settings for as long as the caller collects, applying the current values
@@ -42,6 +46,7 @@ class AppSession(
      */
     suspend fun keepApplied(host: HostEffects): Unit = coroutineScope {
         launch { displayLocale.observe().collect { host.publishShortcuts(Texts.of(it)) } }
+        launch { runCatchingCancellable { pro.refresh() } }
         launch {
             settings.observe().map { it.privacy.hidesContent }.distinctUntilChanged().collect(host::hideFromSwitcher)
         }

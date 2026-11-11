@@ -33,6 +33,7 @@ import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.YearMonth
 import kotlinx.datetime.atStartOfDayIn
 import kotlinx.datetime.number
 import org.junit.Assert.assertEquals
@@ -73,7 +74,7 @@ class ReportsViewModelTest {
                     env.classRepo, env.studentRepo, env.subjectRepo,
                     env.groupRepo, env.balanceRepo, env.paymentRepo, clock,
                 ),
-                documents, sharing, printer, mainRule.dispatcher, clock,
+                documents, sharing, printer, mainRule.dispatcher, clock, env.proAccess,
             ),
         )
 
@@ -106,7 +107,7 @@ class ReportsViewModelTest {
                     env.classRepo, env.studentRepo, env.subjectRepo,
                     env.groupRepo, env.balanceRepo, env.paymentRepo, lateEvening,
                 ),
-                documents, sharing, printer, mainRule.dispatcher, lateEvening,
+                documents, sharing, printer, mainRule.dispatcher, lateEvening, env.proAccess,
             ),
         )
         vm.setKind(ReportPeriod.Kind.MONTH)
@@ -131,6 +132,31 @@ class ReportsViewModelTest {
         assertEquals(ReportPeriod.currentYear(LocalDate(2026, 6, 15)), vm.state.current.period)
         assertEquals(2026, vm.state.current.period.anchor.year)
         assertEquals(ReportPeriod.Kind.YEAR, vm.period.value.kind)
+    }
+
+    @Test
+    fun `a free tutor's report is this month and everything and does not move`() = runTest(mainRule.dispatcher) {
+        env.proStore.sells = true
+        val sid = env.fixtures.student(name = "Аня")
+        val subj = env.fixtures.subject(name = "Математика")
+        completed(sid, subj, at(2026, 6, 1), 30)
+        completed(sid, subj, at(2026, 5, 1), 100)
+
+        val vm = vm()
+        observing(vm.state, vm.period, vm.scope, vm.locked)
+        runCurrent()
+
+        assertTrue(vm.locked.value)
+        assertEquals(ReportPeriod(ReportPeriod.Kind.MONTH, YearMonth(2026, 6)), vm.period.value)
+        assertEquals("June alone", Money.ofMajor(30), vm.state.current.totalIncome)
+
+        vm.setKind(ReportPeriod.Kind.YEAR)
+        vm.shift(-1)
+        vm.setScope(ReportScope.Student(sid))
+        runCurrent()
+        assertEquals(ReportPeriod.Kind.MONTH, vm.period.value.kind)
+        assertEquals(ReportScope.Everything, vm.scope.value)
+        assertEquals(Money.ofMajor(30), vm.state.current.totalIncome)
     }
 
     @Test
@@ -171,7 +197,7 @@ class ReportsViewModelTest {
                     env.classRepo, env.studentRepo, env.subjectRepo,
                     env.groupRepo, env.balanceRepo, env.paymentRepo, newYear,
                 ),
-                documents, sharing, printer, mainRule.dispatcher, newYear,
+                documents, sharing, printer, mainRule.dispatcher, newYear, env.proAccess,
             ),
         )
         observing(vm.state)
@@ -229,7 +255,7 @@ class ReportsViewModelTest {
                         env.classRepo, env.studentRepo, env.subjectRepo,
                         env.groupRepo, env.balanceRepo, env.paymentRepo, clock,
                     ),
-                    documents, sharing, printer, counting, clock,
+                    documents, sharing, printer, counting, clock, env.proAccess,
                 ),
             )
             observing(vm.state)

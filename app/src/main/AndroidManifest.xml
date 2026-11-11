@@ -7,6 +7,13 @@
     <uses-permission android:name="android.permission.WRITE_CALENDAR" />
 
     <!--
+      Klas has no network of its own, and Play Billing does not need one: it asks the Play Store app on the
+      phone. The library's telemetry dependency (datatransport) asks for the internet anyway; it is removed so
+      the app stays offline and Data safety stays "no data collected" (docs/releasing.md).
+    -->
+    <uses-permission android:name="android.permission.INTERNET" tools:node="remove" />
+
+    <!--
       A lesson reminder is time-critical: «занятие через час» is worthless an hour late, so it rides an
       alarm rather than deferrable work (see notifications/ReminderAlarms).
 

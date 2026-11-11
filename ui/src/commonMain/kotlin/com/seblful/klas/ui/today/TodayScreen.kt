@@ -61,6 +61,8 @@ import com.seblful.klas.ui.designsystem.component.RowEnd
 import com.seblful.klas.ui.designsystem.component.RowStart
 import com.seblful.klas.ui.designsystem.component.SectionAction
 import com.seblful.klas.ui.homework.lessonLine
+import com.seblful.klas.ui.pro.ProAction
+import com.seblful.klas.ui.pro.ProEndedNotice
 import com.seblful.klas.ui.theme.KlasIcons
 import dev.zacsweers.metrox.viewmodel.metroViewModel
 import kotlin.time.Instant
@@ -89,6 +91,7 @@ fun TodayScreen(
     val messages = rememberMessages()
     val state by viewModel.state.collectAsStateWithLifecycle()
     TodayEvents(viewModel, messages)
+    ProEndedNotice(messages)
     // Reminders may have been allowed in system settings while the app was away, which ticks a step.
     LifecycleResumeEffect(viewModel) {
         viewModel.refreshPermission()
@@ -97,7 +100,10 @@ fun TodayScreen(
     KlasScreen(
         title = stringResource(Strings.nav_today),
         messages = messages,
-        actions = { SettingsGear(onSettings) },
+        actions = {
+            ProAction()
+            SettingsGear(onSettings)
+        },
         floatingActionButton = { KlasFab(stringResource(Strings.class_book), onClick = onBook) },
     ) { modifier, bottomInset ->
         when (val loaded = state) {

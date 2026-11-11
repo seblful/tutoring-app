@@ -126,6 +126,31 @@ mirrors and [database and backup](database-and-backup.md) for persistence contra
 - In-person/remote mode defaults from the student, is overridable per lesson and becomes calendar location.
 - `price_history` logs student/group rate changes; saving an unchanged rate adds nothing.
 
+## Klas Pro
+
+- Free: the schedule, up to `FreeTier.STUDENTS` (5) active students, homework, payments and debts, lesson
+  reminders, backup and restore, the app lock, widgets and this month's report (income and debts). Klas Pro
+  adds any number of students, groups and group lessons, calendar sync and invitations, the three digests,
+  every other report period with its breakdowns, filter and PDF/CSV export, and student statements
+  (`ProFeature`). It is sold as a monthly subscription with a 7-day trial offer, or one-time (`ProPlan`).
+- `Access.of` decides: an early user is Pro, then what the store owns (one-time wins), then a platform whose
+  store sells nothing (iOS for now) is Pro; otherwise free. An **early user** is an install already through
+  setup when schema v17 arrived, or one restored from a backup made before Pro or by an early user
+  (`BackupPreferences.earlyUser`; a restore only ever grants it). This was the owner's promise to everyone who
+  installed Klas while its listing said "no subscriptions".
+- Losing Pro (a lapsed or refunded subscription, or a big backup restored without Pro) hides and deletes
+  nothing: every student, group and lesson stays usable — marked taught, paid, edited. Only adding a sixth
+  active student (new or restored from the archive), creating or restoring a group and booking a new group
+  lesson ask for Pro; `ProAccess` switches calendar sync (withdrawing its events) and the digests off. A
+  bought Pro that ends is said once, on Today (`proEnded`, `ProEndedNotice`), so the quiet is not taken for a
+  fault. The student paywall also names the free way out: archiving a student no longer taught.
+- The store's answer is cached in the settings row (`proOwned`) so Pro holds offline; only an answer
+  replaces it. `AppSession` asks once each time the app opens. No server checks purchases: the app is
+  offline and open source, so the store's answer on the phone is the whole check.
+- A form opened with room (the fifth student) stays open when saving it fills the room (`ProGated` decides
+  once); every other gate is checked on the tap (`LocalPro`, `ProDoor.guard`).
+
 ## Non-goals (v1)
 
-Multi-user/login, cloud sync across devices, web, in-app payments and a recurring-series entity.
+Multi-user/login, cloud sync across devices, web, taking students' payments through the app (Klas Pro is
+the only purchase) and a recurring-series entity.

@@ -14,7 +14,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 /**
- * The v13 → v14, v14 → v15 and v15 → v16 steps on the settings table as the version before exported it. The
+ * The v13 → v14 through v16 → v17 steps on the settings table as the version before exported it. The
  * device test (`GuideSettingsMigrationTest`) also validates v14 against its schema; these run with the unit tests.
  */
 class GuideMigrationTest {
@@ -75,6 +75,31 @@ class GuideMigrationTest {
         }
         assertEquals("PHONE", weekStart)
     }
+
+    @Test
+    fun `a tutor already through setup when Pro arrives keeps everything free`() {
+        assertEquals(1L to "", proMigrated(onboarded = true))
+    }
+
+    @Test
+    fun `a tutor still in setup when Pro arrives starts like a new one`() {
+        assertEquals(0L to "", proMigrated(onboarded = false))
+    }
+
+    private fun proMigrated(onboarded: Boolean): Pair<Long, String> =
+        BundledSQLiteDriver().open(File(directory, "klas.db").path).use { connection ->
+            connection.execSQL(settingsTableAt(16))
+            connection.execSQL(
+                "INSERT INTO settings (id, notificationsEnabled, calendarSyncEnabled, onboardingComplete, " +
+                    "reminderLeadMinutes, autoCompleteEnabled, themeMode, defaultLessonMinutes, currency) " +
+                    "VALUES (0, 1, 0, ${if (onboarded) 1 else 0}, 30, 0, 'SYSTEM', 60, 'BYN')",
+            )
+            Migrations.MIGRATION_16_17.migrate(connection)
+            connection.prepare("SELECT earlyUser, proOwned FROM settings WHERE id = 0").use {
+                check(it.step()) { "the settings row went missing" }
+                it.getLong(0) to it.getText(1)
+            }
+        }
 
     private fun migrated(onboarded: Boolean): Pair<String, Long> =
         BundledSQLiteDriver().open(File(directory, "klas.db").path).use { connection ->

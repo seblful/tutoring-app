@@ -23,6 +23,9 @@ sealed interface ExternalTarget {
 
     /** [text] into the phone's share sheet, titled [chooserTitle]. */
     data class ShareText(val text: String, val chooserTitle: String) : ExternalTarget
+
+    /** A web page — the store's subscriptions page — in whichever app opens it. */
+    data class Web(val url: String) : ExternalTarget
 }
 
 /** The dialler's address for [phone]: spaces out, the rest as typed. */

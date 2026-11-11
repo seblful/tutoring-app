@@ -94,7 +94,11 @@ internal test, which is separate from the closed test.
    [Google's definitions](https://support.google.com/googleplay/android-developer/answer/10787469).
    Answer **no data collected or shared**:
    - Collection means the app transmits data off the device. Klas declares no `INTERNET` permission and
-     ships no network, analytics or crash-reporting SDK. The crash log stays in app storage.
+     ships no network, analytics or crash-reporting SDK. The crash log stays in app storage. Play Billing's
+     telemetry dependency (`datatransport`) would add `INTERNET`; the manifest removes it, since billing asks
+     the Play Store app on the phone. After upgrading Billing, check the merged manifest still has none.
+   - Klas Pro purchases are made in Google Play's own sheet; the app keeps only which plan is owned, on the
+     phone. Re-check Google's current guidance on the Play Billing Library before answering.
    - On-device hand-offs to other apps count as sharing, but each is exempt. Calendar sync and email
      invitations are opt-in switches that say the calendar account syncs and invites, so they fall
      under disclosure and consent. Backup and CSV export, report and homework sharing, and contact
@@ -105,6 +109,25 @@ internal test, which is separate from the closed test.
 
    Revisit this when adding `INTERNET`, any SDK, or a transfer the user does not start.
    `allowBackup="false"` disables Android backup; it does not mean data is never transferred.
+
+## Set up Klas Pro in Play (once)
+
+`PlayProStore` sells two products; their ids are in its companion and must match the Console exactly.
+
+1. Upload a build with Play Billing (it adds the `com.android.vending.BILLING` permission) to any track:
+   Play offers products only once such a build exists. A payments profile must be set up.
+2. Monetize → Products → One-time products: `klas_pro_lifetime`, $15 (let Play set other countries'
+   prices). Activate it.
+3. Monetize → Products → Subscriptions: `klas_pro` with an auto-renewing monthly base plan at $1. Add an
+   offer on it for new customers only (never had this subscription), with one phase: a 7-day free trial.
+   The app finds the trial as the offer whose first phase is free, so its id does not matter. Activate both.
+4. Settings → License testing: add the testers' Google accounts. Their purchases are free test orders and a
+   test subscription renews every few minutes. Test from a build installed through a Play test track.
+5. App content: answer the in-app purchases question, then revisit Data safety (below): purchases are
+   handled by Google Play, and the app keeps only which plan is owned, on the phone.
+
+Existing users are marked early by the v16 → v17 migration and keep everything free; check one upgrade from
+the production build before rolling out.
 
 ## Set up the pipeline (once)
 

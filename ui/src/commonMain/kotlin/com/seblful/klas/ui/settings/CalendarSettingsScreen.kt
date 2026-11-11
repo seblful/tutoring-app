@@ -9,11 +9,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.seblful.klas.calendar.rememberCalendarPermissionRequest
 import com.seblful.klas.data.settings.AppSettings
+import com.seblful.klas.domain.pro.ProFeature
 import com.seblful.klas.text.Strings
 import com.seblful.klas.text.stringResource
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.rememberRejectFeedback
 import com.seblful.klas.ui.designsystem.component.SettingsGroup
+import com.seblful.klas.ui.pro.LocalPro
 import dev.zacsweers.metrox.viewmodel.metroViewModel
 
 @Composable
@@ -25,6 +27,7 @@ fun CalendarSettingsScreen(onBack: (() -> Unit)?, viewModel: SettingsViewModel =
         val rationale = stringResource(Strings.calendar_rationale)
         val allowLabel = stringResource(Strings.action_allow)
         val reject = rememberRejectFeedback()
+        val pro = LocalPro.current
         val requestCalendar = rememberCalendarPermissionRequest {
             if (viewModel.calendarPermissionAnswered() != CalendarSyncToggle.APPLIED) {
                 reject()
@@ -34,10 +37,14 @@ fun CalendarSettingsScreen(onBack: (() -> Unit)?, viewModel: SettingsViewModel =
         CalendarSettingsContent(
             settings = page.settings,
             delivery = page.calendar,
+            // Turning the mirror on is Klas Pro's; turning it off never is.
             onSync = { on ->
-                if (viewModel.setCalendarSyncEnabled(on) == CalendarSyncToggle.PERMISSION_NEEDED) {
-                    messages.ask(requestCalendar, rationale, allowLabel)
+                val sync = {
+                    if (viewModel.setCalendarSyncEnabled(on) == CalendarSyncToggle.PERMISSION_NEEDED) {
+                        messages.ask(requestCalendar, rationale, allowLabel)
+                    }
                 }
+                if (on) pro.guard(ProFeature.CALENDAR, sync) else sync()
             },
             onUpdate = viewModel::update,
             onFixCalendar = openSettings,

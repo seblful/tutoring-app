@@ -35,6 +35,7 @@ class AppSessionTest {
         env.settingsRepo,
         DisplayLocale(env.settingsRepo, env.deviceLocales.toDevicePreferences()),
         lock,
+        env.proAccess,
     )
 
     private class RecordingHost : HostEffects {

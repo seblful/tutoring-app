@@ -11,6 +11,7 @@ import com.seblful.klas.domain.time.today
 import com.seblful.klas.format.AppLocale
 import com.seblful.klas.print.Sheet
 import com.seblful.klas.print.SheetPrinter
+import com.seblful.klas.pro.ProAccess
 import com.seblful.klas.queries.reports.ReportScope
 import com.seblful.klas.queries.reports.ReportsQuery
 import com.seblful.klas.queries.reports.ScopeChoice
@@ -33,10 +34,12 @@ import dev.zacsweers.metrox.viewmodel.ViewModelKey
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.datetime.yearMonth
 
 @ViewModelKey
 @ContributesIntoMap(AppScope::class, binding = binding<ViewModel>())
@@ -47,10 +50,21 @@ class ReportsViewModel @Inject constructor(
     private val printer: SheetPrinter,
     @param:Computation private val computation: CoroutineDispatcher,
     private val clock: WallClock,
+    pro: ProAccess,
 ) : ViewModel() {
 
+    /**
+     * Whether the report is the free one: this month, everything, no breakdowns or files (Klas Pro's). Unlocked
+     * until read, so a Pro tutor's report does not flash locked.
+     */
+    val locked: StateFlow<Boolean> = pro.access.map { !it.isPro }.hold(this, false)
+
     private val _period = MutableStateFlow(ReportPeriod.currentYear(clock.today()))
-    val period: StateFlow<ReportPeriod> = _period.asStateFlow()
+
+    /** The period chosen — or, [locked], the month in progress. */
+    val period: StateFlow<ReportPeriod> = combine(_period, locked) { chosen, free ->
+        if (free) ReportPeriod(ReportPeriod.Kind.MONTH, clock.today().yearMonth) else chosen
+    }.hold(this, _period.value)
 
     /**
      * [Loadable] because an empty report and an unread one look identical and mean opposite things:
@@ -59,8 +73,11 @@ class ReportsViewModel @Inject constructor(
      */
     private val _scope = MutableStateFlow<ReportScope>(ReportScope.Everything)
 
-    /** Whom the report is narrowed to — one student or one subject, or everything. */
-    val scope: StateFlow<ReportScope> = _scope.asStateFlow()
+    /** Whom the report is narrowed to — one student or one subject, or everything; everything while [locked]. */
+    val scope: StateFlow<ReportScope> =
+        combine(_scope, locked) { chosen, free ->
+            if (free) ReportScope.Everything else chosen
+        }.hold(this, _scope.value)
 
     fun setScope(scope: ReportScope) {
         _scope.value = scope
@@ -69,7 +86,7 @@ class ReportsViewModel @Inject constructor(
     /** What the filter menu offers, subjects then students. */
     val scopes: StateFlow<List<ScopeChoice>> = reports.observeScopes().hold(this, emptyList())
 
-    val state: StateFlow<Loadable<Reports.Report>> = reports.observe(_period, _scope)
+    val state: StateFlow<Loadable<Reports.Report>> = reports.observe(period, scope)
         .ready()
         // The heaviest derivation in the app — every class against every payment and every student,
         // re-run on each write anywhere — so it runs off the main thread. See [Computation].

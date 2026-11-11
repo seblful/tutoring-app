@@ -277,7 +277,10 @@ Build screens from shared state and controls. Feature rules belong in the domain
   rows, where arrows move focus.
 - Tabs are Today, Schedule, People, Homework, Reports; Today opens first (`TopDestination.START`),
   Students/Groups share People. Settings is a gear (`SettingsGear`) last among every tab's actions, pushed over
-  that tab, not a tab: it is visited, not worked in. Today links out rather than repeating a tab: a lesson
+  that tab, not a tab: it is visited, not worked in. A free tutor sees Klas Pro's icon (`ProAction`) just before the
+  gear: one still, unbadged icon that opens the Klas Pro screen, gone with Pro, and absent in a new tutor's first
+  week or until their first-steps card is put away (`ProOffer`, from `setupAt`). Pro is otherwise offered only where the
+  tutor reaches for it (`ProDoor.guard`) — never as a banner, a count or a prompt on its own. Today links out rather than repeating a tab: a lesson
   opens its sheet on the schedule and the debts open on Reports, both the way a tray tap does (`Arrival`).
   Today leads with the lesson now or next («Next · in 4 h 15 min», «Open»), then what is over and unmarked, then
   marks made outside the app (widget, reminder) in the last ten minutes with their Undo (`RecentMarks`),

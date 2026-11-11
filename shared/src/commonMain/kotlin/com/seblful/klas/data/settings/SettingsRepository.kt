@@ -8,6 +8,7 @@ import com.seblful.klas.domain.model.Currency
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.ThemeChoice
 import com.seblful.klas.domain.model.WeekStartChoice
+import com.seblful.klas.domain.pro.ProPlan
 import com.seblful.klas.domain.reminders.Reminders
 import com.seblful.klas.settings.DevicePreferences
 import dev.zacsweers.metro.AppScope
@@ -92,6 +93,14 @@ data class AppSettings(
     val guide: Guide = Guide.FRESH,
     /** What this phone is to be given after a restore — see `PhoneSetup`. Empty when there is no card. */
     val phoneSetup: Set<PhoneStep> = emptySet(),
+    /** This install, or the backup it came from, predates Klas Pro — see `ProAccess`. */
+    val earlyUser: Boolean = false,
+    /** What the store last said is owned; null for nothing. A cache — see `ProAccess`. */
+    val proOwned: ProPlan? = null,
+    /** Pro bought here has ended and the tutor is still to be told — see `ProAccess.ended`. */
+    val proEnded: Boolean = false,
+    /** When first run was finished on this phone; null for an install from before v17 or a restore. */
+    val setupAt: Instant? = null,
 )
 
 /**
@@ -241,6 +250,10 @@ class SettingsRepository @Inject constructor(
             ),
             phoneSetup = phoneSetup.split(',').mapNotNull { name -> PhoneStep.entries.firstOrNull { it.name == name } }
                 .toSet(),
+            earlyUser = earlyUser,
+            proOwned = ProPlan.entries.firstOrNull { it.name == proOwned },
+            proEnded = proEnded,
+            setupAt = setupAtMillis?.let { Instant.fromEpochMilliseconds(it) },
         ),
     )
 
@@ -281,5 +294,9 @@ class SettingsRepository @Inject constructor(
         tipsSeen = Tip.entries.filter { it in guide.seen }.joinToString(",") { it.name },
         firstStepsHidden = guide.firstStepsHidden,
         phoneSetup = PhoneStep.entries.filter { it in phoneSetup }.joinToString(",") { it.name },
+        earlyUser = earlyUser,
+        proOwned = proOwned?.name.orEmpty(),
+        proEnded = proEnded,
+        setupAtMillis = setupAt?.toEpochMilliseconds(),
     )
 }

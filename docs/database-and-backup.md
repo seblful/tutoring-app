@@ -47,6 +47,9 @@ Preserve on-device data and existing backup files when changing storage. Before 
   auto-mark taught — which a restore applies, since «489» in the wrong currency is wrong data; and whether
   the file's phone had reminders, calendar sync and a weekly copy on, which no file can carry, so the phone it
   lands on asks for exactly those on Today (`phoneSetup`, schema v15; `PhoneSetup.UNKNOWN` for an older file).
+  `earlyUser` (schema v17) travels too, so an early user's new phone stays free: a file without the field
+  predates Klas Pro and grants it. What the store owns (`proOwned`), whether its ending is still to be said
+  (`proEnded`) and when setup finished (`setupAtMillis`) stay on their phone.
   Undoing a restore puts this phone's own preferences back and leaves what it is asked for. The last backup (`lastExportAt`) is device-local too, but a restore
   moves it to the restored file's own date (or the restore's, for a file too old to carry one), never
   earlier: the data is then that file's, so «No backup yet» would be false. Undoing a restore leaves it, the

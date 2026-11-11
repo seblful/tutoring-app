@@ -12,6 +12,7 @@ actual fun rememberExternalApps(messages: Messages): ExternalApps = remember(mes
         when (target) {
             is ExternalTarget.Dial -> openUrl(dialUri(target.phone), failureMessage, messages)
             is ExternalTarget.Email -> openUrl(mailUri(target.address), failureMessage, messages)
+            is ExternalTarget.Web -> openUrl(target.url, failureMessage, messages)
             // iOS has no chooser across messengers: Messages, which also sends iMessage.
             is ExternalTarget.Message -> {
                 val number = (target.international ?: target.phone).filterNot { it.isWhitespace() }

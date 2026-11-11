@@ -21,6 +21,7 @@ import com.seblful.klas.ui.common.SettingsGear
 import com.seblful.klas.ui.designsystem.component.KlasFab
 import com.seblful.klas.ui.groups.GroupsList
 import com.seblful.klas.ui.groups.GroupsViewModel
+import com.seblful.klas.ui.pro.ProAction
 import com.seblful.klas.ui.students.StudentsList
 import com.seblful.klas.ui.students.StudentsViewModel
 import dev.zacsweers.metrox.viewmodel.metroViewModel
@@ -95,6 +96,7 @@ fun PeopleScreen(
                     groupSort, groupsViewModel::setSort,
                 )
             }
+            ProAction()
             SettingsGear(onSettings)
         },
         floatingActionButton = {

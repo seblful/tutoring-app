@@ -14,6 +14,7 @@ fun ExternalTarget.toIntent(): Intent = when (this) {
     is ExternalTarget.Dial -> Intent(Intent.ACTION_DIAL, dialUri(phone).toUri())
     is ExternalTarget.Email -> Intent(Intent.ACTION_SENDTO, mailUri(address).toUri())
     is ExternalTarget.Message -> messageChooser()
+    is ExternalTarget.Web -> Intent(Intent.ACTION_VIEW, url.toUri())
     is ExternalTarget.ShareText -> Intent.createChooser(
         Intent(Intent.ACTION_SEND).apply {
             type = "text/plain"

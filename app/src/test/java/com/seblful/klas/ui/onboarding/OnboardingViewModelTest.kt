@@ -42,7 +42,8 @@ class OnboardingViewModelTest {
 
     private val firstLesson = FirstLesson()
 
-    private fun newVm() = OnboardingViewModel(env.subjectRepo, env.settingsRepo, mainRule.appScope, firstLesson)
+    private fun newVm() =
+        OnboardingViewModel(env.subjectRepo, env.settingsRepo, mainRule.appScope, firstLesson, env.clock)
 
     private fun vm() = mainRule.own(newVm())
 
@@ -74,7 +75,7 @@ class OnboardingViewModelTest {
     fun `an English phone in Minsk is offered English and rubles`() = runTest(mainRule.dispatcher) {
         TestEnv(deviceLocales = listOf(java.util.Locale.forLanguageTag("en-BY"))).use { env ->
             val vm = mainRule.own(
-                OnboardingViewModel(env.subjectRepo, env.settingsRepo, mainRule.appScope, firstLesson),
+                OnboardingViewModel(env.subjectRepo, env.settingsRepo, mainRule.appScope, firstLesson, env.clock),
             )
             observing(vm.locale)
             advanceUntilIdle()
@@ -118,7 +119,7 @@ class OnboardingViewModelTest {
     fun `skipping the setup still persists the currency the phone named`() = runTest(mainRule.dispatcher) {
         TestEnv(deviceLocales = listOf(java.util.Locale.forLanguageTag("de-DE"))).use { env ->
             val vm = mainRule.own(
-                OnboardingViewModel(env.subjectRepo, env.settingsRepo, mainRule.appScope, firstLesson),
+                OnboardingViewModel(env.subjectRepo, env.settingsRepo, mainRule.appScope, firstLesson, env.clock),
             )
 
             vm.complete()
@@ -167,6 +168,7 @@ class OnboardingViewModelTest {
             OnboardingViewModel(
                 env.subjectRepo, SettingsRepository(broken, env.deviceLocales.toDevicePreferences()), mainRule.appScope,
                 firstLesson,
+                env.clock,
             ),
         )
         val events = mutableListOf<OnboardingViewModel.Event>()

@@ -127,6 +127,9 @@ class CancelLessonFlowTest {
     }
 
     private fun openDay(day: String) {
+        // The tabs come in once the settings are read, not with the first frame.
+        val tab = hasText(string(Strings.nav_schedule)) and isSelectable()
+        compose.waitUntil(TIMEOUT_MS) { compose.onAllNodes(tab).fetchSemanticsNodes().isNotEmpty() }
         compose.onAllNodesWithText(string(Strings.nav_schedule)).filterToOne(isSelectable()).performClick()
         compose.waitForIdle()
         click(Strings.schedule_view_month)

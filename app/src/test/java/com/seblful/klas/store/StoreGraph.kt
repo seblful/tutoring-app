@@ -18,10 +18,14 @@ import com.seblful.klas.domain.reminders.ReminderScheduler
 import com.seblful.klas.domain.time.WallClock
 import com.seblful.klas.notifications.DueDigest
 import com.seblful.klas.notifications.DueReminder
+import com.seblful.klas.pro.PlayProStore
+import com.seblful.klas.pro.ProStore
+import com.seblful.klas.testutil.FakeProStore
 import com.seblful.klas.work.WorkScheduler
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.DependencyGraph
 import dev.zacsweers.metro.Provides
+import dev.zacsweers.metro.SingleIn
 import kotlinx.datetime.DayOfWeek
 import java.util.Locale
 
@@ -33,12 +37,23 @@ import java.util.Locale
         WorkScheduler::class,
         DeviceCalendarSync::class,
         AndroidCalendarPermission::class,
+        PlayProStore::class,
     ],
 )
 internal interface StoreGraph : AppGraph, KlasStore {
     val seeder: DemoSeeder
     val dueReminder: DueReminder
     val dueDigest: DueDigest
+
+    /**
+     * No store sells Pro here, so every screen is open, as the screens these tests drive were before it. A test of
+     * Klas Pro sets [FakeProStore.sells] before the app starts.
+     */
+    val proStore: ProStore
+
+    @Provides
+    @SingleIn(AppScope::class)
+    fun fakeProStore(): ProStore = FakeProStore(sells = false)
 
     @DependencyGraph.Factory
     fun interface Factory {

@@ -1,6 +1,6 @@
 # Klas — Privacy Policy
 
-Last updated: 23 October 2026
+Last updated: 11 November 2026
 
 Klas (Android application ID: `com.seblful.klas`) is a tutoring-management app developed by
 **Aliaksei Chymba**. It helps tutors manage students, groups, subjects, lessons, homework, rates,
@@ -82,6 +82,15 @@ their own policies. Choose destinations and recipients carefully. You can protec
 a password: Klas then encrypts it (AES-256), and nobody, including the developer, can open it without that
 password. Backups saved without a password, weekly backups, and CSV reports are not encrypted; use secure
 storage and sharing methods.
+
+## Klas Pro purchases
+
+Klas Pro, the paid tier, is sold through Google Play Billing. Google Play handles the purchase, your
+payment details and any subscription under the [Google Payments Privacy Notice](https://payments.google.com/payments/apis-secure/u/0/get_legal_document?ldo=0&ldt=privacynotice)
+and the [Google Privacy Policy](https://policies.google.com/privacy). Klas asks Google Play on your device
+which Klas Pro plan your Google account owns and keeps only that answer, in the app's private storage. The
+developer does not receive your payment details, and Klas sends nothing about your purchase or your tutoring
+records to a developer server.
 
 ## Crash diagnostics
 

@@ -115,4 +115,38 @@ class BackupPreferencesTest {
         assertEquals(60, undone.defaultLessonMinutes)
         assertEquals(setOf(PhoneStep.REMINDERS, PhoneStep.CALENDAR, PhoneStep.WEEKLY_COPY), undone.phoneSetup)
     }
+
+    @Test
+    fun `a backup carries that its tutor predates Pro`() = runTest {
+        env.backupRestore.restore(backupFrom { tutorsPhone(it).copy(earlyUser = true) })
+
+        assertEquals(true, settings().earlyUser)
+    }
+
+    @Test
+    fun `a backup of a tutor who came after Pro grants nothing`() = runTest {
+        env.backupRestore.restore(backupFrom(tutorsPhone))
+
+        assertEquals(false, settings().earlyUser)
+    }
+
+    @Test
+    fun `a file written before Pro existed is an early user's`() = runTest {
+        val file = env.backupManager.parse(backupFrom(tutorsPhone))
+        val beforePro = env.backupManager.encode(file.copy(preferences = file.preferences!!.copy(earlyUser = null)))
+
+        env.backupRestore.restore(beforePro)
+
+        assertEquals(true, settings().earlyUser)
+    }
+
+    @Test
+    fun `restoring never takes early access away`() = runTest {
+        env.settingsRepo.update { it.copy(earlyUser = true) }
+
+        env.backupRestore.restore(backupFrom(tutorsPhone))
+        env.backupRestore.undoRestore()
+
+        assertEquals(true, settings().earlyUser)
+    }
 }

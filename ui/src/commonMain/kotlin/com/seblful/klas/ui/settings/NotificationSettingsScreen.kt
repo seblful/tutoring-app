@@ -8,16 +8,19 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.seblful.klas.data.settings.AppSettings
+import com.seblful.klas.domain.pro.ProFeature
 import com.seblful.klas.text.Strings
 import com.seblful.klas.text.stringResource
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.designsystem.component.SettingsGroup
+import com.seblful.klas.ui.pro.LocalPro
 import dev.zacsweers.metrox.viewmodel.metroViewModel
 
 @Composable
 fun NotificationSettingsScreen(onBack: (() -> Unit)?, viewModel: SettingsViewModel = metroViewModel()) {
     SettingsPage(Strings.settings_notifications_title, onBack, viewModel) { page, modifier, bottomInset, messages ->
         val notify = rememberNotificationAction(viewModel, messages)
+        val pro = LocalPro.current
         val openExactAlarms = rememberOpenSystemSettings(messages, SystemSettingsPage.ExactAlarms)
         val openNotifications = rememberOpenSystemSettings(messages, SystemSettingsPage.AppNotifications)
         NotificationSettingsContent(
@@ -27,7 +30,11 @@ fun NotificationSettingsScreen(onBack: (() -> Unit)?, viewModel: SettingsViewMod
             actions = NotificationSettingsActions(
                 update = viewModel::update,
                 reminders = { notify(viewModel.setNotificationsEnabled(it)) },
-                digest = { enabled, transform -> notify(viewModel.setDigestEnabled(enabled, transform)) },
+                // Turning a summary on is Klas Pro's; turning one off never is.
+                digest = { enabled, transform ->
+                    val set = { notify(viewModel.setDigestEnabled(enabled, transform)) }
+                    if (enabled) pro.guard(ProFeature.DIGESTS, set) else set()
+                },
                 fixNotifications = { notify(viewModel.unblockNotifications()) },
                 fixExactAlarms = openExactAlarms,
                 systemNotifications = openNotifications,

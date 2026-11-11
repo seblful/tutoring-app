@@ -9,6 +9,7 @@ import com.seblful.klas.format.AppLanguagePreferences
 import com.seblful.klas.notifications.Notifier
 import com.seblful.klas.notifications.ReminderActionReceiver
 import com.seblful.klas.notifications.ReminderReceiver
+import com.seblful.klas.pro.ResumedActivity
 import com.seblful.klas.ui.AppSession
 import com.seblful.klas.widget.MarkTaughtAction
 import com.seblful.klas.widget.WidgetUpdates
@@ -35,6 +36,9 @@ interface AppGraph : ViewModelGraph {
 
     /** The app coming and going: its lock, and what the settings ask of the window and the launcher. */
     val session: AppSession
+
+    /** Registered by `KlasApp`, for Play's purchase sheet. */
+    val resumedActivity: ResumedActivity
 
     /** For the application's startup work that need not hold up its first frame. */
     @ApplicationScope

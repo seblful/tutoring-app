@@ -35,6 +35,7 @@ import com.seblful.klas.domain.model.ClassMode
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Student
+import com.seblful.klas.domain.pro.ProPlan
 import com.seblful.klas.notifications.TrayNavigation
 import com.seblful.klas.store.DemoTutor
 import com.seblful.klas.store.StoreApp
@@ -42,6 +43,7 @@ import com.seblful.klas.store.StoreGraph
 import com.seblful.klas.store.StoreScreenshots
 import com.seblful.klas.testutil.FakeCalendarPermission
 import com.seblful.klas.testutil.FakeCalendarSync
+import com.seblful.klas.testutil.FakeProStore
 import com.seblful.klas.testutil.RecordingDigestScheduler
 import com.seblful.klas.testutil.RecordingReminderScheduler
 import com.seblful.klas.testutil.texts
@@ -155,6 +157,28 @@ class TutorWorkflowTest {
     }
 
     @Test
+    fun `a free tutor with five students is shown Klas Pro for a sixth and the form once bought`() {
+        (graph.proStore as FakeProStore).sells = true
+        runBlocking { repeat(4) { graph.enrollment.createStudent(Student(name = "Student $it"), emptyMap()) } }
+        ActivityScenario.launch(MainActivity::class.java).use {
+            waitForText("Workflow student")
+            compose.onNode(hasText(text(Strings.nav_people)) and isSelectable()).performClick()
+            // The add button is named for TalkBack once, by its description.
+            val newStudent = text(Strings.fab_new_student)
+            compose.waitUntil(30_000) {
+                compose.onAllNodesWithContentDescription(newStudent).fetchSemanticsNodes().isNotEmpty()
+            }
+            compose.onNodeWithContentDescription(newStudent).performClick()
+            waitFor(Strings.pro_buy_trial)
+            assertTrue(compose.onAllNodesWithText(text(Strings.student_add_title)).fetchSemanticsNodes().isEmpty())
+
+            click(Strings.pro_buy_trial)
+            waitFor(Strings.student_add_title)
+        }
+        assertEquals(listOf(ProPlan.MONTHLY), (graph.proStore as FakeProStore).bought)
+    }
+
+    @Test
     fun `a student created from the group form returns through it to the original booking`() {
         runBlocking { graph.subjects.createOrReuse("Science") }
         ActivityScenario.launch(MainActivity::class.java).use {
@@ -257,6 +281,8 @@ class TutorWorkflowTest {
         runBlocking { repeat(PUPILS) { graph.students.upsert(Student(name = "Pupil %02d".format(it))) } }
         ActivityScenario.launch(MainActivity::class.java).use {
             val people = hasText(text(Strings.nav_people)) and isSelectable()
+            // The tabs come in once the settings are read, not with the first frame.
+            compose.waitUntil(30_000) { compose.onAllNodes(people).fetchSemanticsNodes().isNotEmpty() }
             compose.onNode(people).performClick()
             waitForText("Pupil 00")
             compose.onNode(hasScrollToIndexAction() and hasAnyDescendant(hasText("Pupil", substring = true)))

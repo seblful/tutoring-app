@@ -62,6 +62,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.seblful.klas.domain.model.Currency
 import com.seblful.klas.domain.model.PaymentMethod
+import com.seblful.klas.domain.pro.ProFeature
 import com.seblful.klas.domain.reports.ReportCsv
 import com.seblful.klas.domain.reports.ReportPeriod
 import com.seblful.klas.domain.reports.Reports
@@ -126,6 +127,8 @@ import com.seblful.klas.ui.designsystem.component.ButtonKind
 import com.seblful.klas.ui.designsystem.component.KlasButton
 import com.seblful.klas.ui.designsystem.component.KlasDivider
 import com.seblful.klas.ui.navigation.Arrival
+import com.seblful.klas.ui.pro.LocalPro
+import com.seblful.klas.ui.pro.ProAction
 import com.seblful.klas.ui.theme.KlasIcons
 import com.seblful.klas.ui.theme.KlasMotion
 import dev.zacsweers.metrox.viewmodel.metroViewModel
@@ -156,6 +159,10 @@ fun ReportsScreen(
     val (report, exportable) = reportState.viewFor(period)
     val scope by viewModel.scope.collectAsStateWithLifecycle()
     val scopes by viewModel.scopes.collectAsStateWithLifecycle()
+    // The free report: this month, its income and debts. The rest opens Klas Pro.
+    val locked by viewModel.locked.collectAsStateWithLifecycle()
+    val pro = LocalPro.current
+    val openPro = { pro.open(ProFeature.REPORTS) }
     val shown by rememberUpdatedState(report)
     LaunchedEffect(debtsArrival) {
         if (!viewModel.owesDebts(debtsArrival)) return@LaunchedEffect
@@ -202,7 +209,9 @@ fun ReportsScreen(
         actions = {
             // A backup is JSON meant to be read back by this app; a tutor totalling their year — or an
             // accountant — needs a file that opens in a spreadsheet.
-            if (report?.hasData == true) {
+            if (report?.hasData == true && locked) {
+                NamedIconButton(KlasIcons.Filled.Download, stringResource(Strings.reports_export_menu), openPro)
+            } else if (report?.hasData == true) {
                 // **Send comes before save.** Saving a CSV puts it in a folder the tutor then has to go and
                 // find in a second app; what they do with a month is send it — to an accountant, or to
                 // their own mail so it is somewhere other than this phone. Both stay: a file kept and a
@@ -222,6 +231,7 @@ fun ReportsScreen(
                 )
                 ScopeMenu(scopes, scope, viewModel::setScope)
             }
+            ProAction()
             SettingsGear(onSettings)
         },
     ) { modifier, bottomInset ->
@@ -254,6 +264,7 @@ fun ReportsScreen(
                         onPrevious = { viewModel.shift(-1) },
                         onNext = { viewModel.shift(1) },
                         onKind = viewModel::setKind,
+                        onLocked = openPro.takeIf { locked },
                     )
                 }
                 // A narrowed report says so beside the period it covers, and is let go from there.
@@ -261,7 +272,16 @@ fun ReportsScreen(
                     FilterChipRow(choice.name, onClear = { viewModel.setScope(ReportScope.Everything) })
                 }
             }
-            ReportBody(report, scope, onStudentClick, listState, bottomInset, twoPane, Modifier.weight(1f))
+            ReportBody(
+                report,
+                scope,
+                onStudentClick,
+                listState,
+                bottomInset,
+                twoPane,
+                onPro = openPro.takeIf { locked },
+                modifier = Modifier.weight(1f),
+            )
         }
     }
 }
@@ -376,6 +396,8 @@ private fun ReportBody(
     listState: LazyListState,
     bottomInset: PaddingValues,
     twoPane: Boolean,
+    /** The way to Klas Pro while the report is the free one; null when it is whole. */
+    onPro: (() -> Unit)?,
     modifier: Modifier = Modifier,
 ) {
     val titles = BreakdownTitles(
@@ -389,15 +411,17 @@ private fun ReportBody(
     // cards is each card's own, and its rows sit as close as they did inside one card.
     if (!twoPane) {
         LazyColumn(modifier = modifier.fillMaxWidth(), state = listState, contentPadding = padding) {
-            summaryItems(state, scope)
-            breakdownItems(state, titles, onStudentClick)
+            summaryItems(state, scope, whole = onPro == null)
+            breakdownItems(state, titles, onStudentClick, onPro)
         }
         return
     }
     val summaryState = rememberLazyListState()
     ScrollsToTopOnReselect(summaryState)
     Row(modifier.fillMaxWidth()) {
-        LazyColumn(Modifier.weight(1f), state = summaryState, contentPadding = padding) { summaryItems(state, scope) }
+        LazyColumn(Modifier.weight(1f), state = summaryState, contentPadding = padding) {
+            summaryItems(state, scope, whole = onPro == null)
+        }
         // Its first card's own gap above, taken off the top, so the two panes' first cards line up.
         LazyColumn(
             Modifier.weight(1f),
@@ -408,14 +432,17 @@ private fun ReportBody(
                 top = Spacing.gutter - Spacing.itemGap,
                 end = Spacing.gutter,
             ).plusInset(bottomInset).plusInset(PaddingValues(bottom = Spacing.gutter)),
-        ) { breakdownItems(state, titles, onStudentClick) }
+        ) { breakdownItems(state, titles, onStudentClick, onPro) }
     }
 }
 
 private class BreakdownTitles(val byGroup: String, val bySubject: String, val byStudent: String)
 
-/** What the period came to: the income, then — if there was any — its stats, its shape and its kinds. */
-private fun LazyListScope.summaryItems(state: Reports.Report, scope: ReportScope) {
+/**
+ * What the period came to: the income, then — if there was any — its stats, its shape and its kinds; the
+ * income alone unless the report is [whole].
+ */
+private fun LazyListScope.summaryItems(state: Reports.Report, scope: ReportScope, whole: Boolean) {
     // Earned and received on one hero (D6), so a period paid for without earning still has its card.
     item(key = "income", contentType = "income") { IncomeCard(state, showsReceived = scope.showsReceived) }
     if (state.noIncome) {
@@ -428,6 +455,7 @@ private fun LazyListScope.summaryItems(state: Reports.Report, scope: ReportScope
         }
         return
     }
+    if (!whole) return
     // The one breakdown ordered by time rather than by size, so it is drawn as a timeline.
     if (!state.trend.isEmpty) standalone("trend") { TrendCard(state.trend) }
     // Where the money came from, by *kind* of teaching — the one split the per-student and
@@ -440,8 +468,11 @@ private fun LazyListScope.breakdownItems(
     state: Reports.Report,
     titles: BreakdownTitles,
     onStudentClick: (Long) -> Unit,
+    onPro: (() -> Unit)?,
 ) {
-    if (!state.noIncome) {
+    if (onPro != null) {
+        standalone("pro") { ProReportsCard(onPro) }
+    } else if (!state.noIncome) {
         rankedSection("group", titles.byGroup, state.byGroup)
         rankedSection("subject", titles.bySubject, state.bySubject)
         // Each student's row opens them, as a debt's does (R6): a name worth reading here is worth a tap.
@@ -449,6 +480,20 @@ private fun LazyListScope.breakdownItems(
     }
     // Last, and it has to stay last: the debt digest's tap scrolls to it — see [debtsItemCount].
     debtsSection(state, onStudentClick)
+}
+
+/** What the free report leaves out, and the way to it. */
+@Composable
+private fun ProReportsCard(onPro: () -> Unit) {
+    SectionCard {
+        Column(
+            Modifier.fillMaxWidth().padding(Spacing.gutter),
+            verticalArrangement = Arrangement.spacedBy(Spacing.itemGap),
+        ) {
+            Text(stringResource(Strings.pro_reports_locked), style = MaterialTheme.typography.bodyMedium)
+            KlasButton(onClick = onPro, kind = ButtonKind.Tonal) { Text(stringResource(Strings.pro_see)) }
+        }
+    }
 }
 
 /** An item standing on its own, [Spacing.itemGap] below the one before it — its [key] is its kind too. */
@@ -487,13 +532,15 @@ private fun PeriodNavigator(
     onPrevious: () -> Unit,
     onNext: () -> Unit,
     onKind: (ReportPeriod.Kind) -> Unit,
+    /** Where every step goes while the report is the free one: Klas Pro. */
+    onLocked: (() -> Unit)? = null,
 ) {
     var expanded by remember { mutableStateOf(false) }
     PageStepper(
         previousDescription = stringResource(Strings.reports_previous_period),
         nextDescription = stringResource(Strings.reports_next_period),
-        onPrevious = onPrevious,
-        onNext = onNext,
+        onPrevious = onLocked ?: onPrevious,
+        onNext = onLocked ?: onNext,
         enabled = period.isNavigable,
     ) {
         Box {
@@ -520,7 +567,10 @@ private fun PeriodNavigator(
                     TickedMenuItem(
                         text = stringResource(periodKindLabel(kind)),
                         selected = kind == period.kind,
-                        onClick = { onKind(kind); expanded = false },
+                        onClick = {
+                            onLocked?.invoke() ?: onKind(kind)
+                            expanded = false
+                        },
                     )
                 }
             }

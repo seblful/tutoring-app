@@ -24,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.seblful.klas.domain.model.Assignee
+import com.seblful.klas.domain.pro.ProFeature
 import com.seblful.klas.domain.reports.Taught
 import com.seblful.klas.format.bulletJoin
 import com.seblful.klas.format.formatHours
@@ -63,6 +64,7 @@ import com.seblful.klas.ui.common.text
 import com.seblful.klas.ui.homework.HomeworkSection
 import com.seblful.klas.ui.homework.rememberCardHomework
 import com.seblful.klas.ui.people.NextLessonCard
+import com.seblful.klas.ui.pro.LocalPro
 import com.seblful.klas.ui.theme.KlasIcons
 import com.seblful.klas.ui.theme.klasSemantics
 import dev.zacsweers.metrox.viewmodel.assistedMetroViewModel
@@ -125,6 +127,7 @@ private fun GroupCard(
     val now = viewModel.minute.collectAsStateWithLifecycle().value
 
     val messages = rememberMessages()
+    val pro = LocalPro.current
     val homework = rememberCardHomework(viewModel.cardHomework, messages)
 
     var confirmingDelete by remember { mutableStateOf(false) }
@@ -150,8 +153,12 @@ private fun GroupCard(
                     // Archiving calls the planned lessons off, so it asks first when there are any — as a
                     // student's archive does. Restoring takes nothing away and never asks.
                     onArchive = {
-                        if (!group.archived && state.plannedLessons > 0) confirmingArchive = true
-                        else viewModel.setArchived(!group.archived)
+                        when {
+                            !group.archived && state.plannedLessons > 0 -> confirmingArchive = true
+                            // A restored group can be booked again, which is Klas Pro's.
+                            group.archived -> pro.guard(ProFeature.GROUPS) { viewModel.setArchived(false) }
+                            else -> viewModel.setArchived(true)
+                        }
                     },
                     onDelete = { confirmingDelete = true }.takeIf { state.canDelete },
                 )

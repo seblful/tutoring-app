@@ -79,6 +79,8 @@ import com.seblful.klas.ui.navigation.predictiveBackPop
 import com.seblful.klas.ui.navigation.rememberKlasNavigator
 import com.seblful.klas.ui.onboarding.FirstLesson
 import com.seblful.klas.ui.onboarding.OnboardingScreen
+import com.seblful.klas.ui.pro.LocalPro
+import com.seblful.klas.ui.pro.rememberProDoor
 import com.seblful.klas.ui.theme.KlasTheme
 import dev.zacsweers.metrox.viewmodel.metroViewModel
 import kotlinx.coroutines.launch
@@ -195,6 +197,7 @@ private fun MainApp(firstLesson: FirstLesson) {
 
     OpensWhatTheTrayNames(navigator)
     val graph = remember(navigator) { KlasGraph(navigator) }
+    val proDoor = rememberProDoor(navigator)
     // Material's current components for the width: the short bar on a phone (a landscape one included), the
     // wide rail from medium width on. Where Material would draw its bar, the app docks its own over the screens
     // instead (`DockedTabBar`), and the suite draws nothing.
@@ -264,7 +267,7 @@ private fun MainApp(firstLesson: FirstLesson) {
         },
     ) {
         Box(Modifier.fillMaxSize()) {
-            CompositionLocalProvider(LocalTabReselect provides reselect) {
+            CompositionLocalProvider(LocalTabReselect provides reselect, LocalPro provides proDoor) {
                 NavDisplay(
                     entries = entries,
                     modifier = Modifier.fillMaxSize(),

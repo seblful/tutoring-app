@@ -69,6 +69,10 @@ AES block, so a backup sealed on one phone opens on the other.
   widget button carries the `klas://` link of its `TrayNavigation.Destination` (`TrayNavigation.linkFor`),
   as Android's intents do; `KlasIos.openLink` reads it back.
 
+- **Klas Pro is not sold yet.** `IosProStore` sells nothing, so `Access.of` makes everyone Pro and the
+  Settings row is hidden. Before an App Store release, write a StoreKit adapter there (the same two products,
+  one-time and monthly with the trial) and add the products in App Store Connect.
+
 ## Tests
 
 Common tests of `:domain`, `:shared` and `:ui` run on the iOS simulator:

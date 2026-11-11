@@ -185,6 +185,23 @@ data class SettingsEntity(
     /** Where the schedule's weeks start. Added by v15 → v16. */
     @ColumnInfo(defaultValue = "PHONE")
     val weekStart: WeekStartChoice = WeekStartChoice.PHONE,
+    /**
+     * Whether this install, or the backup it was restored from, predates Klas Pro, which keeps everything free for
+     * it. Added by v16 → v17, which sets it for an install already through setup; a backup carries it.
+     */
+    @ColumnInfo(defaultValue = "0")
+    val earlyUser: Boolean = false,
+    /**
+     * The `ProPlan` the store last said this phone's account owns, by name; empty for none. A cache so Pro holds
+     * offline: the store's next answer replaces it. Added by v16 → v17.
+     */
+    @ColumnInfo(defaultValue = "")
+    val proOwned: String = "",
+    /** Pro bought on this phone has ended, and the tutor has not yet been told. Added by v16 → v17. */
+    @ColumnInfo(defaultValue = "0")
+    val proEnded: Boolean = false,
+    /** When first run was finished on this phone, epoch millis; null before v17 and after a restore. */
+    val setupAtMillis: Long? = null,
 ) {
     companion object {
         const val SINGLETON_ID = 0

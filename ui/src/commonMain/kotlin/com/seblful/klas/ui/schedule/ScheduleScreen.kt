@@ -83,6 +83,7 @@ import com.seblful.klas.ui.designsystem.component.SectionAction
 import com.seblful.klas.ui.designsystem.component.SlicePosition
 import com.seblful.klas.ui.designsystem.component.rememberTouchExploration
 import com.seblful.klas.ui.navigation.Arrival
+import com.seblful.klas.ui.pro.ProAction
 import com.seblful.klas.ui.theme.KlasIcons
 import dev.zacsweers.metrox.viewmodel.metroViewModel
 import kotlinx.coroutines.launch
@@ -281,6 +282,7 @@ fun ScheduleScreen(
                     onWho = viewModel::setWho,
                     onStatus = viewModel::setStatusFilter,
                 )
+                ProAction()
                 SettingsGear(onSettings)
             },
             floatingActionButton = {

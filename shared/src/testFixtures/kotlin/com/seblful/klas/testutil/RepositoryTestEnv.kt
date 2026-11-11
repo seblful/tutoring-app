@@ -23,8 +23,10 @@ import com.seblful.klas.lessons.LessonCompletions
 import com.seblful.klas.maintenance.Maintenance
 import com.seblful.klas.notifications.DueDigest
 import com.seblful.klas.notifications.Notifier
+import com.seblful.klas.pro.ProAccess
 import com.seblful.klas.queries.homework.HomeworkQuery
 import com.seblful.klas.settings.DevicePreferences
+import com.seblful.klas.settings.SettingsWorkflow
 
 /** Portable repository graph; the platform adapter owns the database lifetime. */
 open class RepositoryTestEnv(
@@ -139,6 +141,17 @@ open class RepositoryTestEnv(
         notifier = notifier,
         clock = clock,
     )
+
+    /** The real settings workflow, so a setting's calendar and digest work happens as it does in the app. */
+    val settingsWorkflow = SettingsWorkflow(settingsRepo, calendarMirror, reminders, maintenance, notifier)
+
+    /**
+     * A store that sells nothing, so every feature is open — what most tests are about. A test of Klas Pro
+     * itself sets [FakeProStore.sells].
+     */
+    val proStore = FakeProStore(sells = false)
+
+    val proAccess = ProAccess(settingsRepo, settingsWorkflow, proStore, studentRepo)
 
     /**
      * Everything the two digests do when they come due. The real class, like [maintenance] — only the
