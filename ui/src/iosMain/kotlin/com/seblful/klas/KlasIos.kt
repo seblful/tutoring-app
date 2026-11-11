@@ -18,6 +18,8 @@ import dev.zacsweers.metro.createGraph
 import dev.zacsweers.metrox.viewmodel.LocalMetroViewModelFactory
 import dev.zacsweers.metrox.viewmodel.metroViewModel
 import kotlinx.cinterop.ExperimentalForeignApi
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import platform.Foundation.NSNumber
 import platform.LocalAuthentication.LAContext
 import platform.LocalAuthentication.LAPolicyDeviceOwnerAuthentication
@@ -56,6 +58,8 @@ object KlasIos {
         graph.crashLogger.install()
         UNUserNotificationCenter.currentNotificationCenter().delegate = taps
         graph.homeScreen.start(widgets)
+        IosHostEffects.install()
+        graph.applicationScope.launch(Dispatchers.Main) { graph.session.keepApplied(IosHostEffects) }
     }
 
     fun openLink(link: String) = IosArrivals.openLink(link)
@@ -78,8 +82,8 @@ fun MainViewController(): UIViewController = ComposeUIViewController {
             graph.notificationPermission.refresh()
             graph.homeScreen.foregrounded()
             if (returns[0]++ > 0) root.catchUp()
-            root.appLock.foregrounded(root.settings.value?.privacy?.relockAfterMinutes, canUnlock())
-            onStopOrDispose { root.appLock.backgrounded() }
+            graph.session.foregrounded(canUnlock())
+            onStopOrDispose { graph.session.backgrounded() }
         }
         AppRoot(root, onUnlock = { title -> unlock(root, title) })
     }

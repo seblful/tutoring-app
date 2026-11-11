@@ -31,7 +31,7 @@ after changing it. The generated project, `Info.plist` and build output are igno
 | Files, sharing, backup folder, backup cipher | `app/.../storage/`, `data/backup` | `IosStorage.kt` |
 | PDF sheets | `PdfSheetPrinter` | `IosSheetPrinter` |
 | Home-screen widgets | Glance widgets (`app/.../widget/`), `WidgetUpdates` | `IosHomeScreen` writes a snapshot; `iosApp/Widgets` draws it |
-| Shortcuts on the app's icon | `AppShortcuts` | `IosHomeScreen` (quick actions); `KlasApp.swift` hands them over |
+| Lifecycle, app lock, switcher privacy, icon shortcuts | `MainActivity` → `AppSession`; `AppShortcuts` | `KlasIos` → `AppSession`; `IosHostEffects`; `KlasApp.swift` hands quick actions over |
 | Crash log | `FileCrashLogStore`, `CrashHandler` | `IosCrashLogStore`, `KlasIos.start` |
 | Screen-level seams (pickers, permissions, theme, lock) | `ui/src/androidMain` `*.android.kt` | `ui/src/iosMain` `*.ios.kt` |
 
@@ -59,6 +59,9 @@ AES block, so a backup sealed on one phone opens on the other.
 - **Today's tick opens the lesson.** Android's check marks a lesson taught in place, through the app's
   code; on iOS a row and its check open the lesson's sheet (`klas://lesson/<id>`), where it is marked.
   Lessons are redacted on a locked phone unless `Privacy.lockScreenWidgets` is on.
+- **The switcher sees a cover.** Android blanks the recent-apps preview; iOS has no such switch, so when
+  `Privacy.hideInRecents` or the app lock is on, `IosHostEffects` covers the window as the app resigns
+  active, which is the picture the app switcher keeps. Control Center and the Face ID prompt show it briefly.
 - **Shortcuts are links.** Each quick action on the app's icon, and each widget button, is the
   `klas://` link for its `TrayNavigation` action (`TrayNavigation.linkFor`).
 

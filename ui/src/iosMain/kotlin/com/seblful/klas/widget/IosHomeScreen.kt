@@ -6,7 +6,6 @@ import com.seblful.klas.di.Io
 import com.seblful.klas.domain.time.WallClock
 import com.seblful.klas.format.DisplayLocale
 import com.seblful.klas.notifications.ShortcutIcon
-import com.seblful.klas.notifications.Shortcuts
 import com.seblful.klas.queries.lessons.NamedLesson
 import com.seblful.klas.queries.lessons.TodayLessonsQuery
 import com.seblful.klas.storage.writeBytes
@@ -25,14 +24,10 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import platform.Foundation.NSFileManager
-import platform.UIKit.UIApplication
-import platform.UIKit.UIApplicationShortcutIcon
-import platform.UIKit.UIApplicationShortcutItem
-import platform.UIKit.shortcutItems
 
 /**
- * What the Home Screen shows of the app: the widgets (`iosApp/Widgets`) and the quick actions on the app's
- * icon. The counterpart of Android's `WidgetUpdates` and `AppShortcuts`.
+ * What the Home Screen widgets (`iosApp/Widgets`) show of the app. The counterpart of Android's
+ * `WidgetUpdates`; the quick actions on the app's icon are `AppSession`'s.
  *
  * The WidgetKit extension cannot run this code, so the app writes it a [WidgetSnapshot] in the app group
  * they share, covering [WidgetSnapshots.DAYS_AHEAD] days, and asks WidgetKit to redraw. Written again on every
@@ -51,15 +46,12 @@ class IosHomeScreen(
     /** The phone's 12/24-hour switch, which the Settings app changes while the app is away. */
     private val hour12 = MutableStateFlow(phoneHour12())
 
-    /** Starts keeping both current. */
+    /** Starts keeping the widgets current. */
     fun start(widgets: WidgetReloads) {
         scope.launch {
             snapshots().collect { snapshot ->
                 if (write(snapshot)) withContext(Dispatchers.Main) { widgets.reloadAll() }
             }
-        }
-        scope.launch(Dispatchers.Main) {
-            displayLocale.observe().collect { tag -> publishQuickActions(Texts.of(tag)) }
         }
     }
 
@@ -88,19 +80,6 @@ class IosHomeScreen(
         val group = NSFileManager.defaultManager.containerURLForSecurityApplicationGroupIdentifier(APP_GROUP)
         val file = group?.URLByAppendingPathComponent(SNAPSHOT_FILE) ?: return@withContext false
         runCatching { file.writeBytes(snapshot.encode().encodeToByteArray()) }.isSuccess
-    }
-
-    /** The long-press menu on the app's icon, in the app's language: the same entries as Android's launcher. */
-    private fun publishQuickActions(texts: Texts) {
-        UIApplication.sharedApplication.shortcutItems = Shortcuts.launcher.map { shortcut ->
-            UIApplicationShortcutItem(
-                type = shortcut.link,
-                localizedTitle = texts.string(shortcut.label),
-                localizedSubtitle = null,
-                icon = UIApplicationShortcutIcon.iconWithSystemImageName(shortcut.icon.sfSymbol),
-                userInfo = null,
-            )
-        }
     }
 
     companion object {

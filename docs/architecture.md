@@ -82,6 +82,10 @@ Background calendar and notification adapters resolve `DisplayLocale` directly f
 state, so formatting does not depend on a screen collecting settings. `ObservableWallClock` supplies
 zone-change events; fixed clocks emit their chosen zone once.
 
+Hosts forward their lifecycle to `AppSession` (`foregrounded`, `backgrounded`, `keepApplied`), which owns
+the app lock and what settings ask of the host: the switcher's picture and the icon's shortcuts, done through
+each platform's `HostEffects`. A new host-level setting goes there, so both platforms must implement it.
+
 View models observe repository `Flow`s and expose read-only `StateFlow`. Reads use `viewModelScope`;
 writes use injected `@ApplicationScope` through `write`/`writeAwaited`, so saves outlive screens.
 `derive` moves state computation off the main thread. Guarded failures become UI events; unguarded

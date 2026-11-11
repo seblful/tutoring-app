@@ -27,13 +27,12 @@ import com.seblful.klas.lock.unlockPrompt
 import com.seblful.klas.notifications.AppShortcuts
 import com.seblful.klas.text.Texts
 import com.seblful.klas.ui.AppRoot
+import com.seblful.klas.ui.HostEffects
 import com.seblful.klas.ui.RootViewModel
 import com.seblful.klas.ui.common.LocalSearchKey
 import com.seblful.klas.ui.common.SearchKey
 import com.seblful.klas.ui.navigation.KeyboardShortcuts
 import dev.zacsweers.metrox.viewmodel.LocalMetroViewModelFactory
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
 /** The one activity — a [FragmentActivity] because the app lock's [BiometricPrompt] needs one. */
@@ -84,31 +83,25 @@ class MainActivity : FragmentActivity() {
                 AppRoot(rootViewModel, onUnlock = ::promptUnlock)
             }
         }
-        // The launcher's shortcuts, in the app's language — again whenever that changes.
-        lifecycleScope.launch {
-            rootViewModel.settings
-                .map { rootViewModel.languageFor(it) }
-                .distinctUntilChanged()
-                .collect { AppShortcuts.publish(this@MainActivity, Texts.of(it)) }
-        }
-        // Whatever the app lock hides must not show in recent apps either, or the lock hides nothing.
-        lifecycleScope.launch {
-            rootViewModel.settings
-                .map { it?.privacy?.let { privacy -> privacy.hideInRecents || privacy.appLock } == true }
-                .distinctUntilChanged()
-                .collect(::hideFromRecents)
-        }
+        lifecycleScope.launch { appGraph.session.keepApplied(hostEffects) }
+    }
+
+    /** What the settings ask of this window and the launcher — see [com.seblful.klas.ui.AppSession]. */
+    private val hostEffects = object : HostEffects {
+        override fun hideFromSwitcher(hide: Boolean) = hideFromRecents(hide)
+
+        override fun publishShortcuts(texts: Texts) = AppShortcuts.publish(this@MainActivity, texts)
     }
 
     override fun onStart() {
         super.onStart()
         lifecycleScope.launch { appGraph.appLanguages.refresh() }
-        rootViewModel.appLock.foregrounded(rootViewModel.settings.value?.privacy?.relockAfterMinutes, canUnlock())
+        appGraph.session.foregrounded(canUnlock())
     }
 
     override fun onStop() {
         super.onStop()
-        if (!isChangingConfigurations) rootViewModel.appLock.backgrounded()
+        if (!isChangingConfigurations) appGraph.session.backgrounded()
     }
 
     /**
