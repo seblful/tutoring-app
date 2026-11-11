@@ -68,6 +68,9 @@ class FormattersLanguageTest {
         }
     }
 
+    /** Foundation writes Japanese «10月14日 水曜日» where `java.text` writes no space; the order is the same. */
+    private fun String.withoutPlatformSpacing(locale: String) = if (locale == "ja") replace(" ", "") else this
+
     @Test
     fun `a date is ordered the way its language writes one`() {
         val date = LocalDate(2026, 10, 14)
@@ -84,7 +87,7 @@ class FormattersLanguageTest {
             inLanguage(locale) {
                 assertEquals(short, date.formatDate(), locale)
                 assertEquals(near, date.formatNearDate(thisYear = 2026), locale)
-                assertEquals(day, date.formatDay(), locale)
+                assertEquals(day, date.formatDay().withoutPlatformSpacing(locale), locale)
             }
         }
     }
