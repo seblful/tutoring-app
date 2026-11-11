@@ -243,6 +243,8 @@ class SchemaCleanupMigrationTest {
                     lastExportMillis = 1750400000000,
                     // An onboarded tutor upgrades past the first-run guide (MIGRATION_13_14).
                     tipsSeen = "SCHEDULE_DATE,LESSON_SWIPE,LESSON_PICK,HOMEWORK_SWIPE", firstStepsHidden = true,
+                    // ...and keeps everything free as one who used Klas before Klas Pro (MIGRATION_16_17).
+                    earlyUser = true,
                 ),
                 settings,
             )
