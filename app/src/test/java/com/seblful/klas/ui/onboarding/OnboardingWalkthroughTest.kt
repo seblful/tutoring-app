@@ -112,7 +112,10 @@ class OnboardingWalkthroughTest {
             compose.waitUntil(TIMEOUT) {
                 compose.onAllNodesWithText(text(Strings.class_add_title)).fetchSemanticsNodes().isNotEmpty()
             }
-            compose.onNodeWithText("Anna", substring = true).assertExists()
+            // The form is up before its student: the title is fixed, the student is read from the database.
+            compose.waitUntil(TIMEOUT) {
+                compose.onAllNodesWithText("Anna", substring = true).fetchSemanticsNodes().isNotEmpty()
+            }
             assertTrue(runBlocking { graph.settings.get().onboardingComplete })
             val student = runBlocking { graph.students.observeActive().first() }.single()
             val math = runBlocking { graph.subjects.observeAll().first() }.single()
