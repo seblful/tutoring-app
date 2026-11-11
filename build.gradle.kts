@@ -13,6 +13,7 @@ plugins {
     alias(libs.plugins.baselineprofile) apply false
     alias(libs.plugins.kotlin.multiplatform) apply false
     alias(libs.plugins.kotlin.compose) apply false
+    alias(libs.plugins.compose.multiplatform) apply false
     alias(libs.plugins.kotlin.serialization) apply false
     alias(libs.plugins.ksp) apply false
     alias(libs.plugins.metro) apply false
@@ -69,7 +70,7 @@ tasks.register("verify") {
         ":domain:jvmTest", ":shared:jvmTest", ":app:verifyRoborazziDebug", ":app:lintDebug",
         ":app:assembleDebug", ":app:assembleDebugAndroidTest",
     )
-    listOf(":app", ":domain", ":shared", ":baselineprofile").forEach { module ->
+    listOf(":app", ":domain", ":shared", ":ui", ":baselineprofile").forEach { module ->
         dependsOn("$module:ktlintCheck", "$module:detekt")
     }
 }

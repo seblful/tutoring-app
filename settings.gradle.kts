@@ -23,4 +23,5 @@ rootProject.name = "Klas"
 include(":app")
 include(":domain")
 include(":shared")
+include(":ui")
 include(":baselineprofile")
