@@ -15,17 +15,17 @@ object Diagnostics {
     /** Hard cap on the saved log so a crash loop can't grow the file without bound. */
     const val MAX_LOG_CHARS = 64_000
 
-    /** One crash entry: a header line (time, app + Android version, device) then the stack trace. */
+    /** One crash entry: a header line (time, app and system version, device) then the stack trace. */
     fun formatEntry(
         time: Instant,
         appVersion: String,
-        androidSdk: Int,
+        system: String,
         device: String,
         stackTrace: String,
     ): String = buildString {
         append(ENTRY_MARKER).append(time).append(" =====\n")
         append("app ").append(appVersion)
-            .append("  ·  Android SDK ").append(androidSdk)
+            .append("  ·  ").append(system)
             .append("  ·  ").append(device).append('\n')
         append(stackTrace.trimEnd()).append("\n\n")
     }

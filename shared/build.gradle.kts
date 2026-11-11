@@ -19,13 +19,9 @@ kotlin {
     jvm {
         compilerOptions { jvmTarget = JvmTarget.JVM_11 }
     }
-    listOf(iosArm64(), iosSimulatorArm64()).forEach { target ->
-        target.binaries.framework {
-            baseName = "KlasShared"
-            isStatic = true
-            export(project(":domain"))
-        }
-    }
+    // The iOS app links `:ui`'s framework, which carries this module.
+    iosArm64()
+    iosSimulatorArm64()
 
     // Fixtures and tests set lessons up without an undo window; app code goes through LessonChanges.
     targets.configureEach {

@@ -21,7 +21,7 @@ abstract class SettingsTestFixture {
             env.settingsRepo,
             SettingsWorkflow(env.settingsRepo, env.calendarMirror, env.reminders, env.maintenance, env.notifier),
             env.calendarPermission, env.notificationPermission, env.exactAlarmPermission, mainRule.appScope,
-            env.subjectRepo, NoCrashLogs, DeviceInfo("1.0", 34, "Pixel"),
+            env.subjectRepo, NoCrashLogs, DeviceInfo("1.0", "Android SDK 34", "Pixel"),
         ),
     )
 }

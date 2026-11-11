@@ -13,7 +13,7 @@ class DiagnosticsTest {
         val entry = Diagnostics.formatEntry(
             time = Instant.parse("2026-06-20T10:15:30Z"),
             appVersion = "1.0",
-            androidSdk = 34,
+            system = "Android SDK 34",
             device = "Google Pixel 8",
             stackTrace = "java.lang.IllegalStateException: boom\n\tat Foo.bar(Foo.kt:1)",
         )
@@ -33,9 +33,9 @@ class DiagnosticsTest {
 
     @Test
     fun `appendBounded drops oldest whole entries past the cap`() {
-        val a = Diagnostics.formatEntry(Instant.parse("2026-01-01T00:00:00Z"), "1.0", 30, "A", "trace-A")
-        val b = Diagnostics.formatEntry(Instant.parse("2026-02-01T00:00:00Z"), "1.0", 30, "B", "trace-B")
-        val c = Diagnostics.formatEntry(Instant.parse("2026-03-01T00:00:00Z"), "1.0", 30, "C", "trace-C")
+        val a = Diagnostics.formatEntry(Instant.parse("2026-01-01T00:00:00Z"), "1.0", "Android SDK 30", "A", "trace-A")
+        val b = Diagnostics.formatEntry(Instant.parse("2026-02-01T00:00:00Z"), "1.0", "Android SDK 30", "B", "trace-B")
+        val c = Diagnostics.formatEntry(Instant.parse("2026-03-01T00:00:00Z"), "1.0", "Android SDK 30", "C", "trace-C")
 
         val log = Diagnostics.appendBounded(existing = a + b, entry = c, max = b.length + c.length + 10)
 
@@ -47,7 +47,7 @@ class DiagnosticsTest {
 
     @Test
     fun `appendBounded keeps a single oversized entry whole rather than truncating`() {
-        val huge = Diagnostics.formatEntry(Clock.System.now(), "1.0", 30, "X", "x".repeat(500))
+        val huge = Diagnostics.formatEntry(Clock.System.now(), "1.0", "Android SDK 30", "X", "x".repeat(500))
         val log = Diagnostics.appendBounded(existing = "stale\n", entry = huge, max = 100)
         assertEquals(huge, log)
     }

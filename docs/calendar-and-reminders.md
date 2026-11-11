@@ -2,6 +2,9 @@
 
 The database drives both mirrors; neither writes changes back into Klas.
 
+This page describes Android. iOS makes the same decisions ahead of time and leaves them with the
+system, and its calendar mirror has no guests or email reminder: see [iOS](ios.md#how-ios-differs).
+
 ## Calendar sync
 
 - Opt-in, one-way through `CalendarContract`; the device's provider handles cloud sync. No Google

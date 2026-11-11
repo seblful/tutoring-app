@@ -53,6 +53,7 @@ output.json
 # Generated from iosApp/project.yml.
 iosApp/*.xcodeproj/
 iosApp/DerivedData/
+iosApp/Sources/Info.plist
 *.xcresult/
 
 # Play policy audit scratch output (android-skills:play-policy-insights).

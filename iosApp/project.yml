@@ -1,28 +1,49 @@
-name: KlasPilot
+name: Klas
 options:
   minimumXcodeGenVersion: 2.44.0
   deploymentTarget:
-    iOS: '16.0'
+    # EventKit's full-access request, which the calendar mirror asks for, is iOS 17's.
+    iOS: '17.0'
 settings:
   base:
     SWIFT_VERSION: '5.0'
-    TARGETED_DEVICE_FAMILY: '1'
+    TARGETED_DEVICE_FAMILY: '1,2'
     ENABLE_USER_SCRIPT_SANDBOXING: NO
+    MARKETING_VERSION: '0.5.1'
+    CURRENT_PROJECT_VERSION: '16'
 targets:
-  KlasPilot:
+  Klas:
     type: application
     platform: iOS
     sources: [Sources]
+    info:
+      path: Sources/Info.plist
+      properties:
+        CFBundleDisplayName: Klas
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        UILaunchScreen: {}
+        # Compose draws at the display's full rate on ProMotion phones.
+        CADisableMinimumFrameDurationOnPhone: true
+        UISupportedInterfaceOrientations:
+          [UIInterfaceOrientationPortrait, UIInterfaceOrientationLandscapeLeft, UIInterfaceOrientationLandscapeRight]
+        UISupportedInterfaceOrientations~ipad:
+          [UIInterfaceOrientationPortrait, UIInterfaceOrientationPortraitUpsideDown,
+           UIInterfaceOrientationLandscapeLeft, UIInterfaceOrientationLandscapeRight]
+        NSCalendarsFullAccessUsageDescription: >-
+          Klas copies your lessons into your calendar so they show beside everything else, when you turn that on.
+        NSFaceIDUsageDescription: Klas unlocks with Face ID when you turn the app lock on.
+        CFBundleURLTypes:
+          - CFBundleURLName: com.seblful.klas
+            CFBundleURLSchemes: [klas]
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.seblful.klas.pilot
+        PRODUCT_BUNDLE_IDENTIFIER: com.seblful.klas
         GENERATE_INFOPLIST_FILE: YES
-        INFOPLIST_KEY_UILaunchScreen_Generation: YES
-        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
         FRAMEWORK_SEARCH_PATHS:
           - $(inherited)
-          - $(SRCROOT)/../shared/build/xcode-frameworks/$(CONFIGURATION)/$(SDK_NAME)
-        OTHER_LDFLAGS: [$(inherited), '-framework', KlasShared]
+          - $(SRCROOT)/../ui/build/xcode-frameworks/$(CONFIGURATION)/$(SDK_NAME)
+        OTHER_LDFLAGS: [$(inherited), '-framework', KlasApp]
     preBuildScripts:
       - name: Build Kotlin framework
         basedOnDependencyAnalysis: false
@@ -32,24 +53,24 @@ targets:
             exit 0
           fi
           cd "$SRCROOT/.."
-          ./gradlew :shared:embedAndSignAppleFrameworkForXcode --console=plain
-  KlasPilotUITests:
+          ./gradlew :ui:embedAndSignAppleFrameworkForXcode --console=plain
+  KlasUITests:
     type: bundle.ui-testing
     platform: iOS
     sources: [Tests]
     dependencies:
-      - target: KlasPilot
+      - target: Klas
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.seblful.klas.pilot.tests
+        PRODUCT_BUNDLE_IDENTIFIER: com.seblful.klas.uitests
         GENERATE_INFOPLIST_FILE: YES
 schemes:
-  KlasPilot:
+  Klas:
     build:
       targets:
-        KlasPilot: all
-        KlasPilotUITests: [test]
+        Klas: all
+        KlasUITests: [test]
     test:
       targets:
-        - name: KlasPilotUITests
+        - name: KlasUITests
           parallelizable: false

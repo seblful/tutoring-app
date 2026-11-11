@@ -23,7 +23,7 @@ class CrashLogger @Inject constructor(
         val entry = Diagnostics.formatEntry(
             time = now,
             appVersion = device.appVersion,
-            androidSdk = device.androidSdk,
+            system = device.system,
             device = device.device,
             stackTrace = throwable.stackTraceToString(),
         )

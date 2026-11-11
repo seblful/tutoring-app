@@ -4,8 +4,8 @@ import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.reminders.Digests
 import com.seblful.klas.domain.schedule.DaySummary
 import kotlinx.datetime.LocalDate
-import org.junit.Assert.assertEquals
-import org.junit.Test
+import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.Instant
 
@@ -30,7 +30,7 @@ class TrayContentTest {
         val posting = TrayContent.agenda(agenda(3))
 
         assertEquals(3, posting.lines.size)
-        assertEquals("nothing was dropped", 0, posting.more)
+        assertEquals(0, posting.more, "nothing was dropped")
     }
 
     @Test
@@ -50,14 +50,14 @@ class TrayContentTest {
     }
 
     @Test
-    fun `the lessons it keeps are the earliest ones, in order`() {
+    fun `the lessons it keeps are the earliest ones in order`() {
         val posting = TrayContent.agenda(agenda(TrayContent.MAX_AGENDA_LINES + 2))
 
         assertEquals(start, posting.lines.first().start)
         assertEquals(
-            "still in the order the digest assembled them",
             posting.lines.map { it.start }.sorted(),
             posting.lines.map { it.start },
+            "still in the order the digest assembled them",
         )
     }
 }

@@ -9,7 +9,7 @@
 style:
   ForbiddenImport:
     active: true
-    excludes: ['**/test/**', '**/androidTest/**', '**/commonTest/**', '**/testFixtures/**']
+    excludes: ['**/test/**', '**/androidTest/**', '**/commonTest/**', '**/androidHostTest/**', '**/testFixtures/**']
     forbiddenImports:
       - 'android.os.Vibrator'
       - 'android.os.VibrationEffect'
@@ -56,7 +56,7 @@ style:
   MagicNumber:
     ignoreAnnotated: ['Composable']
     # Shared test fixtures follow the same rules as the suites that compile them.
-    excludes: ['**/test/**', '**/androidTest/**', '**/commonTest/**', '**/jvmTest/**', '**/iosTest/**', '**/testFixtures/**']
+    excludes: ['**/test/**', '**/androidTest/**', '**/commonTest/**', '**/jvmTest/**', '**/iosTest/**', '**/androidHostTest/**', '**/testFixtures/**']
   # A @Preview is called by the IDE, never by the code.
   UnusedPrivateFunction:
     ignoreAnnotated: ['Preview']
@@ -65,6 +65,8 @@ naming:
   # Composables are nouns in PascalCase (`StudentCard`), not verbs in camelCase.
   FunctionNaming:
     ignoreAnnotated: ['Composable']
+    # Tests read as sentences (backtick names), in every test source set.
+    excludes: ['**/test/**', '**/androidTest/**', '**/commonTest/**', '**/jvmTest/**', '**/iosTest/**', '**/androidHostTest/**']
   # Compose's convention names constants in PascalCase (`DisabledAlpha`); the rest of the code keeps
   # SCREAMING_SNAKE (`DEFAULT_LESSON_MINUTES`). Both are in use and both are fine.
   TopLevelPropertyNaming:
@@ -72,7 +74,7 @@ naming:
 
 complexity:
   TooManyFunctions:
-    excludes: ['**/test/**', '**/androidTest/**', '**/commonTest/**', '**/jvmTest/**', '**/iosTest/**', '**/testFixtures/**']
+    excludes: ['**/test/**', '**/androidTest/**', '**/commonTest/**', '**/jvmTest/**', '**/iosTest/**', '**/androidHostTest/**', '**/testFixtures/**']
   # A composable takes `modifier: Modifier = Modifier` and a defaulted parameter per optional slot; those
   # are the API working as intended, not a parameter list that wants a class.
   LongParameterList:

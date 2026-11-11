@@ -19,12 +19,6 @@ import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.TutoringClass
 import com.seblful.klas.domain.reminders.Digests
 import com.seblful.klas.format.DisplayLocale
-import com.seblful.klas.format.bulletJoin
-import com.seblful.klas.format.daySummaryText
-import com.seblful.klas.format.forSystemFont
-import com.seblful.klas.format.formatTime
-import com.seblful.klas.format.money
-import com.seblful.klas.text.Plurals
 import com.seblful.klas.text.StringResource
 import com.seblful.klas.text.Strings
 import com.seblful.klas.text.Texts
@@ -114,19 +108,12 @@ class AndroidNotifier @Inject constructor(
         if (!mayPost()) return
 
         // 12- or 24-hour from the phone, like every other time the tutor is shown. A reminder is read
-        // *on* the phone, so a lesson booked at 9:00 PM must not be announced as «21:00»: one clock to
-        // set it on and another to be reminded of it.
-        val time = klass.start.formatTime(hour12 = hour12(), tag = displayLocale.tag)
-        val headline = bulletJoin(time, subjectName, whoName)
-        // In the expanded text only: the collapsed line stays the lesson, which is what the tray is sorted by
-        // at a glance, and the homework is what the tutor opens it to read.
-        val expanded = homeworkToCheck
-            ?.let { "$headline\n${words.string(Strings.reminder_homework_to_check, it)}" }
-            ?: headline
+        // *on* the phone, so a lesson booked at 9:00 PM must not be announced as «21:00».
+        val entry = text().reminder(klass, whoName, subjectName, homeworkToCheck)
 
-        val notification = builder(Kind.REMINDERS, Strings.reminder_title)
-            .setContentText(headline)
-            .setStyle(NotificationCompat.BigTextStyle().bigText(expanded))
+        val notification = builder(Kind.REMINDERS, entry.title)
+            .setContentText(entry.text)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(entry.expanded))
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setCategory(NotificationCompat.CATEGORY_REMINDER)
             // The lesson on the schedule, with its sheet open — what tapping its card does in the app.
@@ -156,7 +143,7 @@ class AndroidNotifier @Inject constructor(
     }
 
     private fun remindersSummary() {
-        val summary = builder(Kind.REMINDERS, Strings.reminder_title)
+        val summary = builder(Kind.REMINDERS, words.string(Strings.reminder_title))
             .setGroup(GROUP_REMINDERS)
             .setGroupSummary(true)
             .setOnlyAlertOnce(true)
@@ -169,19 +156,9 @@ class AndroidNotifier @Inject constructor(
     override fun showAgenda(agenda: Digests.Agenda, currency: Currency) {
         if (!mayPost()) return
 
-        // Which lessons fit and how many are left over is [TrayContent]'s — the clock face and the words
-        // are what this class still owns. InboxStyle rather than BigTextStyle: this is a *list*, and the
-        // platform draws each line whole and elides the ones that do not fit rather than truncating the
-        // middle of a sentence.
-        val style = lessonList(TrayContent.agenda(agenda))
-
-        // The same sentence the schedule prints under the day it names — see [daySummaryText]. Never
-        // null here: `Agenda.isWorthPosting` has already refused an empty day, and it is the only way in.
-        val summary = daySummaryText(words, agenda.summary, currency, displayLocale.tag).orEmpty()
-
-        val notification = builder(Kind.AGENDA, Strings.agenda_title)
-            .setContentText(summary.forSystemFont())
-            .setStyle(style)
+        // InboxStyle rather than BigTextStyle: this is a *list*, and the platform draws each line whole and
+        // elides the ones that do not fit rather than truncating the middle of a sentence.
+        val notification = listed(Kind.AGENDA, text().agenda(agenda, currency))
             .setCategory(NotificationCompat.CATEGORY_REMINDER)
             .setContentIntent(openDay(ID_AGENDA, agenda.day))
             .build()
@@ -192,19 +169,7 @@ class AndroidNotifier @Inject constructor(
     override fun showUnfinished(unfinished: Digests.Unfinished) {
         if (!mayPost()) return
 
-        // The same list the morning agenda is drawn as, capped the same way — see [TrayContent].
-        val style = lessonList(TrayContent.unfinished(unfinished))
-
-        val notification = builder(Kind.UNFINISHED, Strings.unfinished_title)
-            // The count, not a total: nothing here has billed, so there is no money to print beside it.
-            .setContentText(
-                words.plural(
-                    Plurals.unfinished_lessons,
-                    unfinished.count,
-                    unfinished.count,
-                ),
-            )
-            .setStyle(style)
+        val notification = listed(Kind.UNFINISHED, text().unfinished(unfinished))
             .setCategory(NotificationCompat.CATEGORY_REMINDER)
             // Straight to the day's schedule, where each of these is one swipe from being marked. No
             // action buttons: «Проведено» on a list of five lessons could only guess, and this one bills.
@@ -217,12 +182,9 @@ class AndroidNotifier @Inject constructor(
     override fun showDebts(debts: Digests.Debts, currency: Currency) {
         if (!mayPost()) return
 
-        val body = bulletJoin(
-            words.plural(Plurals.students_count, debts.students, debts.students),
-            debts.total.money(currency, displayLocale.tag),
-        )
-        val notification = builder(Kind.DEBTS, Strings.debts_title)
-            .setContentText(body.forSystemFont())
+        val entry = text().debts(debts, currency)
+        val notification = builder(Kind.DEBTS, entry.title)
+            .setContentText(entry.text)
             .setCategory(NotificationCompat.CATEGORY_STATUS)
             // Straight to the report that lists them, where each debt row opens the student — the tray can
             // say how much is owed in total and nothing at all about by whom.
@@ -235,12 +197,9 @@ class AndroidNotifier @Inject constructor(
     override fun showAutoCompleted(lessons: Int, billed: Money, day: LocalDate, currency: Currency) {
         if (!mayPost()) return
 
-        val body = bulletJoin(
-            words.plural(Plurals.lessons_count, lessons, lessons),
-            billed.money(currency, displayLocale.tag),
-        )
-        val notification = builder(Kind.UPKEEP, Strings.upkeep_completed_title)
-            .setContentText(body.forSystemFont())
+        val entry = text().autoCompleted(lessons, billed, currency)
+        val notification = builder(Kind.UPKEEP, entry.title)
+            .setContentText(entry.text)
             .setCategory(NotificationCompat.CATEGORY_STATUS)
             .setContentIntent(openDay(ID_UPKEEP, day))
             .build()
@@ -254,10 +213,8 @@ class AndroidNotifier @Inject constructor(
         return true
     }
 
-    private fun builder(kind: Kind, titleRes: StringResource): NotificationCompat.Builder {
+    private fun builder(kind: Kind, title: String): NotificationCompat.Builder {
         val channel = kind.id(details())
-        val words = words
-        val title = words.string(titleRes)
         return NotificationCompat.Builder(context, channel)
             .setSmallIcon(R.drawable.ic_stat_klas)
             .setContentTitle(title)
@@ -274,20 +231,12 @@ class AndroidNotifier @Inject constructor(
             )
     }
 
-    private fun lessonList(posting: TrayContent.AgendaPosting): NotificationCompat.InboxStyle {
+    /** A digest that lists lessons: its sentence collapsed, its lines expanded. */
+    private fun listed(kind: Kind, entry: TrayText.Entry): NotificationCompat.Builder {
         val style = NotificationCompat.InboxStyle()
-        val hour12 = hour12()
-        posting.lines.forEach { entry ->
-            style.addLine(
-                bulletJoin(
-                    entry.start.formatTime(hour12 = hour12, tag = displayLocale.tag), entry.subject, entry.who,
-                ),
-            )
-        }
-        if (posting.more > 0) {
-            style.setSummaryText(words.string(Strings.agenda_more, posting.more))
-        }
-        return style
+        entry.lines.forEach(style::addLine)
+        entry.more?.let(style::setSummaryText)
+        return builder(kind, entry.title).setContentText(entry.text).setStyle(style)
     }
 
     private fun post(id: Int, notification: android.app.Notification) {
@@ -298,7 +247,8 @@ class AndroidNotifier @Inject constructor(
         }
     }
 
-    private fun hour12(): Boolean = !DateFormat.is24HourFormat(context)
+    /** The words, in the app's language and on the phone's clock — the same as iOS's tray says. */
+    private fun text() = TrayText(words, displayLocale.tag, hour12 = !DateFormat.is24HourFormat(context))
 
     private fun openApp(requestCode: Int, action: String, extras: Intent.() -> Unit = {}): PendingIntent {
         val intent = Intent(context, MainActivity::class.java)

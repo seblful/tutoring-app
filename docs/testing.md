@@ -13,7 +13,8 @@ builds used by CI. Device and iOS simulator execution are separate checks.
 |---|---|
 | `domain/src/commonTest` | Pure rules with `kotlin.test`; the same tests run on JVM and iOS. |
 | `shared/src/commonTest` | Repository atomicity and race cases, backup contracts, feature queries, parsing and clock events over real Room databases. Platform test source sets provide database creation. |
-| `ui/src/commonTest` | Date, time and money formatting in each language. The JVM run reads Android's `java.text`/`java.time` tables; the iOS run reads Foundation's, so both platforms' CLDR data meet the same expectations. |
+| `ui/src/commonTest` | Date, time and money formatting in each language, and what the notification tray says (`TrayText`). The JVM run reads Android's `java.text`/`java.time` tables; the iOS run reads Foundation's, so both platforms' CLDR data meet the same expectations. |
+| `ui/src/androidHostTest` | Common code checked against a JVM reference, such as `AesGcm` against the JDK's GCM. |
 | `app/src/test` | Android locale/graph behavior, view models, mappers and source/artifact tripwires. Unmocked Android calls fail (`isReturnDefaultValues` is off). |
 
 - Seed valid application states through `testutil/Fixtures`; use `storedClass` for raw persisted states.
@@ -22,7 +23,7 @@ builds used by CI. Device and iOS simulator execution are separate checks.
 - `RepositoryTestEnv` in `shared/src/testFixtures/kotlin` owns the common repository graph. Shared,
   Android JVM and device adapters supply real Room databases with bundled SQLite and own their cleanup.
   Shared tests close their adapter with `@AfterTest`; Android JVM tests use a JUnit rule. No fake DAOs.
-  Query and pilot tests exercise the production shared graph.
+  Query tests exercise the production shared graph.
 - Portable port doubles, fixtures and a pinned `MutableClock` are compiled only into test source sets.
   Give repositories and view models the same clock and zone. Tests of system clock changes explicitly
   opt into the device clock.
@@ -54,8 +55,8 @@ builds used by CI. Device and iOS simulator execution are separate checks.
   :ui:iosSimulatorArm64Test`.
   Set `KMP_IOS_SIMULATOR_ID` to an available simulator UDID to select a device. CI selects an available
   iPhone, runs the three suites and compiles the iOS device code. Windows can compile native Kotlin
-  libraries but cannot link or run the simulator tests. CI also builds the [SwiftUI host](ios.md)
-  and runs its create/book/terminate/relaunch test.
+  libraries but cannot link or run the simulator tests. CI also builds the [iOS app](ios.md)
+  and runs its launch/relaunch test.
 
 ## Screenshot tests
 

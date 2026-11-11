@@ -25,7 +25,7 @@ object DiagnosticsModule {
             @Suppress("DEPRECATION")
             context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: "?"
         }.getOrDefault("?"),
-        androidSdk = Build.VERSION.SDK_INT,
+        system = "Android SDK ${Build.VERSION.SDK_INT}",
         device = "${Build.MANUFACTURER} ${Build.MODEL}",
     )
 }

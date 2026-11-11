@@ -27,6 +27,7 @@ interface CrashLogStore {
  */
 data class DeviceInfo(
     val appVersion: String,
-    val androidSdk: Int,
+    /** The platform and its version as a person reads it: «Android SDK 34», «iOS 18.2». */
+    val system: String,
     val device: String,
 )

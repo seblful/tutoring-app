@@ -30,8 +30,13 @@ kotlin {
         // commonTest on the JVM, against Android's java.text tables; iOS runs it on the simulator.
         withHostTest {}
     }
-    iosArm64()
-    iosSimulatorArm64()
+    // The iOS app: one static framework holding every module, linked by `iosApp/`.
+    listOf(iosArm64(), iosSimulatorArm64()).forEach { target ->
+        target.binaries.framework {
+            baseName = "KlasApp"
+            isStatic = true
+        }
+    }
 
     compilerOptions {
         // Compose Styles (`ui/theme/KlasStyles.kt`) are still experimental in foundation 1.12.

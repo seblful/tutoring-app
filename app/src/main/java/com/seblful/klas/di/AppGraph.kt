@@ -1,7 +1,6 @@
 package com.seblful.klas.di
 
 import android.content.Context
-import androidx.lifecycle.ViewModel
 import androidx.work.WorkerFactory
 import com.seblful.klas.KlasStore
 import com.seblful.klas.diagnostics.CrashLogger
@@ -15,17 +14,10 @@ import com.seblful.klas.widget.WidgetUpdates
 import com.seblful.klas.work.BootReceiver
 import com.seblful.klas.work.ClockChangeReceiver
 import dev.zacsweers.metro.AppScope
-import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.DependencyGraph
-import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.Provides
-import dev.zacsweers.metro.SingleIn
-import dev.zacsweers.metrox.viewmodel.ManualViewModelAssistedFactory
-import dev.zacsweers.metrox.viewmodel.MetroViewModelFactory
-import dev.zacsweers.metrox.viewmodel.ViewModelAssistedFactory
 import dev.zacsweers.metrox.viewmodel.ViewModelGraph
 import kotlinx.coroutines.CoroutineScope
-import kotlin.reflect.KClass
 
 /**
  * What the app's own entry points need from its object graph — the pieces Android creates itself and so
@@ -72,15 +64,3 @@ interface KlasGraph : AppGraph, KlasStore {
 
 /** The graph of the process this [Context] runs in, for a class Android instantiated itself. */
 val Context.appGraph: AppGraph get() = (applicationContext as AppGraph.Holder).graph
-
-/** Builds every screen's view model from the graph; `metroViewModel()` finds it in the composition. */
-@Inject
-@ContributesBinding(AppScope::class)
-@SingleIn(AppScope::class)
-class AppViewModelFactory(
-    override val viewModelProviders: Map<KClass<out ViewModel>, () -> ViewModel>,
-    override val assistedFactoryProviders: Map<KClass<out ViewModel>, () -> ViewModelAssistedFactory>,
-    override val manualAssistedFactoryProviders: Map<KClass<out ManualFactory>, () -> ManualFactory>,
-) : MetroViewModelFactory()
-
-private typealias ManualFactory = ManualViewModelAssistedFactory

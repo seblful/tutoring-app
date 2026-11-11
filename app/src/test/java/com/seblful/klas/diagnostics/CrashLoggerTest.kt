@@ -35,7 +35,7 @@ private class FakeCrashLogStore(var failing: Boolean = false) : CrashLogStore {
 class CrashLoggerTest {
 
     private val store = FakeCrashLogStore()
-    private val device = DeviceInfo(appVersion = "1.2.3", androidSdk = 34, device = "Pixel 8")
+    private val device = DeviceInfo(appVersion = "1.2.3", system = "Android SDK 34", device = "Pixel 8")
     private val logger = CrashLogger(store, device, MutableClock(Instant.parse("2026-01-01T00:00:00Z")))
     private val at = Instant.parse("2026-06-15T09:30:00Z")
 
@@ -45,7 +45,7 @@ class CrashLoggerTest {
 
         val log = store.content
         assertTrue("names the app version", log.contains("1.2.3"))
-        assertTrue("names the SDK level", log.contains("34"))
+        assertTrue("names the system", log.contains("Android SDK 34"))
         assertTrue("names the device", log.contains("Pixel 8"))
         assertTrue("carries the exception", log.contains("boom"))
         assertTrue("carries the type", log.contains("IllegalStateException"))

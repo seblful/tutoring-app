@@ -116,15 +116,15 @@ jobs:
           PY
       - name: Compile iOS device code and run common tests on iOS
         run: ./gradlew :shared:compileKotlinIosArm64 :ui:compileKotlinIosArm64 :domain:iosSimulatorArm64Test :shared:iosSimulatorArm64Test :ui:iosSimulatorArm64Test --stacktrace
-      - name: Generate the iOS pilot project
+      - name: Generate the iOS project
         run: |
           command -v xcodegen >/dev/null || brew install xcodegen
           xcodegen generate --spec iosApp/project.yml
-      - name: Test the iOS host and persistence after relaunch
+      - name: Build the iOS app and launch it twice
         run: |
-          xcodebuild test -project iosApp/KlasPilot.xcodeproj -scheme KlasPilot \
+          xcodebuild test -project iosApp/Klas.xcodeproj -scheme Klas \
             -destination "platform=iOS Simulator,id=$KMP_IOS_SIMULATOR_ID" \
-            -derivedDataPath iosApp/DerivedData -resultBundlePath iosApp/persistence.xcresult \
+            -derivedDataPath iosApp/DerivedData -resultBundlePath iosApp/launch.xcresult \
             CODE_SIGNING_ALLOWED=NO
       - name: Upload iOS test reports
         if: always()
@@ -137,5 +137,7 @@ jobs:
             domain/build/test-results/
             shared/build/reports/tests/
             shared/build/test-results/
+            ui/build/reports/tests/
+            ui/build/test-results/
           retention-days: 14
           if-no-files-found: ignore
