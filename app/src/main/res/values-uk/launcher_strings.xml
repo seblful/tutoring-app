@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_today_name">Сьогоднішні уроки</string>
+    <string name="widget_today_description">Позначайте сьогоднішні заняття як проведені одним дотиком</string>
+    <string name="widget_quick_actions_name">Комбінації клавіш Klas</string>
+    <string name="widget_quick_actions_description">Забронюйте урок, додайте учня або відкрийте «Сьогодні», домашні завдання та борги</string>
+</resources>

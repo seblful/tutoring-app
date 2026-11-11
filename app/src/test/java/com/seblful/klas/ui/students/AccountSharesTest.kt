@@ -13,6 +13,7 @@ import com.seblful.klas.format.money
 import com.seblful.klas.queries.students.ClassRow
 import com.seblful.klas.queries.students.StudentDetails
 import com.seblful.klas.testutil.AppLocaleRule
+import com.seblful.klas.testutil.texts
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -29,7 +30,7 @@ class AccountSharesTest {
     @get:Rule
     val language = AppLocaleRule.english()
 
-    private val resources = ApplicationProvider.getApplicationContext<Context>().resources
+    private val resources = ApplicationProvider.getApplicationContext<Context>().texts()
     private val currency = Currency.BYN
 
     private fun lesson(id: Long, at: String, charge: Long) = ClassRow(

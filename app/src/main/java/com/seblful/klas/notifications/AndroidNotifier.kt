@@ -23,8 +23,11 @@ import com.seblful.klas.format.bulletJoin
 import com.seblful.klas.format.daySummaryText
 import com.seblful.klas.format.forSystemFont
 import com.seblful.klas.format.formatTime
-import com.seblful.klas.format.inLanguage
 import com.seblful.klas.format.money
+import com.seblful.klas.text.Plurals
+import com.seblful.klas.text.StringResource
+import com.seblful.klas.text.Strings
+import com.seblful.klas.text.Texts
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.Inject
@@ -42,7 +45,7 @@ class AndroidNotifier @Inject constructor(
     private val settings: SettingsRepository,
 ) : Notifier {
 
-    private val words: Context get() = context.inLanguage(displayLocale.current)
+    private val words: Texts get() = displayLocale.texts
 
     /**
      * Creates the channel set in force and removes the other — see [Kind]. The importances are the
@@ -73,9 +76,9 @@ class AndroidNotifier @Inject constructor(
     }
 
     @androidx.annotation.RequiresApi(Build.VERSION_CODES.O)
-    private fun Context.channel(kind: Kind, details: Boolean): NotificationChannel =
-        NotificationChannel(kind.id(details), getString(kind.nameRes), kind.importance).apply {
-            description = getString(kind.descRes)
+    private fun Texts.channel(kind: Kind, details: Boolean): NotificationChannel =
+        NotificationChannel(kind.id(details), string(kind.nameRes), kind.importance).apply {
+            description = string(kind.descRes)
             // Redacted on a secure lock screen whatever the phone's own setting says — set here because a
             // channel's lock-screen visibility can only be given as it is created.
             if (!details) lockscreenVisibility = Notification.VISIBILITY_PRIVATE
@@ -118,10 +121,10 @@ class AndroidNotifier @Inject constructor(
         // In the expanded text only: the collapsed line stays the lesson, which is what the tray is sorted by
         // at a glance, and the homework is what the tutor opens it to read.
         val expanded = homeworkToCheck
-            ?.let { "$headline\n${words.getString(R.string.reminder_homework_to_check, it)}" }
+            ?.let { "$headline\n${words.string(Strings.reminder_homework_to_check, it)}" }
             ?: headline
 
-        val notification = builder(Kind.REMINDERS, R.string.reminder_title)
+        val notification = builder(Kind.REMINDERS, Strings.reminder_title)
             .setContentText(headline)
             .setStyle(NotificationCompat.BigTextStyle().bigText(expanded))
             .setPriority(NotificationCompat.PRIORITY_HIGH)
@@ -153,7 +156,7 @@ class AndroidNotifier @Inject constructor(
     }
 
     private fun remindersSummary() {
-        val summary = builder(Kind.REMINDERS, R.string.reminder_title)
+        val summary = builder(Kind.REMINDERS, Strings.reminder_title)
             .setGroup(GROUP_REMINDERS)
             .setGroupSummary(true)
             .setOnlyAlertOnce(true)
@@ -174,9 +177,9 @@ class AndroidNotifier @Inject constructor(
 
         // The same sentence the schedule prints under the day it names — see [daySummaryText]. Never
         // null here: `Agenda.isWorthPosting` has already refused an empty day, and it is the only way in.
-        val summary = daySummaryText(words.resources, agenda.summary, currency, displayLocale.current).orEmpty()
+        val summary = daySummaryText(words, agenda.summary, currency, displayLocale.current).orEmpty()
 
-        val notification = builder(Kind.AGENDA, R.string.agenda_title)
+        val notification = builder(Kind.AGENDA, Strings.agenda_title)
             .setContentText(summary.forSystemFont())
             .setStyle(style)
             .setCategory(NotificationCompat.CATEGORY_REMINDER)
@@ -192,11 +195,11 @@ class AndroidNotifier @Inject constructor(
         // The same list the morning agenda is drawn as, capped the same way — see [TrayContent].
         val style = lessonList(TrayContent.unfinished(unfinished))
 
-        val notification = builder(Kind.UNFINISHED, R.string.unfinished_title)
+        val notification = builder(Kind.UNFINISHED, Strings.unfinished_title)
             // The count, not a total: nothing here has billed, so there is no money to print beside it.
             .setContentText(
-                words.resources.getQuantityString(
-                    R.plurals.unfinished_lessons,
+                words.plural(
+                    Plurals.unfinished_lessons,
                     unfinished.count,
                     unfinished.count,
                 ),
@@ -215,10 +218,10 @@ class AndroidNotifier @Inject constructor(
         if (!mayPost()) return
 
         val body = bulletJoin(
-            words.resources.getQuantityString(R.plurals.students_count, debts.students, debts.students),
+            words.plural(Plurals.students_count, debts.students, debts.students),
             debts.total.money(currency, displayLocale.current),
         )
-        val notification = builder(Kind.DEBTS, R.string.debts_title)
+        val notification = builder(Kind.DEBTS, Strings.debts_title)
             .setContentText(body.forSystemFont())
             .setCategory(NotificationCompat.CATEGORY_STATUS)
             // Straight to the report that lists them, where each debt row opens the student — the tray can
@@ -233,10 +236,10 @@ class AndroidNotifier @Inject constructor(
         if (!mayPost()) return
 
         val body = bulletJoin(
-            words.resources.getQuantityString(R.plurals.lessons_count, lessons, lessons),
+            words.plural(Plurals.lessons_count, lessons, lessons),
             billed.money(currency, displayLocale.current),
         )
-        val notification = builder(Kind.UPKEEP, R.string.upkeep_completed_title)
+        val notification = builder(Kind.UPKEEP, Strings.upkeep_completed_title)
             .setContentText(body.forSystemFont())
             .setCategory(NotificationCompat.CATEGORY_STATUS)
             .setContentIntent(openDay(ID_UPKEEP, day))
@@ -251,10 +254,10 @@ class AndroidNotifier @Inject constructor(
         return true
     }
 
-    private fun builder(kind: Kind, titleRes: Int): NotificationCompat.Builder {
+    private fun builder(kind: Kind, titleRes: StringResource): NotificationCompat.Builder {
         val channel = kind.id(details())
         val words = words
-        val title = words.getString(titleRes)
+        val title = words.string(titleRes)
         return NotificationCompat.Builder(context, channel)
             .setSmallIcon(R.drawable.ic_stat_klas)
             .setContentTitle(title)
@@ -266,7 +269,7 @@ class AndroidNotifier @Inject constructor(
                 NotificationCompat.Builder(context, channel)
                     .setSmallIcon(R.drawable.ic_stat_klas)
                     .setContentTitle(title)
-                    .setContentText(words.getString(R.string.notification_locked_text))
+                    .setContentText(words.string(Strings.notification_locked_text))
                     .build(),
             )
     }
@@ -282,7 +285,7 @@ class AndroidNotifier @Inject constructor(
             )
         }
         if (posting.more > 0) {
-            style.setSummaryText(words.getString(R.string.agenda_more, posting.more))
+            style.setSummaryText(words.string(Strings.agenda_more, posting.more))
         }
         return style
     }
@@ -316,7 +319,7 @@ class AndroidNotifier @Inject constructor(
             .putExtra(TrayNavigation.EXTRA_CLASS_ID, classId)
         // It bills the lesson, so from a locked phone it asks for the unlock first (Android 12+).
         return action(
-            R.string.class_status_completed,
+            Strings.class_status_completed,
             PendingIntent.getBroadcast(context, classId.toInt(), intent, FLAGS),
             authenticated = true,
         )
@@ -324,18 +327,18 @@ class AndroidNotifier @Inject constructor(
 
     private fun rescheduleAction(classId: Long): NotificationCompat.Action =
         action(
-            R.string.class_move,
+            Strings.class_move,
             openApp(classId.toInt(), TrayNavigation.ACTION_OPEN_LESSON) {
                 putExtra(TrayNavigation.EXTRA_CLASS_ID, classId)
             },
         )
 
     private fun action(
-        labelRes: Int,
+        labelRes: StringResource,
         intent: PendingIntent,
         authenticated: Boolean = false,
     ): NotificationCompat.Action =
-        NotificationCompat.Action.Builder(0, words.getString(labelRes), intent)
+        NotificationCompat.Action.Builder(0, words.string(labelRes), intent)
             .setAuthenticationRequired(authenticated)
             .build()
 
@@ -345,28 +348,33 @@ class AndroidNotifier @Inject constructor(
      * leaves that to the phone ([com.seblful.klas.data.settings.Privacy.lockScreenDetails]). Only one of the
      * two exists at a time; [legacyId] is the channel from before the split, replaced once.
      */
-    private enum class Kind(val legacyId: String, val nameRes: Int, val descRes: Int, val importance: Int) {
+    private enum class Kind(
+        val legacyId: String,
+        val nameRes: StringResource,
+        val descRes: StringResource,
+        val importance: Int,
+    ) {
         REMINDERS(
-            "class_reminders", R.string.reminder_channel_name, R.string.reminder_channel_desc,
+            "class_reminders", Strings.reminder_channel_name, Strings.reminder_channel_desc,
             NotificationManager.IMPORTANCE_HIGH,
         ),
         AGENDA(
-            "daily_agenda", R.string.agenda_channel_name, R.string.agenda_channel_desc,
+            "daily_agenda", Strings.agenda_channel_name, Strings.agenda_channel_desc,
             NotificationManager.IMPORTANCE_DEFAULT,
         ),
         UNFINISHED(
-            "unfinished_digest", R.string.unfinished_channel_name, R.string.unfinished_channel_desc,
+            "unfinished_digest", Strings.unfinished_channel_name, Strings.unfinished_channel_desc,
             NotificationManager.IMPORTANCE_DEFAULT,
         ),
         DEBTS(
-            "debt_digest", R.string.debts_channel_name, R.string.debts_channel_desc,
+            "debt_digest", Strings.debts_channel_name, Strings.debts_channel_desc,
             NotificationManager.IMPORTANCE_DEFAULT,
         ),
 
         // LOW: no sound, no peek. The tutor is being told what the app did while they were away, which is
         // worth being able to read and never worth interrupting anything for.
         UPKEEP(
-            "upkeep_report", R.string.upkeep_channel_name, R.string.upkeep_channel_desc,
+            "upkeep_report", Strings.upkeep_channel_name, Strings.upkeep_channel_desc,
             NotificationManager.IMPORTANCE_LOW,
         ),
         ;

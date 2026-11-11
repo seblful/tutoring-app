@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_today_name">Tämän päivän oppitunnit</string>
+    <string name="widget_today_description">Tämän päivän oppitunnit, merkitty opetetuksi yhdellä napautuksella</string>
+    <string name="widget_quick_actions_name">Klas pikakuvakkeet</string>
+    <string name="widget_quick_actions_description">Varaa oppitunti, lisää oppilas tai avaa Tänään-näkymä, läksyt ja velat</string>
+</resources>

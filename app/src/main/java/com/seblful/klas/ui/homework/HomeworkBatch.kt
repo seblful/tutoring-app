@@ -1,10 +1,11 @@
 package com.seblful.klas.ui.homework
 
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.platform.LocalResources
-import androidx.compose.ui.res.stringResource
-import com.seblful.klas.R
 import com.seblful.klas.domain.model.Homework
+import com.seblful.klas.text.Plurals
+import com.seblful.klas.text.Strings
+import com.seblful.klas.text.currentTexts
+import com.seblful.klas.text.stringResource
 import com.seblful.klas.ui.common.Messages
 import com.seblful.klas.ui.common.NamedIconButton
 import com.seblful.klas.ui.theme.KlasIcons
@@ -47,12 +48,12 @@ class HomeworkBatch(private val actions: HomeworkActions<*>, private val current
 /** The bar's action while homework is picked, saying what it did with one Undo. */
 @Composable
 internal fun MarkPickedDone(batch: HomeworkBatch, messages: Messages) {
-    val resources = LocalResources.current
+    val resources = currentTexts()
     fun markDone() {
         val moved = batch.markDone()
         if (moved.isEmpty()) return
-        val said = resources.getQuantityString(R.plurals.homework_batch_done, moved.size, moved.size)
+        val said = resources.plural(Plurals.homework_batch_done, moved.size, moved.size)
         messages.undoable(said) { batch.undo(moved) }
     }
-    NamedIconButton(KlasIcons.Outlined.CheckCircle, stringResource(R.string.homework_batch_mark_done), ::markDone)
+    NamedIconButton(KlasIcons.Outlined.CheckCircle, stringResource(Strings.homework_batch_mark_done), ::markDone)
 }

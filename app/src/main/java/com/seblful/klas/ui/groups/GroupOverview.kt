@@ -1,8 +1,9 @@
 package com.seblful.klas.ui.groups
 
-import com.seblful.klas.R
 import com.seblful.klas.queries.groups.GroupDetails
 import com.seblful.klas.queries.groups.GroupLessonRow
+import com.seblful.klas.text.StringResource
+import com.seblful.klas.text.Strings
 import com.seblful.klas.ui.people.NextLesson
 import kotlinx.datetime.TimeZone
 import kotlin.time.Instant
@@ -29,9 +30,9 @@ data class GroupOverview(val details: GroupDetails, val next: NextLesson?, val l
 }
 
 /** A group's list that can run long, shown in full on its own page. Members are few, and stay on the card. */
-enum class GroupSection(val titleRes: Int) {
-    LESSONS(R.string.group_lessons_title),
+enum class GroupSection(val titleRes: StringResource) {
+    LESSONS(Strings.group_lessons_title),
 
     /** Current and done — the card shows only the first few current ones. */
-    HOMEWORK(R.string.student_homework_title),
+    HOMEWORK(Strings.student_homework_title),
 }

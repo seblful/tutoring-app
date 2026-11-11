@@ -13,16 +13,16 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
-import com.seblful.klas.R
 import com.seblful.klas.domain.guide.Tip
 import com.seblful.klas.domain.lesson.LessonKind
 import com.seblful.klas.domain.lesson.LessonPhase
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.format.bulletJoin
+import com.seblful.klas.text.Strings
+import com.seblful.klas.text.stringResource
 import com.seblful.klas.ui.common.BadgeLine
 import com.seblful.klas.ui.common.ColumnTime
 import com.seblful.klas.ui.common.ContentCard
@@ -97,8 +97,8 @@ private fun LessonCoachMark(
         return
     }
     val text = when (tip) {
-        Tip.LESSON_SWIPE -> if (reader) R.string.tip_lesson_swipe_reader else R.string.tip_lesson_swipe
-        else -> R.string.tip_lesson_pick
+        Tip.LESSON_SWIPE -> if (reader) Strings.tip_lesson_swipe_reader else Strings.tip_lesson_swipe
+        else -> Strings.tip_lesson_pick
     }
     CoachMark(
         stringResource(text),
@@ -147,7 +147,7 @@ private fun SwipeCard(
             phase,
             timeWidth,
             onClick,
-            Modifier.swipeAction(stringResource(R.string.class_mark_completed), onComplete),
+            Modifier.swipeAction(stringResource(Strings.class_mark_completed), onComplete),
             picking,
             slice,
         )
@@ -241,7 +241,7 @@ private fun LessonSurface(
     slice: SlicePosition?,
     content: @Composable () -> Unit,
 ) {
-    val pickLabel = stringResource(R.string.batch_select)
+    val pickLabel = stringResource(Strings.batch_select)
     if (slice == null) {
         ContentCard(
             onClick = onClick,

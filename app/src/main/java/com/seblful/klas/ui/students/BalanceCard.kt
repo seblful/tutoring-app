@@ -16,16 +16,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import com.seblful.klas.R
 import com.seblful.klas.domain.model.Balance
 import com.seblful.klas.domain.model.Payment
 import com.seblful.klas.format.bulletJoin
 import com.seblful.klas.format.formatDate
 import com.seblful.klas.format.formatHours
 import com.seblful.klas.queries.students.StudentDetails
+import com.seblful.klas.text.Strings
+import com.seblful.klas.text.stringResource
 import com.seblful.klas.ui.common.MinHeadlineSize
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.text
@@ -51,9 +51,9 @@ internal fun BalanceCard(
     val balance = state.balance
     val totals = state.totals
     HeaderedCard(
-        title = stringResource(R.string.student_balance_title),
+        title = stringResource(Strings.student_balance_title),
         modifier = modifier,
-        action = SectionAction(stringResource(R.string.student_statement), opens = true, onClick = onStatement),
+        action = SectionAction(stringResource(Strings.student_statement), opens = true, onClick = onStatement),
     ) {
         // The button beside the amount, not beside all four lines: there the lines below get the card's whole
         // width, and a large font does not fold «Last payment …» into a column of single words.
@@ -61,7 +61,7 @@ internal fun BalanceCard(
             // Settled, there is no amount to label: «Owes $0» read as a debt, and the People list shows none.
             if (balance !is Balance.Settled) {
                 Text(
-                    stringResource(if (balance is Balance.Credit) R.string.stat_credit else R.string.stat_debt),
+                    stringResource(if (balance is Balance.Credit) Strings.stat_credit else Strings.stat_debt),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -84,16 +84,16 @@ internal fun BalanceCard(
             // Not the balance again in words — the label and the number say it — but when the money last came
             // in, which a tutor deciding whether to chase it wants next.
             Text(
-                state.lastPaymentAt?.let { stringResource(R.string.student_last_payment, it.formatDate()) }
-                    ?: stringResource(R.string.payments_empty),
+                state.lastPaymentAt?.let { stringResource(Strings.student_last_payment, it.formatDate()) }
+                    ?: stringResource(Strings.payments_empty),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             if (totals.minutes > 0) {
                 Text(
                     bulletJoin(
-                        stringResource(R.string.student_earned, totals.earned.text()),
-                        stringResource(R.string.hours_value, formatHours(totals.minutes)),
+                        stringResource(Strings.student_earned, totals.earned.text()),
+                        stringResource(Strings.hours_value, formatHours(totals.minutes)),
                     ),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -111,7 +111,7 @@ private val BalanceInset = Modifier
 /** «+ Payment», read out in full as «Add a payment». */
 @Composable
 private fun AddPaymentButton(onClick: () -> Unit) {
-    val addPayment = stringResource(R.string.add_payment)
+    val addPayment = stringResource(Strings.add_payment)
     KlasButton(
         onClick = onClick,
         modifier = Modifier.padding(start = Spacing.inline).semantics { contentDescription = addPayment },
@@ -119,6 +119,6 @@ private fun AddPaymentButton(onClick: () -> Unit) {
         withIcon = true,
     ) {
         Icon(KlasIcons.Filled.Add, contentDescription = null, Modifier.size(ButtonDefaults.IconSize))
-        Text(stringResource(R.string.payment_add_short), Modifier.padding(start = Spacing.inline))
+        Text(stringResource(Strings.payment_add_short), Modifier.padding(start = Spacing.inline))
     }
 }

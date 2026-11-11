@@ -1,20 +1,20 @@
 package com.seblful.klas.ui.common
 
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.res.stringResource
-import com.seblful.klas.R
 import com.seblful.klas.domain.reports.Taught
 import com.seblful.klas.format.formatHours
+import com.seblful.klas.text.Strings
+import com.seblful.klas.text.stringResource
 
 /** The «Занятий» tile. */
 @Composable
 fun lessonsStat(totals: Taught.Totals): Stat = Stat(
-    label = stringResource(R.string.stat_lessons),
+    label = stringResource(Strings.stat_lessons),
     value = totals.lessons.toString(),
     hint = when (val hint = totals.hint) {
         null -> null
-        is Taught.Hint.Upcoming -> stringResource(R.string.stat_upcoming, hint.count)
-        is Taught.Hint.Cancelled -> stringResource(R.string.stat_cancelled, hint.count)
+        is Taught.Hint.Upcoming -> stringResource(Strings.stat_upcoming, hint.count)
+        is Taught.Hint.Cancelled -> stringResource(Strings.stat_cancelled, hint.count)
     },
 )
 
@@ -24,4 +24,4 @@ fun lessonsStat(totals: Taught.Totals): Stat = Stat(
  */
 @Composable
 fun hoursStat(minutes: Int): Stat =
-    Stat(label = stringResource(R.string.stat_hours), value = formatHours(minutes))
+    Stat(label = stringResource(Strings.stat_hours), value = formatHours(minutes))

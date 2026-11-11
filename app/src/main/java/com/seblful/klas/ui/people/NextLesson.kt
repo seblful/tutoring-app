@@ -14,11 +14,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
-import com.seblful.klas.R
 import com.seblful.klas.domain.model.TutoringClass
 import com.seblful.klas.format.bulletJoin
+import com.seblful.klas.text.Strings
+import com.seblful.klas.text.stringResource
 import com.seblful.klas.ui.common.HeadlineCardInset
 import com.seblful.klas.ui.common.HoldToName
 import com.seblful.klas.ui.common.MinHeadlineSize
@@ -74,7 +74,7 @@ fun NextLessonCard(
     onBook: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val label = if (next?.running == true) R.string.class_status_in_progress else R.string.student_next_lesson
+    val label = if (next?.running == true) Strings.class_status_in_progress else Strings.student_next_lesson
     val content: @Composable ColumnScope.() -> Unit = {
         Row(
             HeadlineCardInset,
@@ -84,14 +84,14 @@ fun NextLessonCard(
                 Text(stringResource(label), style = MaterialTheme.typography.labelMedium)
                 if (next == null) {
                     Text(
-                        stringResource(R.string.student_no_lesson_booked),
+                        stringResource(Strings.student_no_lesson_booked),
                         style = MaterialTheme.typography.titleMedium,
                     )
                 } else {
                     NextLessonLines(next)
                 }
             }
-            val book = stringResource(R.string.class_book)
+            val book = stringResource(Strings.class_book)
             HoldToName(book) {
                 FilledIconButton(onClick = onBook, modifier = Modifier.padding(start = Spacing.inline)) {
                     Icon(KlasIcons.Filled.Add, contentDescription = book)

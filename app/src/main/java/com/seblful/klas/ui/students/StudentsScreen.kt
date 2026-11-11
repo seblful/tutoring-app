@@ -13,11 +13,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
-import com.seblful.klas.R
 import com.seblful.klas.domain.model.Balance
 import com.seblful.klas.format.bulletJoin
+import com.seblful.klas.text.Strings
+import com.seblful.klas.text.stringResource
 import com.seblful.klas.ui.common.ArchivedBadge
 import com.seblful.klas.ui.common.Avatar
 import com.seblful.klas.ui.common.EmptyState
@@ -82,10 +82,10 @@ private fun StudentRows(
             NoSearchResults(modifier.padding(bottomInset))
         } else {
             EmptyState(
-                title = stringResource(R.string.students_empty),
-                detail = stringResource(R.string.students_empty_detail),
+                title = stringResource(Strings.students_empty),
+                detail = stringResource(Strings.students_empty_detail),
                 icon = KlasIcons.Outlined.Person,
-                actionLabel = stringResource(R.string.students_add),
+                actionLabel = stringResource(Strings.students_add),
                 onAction = onAddStudent,
                 modifier = modifier.padding(bottomInset),
             )

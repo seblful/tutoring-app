@@ -8,7 +8,6 @@ import android.content.Context
 import android.text.TextUtils
 import android.text.format.DateFormat
 import android.view.View
-import androidx.annotation.StringRes
 import androidx.compose.foundation.shape.CornerBasedShape
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.toArgb
@@ -47,13 +46,15 @@ import com.github.takahirom.roborazzi.RoborazziOptions
 import com.github.takahirom.roborazzi.RoborazziTaskType
 import com.github.takahirom.roborazzi.captureScreenRoboImage
 import com.seblful.klas.MainActivity
-import com.seblful.klas.R
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.ThemeChoice
 import com.seblful.klas.testutil.FakeCalendarPermission
 import com.seblful.klas.testutil.FakeCalendarSync
 import com.seblful.klas.testutil.RecordingDigestScheduler
 import com.seblful.klas.testutil.RecordingReminderScheduler
+import com.seblful.klas.testutil.texts
+import com.seblful.klas.text.StringResource
+import com.seblful.klas.text.Strings
 import dev.zacsweers.metro.createGraphFactory
 import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.TimeZone
@@ -152,7 +153,7 @@ class StoreScreenshots(play: String) {
     }
 
     private fun launchOnToday() {
-        val onNow = string(R.string.class_status_in_progress)
+        val onNow = string(Strings.class_status_in_progress)
         for (attempt in 1..LAUNCH_ATTEMPTS) {
             ActivityScenario.launch(MainActivity::class.java).use {
                 if (appears(onNow, FIRST_SCREEN_MS) || attempt == LAUNCH_ATTEMPTS) {
@@ -194,47 +195,47 @@ class StoreScreenshots(play: String) {
         val group = tutor.group.name
 
         // The app opens on Today: the lesson on now leads, and the one over and not marked is under it.
-        waitFor(string(R.string.today_to_mark))
+        waitFor(string(Strings.today_to_mark))
         capture("today", marks = mapOf("next" to nowCard(), "toMark" to row(unmarked)), firsts = setOf("toMark"))
 
         scheduleTour()
 
-        tab(R.string.nav_people)
+        tab(Strings.nav_people)
         waitFor(student)
         val credit = tutor.inCredit.name
         liftUp(student)
         capture("people", marks = mapOf("debtor" to row(student), "credit" to row(credit)))
 
         click(student)
-        waitFor(string(R.string.stat_debt))
+        waitFor(string(Strings.stat_debt))
         capture("student")
         back()
 
-        click(string(R.string.groups_title))
+        click(string(Strings.groups_title))
         waitFor(group)
         click(group)
         settle()
         capture("group")
         back()
 
-        tab(R.string.nav_homework)
+        tab(Strings.nav_homework)
         waitFor(tutor.group.homework)
-        val add = hasContentDescription(string(R.string.homework_add)) and hasClickAction()
+        val add = hasContentDescription(string(Strings.homework_add)) and hasClickAction()
         capture("homework", marks = mapOf("first" to row(tutor.group.homework), "add" to add))
 
         reportsTour()
 
         switchOnReminders()
         gear()
-        waitFor(string(R.string.settings_lessons_title))
+        waitFor(string(Strings.settings_lessons_title))
         capture("settings")
-        click(string(R.string.settings_calendar_title))
-        waitFor(string(R.string.settings_calendar_sync_desc))
+        click(string(Strings.settings_calendar_title))
+        waitFor(string(Strings.settings_calendar_sync_desc))
         capture(
             "settings-calendar",
             marks = mapOf(
-                "sync" to row(string(R.string.settings_calendar_sync)),
-                "invites" to row(string(R.string.settings_email_invites)),
+                "sync" to row(string(Strings.settings_calendar_sync)),
+                "invites" to row(string(Strings.settings_email_invites)),
             ),
         )
         back()
@@ -246,46 +247,46 @@ class StoreScreenshots(play: String) {
     }
 
     private fun scheduleTour() {
-        tab(R.string.nav_schedule)
-        waitFor(string(R.string.class_status_in_progress))
+        tab(Strings.nav_schedule)
+        waitFor(string(Strings.class_status_in_progress))
         capture("schedule-day", marks = mapOf("onNow" to row(tutor.onNow.name)))
 
         click(tutor.group.name)
         settle()
         // The sheet's buttons: «Taught» and «Edit» told from the day's badges and rows by «Reschedule» beside them.
-        val move = string(R.string.class_move)
+        val move = string(Strings.class_move)
         val beside = hasAnySibling(hasText(move))
         capture(
             "lesson-sheet",
             marks = mapOf(
-                "taught" to (hasText(string(R.string.class_status_completed)) and hasClickAction() and beside),
+                "taught" to (hasText(string(Strings.class_status_completed)) and hasClickAction() and beside),
                 "move" to (hasText(move) and hasClickAction()),
-                "edit" to (hasText(string(R.string.action_edit)) and hasClickAction() and beside),
+                "edit" to (hasText(string(Strings.action_edit)) and hasClickAction() and beside),
             ),
         )
         back()
 
-        click(string(R.string.schedule_view_week))
+        click(string(Strings.schedule_view_week))
         settle()
         capture("schedule-week")
 
-        click(string(R.string.schedule_view_month))
+        click(string(Strings.schedule_view_month))
         settle()
         capture("schedule-month")
-        click(string(R.string.schedule_view_day))
+        click(string(Strings.schedule_view_day))
     }
 
     private fun reportsTour() {
-        val label = string(R.string.reports_total_income)
-        val byStudent = string(R.string.reports_by_student)
-        tab(R.string.nav_reports)
+        val label = string(Strings.reports_total_income)
+        val byStudent = string(Strings.reports_by_student)
+        tab(Strings.nav_reports)
         waitFor(label)
-        compose.onNode(hasContentDescription(string(R.string.reports_period))).performClick()
-        click(string(R.string.reports_period_month))
+        compose.onNode(hasContentDescription(string(Strings.reports_period))).performClick()
+        click(string(Strings.reports_period_month))
         settle()
         val list = hasScrollAction()
         val total = hasAnySibling(hasText(label)) and hasText(tutor.currency.symbol, substring = true)
-        val bar = hasAnyChild(hasText(string(R.string.nav_reports)) and isSelectable())
+        val bar = hasAnyChild(hasText(string(Strings.nav_reports)) and isSelectable())
         capture(
             "reports",
             marks = mapOf("income" to hasText(label), "list" to list, "anchor" to hasText(byStudent), "bar" to bar),
@@ -298,11 +299,11 @@ class StoreScreenshots(play: String) {
     }
 
     private fun darkTour() {
-        val dark = hasText(string(R.string.theme_dark)) and isSelectable()
+        val dark = hasText(string(Strings.theme_dark)) and isSelectable()
         gear()
-        waitFor(string(R.string.settings_appearance_title))
-        click(string(R.string.settings_appearance_title))
-        waitFor(string(R.string.settings_language))
+        waitFor(string(Strings.settings_appearance_title))
+        click(string(Strings.settings_appearance_title))
+        waitFor(string(Strings.settings_language))
         compose.onNode(dark).performScrollTo()
         capture("film-theme", marks = mapOf("dark" to dark))
         compose.onNode(dark).performClick()
@@ -313,14 +314,14 @@ class StoreScreenshots(play: String) {
         back()
 
         runBlocking { settings.update { it.copy(themeMode = ThemeChoice.DARK) } }
-        tab(R.string.nav_today)
-        waitFor(string(R.string.today_to_mark))
+        tab(Strings.nav_today)
+        waitFor(string(Strings.today_to_mark))
         capture("today-dark", dark = true)
-        tab(R.string.nav_schedule)
-        waitFor(string(R.string.class_status_in_progress))
+        tab(Strings.nav_schedule)
+        waitFor(string(Strings.class_status_in_progress))
         capture("schedule-day-dark", dark = true)
-        tab(R.string.nav_reports)
-        waitFor(string(R.string.reports_total_income))
+        tab(Strings.nav_reports)
+        waitFor(string(Strings.reports_total_income))
         capture("reports-dark", dark = true)
         runBlocking { settings.update { it.copy(themeMode = ThemeChoice.LIGHT) } }
     }
@@ -328,15 +329,15 @@ class StoreScreenshots(play: String) {
     private fun filmTour() {
         val student = tutor.onNow.name
         val unmarked = row(unmarked)
-        tab(R.string.nav_schedule)
-        waitFor(string(R.string.class_status_in_progress))
+        tab(Strings.nav_schedule)
+        waitFor(string(Strings.class_status_in_progress))
         capture("film-day", marks = mapOf("swipe" to unmarked))
         swipe(unmarked, "film-swipe")
         capture("film-swiped", marks = mapOf("swipe" to unmarked))
 
         val homework = row(student)
-        val add = hasContentDescription(string(R.string.homework_add)) and hasClickAction()
-        tab(R.string.nav_homework)
+        val add = hasContentDescription(string(Strings.homework_add)) and hasClickAction()
+        tab(Strings.nav_homework)
         waitFor(tutor.group.homework)
         capture("film-homework-list", marks = mapOf("swipe" to homework, "add" to add))
         swipe(homework, "film-homework-swipe")
@@ -356,8 +357,8 @@ class StoreScreenshots(play: String) {
             markOnNowTaught()
             settings.update { it.copy(themeMode = ThemeChoice.DARK) }
         }
-        tab(R.string.nav_today)
-        waitFor(string(R.string.today_lessons))
+        tab(Strings.nav_today)
+        waitFor(string(Strings.today_lessons))
         capture("film-today-dark", dark = true)
         runBlocking { settings.update { it.copy(themeMode = ThemeChoice.LIGHT) } }
         File(out, "film.json").writeText(
@@ -459,7 +460,7 @@ class StoreScreenshots(play: String) {
         // the reminder, the status bar's at [DemoTutor.NOW].
         val clock = DateTimeFormatter.ofPattern(if (DateFormat.is24HourFormat(app)) "HH:mm" else "h:mm", tutor.locale)
         File(out, "notifications.json").writeText(
-            "{\n  \"app\": \"Klas\", \"now\": ${json(string(R.string.schedule_now))}, \"date\": ${json(date)}, " +
+            "{\n  \"app\": \"Klas\", \"now\": ${json(string(Strings.schedule_now))}, \"date\": ${json(date)}, " +
                 "\"clock\": ${json(lockTime.toJavaLocalTime().format(clock))}, " +
                 "\"statusClock\": ${json(now.time.toJavaLocalTime().format(clock))},\n" +
                 "  \"notifications\": [\n$entries\n  ]\n}\n",
@@ -505,7 +506,7 @@ class StoreScreenshots(play: String) {
     private fun row(text: String) = hasText(text, substring = true) and hasClickAction()
 
     /** Today's card for the lesson on now, which the whole card opens. */
-    private fun nowCard() = hasText(string(R.string.today_now)) and hasClickAction()
+    private fun nowCard() = hasText(string(Strings.today_now)) and hasClickAction()
 
     /** [matcher]'s box on screen; with [first], the first of several in reading order, else the only one. */
     private fun bounds(shot: String, mark: String, matcher: SemanticsMatcher, first: Boolean = false): List<Int> {
@@ -589,12 +590,12 @@ class StoreScreenshots(play: String) {
 
     /** Settings, through the gear on the tab's bar. */
     private fun gear() {
-        compose.onAllNodes(hasContentDescription(string(R.string.settings_title)) and hasClickAction())
+        compose.onAllNodes(hasContentDescription(string(Strings.settings_title)) and hasClickAction())
             .onFirst().performClick()
         settle()
     }
 
-    private fun tab(@StringRes label: Int) {
+    private fun tab(label: StringResource) {
         compose.onNode(hasText(string(label)) and isSelectable()).performClick()
         settle()
     }
@@ -667,8 +668,8 @@ class StoreScreenshots(play: String) {
         compose.waitForIdle()
     }
 
-    private fun string(@StringRes id: Int): String =
-        ApplicationProvider.getApplicationContext<Context>().getString(id)
+    private fun string(id: StringResource): String =
+        ApplicationProvider.getApplicationContext<Context>().texts().string(id)
 
     private data class Shot(
         val name: String,

@@ -8,12 +8,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
-import com.seblful.klas.R
 import com.seblful.klas.domain.lesson.LessonKind
 import com.seblful.klas.domain.model.Group
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Student
+import com.seblful.klas.text.Strings
+import com.seblful.klas.text.stringResource
 import com.seblful.klas.ui.common.ActiveFilter
 import com.seblful.klas.ui.common.ActiveFilters
 import com.seblful.klas.ui.common.FilterMenu
@@ -41,10 +41,10 @@ internal fun ScheduleFilterAction(
     if (students.isEmpty() && groups.isEmpty() && filter.who == null) return
     val options =
         students.map { ScheduleWho.Student(it.id, it.name) } + groups.map { ScheduleWho.Group(it.id, it.name) }
-    FilterMenu(stringResource(R.string.schedule_filter)) { close ->
-        MenuHeading(stringResource(R.string.schedule_filter_who))
+    FilterMenu(stringResource(Strings.schedule_filter)) { close ->
+        MenuHeading(stringResource(Strings.schedule_filter_who))
         TickedMenuItem(
-            text = stringResource(R.string.schedule_filter_everyone),
+            text = stringResource(Strings.schedule_filter_everyone),
             selected = filter.who == null,
             onClick = { close(); onWho(null) },
         )
@@ -59,9 +59,9 @@ internal fun ScheduleFilterAction(
             )
         }
         KlasDivider()
-        MenuHeading(stringResource(R.string.schedule_filter_status))
+        MenuHeading(stringResource(Strings.schedule_filter_status))
         TickedMenuItem(
-            text = stringResource(R.string.schedule_filter_any_status),
+            text = stringResource(Strings.schedule_filter_any_status),
             selected = filter.status == null,
             onClick = { close(); onStatus(null) },
         )

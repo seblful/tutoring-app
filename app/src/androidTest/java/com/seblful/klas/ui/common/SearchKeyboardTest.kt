@@ -23,7 +23,8 @@ import androidx.compose.ui.unit.dp
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.test.espresso.Espresso.pressBack
-import com.seblful.klas.R
+import com.seblful.klas.testutil.texts
+import com.seblful.klas.text.Strings
 import com.seblful.klas.ui.theme.KlasTheme
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -56,7 +57,7 @@ class SearchKeyboardTest {
                 }
             }
         }
-        compose.onNodeWithContentDescription(compose.activity.getString(R.string.action_search)).performClick()
+        compose.onNodeWithContentDescription(compose.activity.texts().string(Strings.action_search)).performClick()
         compose.waitUntil(10_000) { keyboardHeight() > 0 }
         settleKeyboard()
         compose.onNodeWithTag("results").performScrollToIndex(44)
@@ -68,10 +69,10 @@ class SearchKeyboardTest {
 
         pressBack()
         compose.waitUntil(10_000) { keyboardHeight() == 0 }
-        compose.onNodeWithContentDescription(compose.activity.getString(R.string.search_close)).assertIsDisplayed()
+        compose.onNodeWithContentDescription(compose.activity.texts().string(Strings.search_close)).assertIsDisplayed()
         pressBack()
         compose.onNodeWithText("People").assertIsDisplayed()
-        compose.onNodeWithContentDescription(compose.activity.getString(R.string.search_close)).assertDoesNotExist()
+        compose.onNodeWithContentDescription(compose.activity.texts().string(Strings.search_close)).assertDoesNotExist()
         assertFalse(compose.activity.isFinishing)
     }
 }

@@ -1,12 +1,12 @@
 package com.seblful.klas.ui.people
 
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.res.stringResource
-import com.seblful.klas.R
 import com.seblful.klas.data.lessons.NearestLessons
 import com.seblful.klas.domain.schedule.CalendarLayout
 import com.seblful.klas.format.formatNearDate
 import com.seblful.klas.format.shortDisplayName
+import com.seblful.klas.text.Strings
+import com.seblful.klas.text.stringResource
 import com.seblful.klas.ui.common.timeText
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
@@ -51,22 +51,22 @@ sealed interface LessonLine {
 fun lessonLineText(line: LessonLine, timeAlways: Boolean = false): String = when (line) {
     is LessonLine.Next -> when (line.daysAway) {
         // A lesson under way started today; one that started yesterday and runs past midnight is today's too.
-        in Int.MIN_VALUE..0 -> stringResource(R.string.people_next_today, line.time.timeText())
-        1 -> stringResource(R.string.people_next_tomorrow, line.time.timeText())
+        in Int.MIN_VALUE..0 -> stringResource(Strings.people_next_today, line.time.timeText())
+        1 -> stringResource(Strings.people_next_tomorrow, line.time.timeText())
         in 2 until DAYS_NAMED -> stringResource(
-            R.string.people_next_weekday,
+            Strings.people_next_weekday,
             line.date.dayOfWeek.shortDisplayName(),
             line.time.timeText(),
         )
         // «%1$s %2$s» is a day then a time, whichever way the day is named.
         else -> if (timeAlways) {
-            stringResource(R.string.people_next_weekday, line.date.formatNearDate(line.thisYear), line.time.timeText())
+            stringResource(Strings.people_next_weekday, line.date.formatNearDate(line.thisYear), line.time.timeText())
         } else {
             line.date.formatNearDate(line.thisYear)
         }
     }
-    is LessonLine.Last -> stringResource(R.string.people_last_lesson, line.date.formatNearDate(line.thisYear))
-    LessonLine.Never -> stringResource(R.string.people_no_lessons)
+    is LessonLine.Last -> stringResource(Strings.people_last_lesson, line.date.formatNearDate(line.thisYear))
+    LessonLine.Never -> stringResource(Strings.people_no_lessons)
 }
 
 /** Within a week a weekday is unambiguous; past it «Thu» could be either Thursday. */

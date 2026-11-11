@@ -7,7 +7,8 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextReplacement
 import androidx.test.platform.app.InstrumentationRegistry
-import com.seblful.klas.R
+import com.seblful.klas.testutil.texts
+import com.seblful.klas.text.Strings
 import com.seblful.klas.ui.theme.KlasTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -38,7 +39,7 @@ class DurationPickerModalTest {
     private fun hours() = rule.onAllNodes(hasSetTextAction())[0]
     private fun minutes() = rule.onAllNodes(hasSetTextAction())[1]
 
-    private fun confirm() = rule.onNodeWithText(context.getString(R.string.action_done))
+    private fun confirm() = rule.onNodeWithText(context.texts().string(Strings.action_done))
 
     @Test
     fun hoursAndMinutesAreConfirmedAsOneLength() {

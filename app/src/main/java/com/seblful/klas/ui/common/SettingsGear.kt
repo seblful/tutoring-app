@@ -1,8 +1,8 @@
 package com.seblful.klas.ui.common
 
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.res.stringResource
-import com.seblful.klas.R
+import com.seblful.klas.text.Strings
+import com.seblful.klas.text.stringResource
 import com.seblful.klas.ui.theme.KlasIcons
 
 /**
@@ -11,5 +11,5 @@ import com.seblful.klas.ui.theme.KlasIcons
  */
 @Composable
 fun SettingsGear(onClick: () -> Unit) {
-    NamedIconButton(KlasIcons.Outlined.Settings, stringResource(R.string.settings_title), onClick = onClick)
+    NamedIconButton(KlasIcons.Outlined.Settings, stringResource(Strings.settings_title), onClick = onClick)
 }

@@ -3,6 +3,7 @@ package com.seblful.klas.notifications
 import android.view.KeyEvent
 import androidx.core.content.pm.ShortcutManagerCompat
 import androidx.test.core.app.ApplicationProvider
+import com.seblful.klas.testutil.texts
 import com.seblful.klas.ui.navigation.KeyboardShortcuts
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -45,7 +46,7 @@ class EntryPointsTest {
     fun `the launcher offers booking, today, homework and debts, each a tray entry`() {
         val context = ApplicationProvider.getApplicationContext<android.content.Context>()
 
-        AppShortcuts.publish(context)
+        AppShortcuts.publish(context, context.texts())
 
         val shortcuts = ShortcutManagerCompat.getDynamicShortcuts(context).sortedBy { it.rank }
         assertEquals(listOf("book", "today", "homework", "debts"), shortcuts.map { it.id })

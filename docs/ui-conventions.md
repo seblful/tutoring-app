@@ -215,15 +215,22 @@ Build screens from shared state and controls. Feature rules belong in the domain
   A swipe tip peeks the row short of the mark (`SwipeToConfirmBox(peek)`) and, under TalkBack, names the
   row's action instead. An install already through setup when it upgrades to v14, and a restored backup,
   start with it done; Settings' «Show tips again» brings it all back.
-- Apply `AppLanguage` with `ProvideLocalizedResources`, never `Locale.setDefault()`. `StringCoverageTest`
-  checks resource parity; language changes re-sync baked calendar text. Setup and Settings share
+- Words come from the text catalog (`com.seblful.klas.text`): `stringResource(Strings.x)`,
+  `pluralStringResource(Plurals.x, n, n)`, `stringArrayResource(StringArrays.x)` in a composable, and
+  `Texts.string`/`plural` elsewhere — a notification, widget or calendar event takes `DisplayLocale.texts`.
+  The language is always explicit: the root provides `LocalTexts` for the chosen `AppLanguage`, never
+  `Locale.setDefault()`. `StringCoverageTest` checks resource parity; language changes re-sync baked
+  calendar text. Setup and Settings share
   `LanguageChoices`: System first, followed by all 25 variants in stable autonym order — setup's dropdown,
   and in Settings a value row opening a list dialog, as Currency's does. Native names live in `Language.kt` so they stay recognizable in any selected language.
   `ProvideLocalizedResources` also sets Compose layout direction; Arabic uses right-to-left layout.
   System matching respects Chinese script (Hans/Hant), then region (TW/HK/MO use Traditional); bare
   Chinese uses Simplified. Portuguese uses Brazil for bare `pt`/BR and Portugal for other regions.
-  Unsupported phone languages fall back to English. Translations live in `app/src/main/res`; the
-  inventory and review status are in `localization/manifest.json`. Run
+  Unsupported phone languages fall back to English. Translations live in `ui/src/commonMain/strings`
+  (Android's `values…/strings.xml` format, compiled for both platforms — see [Architecture](architecture.md#text));
+  only what Android itself reads — the launcher label and the widget picker's names — stays in
+  `app/src/main/res/values…/launcher_strings.xml`. The inventory and review status are in
+  `localization/manifest.json`. Run
   `python -X utf8 localization/verify_translations.py --report localization/verification.json` for
   detailed resource checks. Technical checks do not replace native-speaker or screen review: hand out
   `localization/native-review/` (regenerate with `native_review.py`).

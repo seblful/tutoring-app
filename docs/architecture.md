@@ -78,6 +78,23 @@ writes use injected `@ApplicationScope` through `write`/`writeAwaited`, so saves
 failures reach the application handler and crash log. Use `runCatchingCancellable`, which preserves
 coroutine cancellation. See [UI conventions](ui-conventions.md) for screen plumbing.
 
+## Text
+
+The app's words are one catalog for Android and iOS. Translators edit
+[`ui/src/commonMain/strings`](../ui/src/commonMain/strings/) — one Android-format `values…/strings.xml` per
+language, `values/` English and the fallback. The `klas.strings` plugin in [`build-logic`](../build-logic/)
+compiles them into `Strings`, `Plurals` and `StringArrays` keys plus one table per language, read through
+[`Texts`](../ui/src/commonMain/kotlin/com/seblful/klas/text/Texts.kt). It keeps aapt2's escapes and
+whitespace rules and refuses format specifiers other than `%1$s`, `%1$d` and `%%`.
+
+Lookup takes the language explicitly rather than the process locale: Settings can choose a language
+other than the phone's, and background work (notifications, widgets, calendar events) speaks the stored
+one. That is why the catalog is not Compose Multiplatform's string resources, which follow
+`Locale.getDefault()`; fonts and images are Compose resources. Plural forms use CLDR rules written out in
+`PluralRules`, which `PluralRulesTest` holds to Android's ICU; `%d` takes the language's digits from the
+platform's number formatter. Strings that Android reads from XML — the launcher label and the widget
+picker's names — stay Android resources in `app/src/main/res/values…/launcher_strings.xml`.
+
 ## Dependency injection
 
 Metro checks bindings at compile time. Before upgrading Kotlin, check Metro's compiler compatibility

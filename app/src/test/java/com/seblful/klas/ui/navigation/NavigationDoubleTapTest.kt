@@ -11,7 +11,6 @@ import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import com.seblful.klas.MainActivity
-import com.seblful.klas.R
 import com.seblful.klas.domain.model.AppLanguage
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Student
@@ -24,6 +23,9 @@ import com.seblful.klas.testutil.FakeCalendarPermission
 import com.seblful.klas.testutil.FakeCalendarSync
 import com.seblful.klas.testutil.RecordingDigestScheduler
 import com.seblful.klas.testutil.RecordingReminderScheduler
+import com.seblful.klas.testutil.texts
+import com.seblful.klas.text.StringResource
+import com.seblful.klas.text.Strings
 import dev.zacsweers.metro.createGraphFactory
 import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.DayOfWeek
@@ -68,16 +70,16 @@ class NavigationDoubleTapTest {
     @Test
     fun `a double tap on a card's back arrow closes only the card`() {
         ActivityScenario.launch(MainActivity::class.java).use {
-            waitFor(text(R.string.nav_people))
+            waitFor(text(Strings.nav_people))
             compose.onNode(peopleTab).performClick()
             waitFor(STUDENT)
             compose.onNodeWithText(STUDENT).performClick()
-            waitFor(text(R.string.payment_add_short))
+            waitFor(text(Strings.payment_add_short))
 
             // Two taps a few frames apart: the second lands on the card while it is still fading out.
             compose.mainClock.autoAdvance = false
             repeat(2) {
-                compose.onNodeWithContentDescription(text(R.string.action_back)).performClick()
+                compose.onNodeWithContentDescription(text(Strings.action_back)).performClick()
                 repeat(FRAMES_BETWEEN_TAPS) { compose.mainClock.advanceTimeByFrame() }
             }
             compose.mainClock.autoAdvance = true
@@ -87,13 +89,13 @@ class NavigationDoubleTapTest {
         }
     }
 
-    private val peopleTab get() = hasText(text(R.string.nav_people)) and isSelectable()
+    private val peopleTab get() = hasText(text(Strings.nav_people)) and isSelectable()
 
     private fun waitFor(value: String) = compose.waitUntil(TIMEOUT_MS) {
         compose.onAllNodesWithText(value).fetchSemanticsNodes().isNotEmpty()
     }
 
-    private fun text(res: Int) = ApplicationProvider.getApplicationContext<StoreApp>().getString(res)
+    private fun text(res: StringResource) = ApplicationProvider.getApplicationContext<StoreApp>().texts().string(res)
 
     private companion object {
         const val STUDENT = "Double-tap student"

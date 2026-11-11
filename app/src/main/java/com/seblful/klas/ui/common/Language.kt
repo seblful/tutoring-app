@@ -2,9 +2,9 @@ package com.seblful.klas.ui.common
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ReadOnlyComposable
-import androidx.compose.ui.res.stringResource
-import com.seblful.klas.R
 import com.seblful.klas.domain.model.AppLanguage
+import com.seblful.klas.text.Strings
+import com.seblful.klas.text.stringResource
 
 /** Native names stay readable when the tutor needs to leave an unfamiliar app language. */
 private val autonyms = mapOf(
@@ -43,7 +43,7 @@ val LanguageChoices = listOf(AppLanguage.SYSTEM) + AppLanguage.translated.sorted
 @Composable
 @ReadOnlyComposable
 fun languageLabel(language: AppLanguage): String = if (language == AppLanguage.SYSTEM) {
-    stringResource(R.string.language_system)
+    stringResource(Strings.language_system)
 } else {
     languageAutonym(language)
 }

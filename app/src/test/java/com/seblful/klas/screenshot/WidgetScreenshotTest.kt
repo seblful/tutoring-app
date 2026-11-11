@@ -22,7 +22,10 @@ import com.github.takahirom.roborazzi.ThresholdValidator
 import com.github.takahirom.roborazzi.captureRoboImage
 import com.seblful.klas.MainActivity
 import com.seblful.klas.R
-import com.seblful.klas.format.inLanguage
+import com.seblful.klas.testutil.texts
+import com.seblful.klas.text.StringResource
+import com.seblful.klas.text.Strings
+import com.seblful.klas.text.Texts
 import com.seblful.klas.widget.KlasWidgetColors
 import com.seblful.klas.widget.QuickActionsLayout
 import com.seblful.klas.widget.TodayLayout
@@ -116,24 +119,24 @@ class WidgetScreenshotTest {
 
     private fun shortcuts(name: String, size: DpSize, night: Boolean = false) =
         capture("Shortcuts.$name", size, night) { words ->
-            fun button(icon: Int, label: Int) = ToolBarButton(icon, words.getString(label), Tap)
+            fun button(icon: Int, label: StringResource) = ToolBarButton(icon, words.string(label), Tap)
             QuickActionsLayout(
-                appName = words.getString(R.string.app_name),
+                appName = words.string(Strings.app_name),
                 openApp = Tap,
-                headerButton = button(R.drawable.widget_icon_add, R.string.schedule_add_class),
+                headerButton = button(R.drawable.widget_icon_add, Strings.schedule_add_class),
                 buttons = listOf(
-                    button(R.drawable.widget_icon_today, R.string.schedule_today),
-                    button(R.drawable.widget_icon_people, R.string.nav_people),
-                    button(R.drawable.widget_icon_homework, R.string.nav_homework),
-                    button(R.drawable.widget_icon_debts, R.string.debts_title),
+                    button(R.drawable.widget_icon_today, Strings.schedule_today),
+                    button(R.drawable.widget_icon_people, Strings.nav_people),
+                    button(R.drawable.widget_icon_homework, Strings.nav_homework),
+                    button(R.drawable.widget_icon_debts, Strings.debts_title),
                 ),
             )
         }
 
-    private fun capture(name: String, size: DpSize, night: Boolean, content: @Composable (words: Context) -> Unit) {
+    private fun capture(name: String, size: DpSize, night: Boolean, content: @Composable (words: Texts) -> Unit) {
         if (night) RuntimeEnvironment.setQualifiers("+night")
         val activity = Robolectric.buildActivity(Activity::class.java).setup().get()
-        val words = activity.inLanguage(Locale.forLanguageTag("ru"))
+        val words = Texts.of("ru")
         val widget = object : GlanceAppWidget() {
             override val sizeMode = SizeMode.Exact
 

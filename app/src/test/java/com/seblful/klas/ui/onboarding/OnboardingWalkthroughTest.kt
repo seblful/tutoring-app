@@ -17,7 +17,6 @@ import androidx.compose.ui.test.performTextInput
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import com.seblful.klas.MainActivity
-import com.seblful.klas.R
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.store.DemoTutor
 import com.seblful.klas.store.StoreApp
@@ -27,6 +26,9 @@ import com.seblful.klas.testutil.FakeCalendarPermission
 import com.seblful.klas.testutil.FakeCalendarSync
 import com.seblful.klas.testutil.RecordingDigestScheduler
 import com.seblful.klas.testutil.RecordingReminderScheduler
+import com.seblful.klas.testutil.texts
+import com.seblful.klas.text.StringResource
+import com.seblful.klas.text.Strings
 import dev.zacsweers.metro.createGraphFactory
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -70,45 +72,45 @@ class OnboardingWalkthroughTest {
     @Test
     fun `setup asks for the basics, a subject and a priced student - and nothing else`() {
         ActivityScenario.launch(MainActivity::class.java).use {
-            tap(R.string.onboarding_start)
+            tap(Strings.onboarding_start)
 
             // The basics: the lesson length sits beside the language and currency, and is stored as tapped.
-            waitFor(R.string.settings_default_lesson)
-            tap(R.string.hours_one_and_half)
+            waitFor(Strings.settings_default_lesson)
+            tap(Strings.hours_one_and_half)
             stored { graph.settings.get().defaultLessonMinutes == 90 }
-            tap(R.string.onboarding_continue)
+            tap(Strings.onboarding_continue)
 
             // A suggested subject is one tap, and on while it exists.
-            waitFor(R.string.onboarding_subjects_desc)
+            waitFor(Strings.onboarding_subjects_desc)
             compose.onNodeWithText(MATH).performClick()
             stored { graph.subjects.observeAll().first().isNotEmpty() }
             mathShown(selected = true)
             compose.onAllNodesWithText(MATH).onFirst().assertIsSelected()
-            tap(R.string.onboarding_continue)
+            tap(Strings.onboarding_continue)
 
             // The student: a name and the only subject's price, already ticked; no contact fields.
-            waitFor(R.string.onboarding_student_desc)
-            compose.onNodeWithText(text(R.string.student_phone_label)).assertDoesNotExist()
-            compose.onNodeWithText(text(R.string.student_email_label)).assertDoesNotExist()
+            waitFor(Strings.onboarding_student_desc)
+            compose.onNodeWithText(text(Strings.student_phone_label)).assertDoesNotExist()
+            compose.onNodeWithText(text(Strings.student_email_label)).assertDoesNotExist()
             compose.onNodeWithText(MATH).assertIsOn()
-            compose.onNodeWithText(text(R.string.student_name_label)).performTextInput("Anna")
-            compose.onNodeWithText(text(R.string.price_label)).performTextInput("30")
+            compose.onNodeWithText(text(Strings.student_name_label)).performTextInput("Anna")
+            compose.onNodeWithText(text(Strings.price_label)).performTextInput("30")
             // Said per lesson of the length picked on the first step: 30 an hour is 45 for 90 minutes.
             compose.onNodeWithText("45", substring = true).assertExists()
-            compose.onNodeWithText(text(R.string.onboarding_finish)).assertIsEnabled()
-            tap(R.string.onboarding_finish)
+            compose.onNodeWithText(text(Strings.onboarding_finish)).assertIsEnabled()
+            tap(Strings.onboarding_finish)
 
             // The student is in; their first lesson is offered, and booking it is where setup gives way to the
             // app — on the booking form, for them.
             compose.waitUntil(TIMEOUT) {
-                compose.onAllNodesWithText(text(R.string.onboarding_book_first)).fetchSemanticsNodes().isNotEmpty()
+                compose.onAllNodesWithText(text(Strings.onboarding_book_first)).fetchSemanticsNodes().isNotEmpty()
             }
             // A last screen, not a form: «All set» once, in its body, and «Not now» beside the booking, not also above.
-            compose.onAllNodesWithText(text(R.string.onboarding_ready_title)).assertCountEquals(1)
-            compose.onAllNodesWithText(text(R.string.onboarding_not_now)).assertCountEquals(1)
-            tap(R.string.onboarding_book_first)
+            compose.onAllNodesWithText(text(Strings.onboarding_ready_title)).assertCountEquals(1)
+            compose.onAllNodesWithText(text(Strings.onboarding_not_now)).assertCountEquals(1)
+            tap(Strings.onboarding_book_first)
             compose.waitUntil(TIMEOUT) {
-                compose.onAllNodesWithText(text(R.string.class_add_title)).fetchSemanticsNodes().isNotEmpty()
+                compose.onAllNodesWithText(text(Strings.class_add_title)).fetchSemanticsNodes().isNotEmpty()
             }
             compose.onNodeWithText("Anna", substring = true).assertExists()
             assertTrue(runBlocking { graph.settings.get().onboardingComplete })
@@ -123,9 +125,9 @@ class OnboardingWalkthroughTest {
     @Test
     fun `a suggested subject tapped again is taken back`() {
         ActivityScenario.launch(MainActivity::class.java).use {
-            tap(R.string.onboarding_start)
-            tap(R.string.onboarding_continue)
-            waitFor(R.string.onboarding_subjects_desc)
+            tap(Strings.onboarding_start)
+            tap(Strings.onboarding_continue)
+            waitFor(Strings.onboarding_subjects_desc)
 
             compose.onNodeWithText(MATH).performClick()
             stored { graph.subjects.observeAll().first().isNotEmpty() }
@@ -135,24 +137,24 @@ class OnboardingWalkthroughTest {
 
             mathShown(selected = false)
             compose.onNodeWithText(MATH).assertIsNotSelected()
-            assertTrue(compose.onAllNodesWithText(text(R.string.action_undo)).fetchSemanticsNodes().isNotEmpty())
+            assertTrue(compose.onAllNodesWithText(text(Strings.action_undo)).fetchSemanticsNodes().isNotEmpty())
         }
     }
 
     @Test
     fun `a subject is typed in place, and setup can be skipped from any step`() {
         ActivityScenario.launch(MainActivity::class.java).use {
-            tap(R.string.onboarding_start)
-            tap(R.string.onboarding_continue)
-            waitFor(R.string.onboarding_subjects_desc)
+            tap(Strings.onboarding_start)
+            tap(Strings.onboarding_continue)
+            waitFor(Strings.onboarding_subjects_desc)
 
-            compose.onNodeWithText(text(R.string.subjects_add)).performTextInput("Astronomy")
-            compose.onNodeWithText(text(R.string.subjects_add)).performImeAction()
+            compose.onNodeWithText(text(Strings.subjects_add)).performTextInput("Astronomy")
+            compose.onNodeWithText(text(Strings.subjects_add)).performImeAction()
             stored { graph.subjects.observeAll().first().map { it.name } == listOf("Astronomy") }
 
-            tap(R.string.onboarding_skip)
+            tap(Strings.onboarding_skip)
             compose.waitUntil(TIMEOUT) {
-                compose.onAllNodesWithText(text(R.string.onboarding_subjects_desc)).fetchSemanticsNodes().isEmpty()
+                compose.onAllNodesWithText(text(Strings.onboarding_subjects_desc)).fetchSemanticsNodes().isEmpty()
             }
             assertTrue(runBlocking { graph.settings.get().onboardingComplete })
         }
@@ -176,17 +178,17 @@ class OnboardingWalkthroughTest {
             ?.config?.getOrNull(SemanticsProperties.Selected) == selected
     }
 
-    private fun tap(res: Int) {
+    private fun tap(res: StringResource) {
         waitFor(res)
         compose.onNodeWithText(text(res)).performClick()
         compose.waitForIdle()
     }
 
-    private fun waitFor(res: Int) = compose.waitUntil(TIMEOUT) {
+    private fun waitFor(res: StringResource) = compose.waitUntil(TIMEOUT) {
         compose.onAllNodesWithText(text(res)).fetchSemanticsNodes().isNotEmpty()
     }
 
-    private fun text(res: Int) = ApplicationProvider.getApplicationContext<StoreApp>().getString(res)
+    private fun text(res: StringResource) = ApplicationProvider.getApplicationContext<StoreApp>().texts().string(res)
 
     private companion object {
         const val TIMEOUT = 10_000L

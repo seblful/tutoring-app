@@ -9,10 +9,10 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.window.DialogProperties
-import com.seblful.klas.R
 import com.seblful.klas.lock.UnlockedWindow
+import com.seblful.klas.text.Strings
+import com.seblful.klas.text.stringResource
 
 /**
  * A small form — at most three inputs — with Save and Cancel. A stray tap outside never throws away what was
@@ -41,7 +41,7 @@ fun FormDialog(
             confirmButton = { ActionButton(confirm) },
             dismissButton = {
                 extra?.let { ActionButton(it) }
-                KlasButton(onClick = onDismiss, kind = ButtonKind.Text) { Text(stringResource(R.string.action_cancel)) }
+                KlasButton(onClick = onDismiss, kind = ButtonKind.Text) { Text(stringResource(Strings.action_cancel)) }
             },
         )
     }
@@ -59,7 +59,7 @@ fun ChoiceDialog(title: String, onDismiss: () -> Unit, content: @Composable () -
             title = { Text(title) },
             text = { drafts.SaveableStateProvider("body", content) },
             confirmButton = {
-                KlasButton(onClick = onDismiss, kind = ButtonKind.Text) { Text(stringResource(R.string.action_cancel)) }
+                KlasButton(onClick = onDismiss, kind = ButtonKind.Text) { Text(stringResource(Strings.action_cancel)) }
             },
         )
     }

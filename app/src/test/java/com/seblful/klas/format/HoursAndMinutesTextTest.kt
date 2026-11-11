@@ -2,6 +2,7 @@ package com.seblful.klas.format
 
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
+import com.seblful.klas.testutil.texts
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -11,7 +12,7 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 class HoursAndMinutesTextTest {
 
-    private val res get() = ApplicationProvider.getApplicationContext<Context>().resources
+    private val res get() = ApplicationProvider.getApplicationContext<Context>().texts()
 
     @Test
     @Config(qualifiers = "en")

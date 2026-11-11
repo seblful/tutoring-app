@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+      The only strings Android itself reads: the launcher label (the manifest) and the widget picker's names
+      and descriptions (`res/xml/widget_*_info.xml`). Everything the app writes is in the text catalog,
+      `ui/src/commonMain/strings`, which the app reads in the language the tutor chose.
+    -->
+    <string name="app_name" translatable="false">Klas</string>
+
+    <string name="widget_today_name">Today\'s lessons</string>
+    <string name="widget_today_description">Today\'s lessons, marked taught with one tap</string>
+    <string name="widget_quick_actions_name">Klas shortcuts</string>
+    <string name="widget_quick_actions_description">Book a lesson, add a student, or open today, homework and debts</string>
+</resources>

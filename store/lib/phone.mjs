@@ -6,6 +6,8 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 export const RES = join(ROOT, "app", "src", "main", "res");
+/** The text catalog's Android-format string files, one `values…` folder per language. */
+export const STRINGS = join(ROOT, "ui", "src", "commonMain", "strings");
 export const LOGO = join(RES, "drawable-nodpi", "ic_logo.png");
 
 /**

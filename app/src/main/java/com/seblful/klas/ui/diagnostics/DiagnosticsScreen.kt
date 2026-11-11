@@ -18,10 +18,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.seblful.klas.R
+import com.seblful.klas.text.Strings
+import com.seblful.klas.text.stringResource
 import com.seblful.klas.ui.common.ConfirmDialog
 import com.seblful.klas.ui.common.EmptyState
 import com.seblful.klas.ui.common.KlasScreen
@@ -43,12 +43,12 @@ fun DiagnosticsScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val messages = rememberMessages()
-    val noPickerMsg = stringResource(R.string.student_contact_failed)
+    val noPickerMsg = stringResource(Strings.student_contact_failed)
     var confirmingClear by remember { mutableStateOf(false) }
 
-    val exportOk = stringResource(R.string.diagnostics_export_success)
-    val error = stringResource(R.string.diagnostics_error)
-    val exportFilename = stringResource(R.string.diagnostics_filename)
+    val exportOk = stringResource(Strings.diagnostics_export_success)
+    val error = stringResource(Strings.diagnostics_error)
+    val exportFilename = stringResource(Strings.diagnostics_filename)
 
     ShowMessagesFor(viewModel.events, messages) { event ->
         when (event) {
@@ -60,7 +60,7 @@ fun DiagnosticsScreen(
     val export = rememberCreateDocument("text/plain", noPickerMsg, messages) { viewModel.export(it) }
 
     KlasScreen(
-        title = stringResource(R.string.diagnostics_title),
+        title = stringResource(Strings.diagnostics_title),
         onBack = onBack,
         messages = messages,
     ) { modifier, bottomInset ->
@@ -69,7 +69,7 @@ fun DiagnosticsScreen(
             verticalArrangement = Arrangement.spacedBy(Spacing.itemGap),
         ) {
             Text(
-                stringResource(R.string.diagnostics_desc),
+                stringResource(Strings.diagnostics_desc),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -78,7 +78,7 @@ fun DiagnosticsScreen(
                 // The app's empty state, compact: a sentence on its own read as a stray line of the
                 // description above it.
                 EmptyState(
-                    title = stringResource(R.string.diagnostics_empty),
+                    title = stringResource(Strings.diagnostics_empty),
                     icon = KlasIcons.Outlined.CheckCircle,
                     compact = true,
                 )
@@ -88,14 +88,14 @@ fun DiagnosticsScreen(
             } else {
                 Row(horizontalArrangement = Arrangement.spacedBy(Spacing.inline)) {
                     KlasButton(onClick = { export(exportFilename) }, kind = ButtonKind.Outlined) {
-                        Text(stringResource(R.string.diagnostics_export))
+                        Text(stringResource(Strings.diagnostics_export))
                     }
                     // Clearing loses the log, so it is said in red like every other loss.
                     KlasButton(
                         onClick = { confirmingClear = true },
                         kind = ButtonKind.DestructiveOutlined,
                     ) {
-                        Text(stringResource(R.string.diagnostics_clear))
+                        Text(stringResource(Strings.diagnostics_clear))
                     }
                 }
                 // **The log takes the space that is left, and scrolls inside it.** A crash log is
@@ -126,7 +126,7 @@ fun DiagnosticsScreen(
                     onClick = { throw RuntimeException("Test crash from Diagnostics screen") },
                     kind = ButtonKind.DestructiveOutlined,
                 ) {
-                    Text(stringResource(R.string.diagnostics_test_crash))
+                    Text(stringResource(Strings.diagnostics_test_crash))
                 }
             }
         }
@@ -134,8 +134,8 @@ fun DiagnosticsScreen(
 
     if (confirmingClear) {
         ConfirmDialog(
-            text = stringResource(R.string.diagnostics_clear_confirm),
-            confirmLabel = stringResource(R.string.diagnostics_clear),
+            text = stringResource(Strings.diagnostics_clear_confirm),
+            confirmLabel = stringResource(Strings.diagnostics_clear),
             destructive = true,
             onConfirm = { viewModel.clear() },
             onDismiss = { confirmingClear = false },

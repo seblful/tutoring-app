@@ -15,8 +15,10 @@ import androidx.glance.appwidget.SizeMode
 import androidx.glance.appwidget.provideContent
 import com.seblful.klas.R
 import com.seblful.klas.di.appGraph
-import com.seblful.klas.format.inLanguage
 import com.seblful.klas.notifications.TrayNavigation
+import com.seblful.klas.text.StringResource
+import com.seblful.klas.text.Strings
+import com.seblful.klas.text.Texts
 import kotlinx.coroutines.flow.first
 import java.util.Locale
 
@@ -48,28 +50,28 @@ class QuickActionsWidget : GlanceAppWidget() {
 
     @Composable
     private fun Content(context: Context, locale: Locale) {
-        val words = context.inLanguage(locale)
-        fun button(iconRes: Int, labelRes: Int, action: String) =
-            ToolBarButton(iconRes, words.getString(labelRes), openApp(context, action))
+        val words = Texts.of(locale.toLanguageTag())
+        fun button(iconRes: Int, labelRes: StringResource, action: String) =
+            ToolBarButton(iconRes, words.string(labelRes), openApp(context, action))
 
         GlanceTheme(colors = KlasWidgetColors) {
             QuickActionsLayout(
-                appName = words.getString(R.string.app_name),
+                appName = words.string(Strings.app_name),
                 openApp = openApp(context, Intent.ACTION_MAIN),
                 headerButton = button(
                     R.drawable.widget_icon_add,
-                    R.string.schedule_add_class,
+                    Strings.schedule_add_class,
                     TrayNavigation.ACTION_BOOK_LESSON,
                 ),
                 buttons = listOf(
-                    button(R.drawable.widget_icon_today, R.string.schedule_today, TrayNavigation.ACTION_OPEN_TODAY),
-                    button(R.drawable.widget_icon_people, R.string.nav_people, TrayNavigation.ACTION_OPEN_PEOPLE),
+                    button(R.drawable.widget_icon_today, Strings.schedule_today, TrayNavigation.ACTION_OPEN_TODAY),
+                    button(R.drawable.widget_icon_people, Strings.nav_people, TrayNavigation.ACTION_OPEN_PEOPLE),
                     button(
                         R.drawable.widget_icon_homework,
-                        R.string.nav_homework,
+                        Strings.nav_homework,
                         TrayNavigation.ACTION_OPEN_HOMEWORK,
                     ),
-                    button(R.drawable.widget_icon_debts, R.string.debts_title, TrayNavigation.ACTION_OPEN_DEBTS),
+                    button(R.drawable.widget_icon_debts, Strings.debts_title, TrayNavigation.ACTION_OPEN_DEBTS),
                 ),
             )
         }

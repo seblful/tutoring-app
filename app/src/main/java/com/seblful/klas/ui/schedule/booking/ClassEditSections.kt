@@ -11,10 +11,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.seblful.klas.R
 import com.seblful.klas.domain.model.Assignee
+import com.seblful.klas.text.Strings
+import com.seblful.klas.text.stringResource
 import com.seblful.klas.ui.common.AddRow
 import com.seblful.klas.ui.common.DropdownField
 import com.seblful.klas.ui.common.MemberPickRow
@@ -68,7 +68,7 @@ internal fun WhoSection(
     } else {
         when (form.target) {
             ClassTarget.STUDENT -> DropdownField(
-                label = stringResource(R.string.class_student_label),
+                label = stringResource(Strings.class_student_label),
                 selectedText = state.studentName,
                 options = remember(state.students) { state.students.map { it.id to it.name } },
                 onSelect = { id -> viewModel.change(BookingIntent.ChooseStudent(id)) },
@@ -77,7 +77,7 @@ internal fun WhoSection(
             // A booked lesson can't be handed to another group: its members' classes are billed history,
             // and the other group is a different set of people.
             ClassTarget.GROUP -> DropdownField(
-                label = stringResource(R.string.class_group_label),
+                label = stringResource(Strings.class_group_label),
                 selectedText = state.groupName,
                 options = emptyList(),
                 onSelect = {},
@@ -103,7 +103,7 @@ private fun WhoField(
     setup: BookingSetupNavigation,
 ) {
     MenuField(
-        label = stringResource(R.string.class_who_label),
+        label = stringResource(Strings.class_who_label),
         selectedText = if (state.form.target == ClassTarget.GROUP) state.groupName else state.studentName,
         enabled = true,
     ) { dismiss ->
@@ -122,12 +122,12 @@ private fun WhoField(
         }
         if (choices.isNotEmpty()) KlasDivider()
         MenuItem(
-            text = { Text(stringResource(R.string.schedule_add_student)) },
+            text = { Text(stringResource(Strings.schedule_add_student)) },
             onClick = { dismiss(); setup.addStudent() },
             leadingIcon = { Icon(KlasIcons.Outlined.PersonAdd, contentDescription = null) },
         )
         MenuItem(
-            text = { Text(stringResource(R.string.group_add_title)) },
+            text = { Text(stringResource(Strings.group_add_title)) },
             onClick = { dismiss(); setup.addGroup() },
             leadingIcon = { Icon(KlasIcons.Outlined.Groups, contentDescription = null) },
         )
@@ -145,20 +145,20 @@ private fun GroupRoster(
     val form = state.form
     if (state.groupHasNoMembers) {
         Text(
-            stringResource(R.string.class_group_no_active_members),
+            stringResource(Strings.class_group_no_active_members),
             style = MaterialTheme.typography.bodySmall,
             color = klasSemantics.validation,
         )
         form.groupId?.let { id ->
-            AddRow(stringResource(R.string.group_edit_members), onClick = { setup.groupEdit(id) })
+            AddRow(stringResource(Strings.group_edit_members), onClick = { setup.groupEdit(id) })
         }
     }
     if (state.members.isEmpty()) return
-    Text(stringResource(R.string.class_group_members_title), style = MaterialTheme.typography.labelLarge)
+    Text(stringResource(Strings.class_group_members_title), style = MaterialTheme.typography.labelLarge)
     // Distinguish correcting the booked roster from recording an absence.
     if (!isNew) {
         Text(
-            stringResource(R.string.class_group_members_editable),
+            stringResource(Strings.class_group_members_editable),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -173,7 +173,7 @@ private fun GroupRoster(
     }
     if (state.allMembersExcluded) {
         Text(
-            stringResource(R.string.class_group_no_members_left),
+            stringResource(Strings.class_group_no_members_left),
             style = MaterialTheme.typography.bodySmall,
             color = klasSemantics.validation,
         )
@@ -183,7 +183,7 @@ private fun GroupRoster(
 @Composable
 private fun SubjectField(state: ClassFormState, viewModel: ClassEditViewModel, setup: BookingSetupNavigation) {
     DropdownField(
-        label = stringResource(R.string.class_subject_label),
+        label = stringResource(Strings.class_subject_label),
         selectedText = state.subjectName,
         options = remember(state.subjects) { state.subjects.map { it.id to it.name } },
         onSelect = { id -> viewModel.change(BookingIntent.ChooseSubject(id)) },
@@ -192,9 +192,9 @@ private fun SubjectField(state: ClassFormState, viewModel: ClassEditViewModel, s
         supportingText = state.subjectNotice?.let { notice ->
             stringResource(
                 when (notice) {
-                    SubjectNotice.FIXED_BY_GROUP -> R.string.class_subject_from_group
-                    SubjectNotice.NONE_FOR_GROUP -> R.string.class_no_subjects_for_group
-                    SubjectNotice.NONE_FOR_STUDENT -> R.string.class_no_subjects_for_student
+                    SubjectNotice.FIXED_BY_GROUP -> Strings.class_subject_from_group
+                    SubjectNotice.NONE_FOR_GROUP -> Strings.class_no_subjects_for_group
+                    SubjectNotice.NONE_FOR_STUDENT -> Strings.class_no_subjects_for_student
                 },
             )
         },
@@ -204,9 +204,9 @@ private fun SubjectField(state: ClassFormState, viewModel: ClassEditViewModel, s
     )
     when (state.subjectNotice) {
         SubjectNotice.NONE_FOR_STUDENT -> state.form.studentId?.let { id ->
-            AddRow(stringResource(R.string.subject_set_price), onClick = { setup.studentSubjects(id) })
+            AddRow(stringResource(Strings.subject_set_price), onClick = { setup.studentSubjects(id) })
         }
-        SubjectNotice.NONE_FOR_GROUP -> AddRow(stringResource(R.string.subject_add), setup.subjects)
+        SubjectNotice.NONE_FOR_GROUP -> AddRow(stringResource(Strings.subject_add), setup.subjects)
         else -> Unit
     }
 }

@@ -22,17 +22,18 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalResources
-import androidx.compose.ui.res.pluralStringResource
-import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.seblful.klas.R
 import com.seblful.klas.domain.model.Assignee
 import com.seblful.klas.domain.reports.Taught
 import com.seblful.klas.format.bulletJoin
 import com.seblful.klas.format.formatHours
 import com.seblful.klas.queries.groups.GroupDetails
 import com.seblful.klas.queries.groups.GroupMemberRow
+import com.seblful.klas.text.Plurals
+import com.seblful.klas.text.Strings
+import com.seblful.klas.text.currentTexts
+import com.seblful.klas.text.pluralStringResource
+import com.seblful.klas.text.stringResource
 import com.seblful.klas.ui.common.AddRow
 import com.seblful.klas.ui.common.AddRowInSection
 import com.seblful.klas.ui.common.ArchiveMenuItem
@@ -141,7 +142,7 @@ private fun GroupCard(
         messages = messages,
         actions = {
             // Booking is the next lesson's «+», in the card it books into.
-            NamedIconButton(KlasIcons.Outlined.Edit, stringResource(R.string.action_edit), onClick = navigation.edit)
+            NamedIconButton(KlasIcons.Outlined.Edit, stringResource(Strings.action_edit), onClick = navigation.edit)
             // Retiring and removing the group, behind the overflow — where a student's are.
             if (group != null) {
                 GroupOverflowMenu(
@@ -218,12 +219,12 @@ private fun GroupCard(
 
     if (confirmingArchive) {
         val parts = listOf(
-            pluralStringResource(R.plurals.student_archive_lessons_part, state.plannedLessons, state.plannedLessons),
-            stringResource(R.string.student_archive_question),
+            pluralStringResource(Plurals.student_archive_lessons_part, state.plannedLessons, state.plannedLessons),
+            stringResource(Strings.student_archive_question),
         )
         ConfirmDialog(
             text = parts.joinToString(" "),
-            confirmLabel = stringResource(R.string.action_archive),
+            confirmLabel = stringResource(Strings.action_archive),
             onConfirm = { viewModel.setArchived(true) },
             onDismiss = { confirmingArchive = false },
         )
@@ -231,7 +232,7 @@ private fun GroupCard(
 
     if (confirmingDelete) {
         ConfirmDialog(
-            text = stringResource(R.string.group_delete_confirm),
+            text = stringResource(Strings.group_delete_confirm),
             destructive = true,
             onConfirm = { viewModel.delete(onDeleted = navigation.back) },
             onDismiss = { confirmingDelete = false },
@@ -253,20 +254,20 @@ private fun HomeworkEntry(requested: Boolean, groupId: Long?, onOpen: () -> Unit
 /** A hand collector rather than `ShowMessagesFor`: an archive is said with its Undo. */
 @Composable
 internal fun ShowGroupMessages(viewModel: GroupDetailViewModel, messages: Messages) {
-    val resources by rememberUpdatedState(LocalResources.current)
+    val resources by rememberUpdatedState(currentTexts())
     LaunchedEffect(viewModel) {
         viewModel.events.stream.collect { event ->
             when (event) {
                 GroupDetailViewModel.Event.DeleteBlockedHasLessons ->
-                    messages.show(resources.getString(R.string.group_delete_blocked))
+                    messages.show(resources.string(Strings.group_delete_blocked))
                 is GroupDetailViewModel.Event.Archived ->
                     messages.undoable(resources.archivedMessage(event.archive.cancelledLessons)) {
                         viewModel.undoArchive(event)
                     }
                 is GroupDetailViewModel.Event.ArchiveUndoKept -> messages.show(
-                    resources.getQuantityString(R.plurals.archive_undo_kept, event.count, event.count),
+                    resources.plural(Plurals.archive_undo_kept, event.count, event.count),
                 )
-                GroupDetailViewModel.Event.WriteFailed -> messages.show(resources.getString(R.string.action_failed))
+                GroupDetailViewModel.Event.WriteFailed -> messages.show(resources.string(Strings.action_failed))
             }
         }
     }
@@ -283,8 +284,8 @@ private fun GroupHeader(state: GroupDetails, modifier: Modifier = Modifier) {
         Column(Modifier.heightIn(min = MinTouchTarget), verticalArrangement = Arrangement.Center) {
             FactsLine(
                 listOf(
-                    state.subjectName ?: stringResource(R.string.group_no_subject),
-                    stringResource(R.string.price_per_hour_per_student, group.price.text()),
+                    state.subjectName ?: stringResource(Strings.group_no_subject),
+                    stringResource(Strings.price_per_hour_per_student, group.price.text()),
                 ),
             )
             PlaceLine(group.defaultMode, group.archived)
@@ -308,7 +309,7 @@ internal fun EarnedCard(totals: Taught.Totals, modifier: Modifier = Modifier) {
     SectionCard(modifier) {
         Column(HeadlineCardInset, verticalArrangement = Arrangement.spacedBy(Spacing.tight)) {
             Text(
-                stringResource(R.string.stat_earned),
+                stringResource(Strings.stat_earned),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -323,9 +324,9 @@ internal fun EarnedCard(totals: Taught.Totals, modifier: Modifier = Modifier) {
             )
             Text(
                 bulletJoin(
-                    pluralStringResource(R.plurals.lessons_count, totals.lessons, totals.lessons),
-                    stringResource(R.string.hours_value, formatHours(totals.minutes)),
-                    if (totals.upcoming > 0) stringResource(R.string.stat_upcoming, totals.upcoming) else "",
+                    pluralStringResource(Plurals.lessons_count, totals.lessons, totals.lessons),
+                    stringResource(Strings.hours_value, formatHours(totals.minutes)),
+                    if (totals.upcoming > 0) stringResource(Strings.stat_upcoming, totals.upcoming) else "",
                 ),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -344,12 +345,12 @@ private fun LessonsSection(
 ) {
     val all = overview.details.lessons
     OverviewSection(
-        title = stringResource(R.string.group_lessons_title),
+        title = stringResource(Strings.group_lessons_title),
         count = all.size,
         onSeeAll = onSeeAll.takeIf { all.size > overview.lessons.size },
         modifier = modifier,
     ) {
-        if (all.isEmpty()) SectionNote(stringResource(R.string.group_lessons_empty))
+        if (all.isEmpty()) SectionNote(stringResource(Strings.group_lessons_empty))
         overview.lessons.forEach { row ->
             GroupLessonItem(
                 row,
@@ -370,17 +371,17 @@ private fun MembersSection(
     modifier: Modifier = Modifier,
 ) {
     OverviewSection(
-        title = stringResource(R.string.group_students_title),
+        title = stringResource(Strings.group_students_title),
         count = members.size,
         onSeeAll = null,
         modifier = modifier,
     ) {
-        if (members.isEmpty()) SectionNote(stringResource(R.string.group_no_members))
+        if (members.isEmpty()) SectionNote(stringResource(Strings.group_no_members))
         members.forEach { row ->
             GroupMemberItem(row, onClick = { onMemberClick(row.student.id) }, colors = sectionRowColors())
         }
         // A roster is changed on the group's form, so that is where this leads.
-        AddRow(stringResource(R.string.group_edit_members), onEditMembers, AddRowInSection, KlasIcons.Outlined.Edit)
+        AddRow(stringResource(Strings.group_edit_members), onEditMembers, AddRowInSection, KlasIcons.Outlined.Edit)
     }
 }
 
@@ -393,7 +394,7 @@ private fun GroupOverflowMenu(archived: Boolean, onArchive: () -> Unit, onDelete
             MenuItem(
                 text = {
                     Text(
-                        stringResource(R.string.action_delete),
+                        stringResource(Strings.action_delete),
                         color = klasSemantics.destructive,
                     )
                 },

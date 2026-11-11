@@ -14,17 +14,19 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalResources
-import androidx.compose.ui.res.pluralStringResource
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.seblful.klas.R
 import com.seblful.klas.data.settings.AppSettings
 import com.seblful.klas.domain.model.AppLanguage
 import com.seblful.klas.format.formatDate
 import com.seblful.klas.format.toLocalDate
+import com.seblful.klas.text.Plurals
+import com.seblful.klas.text.StringResource
+import com.seblful.klas.text.Strings
+import com.seblful.klas.text.currentTexts
+import com.seblful.klas.text.pluralStringResource
+import com.seblful.klas.text.stringResource
 import com.seblful.klas.ui.common.GuideViewModel
 import com.seblful.klas.ui.common.IconAvatar
 import com.seblful.klas.ui.common.KlasScreen
@@ -58,9 +60,9 @@ fun SettingsScreen(
     viewModel: SettingsViewModel = metroViewModel(),
     guide: GuideViewModel = metroViewModel(),
 ) {
-    SettingsPage(R.string.settings_title, onBack, viewModel) { page, modifier, bottomInset, messages ->
+    SettingsPage(Strings.settings_title, onBack, viewModel) { page, modifier, bottomInset, messages ->
         val allow = rememberNotificationAction(viewModel, messages)
-        val shownAgain = stringResource(R.string.settings_tips_shown_again)
+        val shownAgain = stringResource(Strings.settings_tips_shown_again)
         SettingsIndex(
             page.settings, page.notifications, page.reminders, page.calendar,
             navigation,
@@ -117,18 +119,18 @@ internal fun SettingsIndex(
         SettingsGroup {
             SettingsCategoryRow(
                 KlasIcons.Outlined.MenuBook,
-                stringResource(R.string.more_subjects),
+                stringResource(Strings.more_subjects),
                 if (facts.subjects == 0) {
-                    stringResource(R.string.settings_subjects_none)
+                    stringResource(Strings.settings_subjects_none)
                 } else {
-                    pluralStringResource(R.plurals.settings_subjects_count, facts.subjects, facts.subjects)
+                    pluralStringResource(Plurals.settings_subjects_count, facts.subjects, facts.subjects)
                 },
                 navigation.subjects,
                 selected = false,
             )
             SettingsCategoryRow(
                 KlasIcons.Outlined.Save,
-                stringResource(R.string.more_backup),
+                stringResource(Strings.more_backup),
                 backupSummary(settings),
                 navigation.backup,
                 selected = false,
@@ -136,27 +138,27 @@ internal fun SettingsIndex(
             // An act, not a page: it puts the first steps and every tip back, and says so.
             SettingsCategoryRow(
                 KlasIcons.Outlined.Lightbulb,
-                stringResource(R.string.settings_tips_again),
-                stringResource(R.string.settings_tips_again_summary),
+                stringResource(Strings.settings_tips_again),
+                stringResource(Strings.settings_tips_again_summary),
                 onShowTipsAgain,
                 selected = false,
                 opens = false,
             )
             SettingsCategoryRow(
                 KlasIcons.Outlined.Info,
-                stringResource(R.string.about_title),
-                stringResource(R.string.about_version, facts.version),
+                stringResource(Strings.about_title),
+                stringResource(Strings.about_version, facts.version),
                 navigation.about,
                 selected = false,
             )
             SettingsCategoryRow(
                 KlasIcons.Outlined.QueryStats,
-                stringResource(R.string.diagnostics_title),
+                stringResource(Strings.diagnostics_title),
                 stringResource(
                     if (facts.crashRecorded) {
-                        R.string.settings_diagnostics_crash
+                        Strings.settings_diagnostics_crash
                     } else {
-                        R.string.settings_diagnostics_none
+                        Strings.settings_diagnostics_none
                     },
                 ),
                 navigation.diagnostics,
@@ -177,45 +179,45 @@ private fun SettingsCategories(
 ) {
     SettingsCategoryRow(
         KlasIcons.Outlined.Language,
-        stringResource(R.string.settings_appearance_title),
+        stringResource(Strings.settings_appearance_title),
         stringResource(
-            R.string.settings_pair_summary,
+            Strings.settings_pair_summary,
             if (settings.language == AppLanguage.SYSTEM) {
-                stringResource(R.string.settings_system_language)
+                stringResource(Strings.settings_system_language)
             } else {
                 languageLabel(settings.language)
             },
-            stringResource(R.string.settings_theme_summary, themeLabel(settings.themeMode)),
+            stringResource(Strings.settings_theme_summary, themeLabel(settings.themeMode)),
         ),
         navigation.appearance,
         selected = open == SettingsCategory.APPEARANCE,
     )
     SettingsCategoryRow(
         KlasIcons.Outlined.Notifications,
-        stringResource(R.string.settings_notifications_title),
+        stringResource(Strings.settings_notifications_title),
         notificationSummary(settings, notifications, reminders),
         navigation.notifications,
         selected = open == SettingsCategory.NOTIFICATIONS,
     )
     SettingsCategoryRow(
         KlasIcons.Outlined.Payments,
-        stringResource(R.string.settings_lessons_title),
+        stringResource(Strings.settings_lessons_title),
         stringResource(
-            R.string.settings_pair_summary, durationLabel(settings.defaultLessonMinutes), settings.currency.name,
+            Strings.settings_pair_summary, durationLabel(settings.defaultLessonMinutes), settings.currency.name,
         ),
         navigation.lessons,
         selected = open == SettingsCategory.LESSONS,
     )
     SettingsCategoryRow(
         KlasIcons.Outlined.CalendarMonth,
-        stringResource(R.string.settings_calendar_title),
+        stringResource(Strings.settings_calendar_title),
         calendarSummary(settings, calendar),
         navigation.calendar,
         selected = open == SettingsCategory.CALENDAR,
     )
     SettingsCategoryRow(
         KlasIcons.Outlined.PhonelinkLock,
-        stringResource(R.string.settings_privacy_title),
+        stringResource(Strings.settings_privacy_title),
         privacySummary(settings.privacy),
         navigation.privacy,
         selected = open == SettingsCategory.PRIVACY,
@@ -270,11 +272,11 @@ private fun notificationSummary(
     notifications: NotificationDelivery,
     reminders: ReminderDelivery,
 ): String = when {
-    notifications == NotificationDelivery.BLOCKED -> stringResource(R.string.settings_all_notifications_blocked)
-    reminders == ReminderDelivery.LATE -> stringResource(R.string.settings_notifications_delayed)
-    settings.enabledNotificationCount == 0 -> stringResource(R.string.settings_off)
+    notifications == NotificationDelivery.BLOCKED -> stringResource(Strings.settings_all_notifications_blocked)
+    reminders == ReminderDelivery.LATE -> stringResource(Strings.settings_notifications_delayed)
+    settings.enabledNotificationCount == 0 -> stringResource(Strings.settings_off)
     else -> pluralStringResource(
-        R.plurals.settings_notification_types, settings.enabledNotificationCount, settings.enabledNotificationCount,
+        Plurals.settings_notification_types, settings.enabledNotificationCount, settings.enabledNotificationCount,
     )
 }
 
@@ -283,11 +285,11 @@ private fun notificationSummary(
 private fun backupSummary(settings: AppSettings): String {
     val last = settings.lastExportAt?.toLocalDate()?.formatDate()
     return when {
-        settings.autoBackupFailed -> stringResource(R.string.settings_backup_failed)
-        settings.autoBackupFolder != null && last != null -> stringResource(R.string.settings_backup_weekly, last)
-        settings.autoBackupFolder != null -> stringResource(R.string.settings_backup_weekly_none)
-        last != null -> stringResource(R.string.settings_backup_last, last)
-        else -> stringResource(R.string.settings_backup_never)
+        settings.autoBackupFailed -> stringResource(Strings.settings_backup_failed)
+        settings.autoBackupFolder != null && last != null -> stringResource(Strings.settings_backup_weekly, last)
+        settings.autoBackupFolder != null -> stringResource(Strings.settings_backup_weekly_none)
+        last != null -> stringResource(Strings.settings_backup_last, last)
+        else -> stringResource(Strings.settings_backup_never)
     }
 }
 
@@ -295,22 +297,22 @@ private fun backupSummary(settings: AppSettings): String {
 @Composable
 internal fun NotificationsBlockedBanner(onAllow: () -> Unit, modifier: Modifier = Modifier) {
     Banner(
-        title = stringResource(R.string.settings_all_notifications_blocked),
+        title = stringResource(Strings.settings_all_notifications_blocked),
         kind = BannerKind.Blocking,
         modifier = modifier.padding(top = Spacing.itemGap),
-        action = SectionAction(stringResource(R.string.action_allow), onClick = onAllow),
+        action = SectionAction(stringResource(Strings.action_allow), onClick = onAllow),
     )
 }
 
 @Composable
 private fun calendarSummary(settings: AppSettings, delivery: CalendarDelivery): String = when (delivery) {
-    CalendarDelivery.BLOCKED -> stringResource(R.string.settings_calendar_sync_blocked)
-    CalendarDelivery.OFF -> stringResource(R.string.settings_off)
+    CalendarDelivery.BLOCKED -> stringResource(Strings.settings_calendar_sync_blocked)
+    CalendarDelivery.OFF -> stringResource(Strings.settings_off)
     CalendarDelivery.ON -> stringResource(
         if (settings.emailInvitesEnabled) {
-            R.string.settings_calendar_invites_on
+            Strings.settings_calendar_invites_on
         } else {
-            R.string.settings_calendar_invites_off
+            Strings.settings_calendar_invites_off
         },
     )
 }
@@ -322,18 +324,18 @@ private fun calendarSummary(settings: AppSettings, delivery: CalendarDelivery): 
  */
 @Composable
 internal fun SettingsPage(
-    title: Int,
+    title: StringResource,
     onBack: (() -> Unit)?,
     viewModel: SettingsViewModel,
     content: @Composable (SettingsState, Modifier, PaddingValues, Messages) -> Unit,
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val messages = rememberMessages()
-    val resources = LocalResources.current
-    val failed = stringResource(R.string.action_failed)
+    val resources = currentTexts()
+    val failed = stringResource(Strings.action_failed)
     ShowMessagesFor(viewModel.failed, messages) { failed }
     ShowMessagesFor(viewModel.swept, messages) { count ->
-        resources.getQuantityString(R.plurals.settings_autocomplete_swept, count, count)
+        resources.plural(Plurals.settings_autocomplete_swept, count, count)
     }
     RefreshSettingsPermissions(viewModel)
     KlasScreen(title = stringResource(title), onBack = onBack, messages = messages) { modifier, bottomInset ->

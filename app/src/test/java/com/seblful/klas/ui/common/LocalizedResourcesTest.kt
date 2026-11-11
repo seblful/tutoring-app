@@ -5,10 +5,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
-import com.seblful.klas.R
+import com.seblful.klas.text.Strings
+import com.seblful.klas.text.stringResource
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -27,7 +27,7 @@ class LocalizedResourcesTest {
         var locale by mutableStateOf(Locale.ENGLISH)
         compose.setContent {
             ProvideLocalizedResources(locale) {
-                Text("${LocalLayoutDirection.current}|${stringResource(R.string.nav_homework)}")
+                Text("${LocalLayoutDirection.current}|${stringResource(Strings.nav_homework)}")
             }
         }
         compose.onNodeWithText("Ltr|Homework").assertExists()
@@ -42,7 +42,7 @@ class LocalizedResourcesTest {
     fun `English uses left to right layout on an Arabic phone`() {
         compose.setContent {
             ProvideLocalizedResources(Locale.ENGLISH) {
-                Text("${LocalLayoutDirection.current}|${stringResource(R.string.nav_homework)}")
+                Text("${LocalLayoutDirection.current}|${stringResource(Strings.nav_homework)}")
             }
         }
         compose.onNodeWithText("Ltr|Homework").assertExists()

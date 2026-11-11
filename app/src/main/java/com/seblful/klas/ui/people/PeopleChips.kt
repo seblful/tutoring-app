@@ -4,8 +4,9 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
-import com.seblful.klas.R
+import com.seblful.klas.text.StringResource
+import com.seblful.klas.text.Strings
+import com.seblful.klas.text.stringResource
 import com.seblful.klas.ui.common.ActiveFilter
 import com.seblful.klas.ui.common.ActiveFilters
 import com.seblful.klas.ui.common.FilterMenu
@@ -33,12 +34,12 @@ internal fun StudentFilterAction(
     sort: StudentSort,
     onSort: (StudentSort) -> Unit,
 ) {
-    FilterMenu(stringResource(R.string.people_filter)) { close ->
-        MenuHeading(stringResource(R.string.people_show))
+    FilterMenu(stringResource(Strings.people_filter)) { close ->
+        MenuHeading(stringResource(Strings.people_show))
         if (owing > 0 || owesOnly) {
-            TickedMenuItem(stringResource(R.string.people_owes, owing), owesOnly, onClick = { close(); onOwes() })
+            TickedMenuItem(stringResource(Strings.people_owes, owing), owesOnly, onClick = { close(); onOwes() })
         }
-        TickedMenuItem(stringResource(R.string.people_archived), archived, onClick = { close(); onArchived() })
+        TickedMenuItem(stringResource(Strings.people_archived), archived, onClick = { close(); onArchived() })
         Order(StudentSort.entries, sort, { close(); onSort(it) }) { stringResource(studentSortLabel(it)) }
     }
 }
@@ -54,8 +55,8 @@ internal fun StudentFilters(
 ) {
     PeopleFilters(
         listOfNotNull(
-            ActiveFilter(stringResource(R.string.people_owes, owing), onOwes).takeIf { owesOnly },
-            ActiveFilter(stringResource(R.string.people_archived), onArchived).takeIf { archived },
+            ActiveFilter(stringResource(Strings.people_owes, owing), onOwes).takeIf { owesOnly },
+            ActiveFilter(stringResource(Strings.people_archived), onArchived).takeIf { archived },
         ),
     )
 }
@@ -71,11 +72,11 @@ internal fun GroupFilterAction(
     sort: GroupSort,
     onSort: (GroupSort) -> Unit,
 ) {
-    FilterMenu(stringResource(R.string.people_filter)) { close ->
+    FilterMenu(stringResource(Strings.people_filter)) { close ->
         if (subjects.size >= 2) {
-            MenuHeading(stringResource(R.string.people_subject))
+            MenuHeading(stringResource(Strings.people_subject))
             TickedMenuItem(
-                stringResource(R.string.people_all_subjects),
+                stringResource(Strings.people_all_subjects),
                 selected = subject == null,
                 onClick = { close(); onSubject(null) },
             )
@@ -84,8 +85,8 @@ internal fun GroupFilterAction(
             }
             KlasDivider()
         }
-        MenuHeading(stringResource(R.string.people_show))
-        TickedMenuItem(stringResource(R.string.people_archived), archived, onClick = { close(); onArchived() })
+        MenuHeading(stringResource(Strings.people_show))
+        TickedMenuItem(stringResource(Strings.people_archived), archived, onClick = { close(); onArchived() })
         Order(GroupSort.entries, sort, { close(); onSort(it) }) { stringResource(groupSortLabel(it)) }
     }
 }
@@ -102,7 +103,7 @@ internal fun GroupFilters(
     PeopleFilters(
         listOfNotNull(
             subjects.firstOrNull { it.id == subject }?.let { ActiveFilter(it.name) { onSubject(null) } },
-            ActiveFilter(stringResource(R.string.people_archived), onArchived).takeIf { archived },
+            ActiveFilter(stringResource(Strings.people_archived), onArchived).takeIf { archived },
         ),
     )
 }
@@ -120,16 +121,16 @@ private fun <T> ColumnScope.Order(
     label: @Composable (T) -> String,
 ) {
     KlasDivider()
-    MenuHeading(stringResource(R.string.people_order))
+    MenuHeading(stringResource(Strings.people_order))
     options.forEach { option -> TickedMenuItem(label(option), option == selected, onClick = { onSelect(option) }) }
 }
 
-private fun studentSortLabel(sort: StudentSort): Int = when (sort) {
-    StudentSort.NAME -> R.string.students_sort_name
-    StudentSort.DEBT -> R.string.students_sort_debt
+private fun studentSortLabel(sort: StudentSort): StringResource = when (sort) {
+    StudentSort.NAME -> Strings.students_sort_name
+    StudentSort.DEBT -> Strings.students_sort_debt
 }
 
-private fun groupSortLabel(sort: GroupSort): Int = when (sort) {
-    GroupSort.NAME -> R.string.students_sort_name
-    GroupSort.NEXT_LESSON -> R.string.groups_sort_next
+private fun groupSortLabel(sort: GroupSort): StringResource = when (sort) {
+    GroupSort.NAME -> Strings.students_sort_name
+    GroupSort.NEXT_LESSON -> Strings.groups_sort_next
 }

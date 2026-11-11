@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_today_name">Dagens leksjoner</string>
+    <string name="widget_today_description">Dagens leksjoner, markert undervist med ett trykk</string>
+    <string name="widget_quick_actions_name">Klas snarveier</string>
+    <string name="widget_quick_actions_description">Bestill en leksjon, legg til en elev eller åpne I dag, lekser og gjeld</string>
+</resources>

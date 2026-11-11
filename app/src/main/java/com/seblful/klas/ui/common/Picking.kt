@@ -4,14 +4,14 @@ import androidx.compose.foundation.layout.RowScope
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.navigationevent.NavigationEventInfo
 import androidx.navigationevent.compose.NavigationBackHandler
 import androidx.navigationevent.compose.rememberNavigationEventState
-import com.seblful.klas.R
+import com.seblful.klas.text.Plurals
+import com.seblful.klas.text.pluralStringResource
 
 /** Back lets go of a pick made by a long-press (R7) — before it leaves the screen. */
 @Composable
@@ -34,7 +34,7 @@ class Selection(val count: Int, val onClear: () -> Unit, val actions: @Composabl
 @Composable
 internal fun SelectionTitle(count: Int) {
     Text(
-        pluralStringResource(R.plurals.batch_selected, count, count),
+        pluralStringResource(Plurals.batch_selected, count, count),
         maxLines = 1,
         modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
     )

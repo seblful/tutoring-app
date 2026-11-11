@@ -1,22 +1,21 @@
 package com.seblful.klas
 
-import androidx.test.platform.app.InstrumentationRegistry
-import com.seblful.klas.format.inLanguage
+import com.seblful.klas.testutil.texts
+import com.seblful.klas.text.PluralResource
+import com.seblful.klas.text.Plurals
+import com.seblful.klas.text.Texts
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
-import java.util.Locale
 
 class EnglishPluralsTest {
 
-    private val resources = InstrumentationRegistry.getInstrumentation().targetContext
-        .inLanguage(Locale.forLanguageTag("en"))
-        .resources
+    private val texts = Texts.of("en")
 
     @Test
     fun aLessonCountIsSingularOnlyAtOne() {
         assertForms(
-            R.plurals.lessons_count,
+            Plurals.lessons_count,
             0 to "0 lessons",
             1 to "1 lesson",
             2 to "2 lessons",
@@ -31,16 +30,16 @@ class EnglishPluralsTest {
     @Test
     fun anAttendanceCountIsSingularOnlyAtOne() {
         assertForms(
-            R.plurals.group_lesson_attended,
+            Plurals.group_lesson_attended,
             1 to "1 member",
             3 to "3 members",
             21 to "21 members",
         )
     }
 
-    private fun assertForms(plural: Int, vararg cases: Pair<Int, String>) {
+    private fun assertForms(plural: PluralResource, vararg cases: Pair<Int, String>) {
         val wrong = cases.mapNotNull { (count, expected) ->
-            val actual = resources.getQuantityString(plural, count, count)
+            val actual = texts.plural(plural, count, count)
             "expected «$expected», got «$actual»".takeIf { actual != expected }
         }
         assertTrue(wrong.joinToString(prefix = "\n", separator = "\n"), wrong.isEmpty())

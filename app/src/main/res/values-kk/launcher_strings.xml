@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_today_name">Бүгінгі сабақтар</string>
+    <string name="widget_today_description">Бір түрту арқылы оқытылды деп белгіленген бүгінгі сабақтар</string>
+    <string name="widget_quick_actions_name">Klas таңбашалары</string>
+    <string name="widget_quick_actions_description">Сабақ жазу, оқушы қосу немесе «Бүгін», үй тапсырмалары мен қарыздарды ашу</string>
+</resources>

@@ -222,7 +222,7 @@ def main() -> int:
     declared = {path.resolve() for path in files.values()}
     actual = {
         path.resolve()
-        for path in (ROOT / "app/src/main/res").glob("values*/strings.xml")
+        for path in (ROOT / "ui/src/commonMain/strings").glob("values*/strings.xml")
     }
     if declared != actual:
         issues.append(

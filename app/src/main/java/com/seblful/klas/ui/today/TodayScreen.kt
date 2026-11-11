@@ -13,12 +13,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalResources
-import androidx.compose.ui.res.pluralStringResource
-import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.seblful.klas.R
 import com.seblful.klas.domain.guide.FirstStep
 import com.seblful.klas.domain.guide.PhoneStep
 import com.seblful.klas.domain.lesson.CompletionTiming
@@ -30,6 +26,11 @@ import com.seblful.klas.format.formatDate
 import com.seblful.klas.format.hoursAndMinutesText
 import com.seblful.klas.format.toLocalDate
 import com.seblful.klas.queries.homework.HomeworkRow
+import com.seblful.klas.text.Plurals
+import com.seblful.klas.text.Strings
+import com.seblful.klas.text.currentTexts
+import com.seblful.klas.text.pluralStringResource
+import com.seblful.klas.text.stringResource
 import com.seblful.klas.ui.common.FabClearance
 import com.seblful.klas.ui.common.KlasScreen
 import com.seblful.klas.ui.common.ListSkeleton
@@ -94,10 +95,10 @@ fun TodayScreen(
         onPauseOrDispose { }
     }
     KlasScreen(
-        title = stringResource(R.string.nav_today),
+        title = stringResource(Strings.nav_today),
         messages = messages,
         actions = { SettingsGear(onSettings) },
-        floatingActionButton = { KlasFab(stringResource(R.string.class_book), onClick = onBook) },
+        floatingActionButton = { KlasFab(stringResource(Strings.class_book), onClick = onBook) },
     ) { modifier, bottomInset ->
         when (val loaded = state) {
             Loadable.Loading -> ListSkeleton(modifier)
@@ -200,12 +201,12 @@ internal fun TodayContent(
 @Composable
 private fun BackupBanner(at: Instant?, onBackup: () -> Unit) {
     Banner(
-        title = at?.let { stringResource(R.string.today_backup_old, it.formatDate()) }
-            ?: stringResource(R.string.today_backup_never),
+        title = at?.let { stringResource(Strings.today_backup_old, it.formatDate()) }
+            ?: stringResource(Strings.today_backup_never),
         kind = BannerKind.Advisory,
         modifier = Modifier.padding(top = Spacing.itemGap),
-        detail = stringResource(R.string.today_backup_detail),
-        action = SectionAction(stringResource(R.string.today_backup_action), onClick = onBackup),
+        detail = stringResource(Strings.today_backup_detail),
+        action = SectionAction(stringResource(Strings.today_backup_action), onClick = onBackup),
     )
 }
 
@@ -223,17 +224,17 @@ private fun NextCard(row: TodayLessonRow, onOpen: (Long) -> Unit) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     if (row.phase.isRunning) {
-                        stringResource(R.string.today_now)
+                        stringResource(Strings.today_now)
                     } else {
                         stringResource(
-                            R.string.today_next_in,
-                            hoursAndMinutesText(LocalResources.current, row.minutesAway.toInt().coerceAtLeast(1)),
+                            Strings.today_next_in,
+                            hoursAndMinutesText(currentTexts(), row.minutesAway.toInt().coerceAtLeast(1)),
                         )
                     },
                     style = MaterialTheme.typography.labelMedium,
                     modifier = Modifier.weight(1f),
                 )
-                KlasButton(onClick = open, kind = ButtonKind.Text) { Text(stringResource(R.string.today_open)) }
+                KlasButton(onClick = open, kind = ButtonKind.Text) { Text(stringResource(Strings.today_open)) }
             }
             Column(Modifier.padding(end = Spacing.inline)) {
                 Text(timeRange(row), style = MaterialTheme.typography.titleLarge)
@@ -244,7 +245,7 @@ private fun NextCard(row: TodayLessonRow, onOpen: (Long) -> Unit) {
                             row.subject,
                             durationLabel(row.session.durationMinutes),
                             row.session.classes.size.takeIf { row.session.isGroup }?.let {
-                                pluralStringResource(R.plurals.members_count, it, it)
+                                pluralStringResource(Plurals.members_count, it, it)
                             },
                         ),
                     ),
@@ -258,13 +259,13 @@ private fun NextCard(row: TodayLessonRow, onOpen: (Long) -> Unit) {
 @Composable
 private fun ToMark(rows: List<TodayLessonRow>, actions: TodayActions) {
     HeaderedCard(
-        title = stringResource(R.string.today_to_mark),
-        summary = pluralStringResource(R.plurals.lessons_count, rows.size, rows.size),
+        title = stringResource(Strings.today_to_mark),
+        summary = pluralStringResource(Plurals.lessons_count, rows.size, rows.size),
         // One lesson has its own tick; the batch is for the evening with several.
-        action = SectionAction(stringResource(R.string.today_mark_all), onClick = actions.markAllTaught)
+        action = SectionAction(stringResource(Strings.today_mark_all), onClick = actions.markAllTaught)
             .takeIf { rows.size > 1 },
     ) {
-        val taught = stringResource(R.string.class_status_completed)
+        val taught = stringResource(Strings.class_status_completed)
         rows.forEach { row ->
             // The widget's tick, leading as on homework and the day below (R6): the empty circle marks the
             // lesson taught, and the row itself opens it.
@@ -275,7 +276,7 @@ private fun ToMark(rows: List<TodayLessonRow>, actions: TodayActions) {
                 onClick = open,
                 start = RowStart.Done(
                     done = false,
-                    label = stringResource(R.string.today_mark_one, row.who, row.session.start.timeText()),
+                    label = stringResource(Strings.today_mark_one, row.who, row.session.start.timeText()),
                     doneWord = taught,
                     onDone = { actions.markTaught(row) },
                     onOpen = open,
@@ -294,16 +295,16 @@ private fun ToMark(rows: List<TodayLessonRow>, actions: TodayActions) {
 @Composable
 private fun DayLessons(state: TodayState, actions: TodayActions) {
     val rows = state.lessons
-    val summary = daySummaryText(LocalResources.current, state.summary, LocalCurrency.current)
+    val summary = daySummaryText(currentTexts(), state.summary, LocalCurrency.current)
     HeaderedCard(
-        title = stringResource(R.string.today_lessons),
+        title = stringResource(Strings.today_lessons),
         summary = summary.takeIf { rows.isNotEmpty() },
-        action = SectionAction(stringResource(R.string.nav_schedule), opens = true, onClick = actions.schedule),
+        action = SectionAction(stringResource(Strings.nav_schedule), opens = true, onClick = actions.schedule),
     ) {
         if (rows.isEmpty()) {
-            KlasRow(stringResource(R.string.today_no_lessons))
+            KlasRow(stringResource(Strings.today_no_lessons))
         }
-        val taught = stringResource(R.string.class_status_completed)
+        val taught = stringResource(Strings.class_status_completed)
         rows.forEach { row ->
             val open = { actions.openLesson(row.session.first.id) }
             KlasRow(
@@ -313,7 +314,7 @@ private fun DayLessons(state: TodayState, actions: TodayActions) {
                 onClick = open,
                 start = RowStart.Done(
                     done = row.session.status == LessonStatus.COMPLETED,
-                    label = stringResource(R.string.today_mark_one, row.who, row.session.start.timeText()),
+                    label = stringResource(Strings.today_mark_one, row.who, row.session.start.timeText()),
                     doneWord = taught,
                     onDone = { actions.markTaught(row) },
                     onOpen = open,
@@ -330,19 +331,19 @@ private fun DayLessons(state: TodayState, actions: TodayActions) {
 @Composable
 private fun Owed(state: TodayState, actions: TodayActions) {
     HeaderedCard(
-        title = stringResource(R.string.today_owed),
+        title = stringResource(Strings.today_owed),
         summary = bulletJoin(
             state.outstanding.total.text(),
-            pluralStringResource(R.plurals.students_count, state.outstanding.students, state.outstanding.students),
+            pluralStringResource(Plurals.students_count, state.outstanding.students, state.outstanding.students),
         ),
-        action = SectionAction(stringResource(R.string.section_see_all), opens = true, onClick = actions.debts),
+        action = SectionAction(stringResource(Strings.section_see_all), opens = true, onClick = actions.debts),
     ) {
         state.debtors.take(DEBTORS_SHOWN).forEach { debtor ->
             KlasRow(
                 title = debtor.name,
                 supporting = debtor.lastPaidAt?.let {
-                    stringResource(R.string.today_last_paid, it.toLocalDate().formatDate())
-                } ?: stringResource(R.string.today_never_paid),
+                    stringResource(Strings.today_last_paid, it.toLocalDate().formatDate())
+                } ?: stringResource(Strings.today_never_paid),
                 end = RowEnd.Money(AmountText(debtor.owed.text(), AmountMeaning.Debt)),
                 onClick = { actions.openStudent(debtor.studentId) },
             )
@@ -356,12 +357,12 @@ private fun Owed(state: TodayState, actions: TodayActions) {
  */
 @Composable
 private fun RecentlyMarked(marks: List<TodayMark>, onUndo: (TodayMark) -> Unit) {
-    HeaderedCard(title = stringResource(R.string.today_recent_marks)) {
-        val undo = stringResource(R.string.action_undo)
+    HeaderedCard(title = stringResource(Strings.today_recent_marks)) {
+        val undo = stringResource(Strings.action_undo)
         marks.forEach { recent ->
             KlasRow(
                 title = recent.who,
-                supporting = stringResource(R.string.today_marked_at, recent.mark.at.timeText()),
+                supporting = stringResource(Strings.today_marked_at, recent.mark.at.timeText()),
                 end = RowEnd.Action(KlasIcons.Filled.Undo, undo) { onUndo(recent) },
             )
         }
@@ -371,9 +372,9 @@ private fun RecentlyMarked(marks: List<TodayMark>, onUndo: (TodayMark) -> Unit) 
 @Composable
 private fun HomeworkDue(rows: List<HomeworkRow>, onHomework: () -> Unit) {
     HeaderedCard(
-        title = stringResource(R.string.student_homework_title),
+        title = stringResource(Strings.student_homework_title),
         count = rows.size,
-        action = SectionAction(stringResource(R.string.section_see_all), opens = true, onClick = onHomework),
+        action = SectionAction(stringResource(Strings.section_see_all), opens = true, onClick = onHomework),
     ) {
         rows.take(HOMEWORK_SHOWN).forEach { row ->
             // The task leads, whom and which lesson under it, as on the Homework tab and a profile.

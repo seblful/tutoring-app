@@ -3,7 +3,8 @@ package com.seblful.klas.ui.common
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
-import com.seblful.klas.R
+import com.seblful.klas.testutil.texts
+import com.seblful.klas.text.Strings
 import com.seblful.klas.ui.theme.KlasTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -41,7 +42,7 @@ class LeaveGuardBackTest {
 
         assertEquals(0, leaves)
         assertFalse(compose.activity.isFinishing)
-        compose.onNodeWithText(compose.activity.getString(R.string.unsaved_save_title)).assertExists()
+        compose.onNodeWithText(compose.activity.texts().string(Strings.unsaved_save_title)).assertExists()
     }
 
     @Test

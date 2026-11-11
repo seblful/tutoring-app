@@ -9,11 +9,11 @@ import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalResources
-import androidx.compose.ui.res.stringResource
-import com.seblful.klas.R
 import com.seblful.klas.domain.model.Currency
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.format.money
+import com.seblful.klas.text.Strings
+import com.seblful.klas.text.stringResource
 import java.text.Collator
 import java.util.Locale
 
@@ -37,7 +37,7 @@ fun Money.text(): String = money(LocalCurrency.current)
 fun currencyChoiceLabel(currency: Currency): String {
     val locale = LocalResources.current.configuration.locales[0]
     return stringResource(
-        R.string.currency_choice_label, currencyName(currency, locale), currency.symbol, currency.name,
+        Strings.currency_choice_label, currencyName(currency, locale), currency.symbol, currency.name,
     )
 }
 
@@ -60,7 +60,7 @@ fun CurrencyPicker(selected: Currency, onSelect: (Currency) -> Unit, description
     val choices = remember(locale) { currencyChoices(locale) }
     Column(Modifier.fillMaxWidth().padding(horizontal = Spacing.gutter, vertical = Spacing.inline)) {
         ChoiceField(
-            label = stringResource(R.string.settings_currency),
+            label = stringResource(Strings.settings_currency),
             selected = selected,
             options = choices,
             optionLabel = { currencyChoiceLabel(it) },

@@ -19,20 +19,21 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.pluralStringResource
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.seblful.klas.R
 import com.seblful.klas.data.settings.SettingsDefaults
 import com.seblful.klas.domain.schedule.DayTimeline
 import com.seblful.klas.domain.schedule.TimeConflict
 import com.seblful.klas.format.bulletJoin
 import com.seblful.klas.format.formatDay
+import com.seblful.klas.text.Plurals
+import com.seblful.klas.text.Strings
+import com.seblful.klas.text.currentTexts
+import com.seblful.klas.text.pluralStringResource
+import com.seblful.klas.text.stringResource
 import com.seblful.klas.ui.common.DatePickerModal
 import com.seblful.klas.ui.common.MinTouchTarget
 import com.seblful.klas.ui.common.NamedIconButton
@@ -69,7 +70,7 @@ internal fun WhenSection(state: ClassFormState, viewModel: ClassEditViewModel) {
     if (state.slot == null) {
         state.stepped(later = true)?.let { first ->
             Text(
-                stringResource(R.string.class_step_first_free, first.timeText()),
+                stringResource(Strings.class_step_first_free, first.timeText()),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
@@ -105,9 +106,9 @@ internal fun WhenSection(state: ClassFormState, viewModel: ClassEditViewModel) {
 @Composable
 private fun DayRow(state: ClassFormState, onPrevious: () -> Unit, onNext: () -> Unit, onPick: () -> Unit) {
     val date = state.form.date
-    val pick = stringResource(R.string.class_day_pick)
+    val pick = stringResource(Strings.class_day_pick)
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        NamedIconButton(KlasIcons.Filled.ChevronLeft, stringResource(R.string.class_day_previous), onPrevious)
+        NamedIconButton(KlasIcons.Filled.ChevronLeft, stringResource(Strings.class_day_previous), onPrevious)
         Column(
             Modifier
                 .weight(1f)
@@ -136,7 +137,7 @@ private fun DayRow(state: ClassFormState, onPrevious: () -> Unit, onNext: () -> 
                 )
             }
         }
-        NamedIconButton(KlasIcons.Filled.ChevronRight, stringResource(R.string.class_day_next), onNext)
+        NamedIconButton(KlasIcons.Filled.ChevronRight, stringResource(Strings.class_day_next), onNext)
     }
 }
 
@@ -144,22 +145,22 @@ private fun DayRow(state: ClassFormState, onPrevious: () -> Unit, onNext: () -> 
 @Composable
 private fun dayLine(day: DayTimeline, minutes: Int): String {
     val others = day.booked.size
-    if (others == 0) return stringResource(R.string.class_day_free)
-    val resources = LocalResources.current
+    if (others == 0) return stringResource(Strings.class_day_free)
+    val resources = currentTexts()
     // `map`, being inline, may read the clock format; `joinToString`'s transform may not.
     val windows = day.freeFor(minutes).take(SHOWN_WINDOWS).map { (from, to) ->
         if (to == day.end) {
-            resources.getString(R.string.class_day_free_from, from.timeText())
+            resources.string(Strings.class_day_free_from, from.timeText())
         } else {
             "${from.timeText()}–${to.timeText()}"
         }
     }.joinToString(", ")
     return bulletJoin(
-        pluralStringResource(R.plurals.lessons_count, others, others),
+        pluralStringResource(Plurals.lessons_count, others, others),
         if (windows.isEmpty()) {
-            stringResource(R.string.class_day_full)
+            stringResource(Strings.class_day_full)
         } else {
-            stringResource(R.string.class_day_free_list, windows)
+            stringResource(Strings.class_day_free_list, windows)
         },
     )
 }
@@ -174,16 +175,16 @@ private const val SHOWN_WINDOWS = 3
 private fun Stepper(state: ClassFormState, onStep: (later: Boolean) -> Unit, onPick: () -> Unit) {
     val slot = state.slot
     val colors = MaterialTheme.colorScheme
-    val pick = stringResource(R.string.class_time_pick)
+    val pick = stringResource(Strings.class_time_pick)
     val earlier = state.stepped(later = false)
     val later = state.stepped(later = true)
     StepRow(
         // Named by where a press goes, which is not always 15 minutes on: past a lesson in the way, or to the
         // first free time while there is no start yet ([ClassFormState.stepped]).
-        lessName = earlier?.let { stringResource(R.string.class_step_earlier_to, it.timeText()) }
-            ?: stringResource(R.string.class_step_earlier),
-        moreName = later?.let { stringResource(R.string.class_step_later_to, it.timeText()) }
-            ?: stringResource(R.string.class_step_later),
+        lessName = earlier?.let { stringResource(Strings.class_step_earlier_to, it.timeText()) }
+            ?: stringResource(Strings.class_step_earlier),
+        moreName = later?.let { stringResource(Strings.class_step_later_to, it.timeText()) }
+            ?: stringResource(Strings.class_step_later),
         onLess = state.stepped(later = false)?.let { { onStep(false) } },
         onMore = state.stepped(later = true)?.let { { onStep(true) } },
         size = StartButtonSize,
@@ -229,7 +230,7 @@ private fun Stepper(state: ClassFormState, onStep: (later: Boolean) -> Unit, onP
 private fun ConflictLine(conflict: TimeConflict, state: ClassFormState) {
     Text(
         if (state.form.repeat.repeats) {
-            stringResource(R.string.class_series_availability, state.availableOccurrences)
+            stringResource(Strings.class_series_availability, state.availableOccurrences)
         } else {
             timeConflictText(conflict)
         },

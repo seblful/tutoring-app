@@ -7,8 +7,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
 import com.seblful.klas.R
+import com.seblful.klas.text.Strings
+import com.seblful.klas.text.stringResource
 import com.seblful.klas.ui.theme.klasColors
 
 /**
@@ -19,7 +20,7 @@ import com.seblful.klas.ui.theme.klasColors
 fun KlasWordmark(modifier: Modifier = Modifier) {
     Image(
         painter = painterResource(R.drawable.ic_wordmark),
-        contentDescription = stringResource(R.string.app_name),
+        contentDescription = stringResource(Strings.app_name),
         modifier = modifier.padding(Spacing.inline),
         colorFilter = if (klasColors.isDark) ColorFilter.tint(MaterialTheme.colorScheme.onSurface) else null,
     )

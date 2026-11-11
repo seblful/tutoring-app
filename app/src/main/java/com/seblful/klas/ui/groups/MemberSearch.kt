@@ -6,10 +6,10 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
-import com.seblful.klas.R
 import com.seblful.klas.domain.model.Student
 import com.seblful.klas.domain.people.PeopleSearch
+import com.seblful.klas.text.Strings
+import com.seblful.klas.text.stringResource
 import com.seblful.klas.ui.common.NamedIconButton
 import com.seblful.klas.ui.theme.KlasIcons
 
@@ -19,14 +19,14 @@ internal fun MemberSearch(query: String, onQuery: (String) -> Unit) {
     OutlinedTextField(
         value = query,
         onValueChange = onQuery,
-        placeholder = { Text(stringResource(R.string.students_search_hint)) },
+        placeholder = { Text(stringResource(Strings.students_search_hint)) },
         leadingIcon = { Icon(KlasIcons.Filled.Search, contentDescription = null) },
         // Cleared with ✕, as every other search is.
         trailingIcon = {
             if (query.isNotEmpty()) {
                 NamedIconButton(
                     KlasIcons.Filled.Close,
-                    stringResource(R.string.search_clear),
+                    stringResource(Strings.search_clear),
                     onClick = { onQuery("") },
                 )
             }

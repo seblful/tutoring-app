@@ -134,7 +134,7 @@ class StringCoverageTest {
     private val allResources: Map<String, Resources> get() = resources
 
     private val resources: Map<String, Resources> by lazy {
-        val res = ProjectFiles.moduleFile("src/main/res")
+        val res = ProjectFiles.strings()
         res.listFiles()
             .orEmpty()
             .filter { it.isDirectory && File(it, "strings.xml").exists() }

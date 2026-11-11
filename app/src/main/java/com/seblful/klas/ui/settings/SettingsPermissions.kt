@@ -9,13 +9,13 @@ import android.provider.Settings
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
 import com.seblful.klas.PermissionPrompt
-import com.seblful.klas.R
 import com.seblful.klas.notifications.rememberNotificationPermissionRequest
+import com.seblful.klas.text.Strings
+import com.seblful.klas.text.stringResource
 import com.seblful.klas.ui.common.Messages
 import com.seblful.klas.ui.common.launchExternally
 import com.seblful.klas.ui.common.rememberRejectFeedback
@@ -31,7 +31,7 @@ internal fun RefreshSettingsPermissions(viewModel: SettingsViewModel) {
 @Composable
 internal fun rememberOpenSystemSettings(messages: Messages, intent: (Context) -> Intent): () -> Unit {
     val context = LocalContext.current
-    val missing = stringResource(R.string.settings_page_missing)
+    val missing = stringResource(Strings.settings_page_missing)
     return { launchExternally(context, intent(context), missing, messages) }
 }
 
@@ -40,10 +40,10 @@ internal fun rememberNotificationAction(
     viewModel: SettingsViewModel,
     messages: Messages,
 ): (NotificationsIntent) -> Unit {
-    val denied = stringResource(R.string.settings_notifications_denied)
-    val openLabel = stringResource(R.string.action_open_settings)
-    val rationale = stringResource(R.string.settings_notifications_rationale)
-    val allowLabel = stringResource(R.string.action_allow)
+    val denied = stringResource(Strings.settings_notifications_denied)
+    val openLabel = stringResource(Strings.action_open_settings)
+    val rationale = stringResource(Strings.settings_notifications_rationale)
+    val allowLabel = stringResource(Strings.action_allow)
     val openSettings = rememberOpenSystemSettings(messages, ::appNotificationSettings)
     val reject = rememberRejectFeedback()
     val request = rememberNotificationPermissionRequest { granted ->

@@ -3,14 +3,16 @@ package com.seblful.klas.ui.common
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.pluralStringResource
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.test.platform.app.InstrumentationRegistry
-import com.seblful.klas.R
 import com.seblful.klas.format.inLanguage
+import com.seblful.klas.testutil.texts
+import com.seblful.klas.text.Plurals
+import com.seblful.klas.text.Strings
+import com.seblful.klas.text.pluralStringResource
+import com.seblful.klas.text.stringResource
 import com.seblful.klas.ui.theme.KlasTheme
 import org.junit.Rule
 import org.junit.Test
@@ -33,29 +35,29 @@ class LocalizedResourcesTest {
 
     @Test
     fun aStringIsDrawnInTheLanguageTheAppProvides() {
-        show(english) { Text(stringResource(R.string.nav_schedule)) }
+        show(english) { Text(stringResource(Strings.nav_schedule)) }
 
-        rule.onNodeWithText(resourcesIn(english).getString(R.string.nav_schedule)).assertIsDisplayed()
+        rule.onNodeWithText(resourcesIn(english).texts().string(Strings.nav_schedule)).assertIsDisplayed()
     }
 
     @Test
     fun theSameStringIsDrawnInRussianWhenRussianIsProvided() {
-        show(russian) { Text(stringResource(R.string.nav_schedule)) }
+        show(russian) { Text(stringResource(Strings.nav_schedule)) }
 
-        rule.onNodeWithText(resourcesIn(russian).getString(R.string.nav_schedule)).assertIsDisplayed()
+        rule.onNodeWithText(resourcesIn(russian).texts().string(Strings.nav_schedule)).assertIsDisplayed()
     }
 
     @Test
     fun aCountedNounTakesTheFormItsOwnLanguageSelects() {
-        show(russian) { Text(pluralStringResource(R.plurals.lessons_count, 5, 5)) }
-        rule.onNodeWithText(resourcesIn(russian).getQuantityString(R.plurals.lessons_count, 5, 5))
+        show(russian) { Text(pluralStringResource(Plurals.lessons_count, 5, 5)) }
+        rule.onNodeWithText(resourcesIn(russian).texts().plural(Plurals.lessons_count, 5, 5))
             .assertIsDisplayed()
     }
 
     @Test
     fun anEnglishCountedNounTakesEnglishForms() {
-        show(english) { Text(pluralStringResource(R.plurals.lessons_count, 5, 5)) }
-        rule.onNodeWithText(resourcesIn(english).getQuantityString(R.plurals.lessons_count, 5, 5))
+        show(english) { Text(pluralStringResource(Plurals.lessons_count, 5, 5)) }
+        rule.onNodeWithText(resourcesIn(english).texts().plural(Plurals.lessons_count, 5, 5))
             .assertIsDisplayed()
     }
 
@@ -63,9 +65,9 @@ class LocalizedResourcesTest {
     fun aStringReadThroughTheContextFollowsItToo() {
         show(english) { Text(scheduleLabel(LocalContext.current)) }
 
-        rule.onNodeWithText(resourcesIn(english).getString(R.string.nav_schedule)).assertIsDisplayed()
+        rule.onNodeWithText(resourcesIn(english).texts().string(Strings.nav_schedule)).assertIsDisplayed()
     }
 
     private fun scheduleLabel(context: android.content.Context): String =
-        context.getString(R.string.nav_schedule)
+        context.texts().string(Strings.nav_schedule)
 }

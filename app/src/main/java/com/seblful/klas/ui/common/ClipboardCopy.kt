@@ -8,8 +8,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.platform.ClipEntry
 import androidx.compose.ui.platform.Clipboard
 import androidx.compose.ui.platform.LocalClipboard
-import androidx.compose.ui.res.stringResource
-import com.seblful.klas.R
+import com.seblful.klas.text.Strings
+import com.seblful.klas.text.stringResource
 import kotlinx.coroutines.launch
 
 /** Something the tutor asked to carry elsewhere as plain text — a number into a contact, homework into a note. */
@@ -31,7 +31,7 @@ internal suspend fun Clipboard.copyPlainText(label: String, text: String) {
 fun rememberClipboardCopy(messages: Messages): ClipboardCopy {
     val clipboard = LocalClipboard.current
     val scope = rememberCoroutineScope()
-    val copied = stringResource(R.string.clipboard_copied)
+    val copied = stringResource(Strings.clipboard_copied)
     return remember(clipboard, scope, messages, copied) {
         ClipboardCopy { label, text ->
             scope.launch {

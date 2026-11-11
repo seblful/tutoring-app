@@ -12,7 +12,6 @@ import com.seblful.klas.di.Io
 import com.seblful.klas.domain.model.TutoringClass
 import com.seblful.klas.domain.time.WallClock
 import com.seblful.klas.format.DisplayLocale
-import com.seblful.klas.format.inLanguage
 import com.seblful.klas.format.labelRes
 import com.seblful.klas.runCatchingCancellable
 import dev.zacsweers.metro.AppScope
@@ -224,7 +223,7 @@ class DeviceCalendarSync @Inject constructor(
         // language owes a resync: `SettingsChange.calendarWork`.
         put(
             CalendarContract.Events.EVENT_LOCATION,
-            context.inLanguage(displayLocale.current).getString(klass.mode.labelRes()),
+            displayLocale.texts.string(klass.mode.labelRes()),
         )
         // Mark that this event carries reminders/guests, so the provider keeps the rows we add.
         put(CalendarContract.Events.HAS_ALARM, 1)

@@ -29,10 +29,8 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextOverflow
-import com.seblful.klas.R
 import com.seblful.klas.domain.homework.HomeworkRules
 import com.seblful.klas.domain.model.Assignee
 import com.seblful.klas.domain.model.Homework
@@ -41,6 +39,8 @@ import com.seblful.klas.format.formatDate
 import com.seblful.klas.queries.homework.AssigneeChoice
 import com.seblful.klas.queries.homework.HomeworkLists
 import com.seblful.klas.queries.homework.HomeworkRow
+import com.seblful.klas.text.Strings
+import com.seblful.klas.text.stringResource
 import com.seblful.klas.ui.common.AddRow
 import com.seblful.klas.ui.common.ChoiceField
 import com.seblful.klas.ui.common.ContentCard
@@ -90,9 +90,9 @@ fun LazyListScope.homeworkItems(
     if (lists.current.isEmpty() && lists.archive.isEmpty()) {
         item(key = HomeworkItemKeys.EMPTY, contentType = HomeworkItemKeys.EMPTY) {
             EmptyState(
-                title = stringResource(R.string.student_homework_empty),
+                title = stringResource(Strings.student_homework_empty),
                 icon = KlasIcons.Outlined.Assignment,
-                actionLabel = stringResource(R.string.homework_add),
+                actionLabel = stringResource(Strings.homework_add),
                 onAction = onAdd,
                 compact = true,
             )
@@ -100,7 +100,7 @@ fun LazyListScope.homeworkItems(
         return
     }
     item(key = HomeworkItemKeys.ADD, contentType = HomeworkItemKeys.ADD) {
-        AddRow(stringResource(R.string.homework_add), onAdd)
+        AddRow(stringResource(Strings.homework_add), onAdd)
     }
     items(
         lists.current,
@@ -122,7 +122,7 @@ fun LazyListScope.homeworkItems(
             // A section of the tab, so a section title — a heading a reader can jump to, which a `Text`
             // styled to look like one is not.
             SectionTitle(
-                stringResource(R.string.student_homework_done),
+                stringResource(Strings.student_homework_done),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier
                     .padding(horizontal = Spacing.gutter, vertical = Spacing.inline)
@@ -237,7 +237,7 @@ private fun HomeworkSwipeRow(
     ) {
         // The swipe's twin for a screen reader, on the same node it reads and taps.
         val swipe = Modifier.swipeAction(
-            stringResource(if (row.isCurrent) R.string.homework_done else R.string.homework_restore),
+            stringResource(if (row.isCurrent) Strings.homework_done else Strings.homework_restore),
             onSwipe,
         )
         val named = row.isGroup && row.homework.assignee != owner
@@ -258,7 +258,7 @@ private fun HomeworkReveal(done: Boolean, armed: Boolean, shape: Shape, toward: 
     }
     SwipeReveal(
         icon = if (done) KlasIcons.Filled.CheckCircle else KlasIcons.Filled.Undo,
-        label = stringResource(if (done) R.string.homework_done else R.string.homework_restore),
+        label = stringResource(if (done) Strings.homework_done else Strings.homework_restore),
         container = fill,
         content = ink,
         armed = armed,
@@ -282,7 +282,7 @@ private fun HomeworkCard(
         modifier = modifier,
         selected = picking.isPicked(row),
         onLongClick = if (picking.enabled) ({ picking.toggle(row) }) else null,
-        onLongClickLabel = stringResource(R.string.batch_select),
+        onLongClickLabel = stringResource(Strings.batch_select),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             HomeworkTick(row, onDone)
@@ -357,12 +357,12 @@ internal fun lessonLine(row: HomeworkRow, underSection: Boolean = false): String
     return when (row.due) {
         HomeworkRules.Due.TODAY ->
             if (underSection) at?.timeText().orEmpty()
-            else stringResource(R.string.homework_lesson_today, at?.timeText().orEmpty())
+            else stringResource(Strings.homework_lesson_today, at?.timeText().orEmpty())
         HomeworkRules.Due.OVERDUE, HomeworkRules.Due.LATER ->
             if (underSection) at?.dateTimeText().orEmpty()
-            else stringResource(R.string.homework_lesson_at, at?.dateTimeText().orEmpty())
-        HomeworkRules.Due.UNBOOKED -> if (underSection) "" else stringResource(R.string.homework_unbooked)
-        null -> stringResource(R.string.homework_set_on, row.homework.givenAt.formatDate())
+            else stringResource(Strings.homework_lesson_at, at?.dateTimeText().orEmpty())
+        HomeworkRules.Due.UNBOOKED -> if (underSection) "" else stringResource(Strings.homework_unbooked)
+        null -> stringResource(Strings.homework_set_on, row.homework.givenAt.formatDate())
     }
 }
 
@@ -400,16 +400,16 @@ fun HomeworkDialog(
     val focus = if (editing != null) rememberRevealedFocus() else null
     val chosen = choices.firstOrNull { it.assignee.editorKey() == selectedKey }
     FormDialog(
-        title = stringResource(if (editing == null) R.string.homework_add else R.string.homework_label),
+        title = stringResource(if (editing == null) Strings.homework_add else Strings.homework_label),
         confirm = DialogAction(
-            label = stringResource(R.string.action_save),
+            label = stringResource(Strings.action_save),
             onClick = { if (chosen != null) { onSave(chosen.assignee, text); onDismiss() } },
             enabled = chosen != null && text.isNotBlank(),
         ),
         onDismiss = onDismiss,
         extra = if (editing != null && onDelete != null) {
             DialogAction(
-                label = stringResource(R.string.action_delete),
+                label = stringResource(Strings.action_delete),
                 onClick = { onDelete(); onDismiss() },
                 destructive = true,
             )
@@ -419,7 +419,7 @@ fun HomeworkDialog(
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.itemGap)) {
             ChoiceField<AssigneeChoice?>(
-                label = stringResource(R.string.homework_assignee_label),
+                label = stringResource(Strings.homework_assignee_label),
                 selected = chosen,
                 options = choices,
                 optionLabel = { it?.name.orEmpty() },
@@ -429,7 +429,7 @@ fun HomeworkDialog(
             OutlinedTextField(
                 value = text,
                 onValueChange = { text = it },
-                label = { Text(stringResource(R.string.homework_text_label)) },
+                label = { Text(stringResource(Strings.homework_text_label)) },
                 keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
                 minLines = HomeworkDialogLines,
                 supportingText = chosen?.takeIf {
@@ -486,9 +486,9 @@ fun homeworkUndo(
     restore: (Homework) -> Unit,
 ): HomeworkUndo {
     val words = HomeworkUndo.Words(
-        done = stringResource(R.string.homework_done_message),
-        restored = stringResource(R.string.homework_restored_message),
-        deleted = stringResource(R.string.homework_deleted),
+        done = stringResource(Strings.homework_done_message),
+        restored = stringResource(Strings.homework_restored_message),
+        deleted = stringResource(Strings.homework_deleted),
     )
     val currentSetDone by rememberUpdatedState(setDone)
     val currentPutBack by rememberUpdatedState(putBack)
@@ -508,8 +508,8 @@ fun homeworkUndo(
 
 @Composable
 private fun attachedText(choice: AssigneeChoice): String =
-    choice.nextLessonAt?.let { stringResource(R.string.homework_attached_to, it.dateTimeText()) }
-        ?: stringResource(R.string.homework_attached_none)
+    choice.nextLessonAt?.let { stringResource(Strings.homework_attached_to, it.dateTimeText()) }
+        ?: stringResource(Strings.homework_attached_none)
 
 private const val HomeworkDialogLines = 3
 
@@ -521,7 +521,7 @@ private const val HomeworkDialogLines = 3
 private fun HomeworkTick(row: HomeworkRow, onDone: () -> Unit) {
     NamedIconButton(
         if (row.isCurrent) KlasIcons.Outlined.Circle else KlasIcons.Filled.CheckCircle,
-        stringResource(if (row.isCurrent) R.string.homework_done else R.string.homework_restore),
+        stringResource(if (row.isCurrent) Strings.homework_done else Strings.homework_restore),
         onClick = onDone,
         tint = if (row.isCurrent) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.primary,
     )
@@ -538,9 +538,9 @@ private fun HomeworkMenu(row: HomeworkRow, messages: Messages) {
     val externalApps = rememberExternalApps(messages)
     val clipboard = rememberClipboardCopy(messages)
     val text = homeworkShareText(row)
-    val chooserTitle = stringResource(R.string.homework_send)
-    val copyLabel = stringResource(R.string.action_copy)
-    val failed = stringResource(R.string.student_contact_failed)
+    val chooserTitle = stringResource(Strings.homework_send)
+    val copyLabel = stringResource(Strings.action_copy)
+    val failed = stringResource(Strings.student_contact_failed)
     OverflowMenu { close ->
         MenuItem(
             text = { Text(chooserTitle) },
@@ -568,5 +568,5 @@ private fun HomeworkMenu(row: HomeworkRow, messages: Messages) {
 @Composable
 fun homeworkShareText(row: HomeworkRow): String =
     row.lessonAt
-        ?.let { stringResource(R.string.homework_share_due, it.formatDate(), row.text) }
-        ?: stringResource(R.string.homework_share, row.text)
+        ?.let { stringResource(Strings.homework_share_due, it.formatDate(), row.text) }
+        ?: stringResource(Strings.homework_share, row.text)

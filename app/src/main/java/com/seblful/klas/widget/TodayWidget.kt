@@ -21,14 +21,15 @@ import androidx.glance.appwidget.SizeMode
 import androidx.glance.appwidget.action.ActionCallback
 import androidx.glance.appwidget.action.actionRunCallback
 import androidx.glance.appwidget.provideContent
-import com.seblful.klas.R
 import com.seblful.klas.data.settings.Privacy
 import com.seblful.klas.di.appGraph
 import com.seblful.klas.format.formatTime
-import com.seblful.klas.format.inLanguage
 import com.seblful.klas.launchAsync
 import com.seblful.klas.notifications.ReminderActions
 import com.seblful.klas.notifications.TrayNavigation
+import com.seblful.klas.text.StringArrays
+import com.seblful.klas.text.Strings
+import com.seblful.klas.text.Texts
 import dev.zacsweers.metro.Inject
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
@@ -59,7 +60,7 @@ class TodayWidget : GlanceAppWidget() {
 
     override suspend fun providePreview(context: Context, widgetCategory: Int) {
         val locale = context.appGraph.widgets.displayLocale.observe().first()
-        val words = context.inLanguage(locale)
+        val words = Texts.of(locale.toLanguageTag())
         val rows = words.sampleRows(hour12 = !DateFormat.is24HourFormat(context), locale)
         provideContent {
             GlanceTheme(colors = KlasWidgetColors) {
@@ -87,12 +88,12 @@ class TodayWidget : GlanceAppWidget() {
             val state by produceState(initial) { states.collect { value = it } }
             val (today, locale, privacy) = state
             val hour12 = !DateFormat.is24HourFormat(context)
-            val words = context.inLanguage(locale)
+            val words = Texts.of(locale.toLanguageTag())
             val shown = listsLessons(LocalAppWidgetOptions.current.hostCategory(), privacy)
             GlanceTheme(colors = KlasWidgetColors) {
                 TodayLayout(
                     texts = words.todayTexts().let {
-                        if (shown) it else it.copy(empty = words.getString(R.string.widget_today_locked))
+                        if (shown) it else it.copy(empty = words.string(Strings.widget_today_locked))
                     },
                     rows = if (shown) {
                         val now = widgets.now()
@@ -124,21 +125,21 @@ private fun Bundle.hostCategory(): Int =
     getInt(AppWidgetManager.OPTION_APPWIDGET_HOST_CATEGORY, AppWidgetProviderInfo.WIDGET_CATEGORY_HOME_SCREEN)
 
 /** [TodayTexts] from [this], a context in the app's language. */
-internal fun Context.todayTexts() = TodayTexts(
-    title = getString(R.string.schedule_today),
-    empty = getString(R.string.widget_today_empty),
-    bookLesson = getString(R.string.schedule_add_class),
-    markTaught = getString(R.string.class_mark_completed),
-    taught = getString(R.string.class_status_completed),
-    onNow = getString(R.string.class_status_in_progress),
-    markLesson = getString(R.string.widget_mark_lesson),
-    lessonTaught = getString(R.string.widget_lesson_taught),
+internal fun Texts.todayTexts() = TodayTexts(
+    title = string(Strings.schedule_today),
+    empty = string(Strings.widget_today_empty),
+    bookLesson = string(Strings.schedule_add_class),
+    markTaught = string(Strings.class_mark_completed),
+    taught = string(Strings.class_status_completed),
+    onNow = string(Strings.class_status_in_progress),
+    markLesson = string(Strings.widget_mark_lesson),
+    lessonTaught = string(Strings.widget_lesson_taught),
 )
 
 /** The picker's sample day, from [this], a context in the app's language: the first lesson taught. */
-internal fun Context.sampleRows(hour12: Boolean, locale: Locale): List<TodayRow> {
+internal fun Texts.sampleRows(hour12: Boolean, locale: Locale): List<TodayRow> {
     val today = Clock.System.todayIn(TimeZone.currentSystemDefault())
-    return resources.getStringArray(R.array.widget_preview_lessons).toList().chunked(2)
+    return array(StringArrays.widget_preview_lessons).chunked(2)
         .zip(listOf("09:00", "14:30", "17:00").map(LocalTime::parse))
         .mapIndexed { index, (lesson, time) ->
             val start = today.atTime(time).toInstant(TimeZone.currentSystemDefault())

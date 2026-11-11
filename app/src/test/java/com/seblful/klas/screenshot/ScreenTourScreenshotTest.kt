@@ -1,6 +1,5 @@
 package com.seblful.klas.screenshot
 
-import androidx.annotation.StringRes
 import androidx.compose.ui.test.filter
 import androidx.compose.ui.test.filterToOne
 import androidx.compose.ui.test.hasClickAction
@@ -20,7 +19,6 @@ import com.github.takahirom.roborazzi.RoborazziOptions.CompareOptions
 import com.github.takahirom.roborazzi.ThresholdValidator
 import com.github.takahirom.roborazzi.captureScreenRoboImage
 import com.seblful.klas.MainActivity
-import com.seblful.klas.R
 import com.seblful.klas.domain.model.ThemeChoice
 import com.seblful.klas.format.formatDay
 import com.seblful.klas.store.DemoTutor
@@ -30,6 +28,9 @@ import com.seblful.klas.testutil.FakeCalendarPermission
 import com.seblful.klas.testutil.FakeCalendarSync
 import com.seblful.klas.testutil.RecordingDigestScheduler
 import com.seblful.klas.testutil.RecordingReminderScheduler
+import com.seblful.klas.testutil.texts
+import com.seblful.klas.text.StringResource
+import com.seblful.klas.text.Strings
 import com.seblful.klas.ui.common.SKELETON_TAG
 import dev.zacsweers.metro.createGraphFactory
 import kotlinx.coroutines.runBlocking
@@ -114,38 +115,38 @@ class ScreenTourScreenshotTest {
         graph(tutor, seeded = true, theme = theme)
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
             // Today is left alone, as in [FormFactorScreenshotTest]: its «now» line moves on its own.
-            tab(R.string.nav_schedule)
-            waitFor(string(R.string.class_status_in_progress))
-            click(R.string.schedule_view_month)
+            tab(Strings.nav_schedule)
+            waitFor(string(Strings.class_status_in_progress))
+            click(Strings.schedule_view_month)
             compose.onAllNodesWithText(LATER_DAY).filterToOne(isSelectable()).performClick()
             laterDayShown()
             settle()
-            compose.onAllNodes(hasText(string(R.string.class_status_scheduled), substring = true) and hasClickAction())
+            compose.onAllNodes(hasText(string(Strings.class_status_scheduled), substring = true) and hasClickAction())
                 .onFirst().performClick()
             capture(variant, "lesson-sheet")
             back(scenario)
 
-            describedClick(R.string.class_book)
+            describedClick(Strings.class_book)
             capture(variant, "booking")
             back(scenario)
 
-            tab(R.string.nav_people)
+            tab(Strings.nav_people)
             waitFor(tutor.debtor.name)
-            describedClick(R.string.fab_new_student)
+            describedClick(Strings.fab_new_student)
             capture(variant, "student-new")
             back(scenario)
 
-            click(R.string.groups_title)
-            describedClick(R.string.fab_new_group)
+            click(Strings.groups_title)
+            describedClick(Strings.fab_new_group)
             capture(variant, "group-new")
             back(scenario)
 
-            tab(R.string.nav_homework)
+            tab(Strings.nav_homework)
             waitFor(tutor.group.homework)
-            click(R.string.homework_side_archive)
+            click(Strings.homework_side_archive)
             capture(variant, "homework-done")
 
-            describedClick(R.string.settings_title)
+            describedClick(Strings.settings_title)
             capture(variant, "settings")
             for ((label, name) in SettingsPages + AppPages) {
                 click(label)
@@ -158,11 +159,11 @@ class ScreenTourScreenshotTest {
     private fun firstRun(variant: String, tutor: DemoTutor) {
         graph(tutor, seeded = false)
         ActivityScenario.launch(MainActivity::class.java).use {
-            waitFor(string(R.string.onboarding_start))
+            waitFor(string(Strings.onboarding_start))
             capture(variant, "onboarding-welcome")
-            click(R.string.onboarding_start)
+            click(Strings.onboarding_start)
             capture(variant, "onboarding-locale")
-            click(R.string.onboarding_continue)
+            click(Strings.onboarding_continue)
             capture(variant, "onboarding-subjects")
         }
     }
@@ -172,7 +173,7 @@ class ScreenTourScreenshotTest {
         settle()
     }
 
-    private fun click(@StringRes label: Int) {
+    private fun click(label: StringResource) {
         val node = compose.onAllNodesWithText(string(label)).filter(hasClickAction()).onFirst()
         // Below the fold at large text a tap lands on nothing; a node outside any scroll has nothing to scroll.
         runCatching { node.performScrollTo() }
@@ -181,12 +182,12 @@ class ScreenTourScreenshotTest {
     }
 
     /** An icon button, found by what it says to a screen reader. */
-    private fun describedClick(@StringRes label: Int) {
+    private fun describedClick(label: StringResource) {
         compose.onAllNodes(hasContentDescription(string(label)) and hasClickAction()).onFirst().performClick()
         settle()
     }
 
-    private fun tab(@StringRes label: Int) {
+    private fun tab(label: StringResource) {
         compose.onAllNodes((hasText(string(label)) or hasContentDescription(string(label))) and isSelectable())
             .onFirst().performClick()
         settle()
@@ -223,7 +224,8 @@ class ScreenTourScreenshotTest {
         compose.waitForIdle()
     }
 
-    private fun string(@StringRes id: Int): String = ApplicationProvider.getApplicationContext<StoreApp>().getString(id)
+    private fun string(id: StringResource): String =
+        ApplicationProvider.getApplicationContext<StoreApp>().texts().string(id)
 
     private companion object {
         const val TIMEOUT_MS = 60_000L
@@ -234,18 +236,18 @@ class ScreenTourScreenshotTest {
 
         /** The pages «Ещё» held when it was a tab, now rows of Settings' index. */
         val AppPages = listOf(
-            R.string.more_subjects to "subjects",
-            R.string.more_backup to "backup",
-            R.string.about_title to "about",
+            Strings.more_subjects to "subjects",
+            Strings.more_backup to "backup",
+            Strings.about_title to "about",
         )
 
         val SettingsPages = listOf(
-            R.string.settings_appearance_title to "settings-appearance",
-            R.string.settings_notifications_title to "settings-notifications",
-            R.string.settings_lessons_title to "settings-lessons",
-            R.string.settings_calendar_title to "settings-calendar",
-            R.string.settings_privacy_title to "settings-privacy",
-            R.string.diagnostics_title to "diagnostics",
+            Strings.settings_appearance_title to "settings-appearance",
+            Strings.settings_notifications_title to "settings-notifications",
+            Strings.settings_lessons_title to "settings-lessons",
+            Strings.settings_calendar_title to "settings-calendar",
+            Strings.settings_privacy_title to "settings-privacy",
+            Strings.diagnostics_title to "diagnostics",
         )
     }
 }

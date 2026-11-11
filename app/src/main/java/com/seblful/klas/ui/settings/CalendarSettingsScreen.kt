@@ -7,10 +7,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
-import com.seblful.klas.R
 import com.seblful.klas.calendar.rememberCalendarPermissionRequest
 import com.seblful.klas.data.settings.AppSettings
+import com.seblful.klas.text.Strings
+import com.seblful.klas.text.stringResource
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.rememberRejectFeedback
 import com.seblful.klas.ui.designsystem.component.SettingsGroup
@@ -18,12 +18,12 @@ import dev.zacsweers.metrox.viewmodel.metroViewModel
 
 @Composable
 fun CalendarSettingsScreen(onBack: (() -> Unit)?, viewModel: SettingsViewModel = metroViewModel()) {
-    SettingsPage(R.string.settings_calendar_title, onBack, viewModel) { page, modifier, bottomInset, messages ->
+    SettingsPage(Strings.settings_calendar_title, onBack, viewModel) { page, modifier, bottomInset, messages ->
         val openSettings = rememberOpenSystemSettings(messages, ::appDetailsSettings)
-        val denied = stringResource(R.string.calendar_denied)
-        val openLabel = stringResource(R.string.action_open_settings)
-        val rationale = stringResource(R.string.calendar_rationale)
-        val allowLabel = stringResource(R.string.action_allow)
+        val denied = stringResource(Strings.calendar_denied)
+        val openLabel = stringResource(Strings.action_open_settings)
+        val rationale = stringResource(Strings.calendar_rationale)
+        val allowLabel = stringResource(Strings.action_allow)
         val reject = rememberRejectFeedback()
         val requestCalendar = rememberCalendarPermissionRequest {
             if (viewModel.calendarPermissionAnswered() != CalendarSyncToggle.APPLIED) {
@@ -59,7 +59,7 @@ internal fun CalendarSettingsContent(
 ) {
     Column(modifier.verticalScroll(rememberScrollState()).padding(bottom = Spacing.gutter).padding(bottomInset)) {
         SettingsGroup { CalendarSyncRows(settings, delivery, onSync, onUpdate, onFixCalendar) }
-        SettingsGroup(stringResource(R.string.settings_reminder_timing)) {
+        SettingsGroup(stringResource(Strings.settings_reminder_timing)) {
             ReminderLeadRow(
                 minutes = settings.reminderLeadMinutes,
                 enabled = settings.canEditReminderLead,
@@ -79,12 +79,12 @@ private fun CalendarSyncRows(
     onFixCalendar: () -> Unit,
 ) {
     SwitchRow(
-        title = stringResource(R.string.settings_calendar_sync),
+        title = stringResource(Strings.settings_calendar_sync),
         description = stringResource(
             if (delivery == CalendarDelivery.BLOCKED) {
-                R.string.settings_calendar_sync_blocked
+                Strings.settings_calendar_sync_blocked
             } else {
-                R.string.settings_calendar_sync_desc
+                Strings.settings_calendar_sync_desc
             },
         ),
         checked = settings.calendarSyncEnabled,
@@ -92,18 +92,18 @@ private fun CalendarSyncRows(
     )
     if (delivery == CalendarDelivery.BLOCKED) {
         SystemSettingsRow(
-            title = stringResource(R.string.settings_calendar_fix),
-            description = stringResource(R.string.settings_calendar_fix_desc),
+            title = stringResource(Strings.settings_calendar_fix),
+            description = stringResource(Strings.settings_calendar_fix_desc),
             onClick = onFixCalendar,
         )
     }
     SwitchRow(
-        title = stringResource(R.string.settings_email_invites),
+        title = stringResource(Strings.settings_email_invites),
         description = stringResource(
             if (settings.calendarSyncEnabled) {
-                R.string.settings_email_invites_desc
+                Strings.settings_email_invites_desc
             } else {
-                R.string.settings_email_invites_disabled
+                Strings.settings_email_invites_disabled
             },
         ),
         checked = settings.emailInvitesEnabled,

@@ -13,10 +13,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.pluralStringResource
-import androidx.compose.ui.res.stringResource
-import com.seblful.klas.R
 import com.seblful.klas.domain.people.PeopleSearch
+import com.seblful.klas.text.Plurals
+import com.seblful.klas.text.Strings
+import com.seblful.klas.text.pluralStringResource
+import com.seblful.klas.text.stringResource
 import com.seblful.klas.ui.theme.KlasIcons
 
 /** Up to this many options, a menu draws them all; past it, it offers a search. */
@@ -47,7 +48,7 @@ fun <T> ColumnScope.MenuOptions(
     val hidden = matches.size - MENU_SHOWN
     if (hidden > 0) {
         MenuItem(
-            text = { Text(pluralStringResource(R.plurals.menu_more_matches, hidden, hidden)) },
+            text = { Text(pluralStringResource(Plurals.menu_more_matches, hidden, hidden)) },
             onClick = {},
             enabled = false,
         )
@@ -60,7 +61,7 @@ fun SearchField(query: String, onQueryChange: (String) -> Unit, modifier: Modifi
     OutlinedTextField(
         value = query,
         onValueChange = onQueryChange,
-        placeholder = { Text(stringResource(R.string.action_search)) },
+        placeholder = { Text(stringResource(Strings.action_search)) },
         leadingIcon = { Icon(KlasIcons.Filled.Search, contentDescription = null) },
         singleLine = true,
         modifier = modifier.fillMaxWidth().padding(horizontal = Spacing.inline, vertical = Spacing.tight),

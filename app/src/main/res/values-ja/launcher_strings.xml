@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_today_name">今日のレッスン</string>
+    <string name="widget_today_description">今日のレッスン、ワンタップで教えられるマーク付き</string>
+    <string name="widget_quick_actions_name">Klas ショートカット</string>
+    <string name="widget_quick_actions_description">レッスンの予約、生徒の追加、「今日」・宿題・未払い金を開く</string>
+</resources>

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_today_name">De lessen van vandaag</string>
+    <string name="widget_today_description">De lessen van vandaag, gemarkeerd met één tik</string>
+    <string name="widget_quick_actions_name">Klas-snelkoppelingen</string>
+    <string name="widget_quick_actions_description">Boek een les, voeg een leerling toe of open Vandaag, huiswerk en schulden</string>
+</resources>

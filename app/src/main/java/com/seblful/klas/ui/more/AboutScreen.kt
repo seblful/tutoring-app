@@ -22,10 +22,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalResources
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.seblful.klas.R
+import com.seblful.klas.text.Strings
+import com.seblful.klas.text.stringResource
 import com.seblful.klas.ui.common.KlasLogo
 import com.seblful.klas.ui.common.KlasScreen
 import com.seblful.klas.ui.common.KlasWordmark
@@ -44,7 +45,7 @@ import com.seblful.klas.ui.theme.KlasIcons
 @Composable
 fun AboutScreen(onBack: () -> Unit, onBackup: () -> Unit) {
     val context = LocalContext.current
-    val resources = LocalResources.current
+    val rawResources = LocalResources.current
     var showingLicence by remember { mutableStateOf(false) }
     // Read from the installed package rather than from BuildConfig, so it is the version the
     // platform actually has — including the `.debug` suffix a debug install carries.
@@ -54,7 +55,7 @@ fun AboutScreen(onBack: () -> Unit, onBackup: () -> Unit) {
         }.getOrNull().orEmpty()
     }
 
-    KlasScreen(title = stringResource(R.string.about_title), onBack = onBack) { modifier, bottomInset ->
+    KlasScreen(title = stringResource(Strings.about_title), onBack = onBack) { modifier, bottomInset ->
         Column(
             modifier
                 .verticalScroll(rememberScrollState())
@@ -68,14 +69,14 @@ fun AboutScreen(onBack: () -> Unit, onBackup: () -> Unit) {
             KlasLogo(Modifier.size(LogoSize))
             KlasWordmark(Modifier.width(WordmarkWidth).height(WordmarkHeight))
             Text(
-                stringResource(R.string.about_tagline),
+                stringResource(Strings.about_tagline),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
             )
             if (version.isNotEmpty()) {
                 Text(
-                    stringResource(R.string.about_version, version),
+                    stringResource(Strings.about_version, version),
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -86,11 +87,11 @@ fun AboutScreen(onBack: () -> Unit, onBackup: () -> Unit) {
                     verticalArrangement = Arrangement.spacedBy(Spacing.itemGap),
                 ) {
                     Text(
-                        stringResource(R.string.about_offline),
+                        stringResource(Strings.about_offline),
                         style = MaterialTheme.typography.bodyMedium,
                     )
                     Text(
-                        stringResource(R.string.about_backup_hint),
+                        stringResource(Strings.about_backup_hint),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -98,7 +99,7 @@ fun AboutScreen(onBack: () -> Unit, onBackup: () -> Unit) {
                 // A row to the page, as Settings lists it: this screen has no primary action — it is a
                 // statement — and the row is the way to act on one sentence of it.
                 KlasRow(
-                    title = stringResource(R.string.more_backup),
+                    title = stringResource(Strings.more_backup),
                     start = RowStart.Icon(KlasIcons.Outlined.Save),
                     end = RowEnd.Opens,
                     onClick = onBackup,
@@ -120,7 +121,7 @@ fun AboutScreen(onBack: () -> Unit, onBackup: () -> Unit) {
                 kind = ButtonKind.Text,
             ) {
                 Text(
-                    stringResource(R.string.about_typeface),
+                    stringResource(Strings.about_typeface),
                     style = MaterialTheme.typography.labelSmall,
                     textAlign = TextAlign.Center,
                 )
@@ -131,12 +132,12 @@ fun AboutScreen(onBack: () -> Unit, onBackup: () -> Unit) {
     if (showingLicence) {
         // Read when it is asked for rather than with the screen: 4KB off disk is nothing, but it is
         // nothing that a tutor opening «О приложении» has any reason to pay for.
-        val licence = remember(resources) {
-            resources.openRawResource(R.raw.golos_text_ofl).bufferedReader().use { it.readText() }
+        val licence = remember(rawResources) {
+            rawResources.openRawResource(R.raw.golos_text_ofl).bufferedReader().use { it.readText() }
         }
         NoticeDialog(
             onDismiss = { showingLicence = false },
-            title = stringResource(R.string.about_typeface_licence),
+            title = stringResource(Strings.about_typeface_licence),
         ) {
             // Left in English, as licences are. Scrollable because it is four screens long, and the OFL's
             // terms are not something to show an abridged version of.

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_today_name">Сённяшнія ўрокі</string>
+    <string name="widget_today_description">Сённяшнія ўрокі, пазначаныя як праведзеныя адным націскам</string>
+    <string name="widget_quick_actions_name">Ярлыкі Klas</string>
+    <string name="widget_quick_actions_description">Замоўце ўрок, дадайце вучня або адкрыйце «Сёння», хатнія заданні і даўгі</string>
+</resources>

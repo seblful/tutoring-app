@@ -9,15 +9,16 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.pluralStringResource
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
-import com.seblful.klas.R
 import com.seblful.klas.domain.lesson.LessonPhase
 import com.seblful.klas.domain.model.Attendance
 import com.seblful.klas.domain.model.Balance
 import com.seblful.klas.queries.groups.GroupLessonRow
 import com.seblful.klas.queries.groups.GroupMemberRow
+import com.seblful.klas.text.Plurals
+import com.seblful.klas.text.Strings
+import com.seblful.klas.text.pluralStringResource
+import com.seblful.klas.text.stringResource
 import com.seblful.klas.ui.common.ArchivedBadge
 import com.seblful.klas.ui.common.Avatar
 import com.seblful.klas.ui.common.BadgeLine
@@ -58,9 +59,9 @@ internal fun GroupLessonItem(
                 Text(
                     when (val attendance = row.attendance) {
                         is Attendance.All ->
-                            pluralStringResource(R.plurals.group_lesson_attended, attendance.count, attendance.count)
+                            pluralStringResource(Plurals.group_lesson_attended, attendance.count, attendance.count)
                         is Attendance.Some ->
-                            stringResource(R.string.group_lesson_present, attendance.present, attendance.of)
+                            stringResource(Strings.group_lesson_present, attendance.present, attendance.of)
                     },
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -80,15 +81,15 @@ internal fun GroupMemberItem(
     modifier: Modifier = Modifier,
     colors: ListItemColors = ListItemDefaults.colors(),
 ) {
-    val openMemberLabel = stringResource(R.string.group_member_open)
+    val openMemberLabel = stringResource(Strings.group_member_open)
     ListItem(
         leadingContent = { Avatar(row.student.name, row.student.id) },
         headlineContent = { Text(row.student.name, maxLines = 1, overflow = TextOverflow.Ellipsis) },
         supportingContent = {
             val attended = if (row.held == 0) {
-                stringResource(R.string.group_member_no_lessons)
+                stringResource(Strings.group_member_no_lessons)
             } else {
-                stringResource(R.string.group_member_present, row.present, row.held)
+                stringResource(Strings.group_member_present, row.present, row.held)
             }
             Column {
                 // An archived member still explains the group's past lessons, so they stay listed — and say so.

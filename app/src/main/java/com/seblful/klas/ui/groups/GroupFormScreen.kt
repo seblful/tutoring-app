@@ -23,14 +23,15 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.pluralStringResource
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.seblful.klas.R
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Student
+import com.seblful.klas.text.Plurals
+import com.seblful.klas.text.Strings
+import com.seblful.klas.text.pluralStringResource
+import com.seblful.klas.text.stringResource
 import com.seblful.klas.ui.common.AddRow
 import com.seblful.klas.ui.common.ConfirmDialog
 import com.seblful.klas.ui.common.DropdownField
@@ -68,7 +69,7 @@ fun GroupFormScreen(
 ) {
     val screenState by viewModel.state.collectAsStateWithLifecycle()
     val title = stringResource(
-        if (viewModel.isNew) R.string.group_add_title else R.string.group_edit_title,
+        if (viewModel.isNew) Strings.group_add_title else Strings.group_edit_title,
     )
 
     // An existing group's form waits rather than drawing itself from a blank [GroupFormViewModel.Form]:
@@ -106,17 +107,17 @@ private fun GroupForm(
     val requestLeave = leaveGuard(form = state, onLeave = onBack, onSave = ::requestSave)
 
     val messages = rememberMessages()
-    val saveFailedMsg = stringResource(R.string.save_failed)
+    val saveFailedMsg = stringResource(Strings.save_failed)
     ShowMessagesFor(viewModel.events, messages) { saveFailedMsg }
 
     if (confirmingDrops) {
         ConfirmDialog(
             text = pluralStringResource(
-                R.plurals.group_members_leaving_confirm,
+                Plurals.group_members_leaving_confirm,
                 state.leavingOnSave,
                 state.leavingOnSave,
             ),
-            confirmLabel = stringResource(R.string.action_save),
+            confirmLabel = stringResource(Strings.action_save),
             onConfirm = { viewModel.save(saved) },
             onDismiss = { confirmingDrops = false },
         )
@@ -124,7 +125,7 @@ private fun GroupForm(
 
     FormScreen(
         title = title,
-        saveLabel = stringResource(if (viewModel.isNew) R.string.group_form_create else R.string.action_save),
+        saveLabel = stringResource(if (viewModel.isNew) Strings.group_form_create else Strings.action_save),
         bar = formBar(state.missing) { FormBar.Ready(state.form.name.trim(), groupSummary(state)) },
         onSave = ::requestSave,
         onLeave = requestLeave,
@@ -174,9 +175,9 @@ private fun LazyListScope.identityItems(state: GroupFormViewModel.UiState, viewM
         OutlinedTextField(
             value = form.name,
             onValueChange = { v -> viewModel.update { it.copy(name = v) } },
-            label = { Text(stringResource(R.string.group_name_label)) },
+            label = { Text(stringResource(Strings.group_name_label)) },
             supportingText = supportingTextOf(
-                hint = stringResource(R.string.field_required).takeIf { form.name.isBlank() },
+                hint = stringResource(Strings.field_required).takeIf { form.name.isBlank() },
             ),
             singleLine = true,
             // Capitalised like a subject's name, which is what a group's is closest to — not word by
@@ -194,16 +195,16 @@ private fun LazyListScope.identityItems(state: GroupFormViewModel.UiState, viewM
         // Its hint is the field's own `supportingText`, so it is indented like the rate field's hint
         // directly underneath it.
         DropdownField(
-            label = stringResource(R.string.group_subject_label),
+            label = stringResource(Strings.group_subject_label),
             selectedText = state.subjects.firstOrNull { it.id == form.subjectId }?.name
-                ?: stringResource(R.string.group_subject_none),
-            options = listOf(NoSubject to stringResource(R.string.group_subject_none)) +
+                ?: stringResource(Strings.group_subject_none),
+            options = listOf(NoSubject to stringResource(Strings.group_subject_none)) +
                 state.subjects.map { it.id to it.name },
             onSelect = { id -> viewModel.setSubject(id.takeIf { it != NoSubject }) },
             selectedId = subjectChoice(form.subjectId),
             supportingText = stringResource(
-                if (form.subjectId == null) R.string.group_subject_none_hint
-                else R.string.group_subject_hint,
+                if (form.subjectId == null) Strings.group_subject_none_hint
+                else Strings.group_subject_hint,
             ),
         )
     }
@@ -215,7 +216,7 @@ private fun LazyListScope.noteItem(state: GroupFormViewModel.UiState, viewModel:
         OutlinedTextField(
             value = form.note,
             onValueChange = { v -> viewModel.update { it.copy(note = v) } },
-            label = { Text(stringResource(R.string.student_note_label)) },
+            label = { Text(stringResource(Strings.student_note_label)) },
             // The student form's note keyboard: the same field, so the same first capital.
             keyboardOptions = TitleKeyboard,
             modifier = Modifier.fillMaxWidth(),
@@ -233,20 +234,20 @@ private fun LazyListScope.pricingItems(state: GroupFormViewModel.UiState, viewMo
         MoneyTextField(
             field = form.price,
             onValueChange = { v -> viewModel.update { it.copy(price = it.price.typed(v)) } },
-            label = stringResource(R.string.group_price_label),
+            label = stringResource(Strings.group_price_label),
             // Blank is required-and-unfilled, said without shouting; once filled, what the rate used to
             // be, where it is typed — as a student's subject row says it — or else what it means.
             hint = if (form.price.text.isBlank()) {
-                stringResource(R.string.field_required)
+                stringResource(Strings.field_required)
             } else {
-                rateChangeLine(state.rateHistory) ?: stringResource(R.string.group_price_hint)
+                rateChangeLine(state.rateHistory) ?: stringResource(Strings.group_price_hint)
             },
         )
     }
 
     item(key = "mode", contentType = "mode") {
         ModeField(
-            label = stringResource(R.string.student_mode_label),
+            label = stringResource(Strings.student_mode_label),
             selected = form.mode,
             onSelect = { m -> viewModel.update { it.copy(mode = m) } },
         )
@@ -260,7 +261,7 @@ private fun LazyListScope.rosterHeaderItem(state: GroupFormViewModel.UiState) {
             KlasDivider(Modifier.padding(vertical = Spacing.tight))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 SectionTitle(
-                    stringResource(R.string.group_members_title),
+                    stringResource(Strings.group_members_title),
                     modifier = Modifier.weight(1f),
                 )
                 // Counts what would actually be saved, not what is ticked: switching subject
@@ -278,14 +279,14 @@ private fun LazyListScope.rosterHeaderItem(state: GroupFormViewModel.UiState) {
                 // students at all", and only the first is fixed by changing the subject.
                 !state.hasStudents -> Text(
                     stringResource(
-                        if (form.subjectId == null) R.string.group_no_students
-                        else R.string.group_no_students_for_subject,
+                        if (form.subjectId == null) Strings.group_no_students
+                        else Strings.group_no_students_for_subject,
                     ),
                     color = klasSemantics.validation,
                     style = MaterialTheme.typography.bodyMedium,
                 )
                 state.selectedMemberIds.isEmpty() -> Text(
-                    stringResource(R.string.group_members_required),
+                    stringResource(Strings.group_members_required),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.bodySmall,
                 )
@@ -315,7 +316,7 @@ private fun LazyListScope.memberItems(
     if (unpriced.isNotEmpty()) {
         item(key = "unpriced-help", contentType = "unpriced-help") {
             Text(
-                stringResource(R.string.group_price_setup_hint),
+                stringResource(Strings.group_price_setup_hint),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = Spacing.itemGap),
@@ -328,7 +329,7 @@ private fun LazyListScope.memberItems(
         }
     }
     item(key = "add-student", contentType = "add-student") {
-        AddRow(stringResource(R.string.schedule_add_student), onClick = { onAddStudent(form.subjectId) })
+        AddRow(stringResource(Strings.schedule_add_student), onClick = { onAddStudent(form.subjectId) })
     }
 }
 
@@ -351,7 +352,7 @@ private fun UnpricedMemberRow(student: Student, onSetPrice: () -> Unit) {
             modifier = Modifier.weight(1f).padding(start = Spacing.leading),
         )
         KlasButton(onClick = onSetPrice, kind = ButtonKind.Text) {
-            Text(stringResource(R.string.group_member_set_price))
+            Text(stringResource(Strings.group_member_set_price))
         }
     }
 }

@@ -22,14 +22,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.window.PopupPositionProvider
-import com.seblful.klas.R
 import com.seblful.klas.lock.LocalAppLocked
+import com.seblful.klas.text.Strings
+import com.seblful.klas.text.stringResource
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.time.Duration.Companion.milliseconds
@@ -78,7 +78,7 @@ fun CoachMark(
                             dismissed()
                         },
                         kind = ButtonKind.Text,
-                    ) { Text(stringResource(R.string.tip_got_it)) }
+                    ) { Text(stringResource(Strings.tip_got_it)) }
                 },
                 caretShape = TooltipDefaults.caretShape(),
             ) { Text(text) }

@@ -1,21 +1,20 @@
 package com.seblful.klas
 
-import androidx.test.platform.app.InstrumentationRegistry
-import com.seblful.klas.format.inLanguage
+import com.seblful.klas.text.PluralResource
+import com.seblful.klas.text.Plurals
+import com.seblful.klas.text.Texts
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 
 class RussianPluralsTest {
 
-    private val resources = InstrumentationRegistry.getInstrumentation().targetContext
-        .inLanguage(java.util.Locale.forLanguageTag("ru"))
-        .resources
+    private val texts = Texts.of("ru")
 
     @Test
     fun aLessonCountTakesTheFormItsNumberCallsFor() {
         assertForms(
-            R.plurals.lessons_count,
+            Plurals.lessons_count,
             0 to "0 занятий",
             1 to "1 занятие",
             2 to "2 занятия",
@@ -34,7 +33,7 @@ class RussianPluralsTest {
     @Test
     fun anAttendanceCountTakesTheFormItsNumberCallsFor() {
         assertForms(
-            R.plurals.group_lesson_attended,
+            Plurals.group_lesson_attended,
             1 to "1 участник",
             3 to "3 участника",
             7 to "7 участников",
@@ -43,9 +42,9 @@ class RussianPluralsTest {
         )
     }
 
-    private fun assertForms(plural: Int, vararg cases: Pair<Int, String>) {
+    private fun assertForms(plural: PluralResource, vararg cases: Pair<Int, String>) {
         val wrong = cases.mapNotNull { (count, expected) ->
-            val actual = resources.getQuantityString(plural, count, count)
+            val actual = texts.plural(plural, count, count)
             "expected «$expected», got «$actual»".takeIf { actual != expected }
         }
         assertTrue(wrong.joinToString(prefix = "\n", separator = "\n"), wrong.isEmpty())

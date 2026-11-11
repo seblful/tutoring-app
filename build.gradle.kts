@@ -67,6 +67,7 @@ tasks.register("verify") {
     dependsOn(
         "testStore",
         "testDeviceTools",
+        gradle.includedBuild("build-logic").task(":test"),
         ":domain:jvmTest", ":shared:jvmTest", ":app:verifyRoborazziDebug", ":app:lintDebug",
         ":app:assembleDebug", ":app:assembleDebugAndroidTest",
     )
@@ -139,6 +140,7 @@ tasks.register("testQuick") {
     group = "verification"
     description = "Run domain, shared, Android behavior and store tooling tests without screenshots."
     dependsOn(":domain:jvmTest", ":shared:jvmTest", ":app:testDebugBehavior", "testStore", "testDeviceTools")
+    dependsOn(gradle.includedBuild("build-logic").task(":test"))
 }
 
 tasks.register<Exec>("testDeviceTools") {

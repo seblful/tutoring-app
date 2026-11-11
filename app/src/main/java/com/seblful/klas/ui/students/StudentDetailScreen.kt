@@ -16,14 +16,16 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.pluralStringResource
-import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.seblful.klas.R
 import com.seblful.klas.domain.model.Assignee
 import com.seblful.klas.domain.model.Payment
 import com.seblful.klas.queries.students.ArchiveIntent
 import com.seblful.klas.queries.students.StudentDetails
+import com.seblful.klas.text.Plurals
+import com.seblful.klas.text.Strings
+import com.seblful.klas.text.currentTexts
+import com.seblful.klas.text.pluralStringResource
+import com.seblful.klas.text.stringResource
 import com.seblful.klas.ui.common.AddRow
 import com.seblful.klas.ui.common.AddRowInSection
 import com.seblful.klas.ui.common.ConfirmDialog
@@ -126,11 +128,11 @@ private fun StudentCard(
     val externalApps = rememberExternalApps(messages)
     val clipboard = rememberClipboardCopy(messages)
     val context = LocalContext.current
-    val noAppMsg = stringResource(R.string.student_contact_failed)
+    val noAppMsg = stringResource(Strings.student_contact_failed)
 
     // Read inside the collector through `rememberUpdatedState`, so the words are the language in force
     // when the event arrives — and the plural's count is the one the event carries, the write's own.
-    val resources by rememberUpdatedState(context.resources)
+    val resources by rememberUpdatedState(currentTexts())
     val seeAll by rememberUpdatedState(navigation.seeAll)
     // A hand collector rather than `ShowMessagesFor`: the refusal carries a way to the lessons it names.
     val rejectFeedback = rememberRejectFeedback()
@@ -143,8 +145,8 @@ private fun StudentCard(
                 StudentDetailViewModel.Event.RemoveBlockedHasClasses -> {
                     rejectFeedback()
                     messages.show(
-                        resources.getString(R.string.student_subject_remove_blocked),
-                        resources.getString(R.string.action_show),
+                        resources.string(Strings.student_subject_remove_blocked),
+                        resources.string(Strings.action_show),
                     ) { seeAll(StudentSection.LESSONS) }
                 }
 
@@ -156,7 +158,7 @@ private fun StudentCard(
     // A student's name is what this screen is *about*, so it gets the large title Material designed for
     // exactly that — collapsing into an ordinary bar as the list scrolls. [TitleSize.Large] is that, and the
     // scroll behaviour it needs, said once.
-    val messageTitle = stringResource(R.string.student_message)
+    val messageTitle = stringResource(Strings.student_message)
     val call = { phone: String -> externalApps.open(ExternalTarget.Dial(phone), noAppMsg) }
     val message = { phone: String, international: String? ->
         externalApps.open(ExternalTarget.Message(phone, international, messageTitle), noAppMsg)
@@ -171,7 +173,7 @@ private fun StudentCard(
         messages = messages,
         actions = {
             // Booking is the next lesson's «+», in the card it books into.
-            NamedIconButton(KlasIcons.Outlined.Edit, stringResource(R.string.action_edit), onClick = navigation.edit)
+            NamedIconButton(KlasIcons.Outlined.Edit, stringResource(Strings.action_edit), onClick = navigation.edit)
             // Archiving is behind the overflow: as a bare text button in the bar it would put the most consequential
             // thing on the screen beside the pencil, next to a name that had to ellipsize to make room for it.
             if (student != null) {
@@ -288,8 +290,8 @@ private fun StudentCard(
     removingSubjectId?.let { subjectId ->
         state.subjects.firstOrNull { it.subject.id == subjectId }?.let { sp ->
             ConfirmDialog(
-                text = stringResource(R.string.student_subject_remove_confirm, sp.subject.name),
-                confirmLabel = stringResource(R.string.action_remove),
+                text = stringResource(Strings.student_subject_remove_confirm, sp.subject.name),
+                confirmLabel = stringResource(Strings.action_remove),
                 destructive = true,
                 onConfirm = { viewModel.removeSubject(subjectId) },
                 onDismiss = { removingSubjectId = null },
@@ -314,22 +316,22 @@ private fun StudentCard(
         // Which parts apply is decided in [ArchiveIntent]; only the wording is this screen's.
         val parts = buildList {
             confirm.openBalance?.let {
-                add(stringResource(R.string.student_archive_balance_part, balanceDescription(it)))
+                add(stringResource(Strings.student_archive_balance_part, balanceDescription(it)))
             }
             if (confirm.upcomingLessons > 0) {
                 add(
                     pluralStringResource(
-                        R.plurals.student_archive_lessons_part,
+                        Plurals.student_archive_lessons_part,
                         confirm.upcomingLessons,
                         confirm.upcomingLessons,
                     ),
                 )
             }
-            add(stringResource(R.string.student_archive_question))
+            add(stringResource(Strings.student_archive_question))
         }
         ConfirmDialog(
             text = parts.joinToString(" "),
-            confirmLabel = stringResource(R.string.action_archive),
+            confirmLabel = stringResource(Strings.action_archive),
             onConfirm = { viewModel.setArchived(true) },
             onDismiss = { confirmingArchive = false },
         )
@@ -346,12 +348,12 @@ private fun LessonsSection(
 ) {
     val all = overview.details.classes
     OverviewSection(
-        title = stringResource(R.string.student_classes_title),
+        title = stringResource(Strings.student_classes_title),
         count = all.size,
         onSeeAll = onSeeAll.takeIf { all.size > overview.lessons.size },
         modifier = modifier,
     ) {
-        if (all.isEmpty()) SectionNote(stringResource(R.string.student_lessons_empty))
+        if (all.isEmpty()) SectionNote(stringResource(Strings.student_lessons_empty))
         overview.lessons.forEach { row ->
             LessonRow(row, now, onClick = { onLessonClick(row.klass.id) }, colors = sectionRowColors())
         }
@@ -367,13 +369,13 @@ private fun PaymentsSection(
 ) {
     val shown = remember(payments) { payments.sortedByDescending { it.date }.take(StudentOverview.PAYMENTS_SHOWN) }
     OverviewSection(
-        title = stringResource(R.string.student_payments_title),
+        title = stringResource(Strings.student_payments_title),
         count = payments.size,
         onSeeAll = onSeeAll.takeIf { payments.size > shown.size },
         modifier = modifier,
     ) {
         // Recorded from the balance's button, so no add row here.
-        if (payments.isEmpty()) SectionNote(stringResource(R.string.payments_empty))
+        if (payments.isEmpty()) SectionNote(stringResource(Strings.payments_empty))
         shown.forEach { payment ->
             PaymentRow(
                 payment,
@@ -393,12 +395,12 @@ private fun SubjectsSection(
     modifier: Modifier = Modifier,
 ) {
     OverviewSection(
-        title = stringResource(R.string.student_subjects_title),
+        title = stringResource(Strings.student_subjects_title),
         count = 0,
         onSeeAll = null,
         modifier = modifier,
     ) {
-        if (state.subjects.isEmpty()) SectionNote(stringResource(R.string.student_no_subjects))
+        if (state.subjects.isEmpty()) SectionNote(stringResource(Strings.student_no_subjects))
         state.subjects.forEach { sp ->
             SubjectRow(
                 sp,
@@ -406,6 +408,6 @@ private fun SubjectsSection(
                 colors = sectionRowColors(),
             )
         }
-        AddRow(stringResource(R.string.student_add_subject), onAdd, AddRowInSection)
+        AddRow(stringResource(Strings.student_add_subject), onAdd, AddRowInSection)
     }
 }

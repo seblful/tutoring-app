@@ -40,18 +40,18 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.seblful.klas.R
 import com.seblful.klas.domain.model.ClassMode
 import com.seblful.klas.domain.model.Student
 import com.seblful.klas.format.MoneyField
 import com.seblful.klas.lock.LocalAppLocked
 import com.seblful.klas.lock.UnlockedWindow
+import com.seblful.klas.text.Strings
+import com.seblful.klas.text.stringResource
 import com.seblful.klas.ui.theme.KlasIcons
 
 /*
@@ -407,7 +407,7 @@ fun SearchField(
                 if (query.isNotEmpty()) {
                     NamedIconButton(
                         KlasIcons.Filled.Close,
-                        stringResource(R.string.search_clear),
+                        stringResource(Strings.search_clear),
                         onClick = { onQueryChange("") },
                     )
                 }

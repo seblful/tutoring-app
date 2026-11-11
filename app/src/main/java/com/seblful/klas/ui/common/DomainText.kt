@@ -4,14 +4,14 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.stringResource
-import com.seblful.klas.R
 import com.seblful.klas.domain.lesson.LessonPhase
 import com.seblful.klas.domain.model.ClassMode
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.PaymentMethod
 import com.seblful.klas.format.MoneyField
 import com.seblful.klas.format.labelRes
+import com.seblful.klas.text.Strings
+import com.seblful.klas.text.stringResource
 import com.seblful.klas.ui.students.balanceColor
 import com.seblful.klas.ui.theme.klasColors
 import com.seblful.klas.ui.theme.klasSemantics
@@ -30,8 +30,8 @@ import com.seblful.klas.ui.theme.klasSemantics
 fun moneyErrorText(field: MoneyField): String? = field.error?.let { error ->
     stringResource(
         when (error) {
-            MoneyField.Error.UNREADABLE -> R.string.money_error_unreadable
-            MoneyField.Error.ZERO_PAYMENT -> R.string.money_error_zero_payment
+            MoneyField.Error.UNREADABLE -> Strings.money_error_unreadable
+            MoneyField.Error.ZERO_PAYMENT -> Strings.money_error_zero_payment
         },
     )
 }
@@ -41,9 +41,9 @@ fun supportingTextOf(error: String? = null, hint: String? = null): (@Composable 
 @Composable
 fun classStatusLabel(status: LessonStatus): String = stringResource(
     when (status) {
-        LessonStatus.SCHEDULED -> R.string.class_status_scheduled
-        LessonStatus.COMPLETED -> R.string.class_status_completed
-        LessonStatus.CANCELLED -> R.string.class_status_cancelled
+        LessonStatus.SCHEDULED -> Strings.class_status_scheduled
+        LessonStatus.COMPLETED -> Strings.class_status_completed
+        LessonStatus.CANCELLED -> Strings.class_status_cancelled
     },
 )
 /**
@@ -61,10 +61,10 @@ fun classStatusColor(status: LessonStatus): Color = when (status) {
 /** What a lesson's badge **says**: its status, «Идёт» while it is taught, «Не отмечено» once over unmarked. */
 @Composable
 fun lessonBadgeLabel(status: LessonStatus, phase: LessonPhase): String = when (phase) {
-    LessonPhase.IN_PROGRESS -> stringResource(R.string.class_status_in_progress)
+    LessonPhase.IN_PROGRESS -> stringResource(Strings.class_status_in_progress)
     // Not «Запланировано» once it is over: that read as nothing to do, and a lesson nobody marks taught is
     // never billed — the first thing a new tutor's empty balances come down to.
-    LessonPhase.OVERDUE -> stringResource(R.string.class_status_overdue)
+    LessonPhase.OVERDUE -> stringResource(Strings.class_status_overdue)
     LessonPhase.UPCOMING, LessonPhase.SETTLED -> classStatusLabel(status)
 }
 
@@ -83,18 +83,18 @@ fun classModeLabel(mode: ClassMode): String = stringResource(mode.labelRes())
 /** 1 ч», «1,5 ч», «45 мин» — whole and half hours read better than a minute count. */
 @Composable
 fun durationLabel(minutes: Int): String = when (minutes) {
-    60 -> stringResource(R.string.hours_one)
-    90 -> stringResource(R.string.hours_one_and_half)
-    120 -> stringResource(R.string.hours_two)
-    else -> stringResource(R.string.minutes_short, minutes)
+    60 -> stringResource(Strings.hours_one)
+    90 -> stringResource(Strings.hours_one_and_half)
+    120 -> stringResource(Strings.hours_two)
+    else -> stringResource(Strings.minutes_short, minutes)
 }
 
 /** «Наличные», «Карта», «Перевод». */
 @Composable
 fun paymentMethodLabel(method: PaymentMethod): String = stringResource(
     when (method) {
-        PaymentMethod.CASH -> R.string.payment_method_cash
-        PaymentMethod.CARD -> R.string.payment_method_card
-        PaymentMethod.TRANSFER -> R.string.payment_method_transfer
+        PaymentMethod.CASH -> Strings.payment_method_cash
+        PaymentMethod.CARD -> Strings.payment_method_card
+        PaymentMethod.TRANSFER -> Strings.payment_method_transfer
     },
 )

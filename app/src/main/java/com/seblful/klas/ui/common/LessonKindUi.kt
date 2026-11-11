@@ -9,11 +9,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.seblful.klas.R
 import com.seblful.klas.domain.lesson.LessonKind
+import com.seblful.klas.text.Strings
+import com.seblful.klas.text.stringResource
 import com.seblful.klas.ui.theme.KlasIcons
 
 /*
@@ -25,16 +25,16 @@ import com.seblful.klas.ui.theme.KlasIcons
 @Composable
 fun lessonKindLabel(kind: LessonKind): String = stringResource(
     when (kind) {
-        LessonKind.INDIVIDUAL -> R.string.lesson_kind_individual
-        LessonKind.GROUP -> R.string.lesson_kind_group
+        LessonKind.INDIVIDUAL -> Strings.lesson_kind_individual
+        LessonKind.GROUP -> Strings.lesson_kind_group
     },
 )
 
 @Composable
 private fun lessonKindDescription(kind: LessonKind): String = stringResource(
     when (kind) {
-        LessonKind.INDIVIDUAL -> R.string.lesson_kind_individual_one
-        LessonKind.GROUP -> R.string.class_target_group
+        LessonKind.INDIVIDUAL -> Strings.lesson_kind_individual_one
+        LessonKind.GROUP -> Strings.class_target_group
     },
 )
 

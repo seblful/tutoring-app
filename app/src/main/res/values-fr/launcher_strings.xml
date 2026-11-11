@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_today_name">Les cours du jour</string>
+    <string name="widget_today_description">Marquez les cours du jour comme donnés en un geste</string>
+    <string name="widget_quick_actions_name">Raccourcis Klas</string>
+    <string name="widget_quick_actions_description">Réservez un cours, ajoutez un élève ou ouvrez Aujourd\'hui, les devoirs et les dettes</string>
+</resources>

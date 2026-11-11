@@ -9,8 +9,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
-import androidx.compose.ui.res.stringResource
-import com.seblful.klas.R
+import com.seblful.klas.text.Strings
+import com.seblful.klas.text.stringResource
 import com.seblful.klas.ui.common.state.UiEvents
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -55,7 +55,7 @@ class Messages(
 fun rememberMessages(): Messages {
     val hostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
-    val undo = stringResource(R.string.action_undo)
+    val undo = stringResource(Strings.action_undo)
     return remember(hostState, scope, undo) { Messages(hostState, scope, undo) }
 }
 

@@ -27,9 +27,10 @@ object ProjectFiles {
     fun moduleFile(relative: String): File = moduleFileOrNull(relative)
         ?: error("Could not find `$relative` from ${System.getProperty("user.dir")}")
 
-    /** An Android or shared common source file, relative to its package root. */
+    /** An Android, shared or UI common source file, relative to its package root. */
     fun sourceFileOrNull(relative: String): File? = moduleFileOrNull("$SOURCE_ROOT/$relative")
         ?: siblingModuleFileOrNull("shared", "src/commonMain/kotlin/com/seblful/klas/$relative")
+        ?: siblingModuleFileOrNull("ui", "src/commonMain/kotlin/com/seblful/klas/$relative")
 
     /**
      * An Android or shared common source file, e.g. `data/lessons/LessonsDaos.kt`. A test asserts
@@ -53,6 +54,9 @@ object ProjectFiles {
             siblingModuleFileOrNull("shared", "src/androidMain/kotlin/com/seblful/klas"),
             siblingModuleFileOrNull("shared", "src/iosMain/kotlin/com/seblful/klas"),
             siblingModuleFileOrNull("shared", "src/jvmMain/kotlin/com/seblful/klas"),
+            siblingModuleFileOrNull("ui", DOMAIN_SOURCE_ROOT),
+            siblingModuleFileOrNull("ui", "src/androidMain/kotlin/com/seblful/klas"),
+            siblingModuleFileOrNull("ui", "src/iosMain/kotlin/com/seblful/klas"),
         )
         check(roots.all { it != null }) {
             "Could not find `$SOURCE_ROOT` in `app` and `$DOMAIN_SOURCE_ROOT` in `$DOMAIN_MODULE` from " +
@@ -62,6 +66,13 @@ object ProjectFiles {
             root.walkTopDown().filter { it.isFile && it.extension == "kt" }
         }
     }
+
+    /**
+     * The text catalog's sources: `values…/strings.xml` in the Android format, one folder per language,
+     * which `:ui` compiles into `Strings`, `Plurals` and `StringArrays`.
+     */
+    fun strings(): File = siblingModuleFileOrNull("ui", "src/commonMain/strings")
+        ?: error("Could not find `ui/src/commonMain/strings` from ${System.getProperty("user.dir")}")
 
     /** Feature DAOs, excluding SnapshotDao's intentional whole-table operations. */
     fun daoSources(): List<File> = sources().filter {

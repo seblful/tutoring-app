@@ -14,13 +14,14 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.pluralStringResource
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.seblful.klas.R
 import com.seblful.klas.format.bulletJoin
+import com.seblful.klas.text.Plurals
+import com.seblful.klas.text.Strings
+import com.seblful.klas.text.pluralStringResource
+import com.seblful.klas.text.stringResource
 import com.seblful.klas.ui.common.AddRow
 import com.seblful.klas.ui.common.AddRowInSection
 import com.seblful.klas.ui.common.EmptyState
@@ -60,11 +61,11 @@ fun SubjectsScreen(
     var adding by remember { mutableStateOf(false) }
 
     val messages = rememberMessages()
-    val deleteBlockedMsg = stringResource(R.string.subject_delete_blocked)
-    val taughtToGroupMsg = stringResource(R.string.subject_delete_blocked_group)
-    val takenMsg = stringResource(R.string.subject_delete_blocked_students)
-    val failedMsg = stringResource(R.string.action_failed)
-    val takenNameMsg = stringResource(R.string.subject_name_taken)
+    val deleteBlockedMsg = stringResource(Strings.subject_delete_blocked)
+    val taughtToGroupMsg = stringResource(Strings.subject_delete_blocked_group)
+    val takenMsg = stringResource(Strings.subject_delete_blocked_students)
+    val failedMsg = stringResource(Strings.action_failed)
+    val takenNameMsg = stringResource(Strings.subject_name_taken)
     ShowMessagesFor(viewModel.events, messages) { event ->
         when (event) {
             SubjectsViewModel.Event.DELETE_BLOCKED_HAS_CLASSES -> deleteBlockedMsg
@@ -75,7 +76,7 @@ fun SubjectsScreen(
         }
     }
     // No confirm: only an unused subject can be deleted, so the Undo can always put it back.
-    val deletedMsg = stringResource(R.string.subject_deleted)
+    val deletedMsg = stringResource(Strings.subject_deleted)
     LaunchedEffect(viewModel, deletedMsg) {
         viewModel.deletions.stream.collect { subject ->
             messages.undoable(deletedMsg) { viewModel.restore(subject) }
@@ -83,12 +84,12 @@ fun SubjectsScreen(
     }
 
     KlasScreen(
-        title = stringResource(R.string.subjects_title),
+        title = stringResource(Strings.subjects_title),
         onBack = onBack,
         messages = messages,
         search = ScreenSearch(
             query = query,
-            placeholder = stringResource(R.string.subjects_search_hint),
+            placeholder = stringResource(Strings.subjects_search_hint),
             onQueryChange = viewModel::setQuery,
         ),
     ) { modifier, bottomInset ->
@@ -104,10 +105,10 @@ fun SubjectsScreen(
                         rows.isEmpty() && query.isNotBlank() -> NoSearchResults(Modifier.padding(bottomInset))
 
                         rows.isEmpty() -> EmptyState(
-                            title = stringResource(R.string.subjects_empty),
-                            detail = stringResource(R.string.subjects_empty_detail),
+                            title = stringResource(Strings.subjects_empty),
+                            detail = stringResource(Strings.subjects_empty_detail),
                             icon = KlasIcons.Outlined.MenuBook,
-                            actionLabel = stringResource(R.string.subjects_add),
+                            actionLabel = stringResource(Strings.subjects_add),
                             onAction = { adding = true },
                             modifier = Modifier.padding(bottomInset),
                         )
@@ -157,7 +158,7 @@ private fun SubjectRows(
         }
         item(key = "add", contentType = "add") {
             SurfaceRow(position = SlicePosition.LAST, onClick = onAdd, contentPadding = AddPadding) {
-                AddRow(stringResource(R.string.subjects_add), onClick = onAdd, AddRowInSection)
+                AddRow(stringResource(Strings.subjects_add), onClick = onAdd, AddRowInSection)
             }
         }
     }
@@ -170,17 +171,17 @@ private val AddPadding = PaddingValues(vertical = Spacing.tight)
 /** «6 students · 1 group · 12–25 $/h», or that nothing uses it yet. */
 @Composable
 private fun usageLine(row: SubjectRow): String {
-    if (row.unused) return stringResource(R.string.subject_unused)
+    if (row.unused) return stringResource(Strings.subject_unused)
     val low = row.lowest
     val high = row.highest
     val rates = when {
         low == null || high == null -> ""
-        low == high -> stringResource(R.string.price_per_hour, low.text())
-        else -> stringResource(R.string.price_per_hour, stringResource(R.string.money_range, low.text(), high.text()))
+        low == high -> stringResource(Strings.price_per_hour, low.text())
+        else -> stringResource(Strings.price_per_hour, stringResource(Strings.money_range, low.text(), high.text()))
     }
     return bulletJoin(
-        if (row.students > 0) pluralStringResource(R.plurals.students_count, row.students, row.students) else "",
-        if (row.groups > 0) pluralStringResource(R.plurals.subject_groups_count, row.groups, row.groups) else "",
+        if (row.students > 0) pluralStringResource(Plurals.students_count, row.students, row.students) else "",
+        if (row.groups > 0) pluralStringResource(Plurals.subject_groups_count, row.groups, row.groups) else "",
         rates,
     )
 }
@@ -199,10 +200,10 @@ fun SubjectNameDialog(
     renaming: String? = null,
     onDelete: (() -> Unit)? = null,
 ) {
-    val delete = stringResource(R.string.action_delete)
+    val delete = stringResource(Strings.action_delete)
     TextFieldDialog(
-        title = stringResource(if (renaming == null) R.string.subject_add_title else R.string.subject_edit_title),
-        label = stringResource(R.string.subject_name_label),
+        title = stringResource(if (renaming == null) Strings.subject_add_title else Strings.subject_edit_title),
+        label = stringResource(Strings.subject_name_label),
         capitalization = KeyboardCapitalization.Sentences,
         initial = renaming.orEmpty(),
         onConfirm = onConfirm,

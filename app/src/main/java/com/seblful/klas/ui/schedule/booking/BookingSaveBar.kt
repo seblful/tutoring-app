@@ -1,11 +1,12 @@
 package com.seblful.klas.ui.schedule.booking
 
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.res.pluralStringResource
-import androidx.compose.ui.res.stringResource
-import com.seblful.klas.R
 import com.seblful.klas.format.bulletJoin
 import com.seblful.klas.format.formatDate
+import com.seblful.klas.text.Plurals
+import com.seblful.klas.text.Strings
+import com.seblful.klas.text.pluralStringResource
+import com.seblful.klas.text.stringResource
 import com.seblful.klas.ui.common.text
 import com.seblful.klas.ui.common.timeText
 import com.seblful.klas.ui.designsystem.component.FormBar
@@ -20,10 +21,10 @@ import com.seblful.klas.ui.schedule.timeConflictText
 internal fun bookingBar(state: ClassFormState): FormBar = when (val bar = state.saveBar) {
     is SaveBar.Missing -> FormBar.Missing(bar.gaps.map { gapLabel(it) })
     SaveBar.Taken -> FormBar.Blocked(
-        state.conflict?.let { timeConflictText(it) } ?: stringResource(R.string.class_series_refused_all_taken),
+        state.conflict?.let { timeConflictText(it) } ?: stringResource(Strings.class_series_refused_all_taken),
     )
-    SaveBar.NoBookableMembers -> FormBar.Blocked(stringResource(R.string.class_group_no_active_members))
-    SaveBar.NoneTicked -> FormBar.Blocked(stringResource(R.string.class_group_no_members_left))
+    SaveBar.NoBookableMembers -> FormBar.Blocked(stringResource(Strings.class_group_no_active_members))
+    SaveBar.NoneTicked -> FormBar.Blocked(stringResource(Strings.class_group_no_members_left))
     SaveBar.Ready -> FormBar.Ready(whenLine(state), whoLine(state))
 }
 
@@ -36,7 +37,7 @@ private fun whenLine(state: ClassFormState): String {
         form.timeFrom?.timeText().orEmpty(),
         state.ending?.let { endsAtText(it) }.orEmpty(),
         if (form.repeat.repeats) {
-            pluralStringResource(R.plurals.class_series_lessons, form.repeatCount, form.repeatCount)
+            pluralStringResource(Plurals.class_series_lessons, form.repeatCount, form.repeatCount)
         } else {
             ""
         },
@@ -48,17 +49,17 @@ private fun whenLine(state: ClassFormState): String {
 private fun whoLine(state: ClassFormState): String = bulletJoin(
     if (state.form.target == ClassTarget.GROUP) state.groupName else state.studentName,
     state.subjectName,
-    state.form.price.amount?.let { stringResource(R.string.price_per_hour, it.text()) }.orEmpty(),
+    state.form.price.amount?.let { stringResource(Strings.price_per_hour, it.text()) }.orEmpty(),
 )
 
 @Composable
 private fun gapLabel(gap: BookingGap): String = stringResource(
     when (gap) {
-        BookingGap.WHO -> R.string.class_gap_who
-        BookingGap.SUBJECT -> R.string.class_gap_subject
-        BookingGap.DATE -> R.string.class_gap_date
-        BookingGap.START -> R.string.class_gap_start
-        BookingGap.LENGTH -> R.string.class_gap_length
-        BookingGap.PRICE -> R.string.class_gap_price
+        BookingGap.WHO -> Strings.class_gap_who
+        BookingGap.SUBJECT -> Strings.class_gap_subject
+        BookingGap.DATE -> Strings.class_gap_date
+        BookingGap.START -> Strings.class_gap_start
+        BookingGap.LENGTH -> Strings.class_gap_length
+        BookingGap.PRICE -> Strings.class_gap_price
     },
 )

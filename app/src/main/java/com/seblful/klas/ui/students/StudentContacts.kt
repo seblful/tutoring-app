@@ -13,11 +13,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
-import com.seblful.klas.R
 import com.seblful.klas.domain.model.Student
 import com.seblful.klas.domain.people.Phone
+import com.seblful.klas.text.Strings
+import com.seblful.klas.text.stringResource
 import com.seblful.klas.ui.common.ArchiveMenuItem
 import com.seblful.klas.ui.common.LocalCurrency
 import com.seblful.klas.ui.common.MenuItem
@@ -53,23 +53,23 @@ internal fun ContactBlock(
             Column(Modifier.weight(1f)) {
                 // Only the contact is pressed, in a rounded tint: the place under it is not a way to reach them.
                 val reach = when {
-                    phone != null -> ContactLine(phone, stringResource(R.string.student_message)) {
+                    phone != null -> ContactLine(phone, stringResource(Strings.student_message)) {
                         onMessage(phone, international)
                     }
-                    email != null -> ContactLine(email, stringResource(R.string.student_write_email)) { onEmail(email) }
+                    email != null -> ContactLine(email, stringResource(Strings.student_write_email)) { onEmail(email) }
                     else -> null
                 }
                 reach?.let { ReachLine(it) }
                 PlaceLine(student.defaultMode, student.archived)
             }
             if (phone != null) {
-                ContactAction(KlasIcons.Outlined.Call, stringResource(R.string.student_call)) { onCall(phone) }
-                ContactAction(KlasIcons.Outlined.Send, stringResource(R.string.student_message)) {
+                ContactAction(KlasIcons.Outlined.Call, stringResource(Strings.student_call)) { onCall(phone) }
+                ContactAction(KlasIcons.Outlined.Send, stringResource(Strings.student_message)) {
                     onMessage(phone, international)
                 }
             }
             if (email != null) {
-                ContactAction(KlasIcons.Outlined.Mail, stringResource(R.string.student_write_email)) { onEmail(email) }
+                ContactAction(KlasIcons.Outlined.Mail, stringResource(Strings.student_write_email)) { onEmail(email) }
             }
         }
         if (student.note.isNotBlank()) {
@@ -128,30 +128,30 @@ internal fun StudentOverflowMenu(
         // to scroll away, and the bar is the one thing that stays.
         if (phone != null) {
             ContactMenuItem(
-                label = stringResource(R.string.student_call),
+                label = stringResource(Strings.student_call),
                 icon = KlasIcons.Outlined.Call,
                 onClick = { close(); onCall(phone) },
             )
             ContactMenuItem(
-                label = stringResource(R.string.student_message),
+                label = stringResource(Strings.student_message),
                 icon = KlasIcons.Outlined.Send,
                 onClick = { close(); onMessage(phone, international) },
             )
         }
         if (student.email.isNotBlank()) {
             ContactMenuItem(
-                label = stringResource(R.string.student_write_email),
+                label = stringResource(Strings.student_write_email),
                 icon = KlasIcons.Outlined.Mail,
                 onClick = { close(); onEmail(student.email) },
             )
         }
         // The number as kept and the address as typed: what a contacts app or another chat is pasted into.
         if (phone != null) {
-            val label = stringResource(R.string.student_copy_phone)
+            val label = stringResource(Strings.student_copy_phone)
             ContactMenuItem(label, KlasIcons.Outlined.ContentCopy) { close(); onCopy(label, phone) }
         }
         if (student.email.isNotBlank()) {
-            val label = stringResource(R.string.student_copy_email)
+            val label = stringResource(Strings.student_copy_email)
             ContactMenuItem(label, KlasIcons.Outlined.ContentCopy) { close(); onCopy(label, student.email) }
         }
         if (phone != null || student.email.isNotBlank()) {
@@ -160,7 +160,7 @@ internal fun StudentOverflowMenu(
         // The statement is the balance card's; a reminder, while something is owed, is sent from here.
         if (remind != null) {
             ContactMenuItem(
-                label = stringResource(R.string.student_send_reminder),
+                label = stringResource(Strings.student_send_reminder),
                 icon = KlasIcons.Outlined.Payments,
                 onClick = { close(); remind() },
             )

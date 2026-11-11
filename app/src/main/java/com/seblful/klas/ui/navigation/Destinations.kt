@@ -1,8 +1,8 @@
 package com.seblful.klas.ui.navigation
 
-import androidx.annotation.StringRes
 import androidx.compose.ui.graphics.vector.ImageVector
-import com.seblful.klas.R
+import com.seblful.klas.text.StringResource
+import com.seblful.klas.text.Strings
 import com.seblful.klas.ui.groups.GroupSection
 import com.seblful.klas.ui.students.StudentSection
 import com.seblful.klas.ui.students.StudentTask
@@ -145,7 +145,7 @@ object Routes {
 @Serializable
 enum class TopDestination(
     val route: Route,
-    @param:StringRes val labelRes: Int,
+    val labelRes: StringResource,
     /** Drawn while this is the current tab. */
     val icon: ImageVector,
     /**
@@ -153,16 +153,16 @@ enum class TopDestination(
      */
     val iconOutlined: ImageVector,
 ) {
-    TODAY(Routes.Today, R.string.nav_today, KlasIcons.Filled.Today, KlasIcons.Outlined.Today),
-    SCHEDULE(Routes.Schedule, R.string.nav_schedule, KlasIcons.Filled.CalendarMonth, KlasIcons.Outlined.CalendarMonth),
-    PEOPLE(Routes.People, R.string.nav_people, KlasIcons.Filled.Group, KlasIcons.Outlined.Group),
+    TODAY(Routes.Today, Strings.nav_today, KlasIcons.Filled.Today, KlasIcons.Outlined.Today),
+    SCHEDULE(Routes.Schedule, Strings.nav_schedule, KlasIcons.Filled.CalendarMonth, KlasIcons.Outlined.CalendarMonth),
+    PEOPLE(Routes.People, Strings.nav_people, KlasIcons.Filled.Group, KlasIcons.Outlined.Group),
     HOMEWORK(
         Routes.Homework,
-        R.string.nav_homework,
+        Strings.nav_homework,
         KlasIcons.Filled.Assignment,
         KlasIcons.Outlined.Assignment,
     ),
-    REPORTS(Routes.Reports, R.string.nav_reports, KlasIcons.Filled.BarChart, KlasIcons.Outlined.BarChart),
+    REPORTS(Routes.Reports, Strings.nav_reports, KlasIcons.Filled.BarChart, KlasIcons.Outlined.BarChart),
     ;
 
     companion object {

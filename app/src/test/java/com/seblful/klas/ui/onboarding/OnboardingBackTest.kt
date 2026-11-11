@@ -12,7 +12,6 @@ import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import com.seblful.klas.MainActivity
-import com.seblful.klas.R
 import com.seblful.klas.store.DemoTutor
 import com.seblful.klas.store.StoreApp
 import com.seblful.klas.store.StoreGraph
@@ -21,6 +20,9 @@ import com.seblful.klas.testutil.FakeCalendarPermission
 import com.seblful.klas.testutil.FakeCalendarSync
 import com.seblful.klas.testutil.RecordingDigestScheduler
 import com.seblful.klas.testutil.RecordingReminderScheduler
+import com.seblful.klas.testutil.texts
+import com.seblful.klas.text.StringResource
+import com.seblful.klas.text.Strings
 import dev.zacsweers.metro.createGraphFactory
 import kotlinx.datetime.DayOfWeek
 import org.junit.Assert.assertEquals
@@ -63,7 +65,7 @@ class OnboardingBackTest {
     @Test
     fun `system back steps back through setup and leaves from the welcome step`() = onLocaleStep { activity ->
         back(activity)
-        waitFor(R.string.onboarding_start)
+        waitFor(Strings.onboarding_start)
         assertFalse(activity.isFinishing)
 
         back(activity)
@@ -72,41 +74,41 @@ class OnboardingBackTest {
 
     @Test
     fun `a held back gesture shrinks the step and a cancelled one restores it`() = onLocaleStep { activity ->
-        val resting = bounds(R.string.onboarding_locale_desc)
+        val resting = bounds(Strings.onboarding_locale_desc)
 
         gesture(activity) { it.dispatchOnBackStarted(event(0f)); it.dispatchOnBackProgressed(event(0.5f)) }
-        val held = bounds(R.string.onboarding_locale_desc)
+        val held = bounds(Strings.onboarding_locale_desc)
         assertTrue("narrower while held: $resting → $held", held.width < resting.width)
         assertTrue("drifts away from the left edge: $resting → $held", held.center.x > resting.center.x)
 
         gesture(activity) { it.dispatchOnBackCancelled() }
-        assertEquals(resting, bounds(R.string.onboarding_locale_desc))
-        compose.onNodeWithText(text(R.string.onboarding_locale_title)).assertExists()
+        assertEquals(resting, bounds(Strings.onboarding_locale_desc))
+        compose.onNodeWithText(text(Strings.onboarding_locale_title)).assertExists()
     }
 
     @Test
     fun `the next step arrives by fade through rather than in one frame`() {
         ActivityScenario.launch(MainActivity::class.java).use {
-            waitFor(R.string.onboarding_start)
+            waitFor(Strings.onboarding_start)
             compose.mainClock.autoAdvance = false
-            compose.onNodeWithText(text(R.string.onboarding_start)).performClick()
+            compose.onNodeWithText(text(Strings.onboarding_start)).performClick()
             compose.mainClock.advanceTimeBy(48)
 
             // The welcome step is still fading out; the next waits at the scale it will grow from.
-            compose.onNodeWithText(text(R.string.onboarding_start)).assertExists()
-            val arriving = bounds(R.string.onboarding_locale_desc)
+            compose.onNodeWithText(text(Strings.onboarding_start)).assertExists()
+            val arriving = bounds(Strings.onboarding_locale_desc)
 
             compose.mainClock.autoAdvance = true
             compose.waitForIdle()
-            compose.onNodeWithText(text(R.string.onboarding_start)).assertDoesNotExist()
-            val landed = bounds(R.string.onboarding_locale_desc)
+            compose.onNodeWithText(text(Strings.onboarding_start)).assertDoesNotExist()
+            val landed = bounds(Strings.onboarding_locale_desc)
             assertTrue("arriving smaller: $arriving, then $landed", arriving.width < landed.width)
         }
     }
 
     @Test
     fun `a released back gesture fades the step from where it was dragged`() = onLocaleStep { activity ->
-        val resting = bounds(R.string.onboarding_locale_desc)
+        val resting = bounds(Strings.onboarding_locale_desc)
         gesture(activity) { it.dispatchOnBackStarted(event(0f)); it.dispatchOnBackProgressed(event(0.5f)) }
 
         compose.mainClock.autoAdvance = false
@@ -115,13 +117,13 @@ class OnboardingBackTest {
         compose.mainClock.advanceTimeBy(64)
 
         // Leaving, still shrunk as the finger left it, over the welcome step already there beneath.
-        val leaving = bounds(R.string.onboarding_locale_desc)
+        val leaving = bounds(Strings.onboarding_locale_desc)
         assertTrue("held as dragged: $resting → $leaving", leaving.width < resting.width)
-        compose.onNodeWithText(text(R.string.onboarding_start)).assertExists()
+        compose.onNodeWithText(text(Strings.onboarding_start)).assertExists()
 
         compose.mainClock.autoAdvance = true
         compose.waitForIdle()
-        compose.onNodeWithText(text(R.string.onboarding_locale_desc)).assertDoesNotExist()
+        compose.onNodeWithText(text(Strings.onboarding_locale_desc)).assertDoesNotExist()
         assertFalse(activity.isFinishing)
     }
 
@@ -129,9 +131,9 @@ class OnboardingBackTest {
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
             lateinit var activity: ComponentActivity
             scenario.onActivity { activity = it }
-            waitFor(R.string.onboarding_start)
-            compose.onNodeWithText(text(R.string.onboarding_start)).performClick()
-            waitFor(R.string.onboarding_locale_desc)
+            waitFor(Strings.onboarding_start)
+            compose.onNodeWithText(text(Strings.onboarding_start)).performClick()
+            waitFor(Strings.onboarding_locale_desc)
             test(activity)
         }
     }
@@ -145,12 +147,12 @@ class OnboardingBackTest {
 
     private fun event(progress: Float) = BackEventCompat(0f, 0f, progress, BackEventCompat.EDGE_LEFT)
 
-    private fun bounds(res: Int): Rect =
+    private fun bounds(res: StringResource): Rect =
         compose.onNodeWithText(text(res)).fetchSemanticsNode().boundsInRoot
 
-    private fun waitFor(res: Int) = compose.waitUntil(10_000) {
+    private fun waitFor(res: StringResource) = compose.waitUntil(10_000) {
         compose.onAllNodesWithText(text(res)).fetchSemanticsNodes().isNotEmpty()
     }
 
-    private fun text(res: Int) = ApplicationProvider.getApplicationContext<StoreApp>().getString(res)
+    private fun text(res: StringResource) = ApplicationProvider.getApplicationContext<StoreApp>().texts().string(res)
 }

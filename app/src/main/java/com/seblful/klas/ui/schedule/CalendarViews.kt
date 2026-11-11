@@ -29,8 +29,6 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.res.pluralStringResource
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
@@ -38,11 +36,14 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import com.seblful.klas.R
 import com.seblful.klas.domain.schedule.CalendarLayout
 import com.seblful.klas.format.formatDay
 import com.seblful.klas.format.narrowName
 import com.seblful.klas.format.shortName
+import com.seblful.klas.text.Plurals
+import com.seblful.klas.text.Strings
+import com.seblful.klas.text.pluralStringResource
+import com.seblful.klas.text.stringResource
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.bleed
 import com.seblful.klas.ui.common.classStatusColor
@@ -196,14 +197,14 @@ private fun DayCell(
     // said as the cell's state — see the semantics below.
     val day = date.formatDay()
     val cellDescription = load.valueOrNull()?.let { dayLoad ->
-        val total = pluralStringResource(R.plurals.lessons_count, dayLoad.total, dayLoad.total)
+        val total = pluralStringResource(Plurals.lessons_count, dayLoad.total, dayLoad.total)
         val breakdown = dayLoad.tallies.map {
-            stringResource(R.string.calendar_status_tally, classStatusLabel(it.status), it.count)
+            stringResource(Strings.calendar_status_tally, classStatusLabel(it.status), it.count)
         }
         (listOf(day, total) + breakdown).joinToString(", ")
     } ?: day
-    val todayLabel = stringResource(R.string.schedule_today)
-    val selectedLabel = stringResource(R.string.calendar_selected)
+    val todayLabel = stringResource(Strings.schedule_today)
+    val selectedLabel = stringResource(Strings.calendar_selected)
 
     // The whole cell is the touch target, not just the disc drawn inside it — but press feedback
     // bounded to that rectangle reads as a grey square behind the day, so the cell hands its

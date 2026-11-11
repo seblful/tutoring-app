@@ -9,6 +9,13 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.metro)
+    id("klas.strings")
+}
+
+val textCatalog = tasks.named<com.seblful.klas.gradle.strings.GenerateTextCatalog>("generateTextCatalog") {
+    packageName = "com.seblful.klas.text"
+    // `values/` is English: `AppLanguage.FALLBACK`.
+    defaultTag = "en"
 }
 
 kotlin {
@@ -29,6 +36,9 @@ kotlin {
     }
 
     sourceSets {
+        commonMain {
+            kotlin.srcDir(textCatalog)
+        }
         commonMain.dependencies {
             api(project(":shared"))
             api(libs.compose.runtime)

@@ -15,11 +15,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.seblful.klas.R
+import com.seblful.klas.text.Strings
+import com.seblful.klas.text.stringResource
 import com.seblful.klas.ui.designsystem.component.ButtonKind
 import com.seblful.klas.ui.designsystem.component.KlasButton
 import com.seblful.klas.ui.theme.KlasIcons
@@ -131,8 +131,8 @@ fun EmptyState(
 @Composable
 fun NoSearchResults(modifier: Modifier = Modifier) {
     EmptyState(
-        title = stringResource(R.string.search_no_results),
-        detail = stringResource(R.string.search_no_results_detail),
+        title = stringResource(Strings.search_no_results),
+        detail = stringResource(Strings.search_no_results_detail),
         icon = KlasIcons.Outlined.SearchOff,
         modifier = modifier,
     )

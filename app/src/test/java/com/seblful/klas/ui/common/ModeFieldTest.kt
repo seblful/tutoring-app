@@ -1,14 +1,15 @@
 package com.seblful.klas.ui.common
 
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ApplicationProvider
-import com.seblful.klas.R
 import com.seblful.klas.domain.model.ClassMode
+import com.seblful.klas.testutil.texts
+import com.seblful.klas.text.Strings
+import com.seblful.klas.text.stringResource
 import com.seblful.klas.ui.theme.KlasTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -25,8 +26,8 @@ class ModeFieldTest {
     val rule = createComposeRule()
 
     private val resources = ApplicationProvider.getApplicationContext<android.content.Context>().resources
-    private val inPerson: String = resources.getString(R.string.class_mode_in_person)
-    private val remote: String = resources.getString(R.string.class_mode_remote)
+    private val inPerson: String = resources.texts().string(Strings.class_mode_in_person)
+    private val remote: String = resources.texts().string(Strings.class_mode_remote)
 
     private var chosen: ClassMode? = null
 
@@ -34,7 +35,7 @@ class ModeFieldTest {
         rule.setContent {
             KlasTheme {
                 ModeField(
-                    label = stringResource(R.string.class_location_label),
+                    label = stringResource(Strings.class_location_label),
                     selected = selected,
                     onSelect = { mode -> chosen = mode },
                 )

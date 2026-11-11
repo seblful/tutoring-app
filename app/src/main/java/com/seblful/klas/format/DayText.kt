@@ -1,10 +1,12 @@
 package com.seblful.klas.format
 
 import android.content.res.Resources
-import com.seblful.klas.R
 import com.seblful.klas.domain.model.Currency
 import com.seblful.klas.domain.schedule.DaySummary
 import com.seblful.klas.domain.time.MINUTES_PER_HOUR
+import com.seblful.klas.text.Plurals
+import com.seblful.klas.text.Strings
+import com.seblful.klas.text.Texts
 import java.text.DecimalFormatSymbols
 import java.util.Locale
 
@@ -15,7 +17,7 @@ import java.util.Locale
  * @param currency the display currency.
  */
 fun daySummaryText(
-    res: Resources,
+    res: Texts,
     summary: DaySummary,
     currency: Currency,
     locale: Locale = AppLocale.current,
@@ -25,22 +27,22 @@ fun daySummaryText(
     return bulletJoin(parts.map { it.text(res, currency, locale) })
 }
 
-private fun DaySummary.Part.text(res: Resources, currency: Currency, locale: Locale): String = when (this) {
-    is DaySummary.Part.Lessons -> res.getQuantityString(R.plurals.lessons_count, count, count)
-    is DaySummary.Part.Hours -> res.getString(
-        R.string.hours_value,
+private fun DaySummary.Part.text(res: Texts, currency: Currency, locale: Locale): String = when (this) {
+    is DaySummary.Part.Lessons -> res.plural(Plurals.lessons_count, count, count)
+    is DaySummary.Part.Hours -> res.string(
+        Strings.hours_value,
         formatHours(minutes, DecimalFormatSymbols.getInstance(locale).decimalSeparator),
     )
     is DaySummary.Part.Earned -> money.money(currency, locale)
-    is DaySummary.Part.Cancelled -> res.getString(R.string.schedule_summary_cancelled, count)
+    is DaySummary.Part.Cancelled -> res.string(Strings.schedule_summary_cancelled, count)
 }
 
 /** A stretch of time as it is said: «55 min», «2 h», «4 h 15 min». */
-fun hoursAndMinutesText(res: Resources, minutes: Int): String {
+fun hoursAndMinutesText(res: Texts, minutes: Int): String {
     val hours = minutes / MINUTES_PER_HOUR
     val rest = minutes % MINUTES_PER_HOUR
-    val minutesText = res.getString(R.string.minutes_short, rest)
+    val minutesText = res.string(Strings.minutes_short, rest)
     if (hours == 0) return minutesText
-    val hoursText = res.getQuantityString(R.plurals.hours_short, hours, hours)
-    return if (rest == 0) hoursText else res.getString(R.string.hours_and_minutes, hoursText, minutesText)
+    val hoursText = res.plural(Plurals.hours_short, hours, hours)
+    return if (rest == 0) hoursText else res.string(Strings.hours_and_minutes, hoursText, minutesText)
 }

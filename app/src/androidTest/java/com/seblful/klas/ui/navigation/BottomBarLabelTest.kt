@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.test.platform.app.InstrumentationRegistry
 import com.seblful.klas.testutil.textLayoutOf
+import com.seblful.klas.testutil.texts
 import com.seblful.klas.ui.theme.KlasTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -43,7 +44,7 @@ class BottomBarLabelTest {
             composeRule.runOnIdle { width.value = candidate }
             composeRule.waitForIdle()
             tabs.forEach { dest ->
-                val label = context.getString(dest.labelRes)
+                val label = context.texts().string(dest.labelRes)
                 val layout = composeRule.layoutOf(label)
                 if (layout.lineCount != 1) {
                     complaints += "«$label» takes ${layout.lineCount} lines at $candidate"
@@ -69,10 +70,10 @@ class BottomBarLabelTest {
                 }
                 composeRule.waitForIdle()
                 tabs.forEach { dest ->
-                    val label = context.getString(dest.labelRes)
+                    val label = context.texts().string(dest.labelRes)
                     composeRule.onNode(hasText(label) and isSelectable()).assertIsDisplayed()
                 }
-                val label = context.getString(TopDestination.SCHEDULE.labelRes)
+                val label = context.texts().string(TopDestination.SCHEDULE.labelRes)
                 val layout = composeRule.layoutOf(label)
                 if (layout.lineCount != 1 ||
                     layout.isLineEllipsized(0)
@@ -97,7 +98,7 @@ class BottomBarLabelTest {
             spoken = spokenNames(automation.rootInActiveWindow)
             spoken.isNotEmpty()
         }
-        val unnamed = TopDestination.entries.map { context.getString(it.labelRes) }.filterNot { it in spoken }
+        val unnamed = TopDestination.entries.map { context.texts().string(it.labelRes) }.filterNot { it in spoken }
         assertTrue("Tabs TalkBack cannot name: $unnamed; it reads $spoken", unnamed.isEmpty())
     }
 
@@ -151,7 +152,7 @@ class BottomBarLabelTest {
     }
 
     private fun ComposeContentTestRule.widthsOf(vararg tabs: TopDestination): Map<TopDestination, Int> =
-        tabs.associateWith { layoutOf(context.getString(it.labelRes)).size.width }
+        tabs.associateWith { layoutOf(context.texts().string(it.labelRes)).size.width }
 
     private fun ComposeContentTestRule.layoutOf(label: String): TextLayoutResult =
         textLayoutOf(label)

@@ -54,7 +54,6 @@ import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onPlaced
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
@@ -65,7 +64,8 @@ import androidx.compose.ui.unit.sp
 import androidx.navigationevent.NavigationEventInfo
 import androidx.navigationevent.compose.NavigationBackHandler
 import androidx.navigationevent.compose.rememberNavigationEventState
-import com.seblful.klas.R
+import com.seblful.klas.text.Strings
+import com.seblful.klas.text.stringResource
 import com.seblful.klas.ui.theme.KlasIcons
 import com.seblful.klas.ui.theme.KlasMotion
 
@@ -196,9 +196,9 @@ fun KlasScreen(
 
     val barNavigation: @Composable () -> Unit = {
         if (picking != null) {
-            NamedIconButton(KlasIcons.Filled.Close, stringResource(R.string.batch_clear), onClick = picking.onClear)
+            NamedIconButton(KlasIcons.Filled.Close, stringResource(Strings.batch_clear), onClick = picking.onClear)
         } else if (onBack != null) {
-            NamedIconButton(KlasIcons.Filled.ArrowBack, stringResource(R.string.action_back), onClick = onBack)
+            NamedIconButton(KlasIcons.Filled.ArrowBack, stringResource(Strings.action_back), onClick = onBack)
         }
     }
 
@@ -210,14 +210,14 @@ fun KlasScreen(
             // the bar is one row, and a search field plus three icons is not a row.
             NamedIconButton(
                 KlasIcons.Filled.Close,
-                stringResource(R.string.search_close),
+                stringResource(Strings.search_close),
                 onClick = closeSearch,
             )
         } else {
             if (search != null) {
                 NamedIconButton(
                     KlasIcons.Filled.Search,
-                    stringResource(R.string.action_search),
+                    stringResource(Strings.action_search),
                     onClick = { searching = true },
                 )
             }

@@ -16,13 +16,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
-import com.seblful.klas.R
 import com.seblful.klas.domain.model.Attended
 import com.seblful.klas.domain.model.TutoringClass
+import com.seblful.klas.text.Strings
+import com.seblful.klas.text.stringResource
 import com.seblful.klas.ui.common.KlasMenu
 import com.seblful.klas.ui.common.MinTouchTarget
 import com.seblful.klas.ui.common.Spacing
@@ -43,7 +43,7 @@ internal fun LessonAttendance(row: ScheduleRow, onAttendance: (TutoringClass, At
         row.classes.forEachIndexed { index, klass ->
             AttendanceRow(
                 label = if (row.isGroup) row.members.getOrElse(index) { row.title } else {
-                    stringResource(R.string.class_attendance_label)
+                    stringResource(Strings.class_attendance_label)
                 },
                 selected = klass.attended,
                 options = options,
@@ -84,9 +84,9 @@ private fun AttendanceRow(label: String, selected: Attended, options: List<Atten
 @Composable
 private fun attendanceLabel(attended: Attended): String = stringResource(
     when (attended) {
-        Attended.EXPECTED -> R.string.class_attendance_expected
-        Attended.PRESENT -> R.string.class_attendance_present
-        Attended.ABSENT -> R.string.class_attendance_absent
-        Attended.ABSENT_BILLED -> R.string.class_attendance_absent_billed
+        Attended.EXPECTED -> Strings.class_attendance_expected
+        Attended.PRESENT -> Strings.class_attendance_present
+        Attended.ABSENT -> Strings.class_attendance_absent
+        Attended.ABSENT_BILLED -> Strings.class_attendance_absent_billed
     },
 )

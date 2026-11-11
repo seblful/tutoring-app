@@ -41,7 +41,7 @@ class GlossaryTest {
     /** Machine translation read the verb in «Mark taught» as a name: «马克教导», «Mark underviste». */
     @Test
     fun `no translation reads the verb mark as a name`() {
-        val translations = ProjectFiles.moduleFile("src/main/res").listFiles().orEmpty()
+        val translations = ProjectFiles.strings().listFiles().orEmpty()
             .filter { it.name.startsWith("values-") && File(it, "strings.xml").exists() }
             .map { it.name }
         val found = translations.flatMap { folder ->
@@ -60,7 +60,7 @@ class GlossaryTest {
     }
 
     private fun stringsIn(folder: String): Map<String, String> {
-        val text = File(ProjectFiles.moduleFile("src/main/res"), "$folder/strings.xml").readText()
+        val text = File(ProjectFiles.strings(), "$folder/strings.xml").readText()
             .replace(Regex("""<!--.*?-->""", RegexOption.DOT_MATCHES_ALL), "")
         return buildMap {
             Regex("""<string\s+name="([^"]+)"[^>]*>(.*?)</string>""", RegexOption.DOT_MATCHES_ALL)

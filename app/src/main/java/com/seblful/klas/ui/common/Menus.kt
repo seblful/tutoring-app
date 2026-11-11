@@ -19,13 +19,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.seblful.klas.R
 import com.seblful.klas.lock.UnlockedWindow
+import com.seblful.klas.text.Strings
+import com.seblful.klas.text.stringResource
 import com.seblful.klas.ui.theme.KlasIcons
 
 /*
@@ -128,7 +128,7 @@ fun TickedMenuItem(
 fun OverflowMenu(items: @Composable ColumnScope.(close: () -> Unit) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
     Box {
-        NamedIconButton(KlasIcons.Filled.MoreVert, stringResource(R.string.action_more), onClick = { expanded = true })
+        NamedIconButton(KlasIcons.Filled.MoreVert, stringResource(Strings.action_more), onClick = { expanded = true })
         KlasMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             items { expanded = false }
         }
@@ -155,7 +155,7 @@ fun MenuHeading(text: String) {
 @Composable
 fun ArchiveMenuItem(archived: Boolean, onClick: () -> Unit) {
     MenuItem(
-        text = { Text(stringResource(if (archived) R.string.action_unarchive else R.string.action_archive)) },
+        text = { Text(stringResource(if (archived) Strings.action_unarchive else Strings.action_archive)) },
         leadingIcon = { Icon(KlasIcons.Outlined.Inventory2, contentDescription = null) },
         onClick = onClick,
     )

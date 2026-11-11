@@ -7,12 +7,12 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.seblful.klas.R
 import com.seblful.klas.domain.model.Assignee
 import com.seblful.klas.queries.groups.GroupDetails
 import com.seblful.klas.queries.groups.GroupLessonRow
+import com.seblful.klas.text.Strings
+import com.seblful.klas.text.stringResource
 import com.seblful.klas.ui.common.EmptyState
 import com.seblful.klas.ui.common.KlasScreen
 import com.seblful.klas.ui.common.LoadingDetailScreen
@@ -88,7 +88,7 @@ private fun LazyListScope.lessons(rows: List<GroupLessonRow>, now: Instant, onLe
         item(key = GroupDetailKeys.LESSONS_EMPTY, contentType = GroupDetailKeys.LESSONS_EMPTY) {
             // No action: a lesson is booked from the schedule's form, reached from the card's next lesson.
             EmptyState(
-                title = stringResource(R.string.group_lessons_empty),
+                title = stringResource(Strings.group_lessons_empty),
                 icon = KlasIcons.Outlined.EventBusy,
                 compact = true,
             )

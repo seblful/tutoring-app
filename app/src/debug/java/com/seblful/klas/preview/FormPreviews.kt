@@ -1,9 +1,9 @@
 package com.seblful.klas.preview
 
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.res.stringResource
-import com.seblful.klas.R
 import com.seblful.klas.format.MoneyField
+import com.seblful.klas.text.Strings
+import com.seblful.klas.text.stringResource
 import com.seblful.klas.ui.common.ChoiceRow
 import com.seblful.klas.ui.common.ConfirmDialog
 import com.seblful.klas.ui.common.FilterChipRow
@@ -88,7 +88,7 @@ private fun FilterChipRowPreview() = PreviewSurface {
 private fun ConfirmDialogPreview() = PreviewSurface {
     ConfirmDialog(
         // The app's own longest delete question, so the preview wraps where the real dialog does.
-        text = stringResource(R.string.class_delete_completed_confirm),
+        text = stringResource(Strings.class_delete_completed_confirm),
         destructive = true,
         onConfirm = {},
         onDismiss = {},

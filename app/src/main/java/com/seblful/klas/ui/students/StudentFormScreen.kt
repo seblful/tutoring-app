@@ -31,17 +31,17 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.seblful.klas.R
 import com.seblful.klas.domain.lesson.ClassRules
 import com.seblful.klas.domain.model.Subject
 import com.seblful.klas.domain.time.MINUTES_PER_HOUR
 import com.seblful.klas.format.MoneyField
 import com.seblful.klas.format.bulletJoin
 import com.seblful.klas.format.labelRes
+import com.seblful.klas.text.Strings
+import com.seblful.klas.text.stringResource
 import com.seblful.klas.ui.common.AddRow
 import com.seblful.klas.ui.common.KlasScreen
 import com.seblful.klas.ui.common.ListSkeleton
@@ -85,14 +85,14 @@ fun StudentFormScreen(
     LaunchedEffect(studentId) { studentId?.let(viewModel::edit) }
     val state by viewModel.state.collectAsStateWithLifecycle()
     if (state.opened == StudentFormViewModel.Opened.Reading) {
-        LoadingFormScreen(title = stringResource(R.string.student_edit_title), onBack = onBack, fields = 5)
+        LoadingFormScreen(title = stringResource(Strings.student_edit_title), onBack = onBack, fields = 5)
         return
     }
     val save = { viewModel.create { id -> if (onCreated != null) onCreated(id) else onBack() } }
 
     // A save that failed must not look like one that went through: the form stays open and says so.
     val messages = rememberMessages()
-    val saveFailedMsg = stringResource(R.string.save_failed)
+    val saveFailedMsg = stringResource(Strings.save_failed)
     ShowMessagesFor(viewModel.events, messages) { saveFailedMsg }
 
     // Back — the arrow or the system gesture — asks before throwing a filled-in form away.
@@ -101,8 +101,8 @@ fun StudentFormScreen(
     // `StudentFormContent` keeps an `imePadding()` of its own only because onboarding embeds it — a no-op here,
     // where the template has already taken the keyboard's inset.
     FormScreen(
-        title = stringResource(if (state.isNew) R.string.student_add_title else R.string.student_edit_title),
-        saveLabel = stringResource(if (state.isNew) R.string.student_form_add else R.string.action_save),
+        title = stringResource(if (state.isNew) Strings.student_add_title else Strings.student_edit_title),
+        saveLabel = stringResource(if (state.isNew) Strings.student_form_add else Strings.action_save),
         bar = studentBar(state),
         onSave = save,
         onLeave = requestLeave,
@@ -155,7 +155,7 @@ fun StudentFormContent(
         }
 
         KlasDivider(Modifier.padding(vertical = Spacing.tight))
-        SectionTitle(stringResource(R.string.student_form_subjects_title))
+        SectionTitle(stringResource(Strings.student_form_subjects_title))
         // «Сначала добавьте предметы» is a refusal, and saying it about subjects that have merely not
         // been read yet is the [Loadable] defect — here in the error red, on the screen a tutor reaches
         // by tapping «Добавить». Three rows of skeleton stand in until the list has actually arrived.
@@ -181,13 +181,13 @@ private fun SubjectPrices(
     var addingSubject by rememberSaveable { mutableStateOf(false) }
     if (subjects.isEmpty()) {
         Text(
-            stringResource(R.string.student_form_no_subjects),
+            stringResource(Strings.student_form_no_subjects),
             color = klasSemantics.validation,
             style = MaterialTheme.typography.bodyMedium,
         )
     } else {
         Text(
-            stringResource(R.string.student_form_subjects_required),
+            stringResource(Strings.student_form_subjects_required),
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             style = MaterialTheme.typography.bodySmall,
         )
@@ -200,7 +200,7 @@ private fun SubjectPrices(
                 MoneyTextField(
                     field = price,
                     onValueChange = { viewModel.setPriceText(subject.id, it) },
-                    label = stringResource(R.string.price_label),
+                    label = stringResource(Strings.price_label),
                     hint = lessonPriceHint(price, state.lessonMinutes),
                     modifier = fieldModifier,
                 )
@@ -231,7 +231,7 @@ private fun SubjectPrices(
             }
         }
     }
-    AddRow(stringResource(R.string.subjects_add), onClick = { addingSubject = true })
+    AddRow(stringResource(Strings.subjects_add), onClick = { addingSubject = true })
     if (addingSubject) {
         SubjectNameDialog(onConfirm = viewModel::addSubject, onDismiss = { addingSubject = false })
     }
@@ -272,7 +272,7 @@ private fun SubjectTick(
             Text(name)
             if (locked) {
                 Text(
-                    stringResource(R.string.student_form_subject_has_lessons),
+                    stringResource(Strings.student_form_subject_has_lessons),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -292,7 +292,7 @@ private fun studentSummary(state: StudentFormViewModel.UiState): String {
     val subjects = state.allSubjects.valueOrNull().orEmpty()
     val rates = subjects.mapNotNull { subject ->
         state.form.subjectPrices[subject.id]?.amount?.let {
-            "${subject.name} ${stringResource(R.string.price_per_hour, it.text())}"
+            "${subject.name} ${stringResource(Strings.price_per_hour, it.text())}"
         }
     }
     return bulletJoin(*rates.toTypedArray(), stringResource(state.form.mode.labelRes()))
@@ -307,7 +307,7 @@ private fun studentSummary(state: StudentFormViewModel.UiState): String {
 private fun lessonPriceHint(price: MoneyField, lessonMinutes: Int): String? {
     val hourly = price.amount?.takeIf { lessonMinutes != MINUTES_PER_HOUR } ?: return null
     return stringResource(
-        R.string.price_per_lesson_hint,
+        Strings.price_per_lesson_hint,
         ClassRules.chargeFor(hourly, lessonMinutes).text(),
         durationLabel(lessonMinutes),
     )

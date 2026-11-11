@@ -9,13 +9,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSerializable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.res.stringResource
-import com.seblful.klas.R
 import com.seblful.klas.domain.billing.PaymentSuggestions
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Payment
 import com.seblful.klas.domain.model.PaymentMethod
 import com.seblful.klas.format.toLocalDate
+import com.seblful.klas.text.Strings
+import com.seblful.klas.text.stringResource
 import com.seblful.klas.ui.common.Messages
 import kotlinx.datetime.LocalDate
 import kotlinx.serialization.Serializable
@@ -60,7 +60,7 @@ internal class CardPayments(
         key(shown) {
             when (shown) {
                 is Dialog.Adding -> PaymentDialog(
-                    title = stringResource(R.string.payment_add_title),
+                    title = stringResource(Strings.payment_add_title),
                     initialAmount = null,
                     initialDate = shown.defaults.day,
                     initialMethod = shown.defaults.method,
@@ -71,7 +71,7 @@ internal class CardPayments(
                 is Dialog.Editing -> {
                     val payment = shown.payment
                     PaymentDialog(
-                        title = stringResource(R.string.payment_edit_title),
+                        title = stringResource(Strings.payment_edit_title),
                         initialAmount = payment.amount,
                         initialDate = payment.date.toLocalDate(),
                         initialMethod = payment.method,
@@ -88,7 +88,7 @@ internal class CardPayments(
 @Composable
 internal fun rememberCardPayments(viewModel: StudentDetailViewModel, messages: Messages): CardPayments {
     val currentMessages by rememberUpdatedState(messages)
-    val deleted by rememberUpdatedState(stringResource(R.string.payment_deleted))
+    val deleted by rememberUpdatedState(stringResource(Strings.payment_deleted))
     val dialog = rememberSerializable { mutableStateOf(PaymentDialogSnapshot()) }
     return remember(viewModel, dialog) {
         CardPayments(viewModel, dialog) { payment ->

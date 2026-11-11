@@ -1,6 +1,5 @@
 package com.seblful.klas.screenshot
 
-import androidx.annotation.StringRes
 import androidx.compose.ui.test.filter
 import androidx.compose.ui.test.filterToOne
 import androidx.compose.ui.test.hasClickAction
@@ -18,7 +17,6 @@ import com.github.takahirom.roborazzi.RoborazziOptions.CompareOptions
 import com.github.takahirom.roborazzi.ThresholdValidator
 import com.github.takahirom.roborazzi.captureScreenRoboImage
 import com.seblful.klas.MainActivity
-import com.seblful.klas.R
 import com.seblful.klas.domain.model.ThemeChoice
 import com.seblful.klas.format.formatDay
 import com.seblful.klas.store.DemoTutor
@@ -28,6 +26,9 @@ import com.seblful.klas.testutil.FakeCalendarPermission
 import com.seblful.klas.testutil.FakeCalendarSync
 import com.seblful.klas.testutil.RecordingDigestScheduler
 import com.seblful.klas.testutil.RecordingReminderScheduler
+import com.seblful.klas.testutil.texts
+import com.seblful.klas.text.StringResource
+import com.seblful.klas.text.Strings
 import dev.zacsweers.metro.createGraphFactory
 import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.LocalDate
@@ -120,49 +121,49 @@ class FormFactorScreenshotTest {
             // Neither the Today tab nor today's schedule is captured: their «now» arrives on its own flow, at a
             // moment Robolectric does not pin down. A later day of the month has none — and on a wide window the
             // month is where the schedule has two panes, the grid beside the day it opens.
-            tab(R.string.nav_schedule)
-            waitFor(string(R.string.class_status_in_progress))
-            click(R.string.schedule_view_month)
+            tab(Strings.nav_schedule)
+            waitFor(string(Strings.class_status_in_progress))
+            click(Strings.schedule_view_month)
             compose.onAllNodesWithText(LATER_DAY).filterToOne(isSelectable()).performClick()
             laterDayShown()
             settle()
             capture(formFactor, "schedule-month")
 
-            tab(R.string.nav_homework)
+            tab(Strings.nav_homework)
             waitFor(tutor.group.homework)
             capture(formFactor, "homework")
 
-            tab(R.string.nav_reports)
+            tab(Strings.nav_reports)
             // The income heads the report at every width; the debts are below the fold on a phone.
-            waitFor(string(R.string.reports_total_income))
+            waitFor(string(Strings.reports_total_income))
             capture(formFactor, "reports")
 
-            tab(R.string.nav_people)
+            tab(Strings.nav_people)
             waitFor(tutor.debtor.name)
             capture(formFactor, "people")
 
             compose.onAllNodesWithText(tutor.debtor.name, substring = true)
                 .filterToOne(hasClickAction()).performClick()
             // The balance's payment button is the card's own, near its top; «Owes» is on the list beside it too.
-            waitFor(string(R.string.payment_add_short))
+            waitFor(string(Strings.payment_add_short))
             capture(formFactor, "people-student")
 
             // On a phone the card hides the list the groups are on; beside the list, Back would leave People.
-            val groupsTab = compose.onAllNodesWithText(string(R.string.groups_title)).filter(hasClickAction())
+            val groupsTab = compose.onAllNodesWithText(string(Strings.groups_title)).filter(hasClickAction())
             if (groupsTab.fetchSemanticsNodes().isEmpty()) back(scenario)
-            click(R.string.groups_title)
+            click(Strings.groups_title)
             compose.onAllNodesWithText(tutor.group.name).filterToOne(hasClickAction()).performClick()
             // The earnings card is the group card's own, near its top.
-            waitFor(string(R.string.stat_earned))
+            waitFor(string(Strings.stat_earned))
             capture(formFactor, "people-group")
 
             // Back again: on a phone the card's bar has no gear, People's does.
             back(scenario)
             gear()
             // The index arrives whole, after the page beside it on a wide window; its last row says it is in.
-            waitFor(string(R.string.settings_diagnostics_none))
-            click(R.string.settings_lessons_title)
-            waitFor(string(R.string.settings_autocomplete))
+            waitFor(string(Strings.settings_diagnostics_none))
+            click(Strings.settings_lessons_title)
+            waitFor(string(Strings.settings_autocomplete))
             capture(formFactor, "settings-lessons")
         }
     }
@@ -174,12 +175,12 @@ class FormFactorScreenshotTest {
 
     /** Settings, through the gear on the tab's bar. */
     private fun gear() {
-        compose.onAllNodes(hasContentDescription(string(R.string.settings_title)) and hasClickAction())
+        compose.onAllNodes(hasContentDescription(string(Strings.settings_title)) and hasClickAction())
             .onFirst().performClick()
         settle()
     }
 
-    private fun click(@StringRes label: Int) {
+    private fun click(label: StringResource) {
         compose.onAllNodesWithText(string(label)).filterToOne(hasClickAction()).performClick()
         settle()
     }
@@ -193,7 +194,7 @@ class FormFactorScreenshotTest {
     }
 
     // A tab is reached the way the tutor reaches it, so on a phone it is only there while a tab is showing.
-    private fun tab(@StringRes label: Int) {
+    private fun tab(label: StringResource) {
         compose.onAllNodes((hasText(string(label)) or hasContentDescription(string(label))) and isSelectable())
             .onFirst().performClick()
         settle()
@@ -217,7 +218,8 @@ class FormFactorScreenshotTest {
         compose.waitForIdle()
     }
 
-    private fun string(@StringRes id: Int): String = ApplicationProvider.getApplicationContext<StoreApp>().getString(id)
+    private fun string(id: StringResource): String =
+        ApplicationProvider.getApplicationContext<StoreApp>().texts().string(id)
 
     private companion object {
         const val TIMEOUT_MS = 60_000L

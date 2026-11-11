@@ -9,11 +9,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.pluralStringResource
-import androidx.compose.ui.res.stringResource
-import com.seblful.klas.R
 import com.seblful.klas.domain.model.RateChange
 import com.seblful.klas.format.formatDate
+import com.seblful.klas.text.Plurals
+import com.seblful.klas.text.Strings
+import com.seblful.klas.text.pluralStringResource
+import com.seblful.klas.text.stringResource
 
 /**
  * A rate's recorded history, newest first — shared by a student's subject rows and a group's rate,
@@ -25,7 +26,7 @@ fun RateHistoryList(changes: List<RateChange>, modifier: Modifier = Modifier) {
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.tight)) {
         if (changes.isEmpty()) {
             Text(
-                stringResource(R.string.rate_history_empty),
+                stringResource(Strings.rate_history_empty),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -34,7 +35,7 @@ fun RateHistoryList(changes: List<RateChange>, modifier: Modifier = Modifier) {
             val older = changes.size - MaxRateRows
             if (older > 0) {
                 Text(
-                    pluralStringResource(R.plurals.rate_history_older, older, older),
+                    pluralStringResource(Plurals.rate_history_older, older, older),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -52,7 +53,7 @@ fun RateHistoryList(changes: List<RateChange>, modifier: Modifier = Modifier) {
 fun RateHistory(changes: List<RateChange>, modifier: Modifier = Modifier) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(Spacing.tight)) {
         Text(
-            stringResource(R.string.rate_history_title),
+            stringResource(Strings.rate_history_title),
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -70,8 +71,8 @@ fun rateChangeLine(changes: List<RateChange>): String? {
     val from = change?.from
     val at = change?.at
     if (from == null || at == null) return null
-    val was = stringResource(R.string.price_per_hour, from.text())
-    return stringResource(R.string.rate_since_was, at.formatDate(), was)
+    val was = stringResource(Strings.price_per_hour, from.text())
+    return stringResource(Strings.rate_since_was, at.formatDate(), was)
 }
 
 private const val MaxRateRows = 5
@@ -86,9 +87,9 @@ private fun RateChangeRow(change: RateChange) {
         val from = change.from
         Text(
             text = if (from == null) {
-                stringResource(R.string.rate_history_initial, change.to.text())
+                stringResource(Strings.rate_history_initial, change.to.text())
             } else {
-                stringResource(R.string.rate_history_change, from.text(), change.to.text())
+                stringResource(Strings.rate_history_change, from.text(), change.to.text())
             },
             style = MaterialTheme.typography.bodySmall,
             // Takes what the date leaves, so a long «1 250,50 BYN → 1 500 BYN» wraps rather than pushing
@@ -96,7 +97,7 @@ private fun RateChangeRow(change: RateChange) {
             modifier = Modifier.weight(1f),
         )
         Text(
-            text = change.at?.formatDate() ?: stringResource(R.string.rate_history_unknown_date),
+            text = change.at?.formatDate() ?: stringResource(Strings.rate_history_unknown_date),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(start = Spacing.inline),

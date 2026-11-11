@@ -17,8 +17,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.res.stringResource
-import com.seblful.klas.R
 import com.seblful.klas.domain.billing.PaymentSuggestions
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.PaymentMethod
@@ -27,6 +25,8 @@ import com.seblful.klas.format.MoneyField
 import com.seblful.klas.format.formatDate
 import com.seblful.klas.format.toAmountInput
 import com.seblful.klas.queries.students.SubjectPrice
+import com.seblful.klas.text.Strings
+import com.seblful.klas.text.stringResource
 import com.seblful.klas.ui.common.DatePickerModal
 import com.seblful.klas.ui.common.DialogRadioRow
 import com.seblful.klas.ui.common.MoneyTextField
@@ -59,13 +59,13 @@ internal fun RepriceDialog(
     FormDialog(
         title = subjectPrice.subject.name,
         confirm = DialogAction(
-            label = stringResource(R.string.action_save),
+            label = stringResource(Strings.action_save),
             onClick = { field.amount?.let(onConfirm); onDismiss() },
             enabled = field.isValid,
         ),
         onDismiss = onDismiss,
         extra = DialogAction(
-            label = stringResource(R.string.action_remove),
+            label = stringResource(Strings.action_remove),
             onClick = { onDismiss(); onRemove() },
             destructive = true,
         ),
@@ -74,7 +74,7 @@ internal fun RepriceDialog(
             MoneyTextField(
                 field = field,
                 onValueChange = { text = it },
-                label = stringResource(R.string.price_label),
+                label = stringResource(Strings.price_label),
                 modifier = Modifier.focusRequester(focus),
             )
             KlasDivider()
@@ -109,7 +109,7 @@ internal fun PaymentDialog(
     FormDialog(
         title = title,
         confirm = DialogAction(
-            label = stringResource(R.string.action_save),
+            label = stringResource(Strings.action_save),
             onClick = {
                 // The day, not an instant: which hour a payment lands at is `PaymentDate`'s,
                 // and it needs the injected clock this composable has no way to hold.
@@ -121,7 +121,7 @@ internal fun PaymentDialog(
         onDismiss = onDismiss,
         extra = onDelete?.let { delete ->
             DialogAction(
-                label = stringResource(R.string.action_delete),
+                label = stringResource(Strings.action_delete),
                 onClick = { onDismiss(); delete() },
                 destructive = true,
             )
@@ -131,7 +131,7 @@ internal fun PaymentDialog(
             MoneyTextField(
                 field = field,
                 onValueChange = { text = it },
-                label = stringResource(R.string.payment_amount_label),
+                label = stringResource(Strings.payment_amount_label),
                 modifier = if (focus != null) Modifier.focusRequester(focus) else Modifier,
             )
             if (initialAmount == null) {
@@ -139,7 +139,7 @@ internal fun PaymentDialog(
             }
             PickerField(
                 value = date.formatDate(),
-                label = stringResource(R.string.payment_date_label),
+                label = stringResource(Strings.payment_date_label),
                 onClick = { picking = true },
             )
             // Optional, so nothing need be selected: a tap on the chosen segment clears it.
@@ -166,8 +166,8 @@ internal fun PaymentDialog(
 @Composable
 private fun AmountChips(suggestions: PaymentSuggestions, typed: Money?, onPick: (Money) -> Unit) {
     val chips = listOfNotNull(
-        suggestions.fullBalance?.let { it to stringResource(R.string.payment_fill_balance, it.text()) },
-        suggestions.oneLesson?.let { it to stringResource(R.string.payment_fill_lesson, it.text()) },
+        suggestions.fullBalance?.let { it to stringResource(Strings.payment_fill_balance, it.text()) },
+        suggestions.oneLesson?.let { it to stringResource(Strings.payment_fill_lesson, it.text()) },
     )
     if (chips.isEmpty()) return
     FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.inline)) {
@@ -191,9 +191,9 @@ internal fun AddSubjectPriceDialog(
     var priceText by rememberSaveable { mutableStateOf("") }
     val price = MoneyField(priceText, MoneyField.Kind.RATE)
     FormDialog(
-        title = title ?: stringResource(R.string.student_add_subject),
+        title = title ?: stringResource(Strings.student_add_subject),
         confirm = DialogAction(
-            label = stringResource(R.string.action_save),
+            label = stringResource(Strings.action_save),
             onClick = {
                 val id = selectedId
                 val amount = price.amount
@@ -210,9 +210,9 @@ internal fun AddSubjectPriceDialog(
                 Text(
                     stringResource(
                         if (noSubjectsYet) {
-                            R.string.student_form_no_subjects
+                            Strings.student_form_no_subjects
                         } else {
-                            R.string.student_all_subjects_added
+                            Strings.student_all_subjects_added
                         },
                     ),
                 )
@@ -227,7 +227,7 @@ internal fun AddSubjectPriceDialog(
                 MoneyTextField(
                     field = price,
                     onValueChange = { priceText = it },
-                    label = stringResource(R.string.price_label),
+                    label = stringResource(Strings.price_label),
                     modifier = Modifier.padding(top = Spacing.inline),
                 )
             }

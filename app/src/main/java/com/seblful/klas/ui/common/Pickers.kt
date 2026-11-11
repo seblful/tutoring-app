@@ -25,11 +25,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
-import com.seblful.klas.R
 import com.seblful.klas.domain.time.MINUTES_PER_HOUR
 import com.seblful.klas.lock.UnlockedWindow
+import com.seblful.klas.text.Strings
+import com.seblful.klas.text.stringResource
 import com.seblful.klas.ui.designsystem.component.ButtonKind
 import com.seblful.klas.ui.designsystem.component.KlasButton
 import com.seblful.klas.ui.theme.KlasIcons
@@ -75,10 +75,10 @@ fun DatePickerModal(
                     // «Готово» that then did nothing read as a dead button.
                     enabled = state.selectedDateMillis != null,
                     kind = ButtonKind.Text,
-                ) { Text(stringResource(R.string.action_done)) }
+                ) { Text(stringResource(Strings.action_done)) }
             },
             dismissButton = {
-                KlasButton(onClick = onDismiss, kind = ButtonKind.Text) { Text(stringResource(R.string.action_cancel)) }
+                KlasButton(onClick = onDismiss, kind = ButtonKind.Text) { Text(stringResource(Strings.action_cancel)) }
             },
         ) {
             drafts.SaveableStateProvider("body") { DatePicker(state = state) }
@@ -112,10 +112,10 @@ fun TimePickerModal(
             confirmButton = {
                 KlasButton(onClick = {
                     onConfirm(LocalTime(state.hour, state.minute))
-                }, kind = ButtonKind.Text) { Text(stringResource(R.string.action_done)) }
+                }, kind = ButtonKind.Text) { Text(stringResource(Strings.action_done)) }
             },
             dismissButton = {
-                KlasButton(onClick = onDismiss, kind = ButtonKind.Text) { Text(stringResource(R.string.action_cancel)) }
+                KlasButton(onClick = onDismiss, kind = ButtonKind.Text) { Text(stringResource(Strings.action_cancel)) }
             },
             title = { TimePickerDialogDefaults.Title(displayMode = mode) },
             // The app's own toggle: Material's draws its icon for the mode it is in but names the one it leads to,
@@ -123,7 +123,7 @@ fun TimePickerModal(
             modeToggleButton = {
                 NamedIconButton(
                     if (typing) KlasIcons.Outlined.Schedule else KlasIcons.Outlined.Keyboard,
-                    stringResource(if (typing) R.string.time_picker_to_dial else R.string.time_picker_to_keyboard),
+                    stringResource(if (typing) Strings.time_picker_to_dial else Strings.time_picker_to_keyboard),
                     onClick = { typing = !typing },
                 )
             },
@@ -152,21 +152,21 @@ fun DurationPickerModal(
             onDismissRequest = onDismiss,
             // Typed into, so a stray tap beside it keeps what was typed — see [KeepTypedInput].
             properties = KeepTypedInput,
-            title = { Text(title ?: stringResource(R.string.class_duration_label)) },
+            title = { Text(title ?: stringResource(Strings.class_duration_label)) },
             text = {
                 drafts.SaveableStateProvider("body") {
                     Row(horizontalArrangement = Arrangement.spacedBy(Spacing.itemGap)) {
                         CountField(
                             value = hours,
                             onValue = { hours = it },
-                            label = stringResource(R.string.duration_hours_label),
+                            label = stringResource(Strings.duration_hours_label),
                             max = 23,
                             modifier = Modifier.weight(1f),
                         )
                         CountField(
                             value = minutes,
                             onValue = { minutes = it },
-                            label = stringResource(R.string.duration_minutes_label),
+                            label = stringResource(Strings.duration_minutes_label),
                             max = 59,
                             modifier = Modifier.weight(1f),
                         )
@@ -178,10 +178,10 @@ fun DurationPickerModal(
                     onClick = { onConfirm(total) },
                     enabled = total > 0,
                     kind = ButtonKind.Text,
-                ) { Text(stringResource(R.string.action_done)) }
+                ) { Text(stringResource(Strings.action_done)) }
             },
             dismissButton = {
-                KlasButton(onClick = onDismiss, kind = ButtonKind.Text) { Text(stringResource(R.string.action_cancel)) }
+                KlasButton(onClick = onDismiss, kind = ButtonKind.Text) { Text(stringResource(Strings.action_cancel)) }
             },
         )
     }
@@ -221,10 +221,10 @@ fun CountPickerModal(
                     // Zero lessons is not a booking, exactly as a lesson of no length is not a lesson.
                     enabled = total > 0,
                     kind = ButtonKind.Text,
-                ) { Text(stringResource(R.string.action_done)) }
+                ) { Text(stringResource(Strings.action_done)) }
             },
             dismissButton = {
-                KlasButton(onClick = onDismiss, kind = ButtonKind.Text) { Text(stringResource(R.string.action_cancel)) }
+                KlasButton(onClick = onDismiss, kind = ButtonKind.Text) { Text(stringResource(Strings.action_cancel)) }
             },
         )
     }

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_today_name">Heutige Stunden</string>
+    <string name="widget_today_description">Heutige Stunden mit einem Tippen als gehalten markieren</string>
+    <string name="widget_quick_actions_name">Klas-Verknüpfungen</string>
+    <string name="widget_quick_actions_description">Eine Stunde buchen, einen Schüler hinzufügen oder Heute, Hausaufgaben und Schulden öffnen</string>
+</resources>

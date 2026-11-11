@@ -14,9 +14,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
-import com.seblful.klas.R
+import com.seblful.klas.text.Strings
+import com.seblful.klas.text.stringResource
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.theme.KlasMotion
 import com.seblful.klas.ui.theme.klasSemantics
@@ -71,7 +71,7 @@ fun FormSaveBar(
 @Composable
 private fun BarWords(bar: FormBar) {
     when (bar) {
-        is FormBar.Missing -> TwoLines(stringResource(R.string.class_still_needed), bar.fields.joinToString())
+        is FormBar.Missing -> TwoLines(stringResource(Strings.class_still_needed), bar.fields.joinToString())
         is FormBar.Blocked -> TwoLines(bar.reason, color = klasSemantics.validation)
         is FormBar.Ready -> if (bar.summary.isNotEmpty()) TwoLines(bar.summary, bar.detail)
     }

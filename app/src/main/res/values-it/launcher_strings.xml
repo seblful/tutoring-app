@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_today_name">Le lezioni di oggi</string>
+    <string name="widget_today_description">Segna le lezioni di oggi come svolte con un tocco</string>
+    <string name="widget_quick_actions_name">Scorciatoie Klas</string>
+    <string name="widget_quick_actions_description">Prenota una lezione, aggiungi uno studente oppure apri Oggi, compiti e debiti</string>
+</resources>

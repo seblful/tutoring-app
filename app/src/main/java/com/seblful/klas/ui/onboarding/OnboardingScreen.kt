@@ -46,9 +46,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.pluralStringResource
-import androidx.compose.ui.res.stringArrayResource
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
@@ -59,9 +56,15 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigationevent.NavigationEventInfo
 import androidx.navigationevent.compose.NavigationBackHandler
 import androidx.navigationevent.compose.rememberNavigationEventState
-import com.seblful.klas.R
 import com.seblful.klas.domain.model.Subject
 import com.seblful.klas.domain.people.SubjectNames
+import com.seblful.klas.text.Plurals
+import com.seblful.klas.text.StringArrays
+import com.seblful.klas.text.Strings
+import com.seblful.klas.text.currentTexts
+import com.seblful.klas.text.pluralStringResource
+import com.seblful.klas.text.stringArrayResource
+import com.seblful.klas.text.stringResource
 import com.seblful.klas.ui.backup.BACKUP_MIME_TYPES
 import com.seblful.klas.ui.backup.BackupResult
 import com.seblful.klas.ui.backup.RestoreDialogs
@@ -152,22 +155,22 @@ fun OnboardingScreen(
     val subjects by viewModel.subjects.collectAsStateWithLifecycle()
     val locale by viewModel.locale.collectAsStateWithLifecycle()
     val messages = rememberMessages()
-    val noPickerMsg = stringResource(R.string.student_contact_failed)
+    val noPickerMsg = stringResource(Strings.student_contact_failed)
 
     // The newest: the language step swaps the context's resources, and a failure after it is worded in the
     // language just picked, not the one the screen opened in.
-    val context by rememberUpdatedState(LocalContext.current)
+    val texts by rememberUpdatedState(currentTexts())
     // Only a failure needs saying — a successful restore leaves this screen behind. It says which
     // failure: someone restoring on a fresh install has the least context for a bare «Не удалось».
     LaunchedEffect(restoreViewModel, messages) {
         restoreViewModel.events.stream.collect { result ->
-            if (result is BackupResult.Failed) messages.show(result.failure.messageIn(context))
+            if (result is BackupResult.Failed) messages.show(result.failure.messageIn(texts))
         }
     }
 
-    val removeFailedMsg = stringResource(R.string.onboarding_subject_remove_failed)
-    val nameTakenMsg = stringResource(R.string.subject_name_taken)
-    val saveFailedMsg = stringResource(R.string.save_failed)
+    val removeFailedMsg = stringResource(Strings.onboarding_subject_remove_failed)
+    val nameTakenMsg = stringResource(Strings.subject_name_taken)
+    val saveFailedMsg = stringResource(Strings.save_failed)
     val studentVm: StudentFormViewModel = assistedMetroViewModel()
     ShowMessagesFor(studentVm.events, messages) { saveFailedMsg }
     ShowMessagesFor(viewModel.events, messages) { event ->
@@ -185,7 +188,7 @@ fun OnboardingScreen(
     // Said **after** the row has gone, not beside the call that removes it. Announcing it up front would
     // be «Предмет удалён» followed by «Не удалось удалить предмет» on a refusal — and a «Вернуть» offered
     // in between would add a *second* subject of the same name, which nothing refuses.
-    val subjectRemovedMsg = stringResource(R.string.onboarding_subject_removed)
+    val subjectRemovedMsg = stringResource(Strings.onboarding_subject_removed)
     fun removeSubject(subject: Subject) {
         viewModel.removeSubject(subject) {
             messages.undoable(subjectRemovedMsg) { viewModel.addSubject(subject.name) }
@@ -224,9 +227,9 @@ fun OnboardingScreen(
         // the same way, in its body.
         title = when (step) {
             Step.WELCOME, Step.READY -> null
-            Step.LOCALE -> stringResource(R.string.onboarding_locale_title)
-            Step.SUBJECTS -> stringResource(R.string.onboarding_subjects_title)
-            Step.STUDENT -> stringResource(R.string.onboarding_student_title)
+            Step.LOCALE -> stringResource(Strings.onboarding_locale_title)
+            Step.SUBJECTS -> stringResource(Strings.onboarding_subjects_title)
+            Step.STUDENT -> stringResource(Strings.onboarding_student_title)
         },
         onBack = previousStep?.let { back -> { goTo(back) } },
         messages = messages,
@@ -237,7 +240,7 @@ fun OnboardingScreen(
         actions = {
             if (step != Step.WELCOME && step != Step.READY) {
                 KlasButton(onClick = { viewModel.complete(); onFinished() }, kind = ButtonKind.Text) {
-                    Text(stringResource(R.string.onboarding_skip))
+                    Text(stringResource(Strings.onboarding_skip))
                 }
             }
         },
@@ -258,7 +261,7 @@ fun OnboardingScreen(
                 // Which step, and how many are left: "this takes a minute" as something the tutor can see.
                 if (shown.number > 0) {
                     Text(
-                        stringResource(R.string.onboarding_step, shown.number, Step.total),
+                        stringResource(Strings.onboarding_step, shown.number, Step.total),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.padding(start = Spacing.gutter, top = Spacing.inline),
@@ -291,7 +294,7 @@ fun OnboardingScreen(
                                 KlasLogo(Modifier.size(LogoSize))
                                 KlasWordmark(Modifier.width(WordmarkWidth).height(WordmarkHeight))
                                 Text(
-                                    stringResource(R.string.onboarding_tagline),
+                                    stringResource(Strings.onboarding_tagline),
                                     style = MaterialTheme.typography.bodyLarge,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     textAlign = TextAlign.Center,
@@ -299,12 +302,12 @@ fun OnboardingScreen(
                                 )
                                 ValueLine(
                                     KlasIcons.Outlined.CalendarMonth,
-                                    stringResource(R.string.onboarding_value_schedule),
+                                    stringResource(Strings.onboarding_value_schedule),
                                 )
-                                ValueLine(KlasIcons.Outlined.Payments, stringResource(R.string.onboarding_value_money))
+                                ValueLine(KlasIcons.Outlined.Payments, stringResource(Strings.onboarding_value_money))
                                 ValueLine(
                                     KlasIcons.Outlined.PhonelinkLock,
-                                    stringResource(R.string.onboarding_value_offline),
+                                    stringResource(Strings.onboarding_value_offline),
                                 )
                             }
                         }
@@ -316,11 +319,11 @@ fun OnboardingScreen(
                             KlasButton(
                                 onClick = { goTo(Step.LOCALE) },
                                 modifier = Modifier.fillMaxWidth(),
-                            ) { Text(stringResource(R.string.onboarding_start)) }
+                            ) { Text(stringResource(Strings.onboarding_start)) }
                             // Each of the three ways out carries its own one-line consequence, so the
                             // choice is made with the outcome in view rather than after a paragraph
                             // above the buttons that has to describe all three at once.
-                            Caption(stringResource(R.string.onboarding_welcome_desc))
+                            Caption(stringResource(Strings.onboarding_welcome_desc))
                             KlasButton(
                                 onClick = { restore(BACKUP_MIME_TYPES) },
                                 modifier = Modifier.fillMaxWidth(),
@@ -329,23 +332,23 @@ fun OnboardingScreen(
                             ) {
                                 Icon(KlasIcons.Outlined.Download, null, Modifier.size(ButtonDefaults.IconSize))
                                 Text(
-                                    stringResource(R.string.onboarding_restore),
+                                    stringResource(Strings.onboarding_restore),
                                     Modifier.padding(start = Spacing.inline),
                                 )
                             }
-                            Caption(stringResource(R.string.onboarding_restore_desc))
+                            Caption(stringResource(Strings.onboarding_restore_desc))
                             KlasButton(
                                 onClick = { viewModel.complete(); onFinished() },
                                 modifier = Modifier.fillMaxWidth(),
                                 kind = ButtonKind.Text,
-                            ) { Text(stringResource(R.string.onboarding_skip)) }
-                            Caption(stringResource(R.string.onboarding_skip_desc))
+                            ) { Text(stringResource(Strings.onboarding_skip)) }
+                            Caption(stringResource(Strings.onboarding_skip_desc))
                         }
                     }
 
                     Step.LOCALE -> {
                         Text(
-                            stringResource(R.string.onboarding_locale_desc),
+                            stringResource(Strings.onboarding_locale_desc),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(Spacing.gutter),
@@ -359,7 +362,7 @@ fun OnboardingScreen(
                                 ListSkeleton(rows = 3, rowHeight = LocaleRowHeight)
                             } else {
                                 ChoiceRow(
-                                    title = stringResource(R.string.settings_language),
+                                    title = stringResource(Strings.settings_language),
                                     options = LanguageChoices.map { it to languageLabel(it) },
                                     selected = chosen.language,
                                     onSelect = viewModel::setLanguage,
@@ -367,21 +370,21 @@ fun OnboardingScreen(
                                 CurrencyPicker(
                                     // Setup applies immediately; Settings confirms a change because it also
                                     // relabels existing records. Both explain that no amounts are converted.
-                                    description = stringResource(R.string.onboarding_locale_currency_desc),
+                                    description = stringResource(Strings.onboarding_locale_currency_desc),
                                     selected = chosen.currency,
                                     onSelect = viewModel::setCurrency,
                                 )
                                 LessonLengthSetting(
                                     minutes = chosen.defaultLessonMinutes,
                                     onSelect = viewModel::setLessonMinutes,
-                                    hint = stringResource(R.string.onboarding_lesson_length_desc),
+                                    hint = stringResource(Strings.onboarding_lesson_length_desc),
                                 )
                             }
                         }
                         // Never disabled: both answers are already valid — that is what pre-setting them
                         // from the phone means — so there is nothing here for the tutor to supply.
                         FormSaveBar(
-                            stringResource(R.string.onboarding_continue),
+                            stringResource(Strings.onboarding_continue),
                             FormBar.Ready(),
                             onSave = { goTo(Step.SUBJECTS) },
                             bottomInset = NoInset,
@@ -390,7 +393,7 @@ fun OnboardingScreen(
 
                     Step.SUBJECTS -> {
                         Text(
-                            stringResource(R.string.onboarding_subjects_desc),
+                            stringResource(Strings.onboarding_subjects_desc),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(Spacing.gutter),
@@ -414,7 +417,7 @@ fun OnboardingScreen(
                             ListSkeleton(Modifier.weight(1f), rows = 3, rowHeight = SubjectRowHeight)
                         } else if (added.isEmpty()) {
                             EmptyState(
-                                title = stringResource(R.string.subjects_empty),
+                                title = stringResource(Strings.subjects_empty),
                                 icon = KlasIcons.Outlined.MenuBook,
                                 modifier = Modifier.weight(1f),
                             )
@@ -432,7 +435,7 @@ fun OnboardingScreen(
                                         trailingContent = {
                                             NamedIconButton(
                                                 KlasIcons.Outlined.Delete,
-                                                stringResource(R.string.subject_delete_named, subject.name),
+                                                stringResource(Strings.subject_delete_named, subject.name),
                                                 onClick = { removeSubject(subject) },
                                             )
                                         },
@@ -441,7 +444,7 @@ fun OnboardingScreen(
                             }
                         }
                         FormSaveBar(
-                            stringResource(R.string.onboarding_continue),
+                            stringResource(Strings.onboarding_continue),
                             subjectsBar(added),
                             { goTo(Step.STUDENT) },
                             NoInset,
@@ -451,7 +454,7 @@ fun OnboardingScreen(
                     Step.STUDENT -> {
                         val studentState by studentVm.state.collectAsStateWithLifecycle()
                         Text(
-                            stringResource(R.string.onboarding_student_desc),
+                            stringResource(Strings.onboarding_student_desc),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(horizontal = Spacing.gutter).padding(top = Spacing.gutter),
@@ -466,7 +469,7 @@ fun OnboardingScreen(
                             contacts = false,
                         )
                         FormSaveBar(
-                            stringResource(R.string.onboarding_finish),
+                            stringResource(Strings.onboarding_finish),
                             studentBar(studentState),
                             {
                                 val name = studentState.form.name.trim()
@@ -510,8 +513,8 @@ private fun SubjectField(onAdd: (String) -> Unit, modifier: Modifier = Modifier)
     OutlinedTextField(
         value = name,
         onValueChange = { name = it },
-        label = { Text(stringResource(R.string.subjects_add)) },
-        supportingText = { Text(stringResource(R.string.onboarding_subject_field_hint)) },
+        label = { Text(stringResource(Strings.subjects_add)) },
+        supportingText = { Text(stringResource(Strings.onboarding_subject_field_hint)) },
         singleLine = true,
         keyboardOptions = KeyboardOptions(
             capitalization = KeyboardCapitalization.Sentences,
@@ -521,7 +524,7 @@ private fun SubjectField(onAdd: (String) -> Unit, modifier: Modifier = Modifier)
         trailingIcon = {
             NamedIconButton(
                 KlasIcons.Filled.Add,
-                stringResource(R.string.subjects_add),
+                stringResource(Strings.subjects_add),
                 onClick = ::add,
                 enabled = name.isNotBlank(),
             )
@@ -544,7 +547,7 @@ private fun SubjectSuggestions(
     modifier: Modifier = Modifier,
 ) {
     if (added == null) return
-    val suggestions = stringArrayResource(R.array.onboarding_subject_suggestions)
+    val suggestions = stringArrayResource(StringArrays.onboarding_subject_suggestions)
     FlowRow(modifier, horizontalArrangement = Arrangement.spacedBy(Spacing.inline)) {
         suggestions.forEach { name ->
             val existing = SubjectNames.sameAs(name, added)
@@ -600,10 +603,10 @@ private fun ValueLine(icon: ImageVector, text: String) {
 @Composable
 private fun subjectsBar(added: List<Subject>?): FormBar =
     if (added.isNullOrEmpty()) {
-        FormBar.Missing(listOf(stringResource(R.string.form_gap_subject)))
+        FormBar.Missing(listOf(stringResource(Strings.form_gap_subject)))
     } else {
         FormBar.Ready(
-            pluralStringResource(R.plurals.settings_subjects_count, added.size, added.size),
+            pluralStringResource(Plurals.settings_subjects_count, added.size, added.size),
             added.joinToString { it.name },
         )
     }
@@ -634,13 +637,13 @@ private fun ColumnScope.FirstLessonStep(name: String, onBook: () -> Unit, onNotN
                 )
             }
             Text(
-                stringResource(R.string.onboarding_ready_title),
+                stringResource(Strings.onboarding_ready_title),
                 style = MaterialTheme.typography.headlineSmall,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.semantics { heading() },
             )
             Text(
-                stringResource(R.string.onboarding_ready_body, name),
+                stringResource(Strings.onboarding_ready_body, name),
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
@@ -653,10 +656,10 @@ private fun ColumnScope.FirstLessonStep(name: String, onBook: () -> Unit, onNotN
         verticalArrangement = Arrangement.spacedBy(Spacing.inline),
     ) {
         KlasButton(onClick = onBook, modifier = Modifier.fillMaxWidth()) {
-            Text(stringResource(R.string.onboarding_book_first))
+            Text(stringResource(Strings.onboarding_book_first))
         }
         KlasButton(onClick = onNotNow, modifier = Modifier.fillMaxWidth(), kind = ButtonKind.Text) {
-            Text(stringResource(R.string.onboarding_not_now))
+            Text(stringResource(Strings.onboarding_not_now))
         }
     }
 }

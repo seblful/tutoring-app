@@ -22,7 +22,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.dismiss
@@ -30,7 +29,8 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
-import com.seblful.klas.R
+import com.seblful.klas.text.Strings
+import com.seblful.klas.text.stringResource
 import com.seblful.klas.ui.theme.KlasIcons
 
 /*
@@ -158,8 +158,8 @@ fun OpensScreenMark(tint: Color = MaterialTheme.colorScheme.onSurfaceVariant) {
  */
 @Composable
 fun SheetHandle(modifier: Modifier = Modifier, onDismiss: (() -> Unit)? = null) {
-    val handleLabel = stringResource(R.string.sheet_drag_handle)
-    val dismissLabel = stringResource(R.string.sheet_dismiss)
+    val handleLabel = stringResource(Strings.sheet_drag_handle)
+    val dismissLabel = stringResource(Strings.sheet_dismiss)
     Box(
         modifier
             .padding(vertical = HandleInsetY)

@@ -2,7 +2,7 @@ package com.seblful.klas.widget
 
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
-import com.seblful.klas.format.inLanguage
+import com.seblful.klas.text.Texts
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toInstant
@@ -62,8 +62,7 @@ class TodayLessonsTest {
     @Test
     fun `the picker's sample day is in the app's language, its first lesson taught`() {
         val russian = Locale.forLanguageTag("ru")
-        val rows = ApplicationProvider.getApplicationContext<Context>().inLanguage(russian)
-            .sampleRows(hour12 = false, russian)
+        val rows = Texts.of("ru").sampleRows(hour12 = false, russian)
 
         assertEquals(listOf("Аня Соколова", "11 «А»", "Иван Петров"), rows.map { it.title })
         assertEquals("09:00–10:00 · Алгебра", rows.first().supportingText)

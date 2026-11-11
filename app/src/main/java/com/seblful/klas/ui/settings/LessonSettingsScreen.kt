@@ -16,13 +16,14 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalResources
-import androidx.compose.ui.res.pluralStringResource
-import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.seblful.klas.R
 import com.seblful.klas.data.settings.AppSettings
 import com.seblful.klas.domain.model.Currency
 import com.seblful.klas.domain.people.PeopleSearch
+import com.seblful.klas.text.Plurals
+import com.seblful.klas.text.Strings
+import com.seblful.klas.text.pluralStringResource
+import com.seblful.klas.text.stringResource
 import com.seblful.klas.ui.common.ConfirmDialog
 import com.seblful.klas.ui.common.DialogRadioRow
 import com.seblful.klas.ui.common.DurationPickerModal
@@ -40,17 +41,17 @@ import dev.zacsweers.metrox.viewmodel.metroViewModel
 @Composable
 fun LessonSettingsScreen(onBack: (() -> Unit)?, viewModel: SettingsViewModel = metroViewModel()) {
     val backlog by viewModel.pendingSweep.collectAsStateWithLifecycle()
-    SettingsPage(R.string.settings_lessons_title, onBack, viewModel) { page, modifier, bottomInset, messages ->
+    SettingsPage(Strings.settings_lessons_title, onBack, viewModel) { page, modifier, bottomInset, messages ->
         val settings = page.settings
         val notify = rememberNotificationAction(viewModel, messages)
         LessonSettingsContent(settings, viewModel::update, viewModel::setAutoCompleteEnabled, modifier, bottomInset) {
             if (settings.autoCompleteEnabled && page.notifications == NotificationDelivery.BLOCKED) {
                 // Under the switch it concerns, as the blocking banner every blocked feature is (R2).
                 Banner(
-                    title = stringResource(R.string.settings_completion_notifications_blocked),
+                    title = stringResource(Strings.settings_completion_notifications_blocked),
                     kind = BannerKind.Blocking,
                     modifier = Modifier.padding(horizontal = Spacing.gutter, vertical = Spacing.inline),
-                    action = SectionAction(stringResource(R.string.action_allow)) {
+                    action = SectionAction(stringResource(Strings.action_allow)) {
                         notify(viewModel.unblockNotifications())
                     },
                 )
@@ -59,8 +60,8 @@ fun LessonSettingsScreen(onBack: (() -> Unit)?, viewModel: SettingsViewModel = m
     }
     backlog?.let { count ->
         ConfirmDialog(
-            text = pluralStringResource(R.plurals.settings_autocomplete_sweep_confirm, count, count),
-            confirmLabel = stringResource(R.string.action_enable),
+            text = pluralStringResource(Plurals.settings_autocomplete_sweep_confirm, count, count),
+            confirmLabel = stringResource(Strings.action_enable),
             onConfirm = viewModel::confirmPendingSweep,
             onDismiss = viewModel::dismissPendingSweep,
         )
@@ -79,21 +80,21 @@ internal fun LessonSettingsContent(
     Column(modifier.verticalScroll(rememberScrollState()).padding(bottom = Spacing.gutter).padding(bottomInset)) {
         // By what a row is about, not by when it applies: auto-complete decides what happens to a lesson once
         // it ends, so it sits with the lesson's length; the currency and the group rate are both money.
-        SettingsGroup(stringResource(R.string.settings_section_lessons)) {
+        SettingsGroup(stringResource(Strings.settings_section_lessons)) {
             DefaultLessonDuration(settings, onUpdate)
             SwitchRow(
-                title = stringResource(R.string.settings_autocomplete),
-                description = stringResource(R.string.settings_autocomplete_desc),
+                title = stringResource(Strings.settings_autocomplete),
+                description = stringResource(Strings.settings_autocomplete_desc),
                 checked = settings.autoCompleteEnabled,
                 onCheckedChange = onAutoComplete,
             )
             notificationStatus()
         }
-        SettingsGroup(stringResource(R.string.settings_section_billing)) {
+        SettingsGroup(stringResource(Strings.settings_section_billing)) {
             CurrencySetting(settings, onUpdate)
             MoneyRow(
-                title = stringResource(R.string.settings_default_group_price),
-                description = stringResource(R.string.settings_default_group_price_desc),
+                title = stringResource(Strings.settings_default_group_price),
+                description = stringResource(Strings.settings_default_group_price_desc),
                 amount = settings.defaultGroupPrice,
                 onSet = { price -> onUpdate { it.copy(defaultGroupPrice = price) } },
             )
@@ -106,7 +107,7 @@ private fun DefaultLessonDuration(settings: AppSettings, onUpdate: ((AppSettings
     LessonLengthSetting(
         minutes = settings.defaultLessonMinutes,
         onSelect = { minutes -> onUpdate { it.copy(defaultLessonMinutes = minutes) } },
-        hint = stringResource(R.string.settings_default_lesson_desc),
+        hint = stringResource(Strings.settings_default_lesson_desc),
     )
 }
 
@@ -116,10 +117,10 @@ private fun DefaultLessonDuration(settings: AppSettings, onUpdate: ((AppSettings
 internal fun LessonLengthSetting(minutes: Int, onSelect: (Int) -> Unit, hint: String) {
     var pickingDuration by rememberSaveable { mutableStateOf(false) }
     DurationPresetRow(
-        title = stringResource(R.string.settings_default_lesson),
+        title = stringResource(Strings.settings_default_lesson),
         presets = LessonPresets,
         minutes = minutes,
-        customWord = stringResource(R.string.class_duration_custom),
+        customWord = stringResource(Strings.class_duration_custom),
         onSelect = onSelect,
         onCustom = { pickingDuration = true },
     )
@@ -127,7 +128,7 @@ internal fun LessonLengthSetting(minutes: Int, onSelect: (Int) -> Unit, hint: St
     if (pickingDuration) {
         DurationPickerModal(
             initialMinutes = minutes,
-            title = stringResource(R.string.settings_default_lesson),
+            title = stringResource(Strings.settings_default_lesson),
             onConfirm = { picked ->
                 onSelect(picked)
                 pickingDuration = false
@@ -145,12 +146,12 @@ internal fun LessonLengthSetting(minutes: Int, onSelect: (Int) -> Unit, hint: St
 private fun CurrencySetting(settings: AppSettings, onUpdate: ((AppSettings) -> AppSettings) -> Unit) {
     var picking by rememberSaveable { mutableStateOf(false) }
     var pendingCurrency by rememberSaveable { mutableStateOf<Currency?>(null) }
-    val title = stringResource(R.string.settings_currency)
+    val title = stringResource(Strings.settings_currency)
     ValueRow(
         title = title,
         value = settings.currency.name,
         enabled = true,
-        description = stringResource(R.string.settings_currency_desc),
+        description = stringResource(Strings.settings_currency_desc),
     ) { picking = true }
     if (picking) {
         val locale = LocalResources.current.configuration.locales[0]
@@ -180,8 +181,8 @@ private fun CurrencySetting(settings: AppSettings, onUpdate: ((AppSettings) -> A
     }
     pendingCurrency?.let { currency ->
         ConfirmDialog(
-            text = stringResource(R.string.settings_currency_change_confirm, currencyChoiceLabel(currency)),
-            confirmLabel = stringResource(R.string.settings_currency_change),
+            text = stringResource(Strings.settings_currency_change_confirm, currencyChoiceLabel(currency)),
+            confirmLabel = stringResource(Strings.settings_currency_change),
             onConfirm = { onUpdate { it.copy(currency = currency) } },
             onDismiss = { pendingCurrency = null },
         )

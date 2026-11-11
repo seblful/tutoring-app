@@ -1,6 +1,5 @@
 package com.seblful.klas.ui.students
 
-import android.content.res.Resources
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Row
 import androidx.compose.material3.ListItem
@@ -11,15 +10,17 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
-import com.seblful.klas.R
 import com.seblful.klas.domain.lesson.LessonPhase
 import com.seblful.klas.domain.model.Payment
 import com.seblful.klas.format.bulletJoin
 import com.seblful.klas.format.formatDate
 import com.seblful.klas.queries.students.ClassRow
 import com.seblful.klas.queries.students.SubjectPrice
+import com.seblful.klas.text.Plurals
+import com.seblful.klas.text.Strings
+import com.seblful.klas.text.Texts
+import com.seblful.klas.text.stringResource
 import com.seblful.klas.ui.common.BadgeLine
 import com.seblful.klas.ui.common.Messages
 import com.seblful.klas.ui.common.OpensScreenMark
@@ -126,7 +127,7 @@ internal fun SubjectRow(
         },
         trailingContent = {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                TrailingAmount(stringResource(R.string.price_per_hour, subject.price.text()))
+                TrailingAmount(stringResource(Strings.price_per_hour, subject.price.text()))
                 OpensScreenMark()
             }
         },
@@ -142,20 +143,20 @@ internal fun SubjectRow(
  */
 internal fun Messages.showStudentEvent(
     event: StudentDetailViewModel.Event,
-    resources: Resources,
+    resources: Texts,
     viewModel: StudentDetailViewModel,
 ) {
     when (event) {
         StudentDetailViewModel.Event.RemoveBlockedHasClasses ->
-            show(resources.getString(R.string.student_subject_remove_blocked))
+            show(resources.string(Strings.student_subject_remove_blocked))
         is StudentDetailViewModel.Event.Archived ->
             undoable(resources.archivedMessage(event.archive.cancelledLessons)) { viewModel.undoArchive(event) }
         is StudentDetailViewModel.Event.ArchiveUndoKept ->
-            show(resources.getQuantityString(R.plurals.archive_undo_kept, event.count, event.count))
+            show(resources.plural(Plurals.archive_undo_kept, event.count, event.count))
         is StudentDetailViewModel.Event.PaymentCorrected ->
-            undoable(resources.getString(R.string.payment_corrected)) { viewModel.undoPaymentCorrection(event) }
-        StudentDetailViewModel.Event.PaymentChangedSince -> show(resources.getString(R.string.payment_undo_changed))
-        StudentDetailViewModel.Event.WriteFailed -> show(resources.getString(R.string.action_failed))
-        StudentDetailViewModel.Event.ShareFailed -> show(resources.getString(R.string.student_contact_failed))
+            undoable(resources.string(Strings.payment_corrected)) { viewModel.undoPaymentCorrection(event) }
+        StudentDetailViewModel.Event.PaymentChangedSince -> show(resources.string(Strings.payment_undo_changed))
+        StudentDetailViewModel.Event.WriteFailed -> show(resources.string(Strings.action_failed))
+        StudentDetailViewModel.Event.ShareFailed -> show(resources.string(Strings.student_contact_failed))
     }
 }

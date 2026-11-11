@@ -9,10 +9,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.seblful.klas.R
 import com.seblful.klas.domain.model.Assignee
+import com.seblful.klas.text.StringResource
+import com.seblful.klas.text.Strings
+import com.seblful.klas.text.stringResource
 import com.seblful.klas.ui.common.KlasScreen
 import com.seblful.klas.ui.common.ScreenSearch
 import com.seblful.klas.ui.common.SegmentedPage
@@ -24,9 +25,9 @@ import com.seblful.klas.ui.students.StudentsList
 import com.seblful.klas.ui.students.StudentsViewModel
 import dev.zacsweers.metrox.viewmodel.metroViewModel
 
-private enum class PeopleTab(val labelRes: Int) {
-    STUDENTS(R.string.students_title),
-    GROUPS(R.string.groups_title),
+private enum class PeopleTab(val labelRes: StringResource) {
+    STUDENTS(Strings.students_title),
+    GROUPS(Strings.groups_title),
 }
 
 /**
@@ -66,7 +67,7 @@ fun PeopleScreen(
     val archived by side.showArchived.collectAsStateWithLifecycle()
 
     KlasScreen(
-        title = stringResource(R.string.nav_people),
+        title = stringResource(Strings.nav_people),
         page = tab,
         // One search box for two lists. Typing goes to whichever side is on top, so switching tab keeps
         // each side's own search — but **closing clears both**, because the shut box can only speak for
@@ -75,8 +76,8 @@ fun PeopleScreen(
         search = ScreenSearch(
             query = query,
             placeholder = stringResource(
-                if (tab == PeopleTab.STUDENTS) R.string.students_search_hint
-                else R.string.groups_search_hint,
+                if (tab == PeopleTab.STUDENTS) Strings.students_search_hint
+                else Strings.groups_search_hint,
             ),
             onQueryChange = side::setQuery,
             onClose = { studentsViewModel.setQuery(""); groupsViewModel.setQuery("") },
@@ -100,7 +101,7 @@ fun PeopleScreen(
             // Named for what it adds, which the side decides: a bare «Добавить» said neither.
             val students = tab == PeopleTab.STUDENTS
             KlasFab(
-                label = stringResource(if (students) R.string.fab_new_student else R.string.fab_new_group),
+                label = stringResource(if (students) Strings.fab_new_student else Strings.fab_new_group),
                 onClick = if (students) onAddStudent else onAddGroup,
             )
         },

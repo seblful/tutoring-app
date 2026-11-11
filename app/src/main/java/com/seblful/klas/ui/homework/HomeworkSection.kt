@@ -4,12 +4,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.key
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
-import com.seblful.klas.R
 import com.seblful.klas.domain.model.Assignee
 import com.seblful.klas.domain.model.Homework
 import com.seblful.klas.queries.homework.HomeworkLists
 import com.seblful.klas.queries.homework.HomeworkRow
+import com.seblful.klas.text.Strings
+import com.seblful.klas.text.stringResource
 import com.seblful.klas.ui.common.AddRow
 import com.seblful.klas.ui.common.AddRowInSection
 import com.seblful.klas.ui.common.Messages
@@ -39,14 +39,14 @@ fun HomeworkSection(
 ) {
     val shown = lists.current.take(HOMEWORK_SHOWN)
     OverviewSection(
-        title = stringResource(R.string.student_homework_title),
+        title = stringResource(Strings.student_homework_title),
         count = lists.current.size,
         // The done ones are only on the full list, so it is worth opening while there are any.
         onSeeAll = onSeeAll.takeIf { lists.current.size > shown.size || lists.archive.isNotEmpty() },
         modifier = modifier,
     ) {
         if (lists.current.isEmpty() && lists.archive.isEmpty()) {
-            SectionNote(stringResource(R.string.student_homework_empty))
+            SectionNote(stringResource(Strings.student_homework_empty))
         }
         shown.forEach { row ->
             // Keyed, so a row swiped done hands its place to the next rather than its swipe state.
@@ -62,6 +62,6 @@ fun HomeworkSection(
                 )
             }
         }
-        AddRow(stringResource(R.string.homework_add), onAdd, AddRowInSection)
+        AddRow(stringResource(Strings.homework_add), onAdd, AddRowInSection)
     }
 }

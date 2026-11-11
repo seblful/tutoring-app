@@ -29,12 +29,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.seblful.klas.R
 import com.seblful.klas.domain.lesson.LessonKind
 import com.seblful.klas.domain.lesson.LessonPhase
 import com.seblful.klas.domain.model.Attended
@@ -45,6 +43,8 @@ import com.seblful.klas.format.bulletJoin
 import com.seblful.klas.format.formatDay
 import com.seblful.klas.format.toLocalDate
 import com.seblful.klas.format.toLocalTime
+import com.seblful.klas.text.Strings
+import com.seblful.klas.text.stringResource
 import com.seblful.klas.ui.common.Avatar
 import com.seblful.klas.ui.common.DatePickerModal
 import com.seblful.klas.ui.common.LessonKindIcon
@@ -118,12 +118,12 @@ internal fun ClassActionsSheet(
             // grows in rather than lengthening the sheet in one frame.
             Reveal(homework.isNotEmpty()) { AttachedHomework(homework, onHomeworkDone) }
             KlasDivider(Modifier.padding(vertical = Spacing.inline))
-            SheetAction(stringResource(R.string.homework_add), KlasIcons.Outlined.Assignment, onSetHomework)
-            SheetAction(stringResource(R.string.add_payment), KlasIcons.Outlined.Payments, onRecordPayment)
+            SheetAction(stringResource(Strings.homework_add), KlasIcons.Outlined.Assignment, onSetHomework)
+            SheetAction(stringResource(Strings.add_payment), KlasIcons.Outlined.Payments, onRecordPayment)
             // One ordinary lesson a week later, prefilled — safe, because it writes nothing until booked.
-            SheetAction(stringResource(R.string.class_book_next), KlasIcons.Outlined.CalendarMonth, onBookNext)
+            SheetAction(stringResource(Strings.class_book_next), KlasIcons.Outlined.CalendarMonth, onBookNext)
             SheetAction(
-                stringResource(if (row.isGroup) R.string.class_open_group else R.string.class_open_student),
+                stringResource(if (row.isGroup) Strings.class_open_group else Strings.class_open_student),
                 if (row.isGroup) KlasIcons.Outlined.Group else KlasIcons.Outlined.Person,
                 onOpenProfile,
                 opens = true,
@@ -133,7 +133,7 @@ internal fun ClassActionsSheet(
             // Delete is offered for any status. Deleting a taught lesson removes what it earned (the confirm
             // warns of it); the repository deletes the calendar event and refreshes reminders regardless.
             SheetAction(
-                stringResource(R.string.action_delete),
+                stringResource(Strings.action_delete),
                 KlasIcons.Outlined.Delete,
                 onClick = onDelete,
                 destructive = true,
@@ -163,7 +163,7 @@ private fun SheetHeader(row: ScheduleRow, phase: LessonPhase) {
             if (row.isGroup) LessonKindIcon(LessonKind.GROUP, Modifier.padding(end = Spacing.inline))
             Text(row.title, style = MaterialTheme.typography.titleMedium)
         }
-        val rate = stringResource(R.string.price_per_hour, klass.price.text())
+        val rate = stringResource(Strings.price_per_hour, klass.price.text())
         StatusLine(row, phase, maxLines = Int.MAX_VALUE, rate = rate)
     }
 }
@@ -196,13 +196,13 @@ private fun FrequentActions(row: ScheduleRow, onTaught: () -> Unit, onMove: () -
                 Text(classStatusLabel(LessonStatus.COMPLETED))
             }
             // Moving to the future re-plans it; to the past only corrects when it happened. A group moves as one.
-            KlasButton(onClick = onMove, kind = ButtonKind.Tonal) { Text(stringResource(R.string.class_move)) }
+            KlasButton(onClick = onMove, kind = ButtonKind.Tonal) { Text(stringResource(Strings.class_move)) }
             // Editing is allowed in any status; saving a taught lesson re-bills it (see ClassRules.rebill).
-            KlasButton(onClick = onEdit, kind = ButtonKind.Tonal) { Text(stringResource(R.string.action_edit)) }
+            KlasButton(onClick = onEdit, kind = ButtonKind.Tonal) { Text(stringResource(Strings.action_edit)) }
         }
         if (status == LessonStatus.CANCELLED) {
             Text(
-                stringResource(R.string.class_taught_after_replan),
+                stringResource(Strings.class_taught_after_replan),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = Spacing.tight),
@@ -221,10 +221,10 @@ private fun StatusRows(row: ScheduleRow, onStatus: (LessonStatus) -> Unit, onCor
     val allowed = row.statusChoices
     when (status) {
         LessonStatus.COMPLETED ->
-            SheetAction(stringResource(R.string.class_correct_planned), KlasIcons.Filled.Undo, onCorrectCompletion)
+            SheetAction(stringResource(Strings.class_correct_planned), KlasIcons.Filled.Undo, onCorrectCompletion)
         LessonStatus.CANCELLED -> if (LessonStatus.SCHEDULED in allowed) {
             SheetAction(
-                stringResource(R.string.class_correct_planned),
+                stringResource(Strings.class_correct_planned),
                 KlasIcons.Filled.Undo,
                 onClick = { onStatus(LessonStatus.SCHEDULED) },
             )
@@ -233,7 +233,7 @@ private fun StatusRows(row: ScheduleRow, onStatus: (LessonStatus) -> Unit, onCor
     }
     if (status != LessonStatus.CANCELLED && LessonStatus.CANCELLED in allowed) {
         SheetAction(
-            stringResource(R.string.class_cancel_lesson),
+            stringResource(Strings.class_cancel_lesson),
             KlasIcons.Outlined.EventBusy,
             onClick = { onStatus(LessonStatus.CANCELLED) },
             destructive = true,
@@ -244,7 +244,7 @@ private fun StatusRows(row: ScheduleRow, onStatus: (LessonStatus) -> Unit, onCor
 /** A group's payment belongs to one student, so the tutor names the payer first. */
 @Composable
 internal fun LessonPayerDialog(row: ScheduleRow, onSelect: (Long) -> Unit, onDismiss: () -> Unit) {
-    ChoiceDialog(title = stringResource(R.string.payment_choose_student), onDismiss = onDismiss) {
+    ChoiceDialog(title = stringResource(Strings.payment_choose_student), onDismiss = onDismiss) {
         // A simple dialog's list: rows to pick from, not a stack of buttons.
         Column(Modifier.verticalScroll(rememberScrollState())) {
             row.classes.forEachIndexed { index, klass ->
@@ -269,7 +269,7 @@ private fun AttachedHomework(items: List<SheetHomework>, onDone: (Homework, Bool
     // A stored fact changing under the thumb, like the roster's and the settings' ticks — felt the same way.
     val toggleFeedback = rememberToggleFeedback()
     Column(Modifier.padding(horizontal = SheetGutter, vertical = Spacing.inline)) {
-        SectionTitle(stringResource(R.string.homework_label))
+        SectionTitle(stringResource(Strings.homework_label))
         items.forEach { item ->
             val done = item.homework.isDone
             Row(

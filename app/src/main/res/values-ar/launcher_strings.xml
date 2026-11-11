@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_today_name">دروس اليوم</string>
+    <string name="widget_today_description">دروس اليوم، تم تعليمها بنقرة واحدة</string>
+    <string name="widget_quick_actions_name">اختصارات Klas</string>
+    <string name="widget_quick_actions_description">حجز درس أو إضافة طالب أو فتح «اليوم» والواجبات والديون</string>
+</resources>

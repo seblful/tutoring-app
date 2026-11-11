@@ -25,7 +25,6 @@ import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.heading
@@ -33,13 +32,15 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.seblful.klas.R
 import com.seblful.klas.domain.guide.Tip
 import com.seblful.klas.domain.schedule.DaySummary
 import com.seblful.klas.format.daySummaryText
 import com.seblful.klas.format.formatDay
 import com.seblful.klas.format.formatMonth
 import com.seblful.klas.format.formatWeekRange
+import com.seblful.klas.text.Strings
+import com.seblful.klas.text.currentTexts
+import com.seblful.klas.text.stringResource
 import com.seblful.klas.ui.common.DatePickerModal
 import com.seblful.klas.ui.common.LocalCurrency
 import com.seblful.klas.ui.common.NamedIconButton
@@ -67,8 +68,8 @@ internal fun DayNavigator(
 ) {
     PageNavigator(
         title = date.formatDay(),
-        previousDescription = stringResource(R.string.schedule_previous_day),
-        nextDescription = stringResource(R.string.schedule_next_day),
+        previousDescription = stringResource(Strings.schedule_previous_day),
+        nextDescription = stringResource(Strings.schedule_next_day),
         onPrevious = onPrevious,
         onNext = onNext,
         onToday = onToday,
@@ -88,8 +89,8 @@ internal fun WeekNavigator(
 ) {
     PageNavigator(
         title = formatWeekRange(days.first(), days.last()),
-        previousDescription = stringResource(R.string.schedule_previous_week),
-        nextDescription = stringResource(R.string.schedule_next_week),
+        previousDescription = stringResource(Strings.schedule_previous_week),
+        nextDescription = stringResource(Strings.schedule_next_week),
         onPrevious = onPrevious,
         onNext = onNext,
         onToday = onToday,
@@ -109,8 +110,8 @@ internal fun MonthNavigator(
 ) {
     PageNavigator(
         title = formatMonth(month),
-        previousDescription = stringResource(R.string.schedule_previous_month),
-        nextDescription = stringResource(R.string.schedule_next_month),
+        previousDescription = stringResource(Strings.schedule_previous_month),
+        nextDescription = stringResource(Strings.schedule_next_month),
         onPrevious = onPrevious,
         onNext = onNext,
         onToday = onToday,
@@ -147,7 +148,7 @@ internal fun PageNavigator(
                 .clip(MaterialTheme.shapes.small)
                 .onKeyEvent { pageByArrow(it, direction, onPrevious, onNext) }
                 .clickable(
-                    onClickLabel = stringResource(R.string.schedule_pick_date),
+                    onClickLabel = stringResource(Strings.schedule_pick_date),
                     role = Role.Button,
                 ) { picking = true }
                 // Tight, not inline: at 320 dp «Понедельник, 30 сентября» fits beside three buttons only so.
@@ -162,7 +163,7 @@ internal fun PageNavigator(
                 maxFontSize = MaterialTheme.typography.titleMedium.fontSize,
             ),
         )
-        NamedIconButton(KlasIcons.Outlined.Today, stringResource(R.string.schedule_today), onToday)
+        NamedIconButton(KlasIcons.Outlined.Today, stringResource(Strings.schedule_today), onToday)
     }
     if (picking) {
         DatePickerModal(
@@ -206,7 +207,7 @@ internal fun DaySectionHeader(
         position = position,
         // The gap before a day is the section break; the day's own rows follow it without one.
         modifier = Modifier.padding(top = Spacing.itemGap),
-        summary = daySummaryText(LocalContext.current.resources, summary, LocalCurrency.current),
+        summary = daySummaryText(currentTexts(), summary, LocalCurrency.current),
         action = action,
         titleColor = if (isSelected) MaterialTheme.colorScheme.primary else Color.Unspecified,
     )
@@ -218,7 +219,7 @@ internal fun DaySummaryLine(summary: DaySummary, modifier: Modifier = Modifier) 
     // «0 занятий · 0 ч» above that would be the same news twice in a colder voice. The line keeps its height
     // all the same: the Day view's header is pinned, and paging onto an empty day shrank it and jumped the list.
     val text = daySummaryText(
-        LocalContext.current.resources,
+        currentTexts(),
         summary,
         LocalCurrency.current,
     )
@@ -248,7 +249,7 @@ internal fun NowLine(modifier: Modifier = Modifier) {
                 .background(MaterialTheme.colorScheme.primary, CircleShape),
         )
         Text(
-            stringResource(R.string.schedule_now),
+            stringResource(Strings.schedule_now),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.primary,
             modifier = Modifier.padding(horizontal = Spacing.inline),
@@ -269,5 +270,5 @@ internal fun DateTip(tip: ScreenTip, content: @Composable () -> Unit) {
         content()
         return
     }
-    CoachMark(stringResource(R.string.tip_schedule_date), visible = true, onDismiss = tip.dismiss, content = content)
+    CoachMark(stringResource(Strings.tip_schedule_date), visible = true, onDismiss = tip.dismiss, content = content)
 }

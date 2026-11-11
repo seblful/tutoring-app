@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_today_name">Занятия сегодня</string>
+    <string name="widget_today_description">Сегодняшние занятия, отмечаются проведёнными одним касанием</string>
+    <string name="widget_quick_actions_name">Быстрые действия Klas</string>
+    <string name="widget_quick_actions_description">Записать занятие, добавить ученика, открыть «Сегодня», задания и долги</string>
+</resources>

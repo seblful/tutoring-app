@@ -14,10 +14,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
-import com.seblful.klas.R
+import com.seblful.klas.text.Strings
+import com.seblful.klas.text.stringResource
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.rememberRevealedFocus
 import com.seblful.klas.ui.designsystem.component.DialogAction
@@ -39,10 +39,10 @@ fun ExportPasswordDialog(onSave: (password: String?) -> Unit, onDismiss: () -> U
     var password by remember { mutableStateOf("") }
     var repeat by remember { mutableStateOf("") }
     FormDialog(
-        title = stringResource(R.string.backup_export_password_title),
+        title = stringResource(Strings.backup_export_password_title),
         confirm = DialogAction(
             label = stringResource(
-                if (password.isEmpty()) R.string.backup_export_save_plain else R.string.backup_export_save,
+                if (password.isEmpty()) Strings.backup_export_save_plain else Strings.backup_export_save,
             ),
             onClick = { onSave(password.ifEmpty { null }); onDismiss() },
             enabled = password.isEmpty() || password == repeat,
@@ -73,22 +73,22 @@ internal fun ExportPasswordFields(
 ) {
     val mismatch = repeat.isNotEmpty() && repeat != password
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.inline)) {
-        Text(stringResource(R.string.backup_export_password_desc))
+        Text(stringResource(Strings.backup_export_password_desc))
         PasswordField(
             value = password,
             onValueChange = onPassword,
-            label = stringResource(R.string.backup_password),
+            label = stringResource(Strings.backup_password),
             modifier = firstField,
         )
         if (password.isNotEmpty()) {
             PasswordField(
                 value = repeat,
                 onValueChange = onRepeat,
-                label = stringResource(R.string.backup_password_repeat),
-                error = stringResource(R.string.backup_password_mismatch).takeIf { mismatch },
+                label = stringResource(Strings.backup_password_repeat),
+                error = stringResource(Strings.backup_password_mismatch).takeIf { mismatch },
             )
             Text(
-                stringResource(R.string.backup_password_warning),
+                stringResource(Strings.backup_password_warning),
                 color = klasSemantics.destructive,
                 style = MaterialTheme.typography.bodySmall,
             )
@@ -101,9 +101,9 @@ internal fun ExportPasswordFields(
 fun UnlockBackupDialog(wrong: Boolean, onUnlock: (String) -> Unit, onDismiss: () -> Unit) {
     var password by remember { mutableStateOf("") }
     FormDialog(
-        title = stringResource(R.string.backup_unlock_title),
+        title = stringResource(Strings.backup_unlock_title),
         confirm = DialogAction(
-            label = stringResource(R.string.backup_unlock),
+            label = stringResource(Strings.backup_unlock),
             onClick = { onUnlock(password) },
             enabled = password.isNotEmpty(),
         ),
@@ -122,12 +122,12 @@ internal fun UnlockBackupFields(
     field: Modifier = Modifier,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.inline)) {
-        Text(stringResource(R.string.backup_unlock_desc))
+        Text(stringResource(Strings.backup_unlock_desc))
         PasswordField(
             value = password,
             onValueChange = onPassword,
-            label = stringResource(R.string.backup_password),
-            error = stringResource(R.string.backup_error_wrong_password).takeIf { wrong },
+            label = stringResource(Strings.backup_password),
+            error = stringResource(Strings.backup_error_wrong_password).takeIf { wrong },
             modifier = field,
         )
     }

@@ -10,9 +10,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.pluralStringResource
-import androidx.compose.ui.res.stringResource
-import com.seblful.klas.R
 import com.seblful.klas.domain.model.ClassMode
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.schedule.Recurrence
@@ -20,6 +17,10 @@ import com.seblful.klas.domain.schedule.Repeat
 import com.seblful.klas.format.MoneyField
 import com.seblful.klas.format.bulletJoin
 import com.seblful.klas.format.formatDate
+import com.seblful.klas.text.Plurals
+import com.seblful.klas.text.Strings
+import com.seblful.klas.text.pluralStringResource
+import com.seblful.klas.text.stringResource
 import com.seblful.klas.ui.common.CountPickerModal
 import com.seblful.klas.ui.common.DurationPickerModal
 import com.seblful.klas.ui.common.MoneyTextField
@@ -54,7 +55,7 @@ internal fun DetailsSection(state: ClassFormState, viewModel: ClassEditViewModel
         Column(Modifier.padding(horizontal = Spacing.gutter, vertical = Spacing.inline)) {
             // Titled like Who and When, so all three cards share the header pattern (R1).
             SectionTitle(
-                stringResource(R.string.class_section_details),
+                stringResource(Strings.class_section_details),
                 Modifier.padding(top = Spacing.inline, bottom = Spacing.tight),
             )
             LengthRow(state, viewModel, open == Detail.LENGTH) { toggle(Detail.LENGTH, it) }
@@ -85,14 +86,14 @@ private fun LengthRow(
     val minutes = state.form.durationMinutes
     val lastsFor = { to: Int -> viewModel.change(BookingIntent.LastsFor(to)) }
     Fold(
-        label = { RowLabel(stringResource(R.string.class_duration_label)) },
+        label = { RowLabel(stringResource(Strings.class_duration_label)) },
         summary = lengthSummary(minutes, state.ending),
         opened = opened,
         onToggle = onToggle,
     ) {
         StepRow(
-            lessName = stringResource(R.string.class_length_shorter),
-            moreName = stringResource(R.string.class_length_longer),
+            lessName = stringResource(Strings.class_length_shorter),
+            moreName = stringResource(Strings.class_length_longer),
             onLess = minutes?.let { Steps.length(it, longer = false) }?.let { to -> { lastsFor(to) } },
             onMore = Steps.length(minutes ?: 0, longer = true)?.let { to -> { lastsFor(to) } },
             caption = Steps.LENGTH_MINUTES.toString(),
@@ -101,7 +102,7 @@ private fun LengthRow(
                 minutes?.let { durationLabel(it) }.orEmpty(),
                 state.ending?.let { endsAtText(it) },
                 onPick = { typing = true },
-                pickLabel = stringResource(R.string.class_length_pick),
+                pickLabel = stringResource(Strings.class_length_pick),
                 tag = LENGTH_TAG,
             )
         }
@@ -125,23 +126,23 @@ private fun RepeatRow(form: ClassForm, viewModel: ClassEditViewModel, opened: Bo
     val lessons = form.lessons
     val writes = { count: Int -> viewModel.change(BookingIntent.Edit { it.withLessons(count) }) }
     Fold(
-        label = { RowLabel(stringResource(R.string.class_repeat_label)) },
+        label = { RowLabel(stringResource(Strings.class_repeat_label)) },
         summary = repeatSummary(form),
         opened = opened,
         onToggle = onToggle,
     ) {
         StepRow(
-            lessName = stringResource(R.string.class_lessons_fewer),
-            moreName = stringResource(R.string.class_lessons_more),
+            lessName = stringResource(Strings.class_lessons_fewer),
+            moreName = stringResource(Strings.class_lessons_more),
             onLess = Steps.lessons(lessons, more = false)?.let { to -> { writes(to) } },
             onMore = Steps.lessons(lessons, more = true)?.let { to -> { writes(to) } },
             caption = "1",
         ) {
             StepValue(
-                pluralStringResource(R.plurals.class_series_lessons, lessons, lessons),
+                pluralStringResource(Plurals.class_series_lessons, lessons, lessons),
                 if (form.repeat.repeats) repeatSummary(form, counted = false) else repeatLabel(Repeat.NONE),
                 onPick = { typing = true },
-                pickLabel = stringResource(R.string.class_lessons_pick),
+                pickLabel = stringResource(Strings.class_lessons_pick),
                 tag = LESSONS_TAG,
             )
         }
@@ -153,7 +154,7 @@ private fun RepeatRow(form: ClassForm, viewModel: ClassEditViewModel, opened: Bo
                 label = { repeatLabel(it) },
             )
             Text(
-                stringResource(R.string.class_repeat_independent_hint),
+                stringResource(Strings.class_repeat_independent_hint),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -161,8 +162,8 @@ private fun RepeatRow(form: ClassForm, viewModel: ClassEditViewModel, opened: Bo
     }
     if (typing) {
         CountPickerModal(
-            title = stringResource(R.string.class_repeat_count_title),
-            label = stringResource(R.string.class_repeat_count_field, Recurrence.MAX_COUNT),
+            title = stringResource(Strings.class_repeat_count_title),
+            label = stringResource(Strings.class_repeat_count_field, Recurrence.MAX_COUNT),
             initial = lessons,
             max = Recurrence.MAX_COUNT,
             onConfirm = { to -> writes(to); typing = false },
@@ -188,19 +189,19 @@ private fun PriceRow(
         viewModel.change(BookingIntent.Edit { it.copy(price = MoneyField.of(to, it.price.kind)) })
     }
     Fold(
-        label = { RowLabel(stringResource(R.string.class_section_price)) },
+        label = { RowLabel(stringResource(Strings.class_section_price)) },
         summary = if (state.rateNeeded) {
-            stringResource(R.string.class_terms_price_needed)
+            stringResource(Strings.class_terms_price_needed)
         } else {
-            rate?.let { stringResource(R.string.price_per_hour, it.text()) }.orEmpty()
+            rate?.let { stringResource(Strings.price_per_hour, it.text()) }.orEmpty()
         },
         opened = opened,
         onToggle = onToggle,
         wanting = state.rateNeeded,
     ) {
         StepRow(
-            lessName = stringResource(R.string.class_rate_lower),
-            moreName = stringResource(R.string.class_rate_higher),
+            lessName = stringResource(Strings.class_rate_lower),
+            moreName = stringResource(Strings.class_rate_higher),
             onLess = rate?.let { Steps.rate(it, higher = false) }?.let { to -> { setRate(to) } },
             onMore = Steps.rate(rate ?: Money.ZERO, higher = true)
                 ?.let { to -> { setRate(to) } },
@@ -213,7 +214,7 @@ private fun PriceRow(
                     viewModel.change(BookingIntent.Edit { it.copy(price = it.price.typed(text)) })
                 },
                 label = stringResource(
-                    if (form.target == ClassTarget.GROUP) R.string.class_group_price_label else R.string.price_label,
+                    if (form.target == ClassTarget.GROUP) Strings.class_group_price_label else Strings.price_label,
                 ),
                 modifier = Modifier.weight(1f),
             )
@@ -225,7 +226,7 @@ private fun PriceRow(
 @Composable
 private fun FormatRow(form: ClassForm, viewModel: ClassEditViewModel, opened: Boolean, onToggle: (Boolean) -> Unit) {
     Fold(
-        label = { RowLabel(stringResource(R.string.class_section_format)) },
+        label = { RowLabel(stringResource(Strings.class_section_format)) },
         summary = classModeLabel(form.mode),
         opened = opened,
         onToggle = onToggle,
@@ -258,16 +259,16 @@ private fun repeatSummary(form: ClassForm, counted: Boolean = true): String {
     if (!form.repeat.repeats) return repeatLabel(form.repeat)
     return bulletJoin(
         repeatLabel(form.repeat),
-        if (counted) pluralStringResource(R.plurals.class_series_lessons, form.repeatCount, form.repeatCount) else "",
-        form.repeatsUntil?.let { stringResource(R.string.class_repeat_until, it.formatDate()) }.orEmpty(),
+        if (counted) pluralStringResource(Plurals.class_series_lessons, form.repeatCount, form.repeatCount) else "",
+        form.repeatsUntil?.let { stringResource(Strings.class_repeat_until, it.formatDate()) }.orEmpty(),
     )
 }
 
 @Composable
 internal fun repeatLabel(repeat: Repeat): String = stringResource(
     when (repeat) {
-        Repeat.NONE -> R.string.class_repeat_none
-        Repeat.WEEKLY -> R.string.class_repeat_weekly
-        Repeat.FORTNIGHTLY -> R.string.class_repeat_fortnightly
+        Repeat.NONE -> Strings.class_repeat_none
+        Repeat.WEEKLY -> Strings.class_repeat_weekly
+        Repeat.FORTNIGHTLY -> Strings.class_repeat_fortnightly
     },
 )

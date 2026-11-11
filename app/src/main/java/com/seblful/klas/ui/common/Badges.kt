@@ -14,8 +14,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.luminance
-import androidx.compose.ui.res.stringResource
-import com.seblful.klas.R
+import com.seblful.klas.text.Strings
+import com.seblful.klas.text.stringResource
 import com.seblful.klas.ui.theme.KlasStyles
 import com.seblful.klas.ui.theme.klasColors
 
@@ -77,7 +77,7 @@ private const val Steps = 20
 @Composable
 fun ArchivedBadge(modifier: Modifier = Modifier) {
     StatusBadge(
-        text = stringResource(R.string.student_archived_badge),
+        text = stringResource(Strings.student_archived_badge),
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = modifier,
     )

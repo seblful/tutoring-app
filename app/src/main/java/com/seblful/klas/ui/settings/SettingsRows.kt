@@ -19,16 +19,17 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.stringArrayResource
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
-import com.seblful.klas.R
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.reminders.Digests
 import com.seblful.klas.domain.time.MINUTES_PER_HOUR
 import com.seblful.klas.format.MoneyField
 import com.seblful.klas.format.toAmountInput
+import com.seblful.klas.text.StringArrays
+import com.seblful.klas.text.Strings
+import com.seblful.klas.text.stringArrayResource
+import com.seblful.klas.text.stringResource
 import com.seblful.klas.ui.common.ChoiceRow
 import com.seblful.klas.ui.common.DialogRadioRow
 import com.seblful.klas.ui.common.DisabledAlpha
@@ -142,7 +143,7 @@ internal fun WeekdayRow(
     description: String? = null,
 ) {
     var picking by remember { mutableStateOf(false) }
-    val names = stringArrayResource(R.array.weekday_names)
+    val names = stringArrayResource(StringArrays.weekday_names)
     val selected = Digests.dayOfWeekOf(dayOfWeek)
 
     ValueRow(title = title, value = names[selected.isoDayNumber - 1], enabled = enabled, description = description) {
@@ -205,7 +206,7 @@ internal fun ValueRow(
 
 @Composable
 internal fun SystemSettingsRow(title: String, description: String, onClick: () -> Unit) {
-    val openLabel = stringResource(R.string.action_open_settings)
+    val openLabel = stringResource(Strings.action_open_settings)
     ListItem(
         headlineContent = { Text(title) },
         supportingContent = { Text(description) },
@@ -240,7 +241,7 @@ internal fun MoneyRow(
         supportingContent = { Text(description) },
         trailingContent = {
             Text(
-                amount?.text() ?: stringResource(R.string.settings_not_set),
+                amount?.text() ?: stringResource(Strings.settings_not_set),
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -257,7 +258,7 @@ internal fun MoneyRow(
         FormDialog(
             title = title,
             confirm = DialogAction(
-                label = stringResource(R.string.action_save),
+                label = stringResource(Strings.action_save),
                 onClick = {
                     // A blank OPTIONAL_RATE parses as zero, and zero is "not set".
                     onSet(field.amount?.takeUnless { it.isZero })
@@ -270,7 +271,7 @@ internal fun MoneyRow(
             MoneyTextField(
                 field = field,
                 onValueChange = { text = it },
-                label = stringResource(R.string.price_label),
+                label = stringResource(Strings.price_label),
                 // Like every other one-field dialog: the caret already in it, since a price is the only
                 // thing it is opened to do.
                 modifier = Modifier.focusRequester(rememberRevealedFocus()),

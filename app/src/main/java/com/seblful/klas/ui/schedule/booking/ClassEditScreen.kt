@@ -12,13 +12,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.res.pluralStringResource
-import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.seblful.klas.R
 import com.seblful.klas.format.formatDate
 import com.seblful.klas.notifications.rememberNotificationPermissionRequest
+import com.seblful.klas.text.Plurals
+import com.seblful.klas.text.Strings
+import com.seblful.klas.text.pluralStringResource
+import com.seblful.klas.text.stringResource
 import com.seblful.klas.ui.common.ConfirmDialog
 import com.seblful.klas.ui.common.DropdownField
 import com.seblful.klas.ui.common.EmptyState
@@ -48,14 +49,14 @@ fun ClassEditScreen(
     }
     val screenState by viewModel.state.collectAsStateWithLifecycle()
     val gone by viewModel.gone.collectAsStateWithLifecycle()
-    val title = stringResource(if (viewModel.isNew) R.string.class_add_title else R.string.class_edit_title)
+    val title = stringResource(if (viewModel.isNew) Strings.class_add_title else Strings.class_edit_title)
 
     // Said, with the way back, rather than drawn as an empty form over a lesson that no longer exists.
     if (gone) {
         KlasScreen(title = title, onBack = onBack) { modifier, bottomInset ->
             EmptyState(
-                title = stringResource(R.string.class_gone),
-                detail = stringResource(R.string.class_gone_detail),
+                title = stringResource(Strings.class_gone),
+                detail = stringResource(Strings.class_gone_detail),
                 icon = KlasIcons.Outlined.EventBusy,
                 modifier = modifier.padding(bottomInset),
             )
@@ -89,10 +90,10 @@ private fun ClassEditForm(
 
     // A save can still be refused after the button was enabled — say so rather than doing nothing.
     val messages = rememberMessages()
-    val timeTakenMsg = stringResource(R.string.class_save_refused_time_taken)
-    val noMembersMsg = stringResource(R.string.class_group_no_members_left)
-    val allTakenMsg = stringResource(R.string.class_series_refused_all_taken)
-    val saveFailedMsg = stringResource(R.string.save_failed)
+    val timeTakenMsg = stringResource(Strings.class_save_refused_time_taken)
+    val noMembersMsg = stringResource(Strings.class_group_no_members_left)
+    val allTakenMsg = stringResource(Strings.class_series_refused_all_taken)
+    val saveFailedMsg = stringResource(Strings.save_failed)
     ShowMessagesFor(
         viewModel.events,
         messages,
@@ -150,7 +151,7 @@ private fun ClassEditForm(
     // happen. The bar says which of the two it is.
     FormScreen(
         title = title,
-        saveLabel = stringResource(if (viewModel.isNew) R.string.class_book_action else R.string.action_save),
+        saveLabel = stringResource(if (viewModel.isNew) Strings.class_book_action else Strings.action_save),
         bar = bookingBar(state),
         onSave = ::requestSave,
         onLeave = requestLeave,
@@ -160,10 +161,10 @@ private fun ClassEditForm(
             fields.verticalScroll(rememberScrollState()).padding(Spacing.gutter),
             verticalArrangement = Arrangement.spacedBy(Spacing.gutter),
         ) {
-            FormSection(stringResource(R.string.class_section_who)) {
+            FormSection(stringResource(Strings.class_section_who)) {
                 WhoSection(state, viewModel.isNew, viewModel, setup)
             }
-            FormSection(stringResource(R.string.class_section_when)) {
+            FormSection(stringResource(Strings.class_section_when)) {
                 WhenSection(state, viewModel)
             }
             DetailsSection(state, viewModel, viewModel.isNew)
@@ -178,18 +179,18 @@ private fun ClassEditForm(
         NoticeDialog(
             text = seriesOutcomeText(outcome),
             onDismiss = leave,
-            title = stringResource(R.string.class_series_title),
+            title = stringResource(Strings.class_series_title),
         )
     }
 
     confirmingDrops?.let { confirm ->
         ConfirmDialog(
             text = pluralStringResource(
-                R.plurals.class_member_drop_billed_confirm,
+                Plurals.class_member_drop_billed_confirm,
                 confirm.billedLessons,
                 confirm.billedLessons,
             ),
-            confirmLabel = stringResource(R.string.action_save),
+            confirmLabel = stringResource(Strings.action_save),
             onConfirm = { viewModel.save(onBack) },
             onDismiss = { confirmingDrops = null },
         )
@@ -198,9 +199,9 @@ private fun ClassEditForm(
 
 @Composable
 private fun seriesOutcomeText(outcome: SeriesOutcome): String {
-    val booked = pluralStringResource(R.plurals.class_series_booked, outcome.booked, outcome.booked)
+    val booked = pluralStringResource(Plurals.class_series_booked, outcome.booked, outcome.booked)
     val skipped = pluralStringResource(
-        R.plurals.class_series_skipped,
+        Plurals.class_series_skipped,
         outcome.skipped.size,
         outcome.skipped.size,
     )
@@ -211,9 +212,9 @@ private fun seriesOutcomeText(outcome: SeriesOutcome): String {
 internal fun endsAtText(ends: ClassForm.Ending): String {
     val time = ends.time.timeText()
     return if (ends.nextDay) {
-        stringResource(R.string.class_duration_ends_next_day, time)
+        stringResource(Strings.class_duration_ends_next_day, time)
     } else {
-        stringResource(R.string.class_duration_ends_at, time)
+        stringResource(Strings.class_duration_ends_at, time)
     }
 }
 

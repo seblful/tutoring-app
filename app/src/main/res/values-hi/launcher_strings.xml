@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_today_name">आज के पाठ</string>
+    <string name="widget_today_description">आज के पाठ, एक टैप से पढ़ाए गए चिह्नित</string>
+    <string name="widget_quick_actions_name">Klas शॉर्टकट</string>
+    <string name="widget_quick_actions_description">पाठ बुक करें, छात्र जोड़ें, या \"आज\", गृहकार्य और ऋण खोलें</string>
+</resources>

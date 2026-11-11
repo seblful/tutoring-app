@@ -3,11 +3,11 @@ package com.seblful.klas.ui.students
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
-import com.seblful.klas.R
 import com.seblful.klas.domain.lesson.LessonFilter
 import com.seblful.klas.domain.lesson.LessonKind
 import com.seblful.klas.domain.model.LessonStatus
+import com.seblful.klas.text.Strings
+import com.seblful.klas.text.stringResource
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.classStatusLabel
 import com.seblful.klas.ui.common.lessonKindLabel
@@ -32,7 +32,7 @@ fun LessonHistoryChips(
 ) {
     val byStatus = HistoryStatuses.map { shown ->
         FilterOption(
-            label = stringResource(R.string.lesson_kind_count, classStatusLabel(shown), statuses[shown] ?: 0),
+            label = stringResource(Strings.lesson_kind_count, classStatusLabel(shown), statuses[shown] ?: 0),
             selected = status == shown,
             onClick = { onStatus(shown.takeIf { status != it }) },
         )
@@ -41,7 +41,7 @@ fun LessonHistoryChips(
         LessonKind.entries.map { each ->
             val filter = LessonFilter.of(each)
             FilterOption(
-                label = stringResource(R.string.lesson_kind_count, lessonKindLabel(each), tally[each] ?: 0),
+                label = stringResource(Strings.lesson_kind_count, lessonKindLabel(each), tally[each] ?: 0),
                 selected = kind == filter,
                 onClick = { onKind(if (kind == filter) LessonFilter.ALL else filter) },
             )

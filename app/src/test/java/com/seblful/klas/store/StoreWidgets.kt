@@ -26,7 +26,10 @@ import com.github.takahirom.roborazzi.RoborazziTaskType
 import com.github.takahirom.roborazzi.captureRoboImage
 import com.seblful.klas.MainActivity
 import com.seblful.klas.R
-import com.seblful.klas.format.inLanguage
+import com.seblful.klas.testutil.texts
+import com.seblful.klas.text.StringResource
+import com.seblful.klas.text.Strings
+import com.seblful.klas.text.Texts
 import com.seblful.klas.widget.KlasWidgetColors
 import com.seblful.klas.widget.QuickActionsLayout
 import com.seblful.klas.widget.TodayLayout
@@ -62,7 +65,7 @@ internal class StoreWidgets(private val graph: StoreGraph, private val locale: L
     }
 
     private fun capture(activity: Activity): Map<String, Map<String, List<Int>>> {
-        val words = activity.inLanguage(locale)
+        val words = Texts.of(locale.toLanguageTag())
         val texts = words.todayTexts()
         val now = graph.widgets.now()
         val hour12 = !DateFormat.is24HourFormat(activity)
@@ -81,7 +84,7 @@ internal class StoreWidgets(private val graph: StoreGraph, private val locale: L
     }
 
     @Composable
-    private fun today(words: Context, rows: List<TodayRow>) = TodayLayout(
+    private fun today(words: Texts, rows: List<TodayRow>) = TodayLayout(
         texts = words.todayTexts(),
         rows = rows,
         openToday = Tap,
@@ -91,17 +94,17 @@ internal class StoreWidgets(private val graph: StoreGraph, private val locale: L
     )
 
     @Composable
-    private fun shortcuts(words: Context) {
-        fun button(icon: Int, label: Int) = ToolBarButton(icon, words.getString(label), Tap)
+    private fun shortcuts(words: Texts) {
+        fun button(icon: Int, label: StringResource) = ToolBarButton(icon, words.string(label), Tap)
         QuickActionsLayout(
-            appName = words.getString(R.string.app_name),
+            appName = words.string(Strings.app_name),
             openApp = Tap,
-            headerButton = button(R.drawable.widget_icon_add, R.string.schedule_add_class),
+            headerButton = button(R.drawable.widget_icon_add, Strings.schedule_add_class),
             buttons = listOf(
-                button(R.drawable.widget_icon_today, R.string.schedule_today),
-                button(R.drawable.widget_icon_people, R.string.nav_people),
-                button(R.drawable.widget_icon_homework, R.string.nav_homework),
-                button(R.drawable.widget_icon_debts, R.string.debts_title),
+                button(R.drawable.widget_icon_today, Strings.schedule_today),
+                button(R.drawable.widget_icon_people, Strings.nav_people),
+                button(R.drawable.widget_icon_homework, Strings.nav_homework),
+                button(R.drawable.widget_icon_debts, Strings.debts_title),
             ),
         )
     }

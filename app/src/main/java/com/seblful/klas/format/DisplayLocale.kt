@@ -3,6 +3,7 @@ package com.seblful.klas.format
 import com.seblful.klas.data.settings.SettingsRepository
 import com.seblful.klas.domain.model.AppLanguage
 import com.seblful.klas.settings.DevicePreferences
+import com.seblful.klas.text.Texts
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
@@ -19,6 +20,9 @@ class DisplayLocale @Inject constructor(
 ) {
     /** The language last read or written; the phone's until something reads the settings row. */
     val current: Locale get() = settings.language.value.locale()
+
+    /** [current]'s words, for what is written in the background: notifications, calendar events. */
+    val texts: Texts get() = Texts.of(current.toLanguageTag())
 
     /** The tutor's language as stored, now and on each change: for what stays on screen, such as a widget. */
     fun observe(): Flow<Locale> = settings.observe().map { it.language.locale() }.distinctUntilChanged()

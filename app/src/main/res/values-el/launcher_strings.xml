@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_today_name">Τα σημερινά μαθήματα</string>
+    <string name="widget_today_description">Τα σημερινά μαθήματα, σημειώθηκαν με ένα πάτημα</string>
+    <string name="widget_quick_actions_name">Συντομεύσεις Klas</string>
+    <string name="widget_quick_actions_description">Κλείστε ένα μάθημα, προσθέστε έναν μαθητή ή ανοίξτε το Σήμερα, τις εργασίες και τα χρέη</string>
+</resources>

@@ -18,9 +18,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
-import com.seblful.klas.R
+import com.seblful.klas.text.Strings
+import com.seblful.klas.text.stringResource
 import com.seblful.klas.ui.theme.KlasIcons
 
 /**
@@ -112,7 +112,7 @@ private fun ActiveFilterChip(filter: ActiveFilter) {
         trailingIcon = {
             Icon(
                 KlasIcons.Filled.Close,
-                stringResource(R.string.filter_remove),
+                stringResource(Strings.filter_remove),
                 Modifier.size(InputChipDefaults.IconSize),
             )
         },

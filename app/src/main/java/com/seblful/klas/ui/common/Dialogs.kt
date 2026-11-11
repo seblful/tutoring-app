@@ -25,12 +25,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.window.DialogProperties
-import com.seblful.klas.R
 import com.seblful.klas.lock.UnlockedWindow
+import com.seblful.klas.text.Strings
+import com.seblful.klas.text.stringResource
 import com.seblful.klas.ui.designsystem.component.ButtonKind
 import com.seblful.klas.ui.designsystem.component.DialogAction
 import com.seblful.klas.ui.designsystem.component.KlasButton
@@ -41,7 +41,7 @@ import com.seblful.klas.ui.theme.klasSemantics
 @Composable
 fun ConfirmDialog(
     text: String,
-    confirmLabel: String = stringResource(R.string.action_delete),
+    confirmLabel: String = stringResource(Strings.action_delete),
     // Red for a confirmation that loses something — the colour the schedule sheet's «Удалить» and the
     // homework dialog's already say it in, so the last tap before a loss looks the same everywhere.
     destructive: Boolean = false,
@@ -58,7 +58,7 @@ fun ConfirmDialog(
                     colors = if (destructive) destructiveTextButtonColors() else ButtonDefaults.textButtonColors(),
                 ) { Text(confirmLabel) }
             },
-            dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },
+            dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(Strings.action_cancel)) } },
         )
     }
 }
@@ -122,7 +122,7 @@ fun TextFieldDialog(
                 TextButton(
                     onClick = { onConfirm(value); onDismiss() },
                     enabled = value.isNotBlank(),
-                ) { Text(stringResource(R.string.action_save)) }
+                ) { Text(stringResource(Strings.action_save)) }
             },
             dismissButton = {
                 extra?.let {
@@ -132,7 +132,7 @@ fun TextFieldDialog(
                         enabled = it.enabled,
                     ) { Text(it.label) }
                 }
-                TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
+                TextButton(onClick = onDismiss) { Text(stringResource(Strings.action_cancel)) }
             },
         )
     }
@@ -152,7 +152,7 @@ fun NoticeDialog(
             onDismissRequest = onDismiss,
             title = title?.let { { Text(it) } },
             text = { drafts.SaveableStateProvider("body", text) },
-            confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_ok)) } },
+            confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(Strings.action_ok)) } },
         )
     }
 }

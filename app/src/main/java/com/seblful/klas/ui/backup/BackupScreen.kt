@@ -21,17 +21,19 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalResources
-import androidx.compose.ui.res.pluralStringResource
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.seblful.klas.R
 import com.seblful.klas.data.backup.AutoBackup
 import com.seblful.klas.data.backup.BackupPreview
 import com.seblful.klas.format.formatDate
 import com.seblful.klas.format.toLocalDate
 import com.seblful.klas.storage.DocumentRef
+import com.seblful.klas.text.PluralResource
+import com.seblful.klas.text.Plurals
+import com.seblful.klas.text.Strings
+import com.seblful.klas.text.currentTexts
+import com.seblful.klas.text.pluralStringResource
+import com.seblful.klas.text.stringResource
 import com.seblful.klas.ui.common.ConfirmDialog
 import com.seblful.klas.ui.common.KlasScreen
 import com.seblful.klas.ui.common.ShowMessagesFor
@@ -77,22 +79,23 @@ fun BackupScreen(
     val undoRestoreSince by restoreViewModel.undoRestoreSince.collectAsStateWithLifecycle()
     val weekly by weeklyViewModel.weekly.collectAsStateWithLifecycle()
 
-    val exportSuccess = stringResource(R.string.backup_export_success)
-    val importSuccess = stringResource(R.string.backup_import_success)
-    val restoreUndone = stringResource(R.string.backup_restore_undone)
-    val weeklySaved = stringResource(R.string.backup_weekly_saved)
-    val folderRefused = stringResource(R.string.backup_error_file)
+    val exportSuccess = stringResource(Strings.backup_export_success)
+    val importSuccess = stringResource(Strings.backup_import_success)
+    val restoreUndone = stringResource(Strings.backup_restore_undone)
+    val weeklySaved = stringResource(Strings.backup_weekly_saved)
+    val folderRefused = stringResource(Strings.backup_error_file)
     val context = LocalContext.current
-    val noPickerMsg = stringResource(R.string.student_contact_failed)
+    val texts = currentTexts()
+    val noPickerMsg = stringResource(Strings.student_contact_failed)
     // Named for the day it is made on — see [BackupViewModel.exportDay].
-    val backupFilename = stringResource(R.string.backup_filename, viewModel.exportDay().toString())
+    val backupFilename = stringResource(Strings.backup_filename, viewModel.exportDay().toString())
 
     val words: (BackupResult) -> String = { result ->
         when (result) {
             BackupResult.ExportOk -> exportSuccess
             BackupResult.ImportOk -> importSuccess
             BackupResult.RestoreUndone -> restoreUndone
-            is BackupResult.Failed -> result.failure.messageIn(context)
+            is BackupResult.Failed -> result.failure.messageIn(texts)
         }
     }
     ShowMessagesFor(viewModel.events, messages, words = words)
@@ -120,7 +123,7 @@ fun BackupScreen(
     val pickFolder = rememberOpenFolder(noPickerMsg, messages) { weeklyViewModel.choose(it) }
 
     KlasScreen(
-        title = stringResource(R.string.backup_title),
+        title = stringResource(Strings.backup_title),
         onBack = onBack,
         messages = messages,
     ) { modifier, bottomInset ->
@@ -163,8 +166,8 @@ fun BackupScreen(
 
     if (confirmUndo) {
         ConfirmDialog(
-            text = stringResource(R.string.backup_undo_restore_confirm),
-            confirmLabel = stringResource(R.string.backup_undo_restore_action),
+            text = stringResource(Strings.backup_undo_restore_confirm),
+            confirmLabel = stringResource(Strings.backup_undo_restore_action),
             destructive = true,
             onConfirm = restoreViewModel::undoRestore,
             onDismiss = { confirmUndo = false },
@@ -201,8 +204,8 @@ fun RestoreDialogs(viewModel: RestoreViewModel) {
 @Composable
 fun ConfirmRestoreDialog(preview: BackupPreview, onConfirm: () -> Unit, onDismiss: () -> Unit) {
     ConfirmDialog(
-        text = previewText(preview) + "\n\n" + stringResource(R.string.backup_import_confirm),
-        confirmLabel = stringResource(R.string.backup_import),
+        text = previewText(preview) + "\n\n" + stringResource(Strings.backup_import_confirm),
+        confirmLabel = stringResource(Strings.backup_import),
         destructive = true,
         onConfirm = onConfirm,
         onDismiss = onDismiss,
@@ -212,18 +215,18 @@ fun ConfirmRestoreDialog(preview: BackupPreview, onConfirm: () -> Unit, onDismis
 /** «В копии от 21.06.2026: 12 учеников, 340 занятий, …» — kinds the file has none of are left out. */
 @Composable
 private fun previewText(preview: BackupPreview): String {
-    val res = LocalResources.current
-    fun count(plural: Int, n: Int) = res.getQuantityString(plural, n, n)
+    val res = currentTexts()
+    fun count(plural: PluralResource, n: Int) = res.plural(plural, n, n)
     val counts = listOfNotNull(
-        count(R.plurals.students_count, preview.students),
-        preview.groups.takeIf { it > 0 }?.let { count(R.plurals.backup_groups_count, it) },
-        count(R.plurals.lessons_count, preview.lessons),
-        preview.payments.takeIf { it > 0 }?.let { count(R.plurals.backup_payments_count, it) },
-        preview.homework.takeIf { it > 0 }?.let { count(R.plurals.backup_homework_count, it) },
+        count(Plurals.students_count, preview.students),
+        preview.groups.takeIf { it > 0 }?.let { count(Plurals.backup_groups_count, it) },
+        count(Plurals.lessons_count, preview.lessons),
+        preview.payments.takeIf { it > 0 }?.let { count(Plurals.backup_payments_count, it) },
+        preview.homework.takeIf { it > 0 }?.let { count(Plurals.backup_homework_count, it) },
     ).joinToString()
     return preview.exportedAt
-        ?.let { stringResource(R.string.backup_restore_holds, it.formatDate(), counts) }
-        ?: stringResource(R.string.backup_restore_holds_undated, counts)
+        ?.let { stringResource(Strings.backup_restore_holds, it.formatDate(), counts) }
+        ?: stringResource(Strings.backup_restore_holds_undated, counts)
 }
 
 /**
@@ -251,7 +254,7 @@ internal fun BackupContent(
         // already drawn, and what the tutor needs to know is that the tap took and to wait.
         if (importing) LinearProgressIndicator(Modifier.fillMaxWidth())
         LastExport(lastExportAt, stale)
-        SettingsGroup(stringResource(R.string.backup_weekly_header)) {
+        SettingsGroup(stringResource(Strings.backup_weekly_header)) {
             when (weekly) {
                 Loadable.Loading -> SkeletonBlock(
                     LastExportRowHeight,
@@ -263,15 +266,15 @@ internal fun BackupContent(
         SettingsGroup {
             BackupActionRow(
                 icon = KlasIcons.Outlined.Upload,
-                title = stringResource(R.string.backup_export),
-                description = stringResource(R.string.backup_export_desc),
+                title = stringResource(Strings.backup_export),
+                description = stringResource(Strings.backup_export_desc),
                 enabled = !importing,
                 onClick = onExport,
             )
             BackupActionRow(
                 icon = KlasIcons.Outlined.Download,
-                title = stringResource(R.string.backup_import),
-                description = stringResource(if (importing) R.string.backup_importing else R.string.backup_import_desc),
+                title = stringResource(Strings.backup_import),
+                description = stringResource(if (importing) Strings.backup_importing else Strings.backup_import_desc),
                 enabled = !importing,
                 onClick = onImport,
             )
@@ -279,8 +282,8 @@ internal fun BackupContent(
             undoRestoreSince?.let { since ->
                 BackupActionRow(
                     icon = KlasIcons.Filled.Undo,
-                    title = stringResource(R.string.backup_undo_restore),
-                    description = stringResource(R.string.backup_undo_restore_desc, since.formatDate()),
+                    title = stringResource(Strings.backup_undo_restore),
+                    description = stringResource(Strings.backup_undo_restore_desc, since.formatDate()),
                     enabled = !importing,
                     onClick = onUndoRestore,
                 )
@@ -297,14 +300,14 @@ private val LastExportRowHeight = 72.dp
  */
 @Composable
 private fun WeeklyRows(weekly: WeeklyBackupViewModel.Weekly, onPickFolder: () -> Unit, onStopWeekly: () -> Unit) {
-    val keeps = pluralStringResource(R.plurals.backup_weekly_keeps, AutoBackup.KEEP, AutoBackup.KEEP)
+    val keeps = pluralStringResource(Plurals.backup_weekly_keeps, AutoBackup.KEEP, AutoBackup.KEEP)
     if (weekly.failed) {
         ListItem(
             leadingContent = {
                 Icon(KlasIcons.Outlined.Warning, contentDescription = null, tint = klasSemantics.attention)
             },
-            headlineContent = { Text(stringResource(R.string.backup_weekly_failed)) },
-            supportingContent = { Text(stringResource(R.string.backup_weekly_failed_desc)) },
+            headlineContent = { Text(stringResource(Strings.backup_weekly_failed)) },
+            supportingContent = { Text(stringResource(Strings.backup_weekly_failed_desc)) },
             colors = settingsRowColors(),
             modifier = Modifier.insetRowPress { source ->
                 Modifier.clickable(source, indication = null, onClick = onPickFolder)
@@ -314,8 +317,8 @@ private fun WeeklyRows(weekly: WeeklyBackupViewModel.Weekly, onPickFolder: () ->
     if (weekly.folder == null) {
         BackupActionRow(
             icon = KlasIcons.Outlined.Folder,
-            title = stringResource(R.string.backup_weekly_off),
-            description = stringResource(R.string.backup_weekly_off_desc) + " " + keeps,
+            title = stringResource(Strings.backup_weekly_off),
+            description = stringResource(Strings.backup_weekly_off_desc) + " " + keeps,
             enabled = true,
             onClick = onPickFolder,
         )
@@ -323,15 +326,15 @@ private fun WeeklyRows(weekly: WeeklyBackupViewModel.Weekly, onPickFolder: () ->
     }
     BackupActionRow(
         icon = KlasIcons.Outlined.Folder,
-        title = weekly.folderName?.let { stringResource(R.string.backup_weekly_on, it) }
-            ?: stringResource(R.string.backup_weekly_on_unnamed),
-        description = keeps + " " + stringResource(R.string.backup_weekly_change),
+        title = weekly.folderName?.let { stringResource(Strings.backup_weekly_on, it) }
+            ?: stringResource(Strings.backup_weekly_on_unnamed),
+        description = keeps + " " + stringResource(Strings.backup_weekly_change),
         enabled = true,
         onClick = onPickFolder,
     )
     BackupActionRow(
         icon = KlasIcons.Filled.Close,
-        title = stringResource(R.string.backup_weekly_stop),
+        title = stringResource(Strings.backup_weekly_stop),
         description = null,
         enabled = true,
         onClick = onStopWeekly,
@@ -361,10 +364,10 @@ private fun LastExport(lastExportAt: Loadable<Instant?>, stale: Boolean) {
         return
     }
     Banner(
-        title = at?.let { stringResource(R.string.backup_last_export, it.toLocalDate().formatDate()) }
-            ?: stringResource(R.string.backup_never),
+        title = at?.let { stringResource(Strings.backup_last_export, it.toLocalDate().formatDate()) }
+            ?: stringResource(Strings.backup_never),
         kind = BannerKind.Advisory,
-        detail = stringResource(if (at == null) R.string.backup_never_detail else R.string.backup_stale_detail),
+        detail = stringResource(if (at == null) Strings.backup_never_detail else Strings.backup_stale_detail),
         modifier = Modifier.padding(start = Spacing.gutter, end = Spacing.gutter, top = Spacing.itemGap),
     )
 }
@@ -380,8 +383,8 @@ private fun LastExportRow(at: Instant) {
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         },
-        headlineContent = { Text(stringResource(R.string.backup_last_export, at.toLocalDate().formatDate())) },
-        supportingContent = { Text(stringResource(R.string.backup_last_export_detail)) },
+        headlineContent = { Text(stringResource(Strings.backup_last_export, at.toLocalDate().formatDate())) },
+        supportingContent = { Text(stringResource(Strings.backup_last_export_detail)) },
         colors = settingsRowColors(),
     )
 }

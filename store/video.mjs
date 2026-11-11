@@ -20,7 +20,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { evaluate, openChrome } from "./lib/chrome.mjs";
 import { mp4 } from "./lib/mp4.mjs";
-import { HOME, ICON_MARK, LOGO, PHONE_CSS, RES, fontFaces, homeScreen, lockScreen, statusBar, text, url } from "./lib/phone.mjs";
+import { HOME, ICON_MARK, LOGO, PHONE_CSS, STRINGS, fontFaces, homeScreen, lockScreen, statusBar, text, url } from "./lib/phone.mjs";
 import { blur, decode, write } from "./lib/png.mjs";
 import { difference } from "./lib/compare.mjs";
 import { joinScroll } from "./lib/scroll.mjs";
@@ -528,7 +528,7 @@ function homeMarks(images, widget) {
 /** The app's own words for what the film draws of it (the homework dialog), in [locale]'s language. */
 function appStrings(locale) {
   const read = (folder) => {
-    const file = join(RES, folder, "strings.xml");
+    const file = join(STRINGS, folder, "strings.xml");
     if (!existsSync(file)) return {};
     const xml = readFileSync(file, "utf8");
     return Object.fromEntries([...xml.matchAll(/<string name="([^"]+)">([\s\S]*?)<\/string>/g)]

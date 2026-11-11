@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_today_name">Aulas de hoje</string>
+    <string name="widget_today_description">Marque as aulas de hoje como realizadas com um toque</string>
+    <string name="widget_quick_actions_name">Atalhos Klas</string>
+    <string name="widget_quick_actions_description">Marque uma aula, adicione um aluno ou abra Hoje, tarefas e dívidas</string>
+</resources>

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_today_name">今天的課程</string>
+    <string name="widget_today_description">今天的課程，一鍵標記授課</string>
+    <string name="widget_quick_actions_name">Klas 快速鍵</string>
+    <string name="widget_quick_actions_description">預約課程、新增學生，或開啟「今天」、作業和債務</string>
+</resources>

@@ -5,10 +5,11 @@ import androidx.compose.ui.test.assertIsNotFocused
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.test.platform.app.InstrumentationRegistry
-import com.seblful.klas.R
 import com.seblful.klas.domain.model.Assignee
 import com.seblful.klas.domain.model.Homework
 import com.seblful.klas.queries.homework.AssigneeChoice
+import com.seblful.klas.testutil.texts
+import com.seblful.klas.text.Strings
 import com.seblful.klas.ui.theme.KlasTheme
 import org.junit.Rule
 import org.junit.Test
@@ -37,7 +38,7 @@ class HomeworkDialogFocusTest {
         }
     }
 
-    private fun task() = rule.onNodeWithText(context.getString(R.string.homework_text_label))
+    private fun task() = rule.onNodeWithText(context.texts().string(Strings.homework_text_label))
 
     @Test
     fun aNewOneDoesNotPutTheCaretInTheTask() {

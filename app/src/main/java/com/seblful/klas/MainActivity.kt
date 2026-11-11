@@ -25,6 +25,7 @@ import com.seblful.klas.format.localeFor
 import com.seblful.klas.lock.UNLOCK_WITH
 import com.seblful.klas.lock.canUnlock
 import com.seblful.klas.notifications.AppShortcuts
+import com.seblful.klas.text.Texts
 import com.seblful.klas.ui.AppRoot
 import com.seblful.klas.ui.RootViewModel
 import com.seblful.klas.ui.common.LocalSearchKey
@@ -88,7 +89,7 @@ class MainActivity : FragmentActivity() {
             rootViewModel.settings
                 .map { rootViewModel.localeFor(it) }
                 .distinctUntilChanged()
-                .collect { AppShortcuts.publish(inLanguage(it)) }
+                .collect { AppShortcuts.publish(this@MainActivity, Texts.of(it.toLanguageTag())) }
         }
         // Whatever the app lock hides must not show in recent apps either, or the lock hides nothing.
         lifecycleScope.launch {
@@ -138,7 +139,7 @@ class MainActivity : FragmentActivity() {
 
     override fun onProvideKeyboardShortcuts(data: MutableList<KeyboardShortcutGroup>, menu: Menu?, deviceId: Int) {
         super.onProvideKeyboardShortcuts(data, menu, deviceId)
-        data += KeyboardShortcuts.group(this)
+        data += KeyboardShortcuts.group(Texts.of(resources.configuration.locales[0].toLanguageTag()))
     }
 
     private fun promptUnlock(title: String) {

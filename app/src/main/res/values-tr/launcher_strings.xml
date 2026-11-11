@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_today_name">Bugünün dersleri</string>
+    <string name="widget_today_description">Bugünün derslerini tek dokunuşla yapıldı olarak işaretleyin</string>
+    <string name="widget_quick_actions_name">Klas kısayolları</string>
+    <string name="widget_quick_actions_description">Ders planlayın, öğrenci ekleyin veya Bugün, Ödevler ve Borçlar\'ı açın</string>
+</resources>

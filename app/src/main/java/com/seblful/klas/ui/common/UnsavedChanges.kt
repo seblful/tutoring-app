@@ -9,12 +9,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.res.stringResource
 import androidx.navigationevent.NavigationEventInfo
 import androidx.navigationevent.compose.NavigationBackHandler
 import androidx.navigationevent.compose.rememberNavigationEventState
-import com.seblful.klas.R
 import com.seblful.klas.lock.UnlockedWindow
+import com.seblful.klas.text.Strings
+import com.seblful.klas.text.stringResource
 import com.seblful.klas.ui.designsystem.component.ButtonKind
 import com.seblful.klas.ui.designsystem.component.KlasButton
 
@@ -119,20 +119,20 @@ private fun UnsavedChangesDialog(
             title = {
                 Text(
                     stringResource(
-                        if (canSave) R.string.unsaved_save_title else R.string.unsaved_discard_title,
+                        if (canSave) Strings.unsaved_save_title else Strings.unsaved_discard_title,
                     ),
                 )
             },
             text = {
                 Text(
                     stringResource(
-                        if (canSave) R.string.unsaved_save_text else R.string.unsaved_discard_text,
+                        if (canSave) Strings.unsaved_save_text else Strings.unsaved_discard_text,
                     ),
                 )
             },
             confirmButton = {
                 if (canSave) {
-                    KlasButton(onClick = onSave, kind = ButtonKind.Text) { Text(stringResource(R.string.action_save)) }
+                    KlasButton(onClick = onSave, kind = ButtonKind.Text) { Text(stringResource(Strings.action_save)) }
                 } else {
                     DiscardButton(onDiscard)
                 }
@@ -142,7 +142,7 @@ private fun UnsavedChangesDialog(
                     DiscardButton(onDiscard)
                 } else {
                     KlasButton(onClick = onKeepEditing, kind = ButtonKind.Text) {
-                        Text(stringResource(R.string.action_cancel))
+                        Text(stringResource(Strings.action_cancel))
                     }
                 }
             },
@@ -153,6 +153,6 @@ private fun UnsavedChangesDialog(
 @Composable
 private fun DiscardButton(onDiscard: () -> Unit) {
     KlasButton(onClick = onDiscard, kind = ButtonKind.Destructive) {
-        Text(stringResource(R.string.unsaved_discard))
+        Text(stringResource(Strings.unsaved_discard))
     }
 }

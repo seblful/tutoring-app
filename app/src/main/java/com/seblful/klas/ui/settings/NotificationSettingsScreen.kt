@@ -7,16 +7,16 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
-import com.seblful.klas.R
 import com.seblful.klas.data.settings.AppSettings
+import com.seblful.klas.text.Strings
+import com.seblful.klas.text.stringResource
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.designsystem.component.SettingsGroup
 import dev.zacsweers.metrox.viewmodel.metroViewModel
 
 @Composable
 fun NotificationSettingsScreen(onBack: (() -> Unit)?, viewModel: SettingsViewModel = metroViewModel()) {
-    SettingsPage(R.string.settings_notifications_title, onBack, viewModel) { page, modifier, bottomInset, messages ->
+    SettingsPage(Strings.settings_notifications_title, onBack, viewModel) { page, modifier, bottomInset, messages ->
         val notify = rememberNotificationAction(viewModel, messages)
         val openExactAlarms = rememberOpenSystemSettings(messages, ::exactAlarmSettings)
         val openNotifications = rememberOpenSystemSettings(messages, ::appNotificationSettings)
@@ -60,16 +60,16 @@ internal fun NotificationSettingsContent(
         if (notifications == NotificationDelivery.BLOCKED) {
             NotificationsBlockedBanner(actions.fixNotifications, Modifier.padding(horizontal = Spacing.gutter))
         }
-        SettingsGroup(stringResource(R.string.settings_section_reminders)) {
+        SettingsGroup(stringResource(Strings.settings_section_reminders)) {
             LessonReminderSettings(settings, reminders, actions)
         }
-        SettingsGroup(stringResource(R.string.settings_section_daily)) { DailySummarySettings(settings, actions) }
-        SettingsGroup(stringResource(R.string.settings_section_weekly)) { WeeklySummarySettings(settings, actions) }
+        SettingsGroup(stringResource(Strings.settings_section_daily)) { DailySummarySettings(settings, actions) }
+        SettingsGroup(stringResource(Strings.settings_section_weekly)) { WeeklySummarySettings(settings, actions) }
         // Untitled: a way out to the system's own page, not a section of this one.
         SettingsGroup {
             SystemSettingsRow(
-                title = stringResource(R.string.settings_system_notifications),
-                description = stringResource(R.string.settings_system_notifications_desc),
+                title = stringResource(Strings.settings_system_notifications),
+                description = stringResource(Strings.settings_system_notifications_desc),
                 onClick = actions.systemNotifications,
             )
         }
@@ -83,19 +83,19 @@ private fun LessonReminderSettings(
     actions: NotificationSettingsActions,
 ) {
     SwitchRow(
-        title = stringResource(R.string.settings_notifications),
+        title = stringResource(Strings.settings_notifications),
         description = when (reminders) {
-            ReminderDelivery.BLOCKED -> stringResource(R.string.settings_notifications_blocked)
-            ReminderDelivery.LATE -> stringResource(R.string.settings_notifications_inexact)
-            ReminderDelivery.OFF, ReminderDelivery.ON_TIME -> stringResource(R.string.settings_notifications_desc)
+            ReminderDelivery.BLOCKED -> stringResource(Strings.settings_notifications_blocked)
+            ReminderDelivery.LATE -> stringResource(Strings.settings_notifications_inexact)
+            ReminderDelivery.OFF, ReminderDelivery.ON_TIME -> stringResource(Strings.settings_notifications_desc)
         },
         checked = settings.notificationsEnabled,
         onCheckedChange = actions.reminders,
     )
     if (reminders == ReminderDelivery.LATE) {
         SystemSettingsRow(
-            title = stringResource(R.string.settings_reminders_fix),
-            description = stringResource(R.string.settings_reminders_fix_late),
+            title = stringResource(Strings.settings_reminders_fix),
+            description = stringResource(Strings.settings_reminders_fix_late),
             onClick = actions.fixExactAlarms,
         )
     }
@@ -110,32 +110,32 @@ private fun LessonReminderSettings(
 @Composable
 private fun DailySummarySettings(settings: AppSettings, actions: NotificationSettingsActions) {
     SwitchRow(
-        title = stringResource(R.string.settings_agenda),
-        description = stringResource(R.string.settings_agenda_desc),
+        title = stringResource(Strings.settings_agenda),
+        description = stringResource(Strings.settings_agenda_desc),
         checked = settings.dailyAgendaEnabled,
         onCheckedChange = { on -> actions.digest(on) { it.copy(dailyAgendaEnabled = on) } },
     )
     TimeRow(
-        title = stringResource(R.string.settings_agenda_time),
+        title = stringResource(Strings.settings_agenda_time),
         minuteOfDay = settings.agendaMinuteOfDay,
         enabled = settings.dailyAgendaEnabled,
         description = disabledSummaryHint(settings.dailyAgendaEnabled),
         onSet = { minutes -> actions.update { it.copy(agendaMinuteOfDay = minutes) } },
     )
     SwitchRow(
-        title = stringResource(R.string.settings_unfinished_digest),
+        title = stringResource(Strings.settings_unfinished_digest),
         description = stringResource(
             if (settings.autoCompleteEnabled) {
-                R.string.settings_unfinished_autocomplete
+                Strings.settings_unfinished_autocomplete
             } else {
-                R.string.settings_unfinished_digest_desc
+                Strings.settings_unfinished_digest_desc
             },
         ),
         checked = settings.unfinishedDigestEnabled,
         onCheckedChange = { on -> actions.digest(on) { it.copy(unfinishedDigestEnabled = on) } },
     )
     TimeRow(
-        title = stringResource(R.string.settings_unfinished_digest_time),
+        title = stringResource(Strings.settings_unfinished_digest_time),
         minuteOfDay = settings.unfinishedMinuteOfDay,
         enabled = settings.unfinishedDigestEnabled,
         description = disabledSummaryHint(settings.unfinishedDigestEnabled),
@@ -146,20 +146,20 @@ private fun DailySummarySettings(settings: AppSettings, actions: NotificationSet
 @Composable
 private fun WeeklySummarySettings(settings: AppSettings, actions: NotificationSettingsActions) {
     SwitchRow(
-        title = stringResource(R.string.settings_debt_digest),
-        description = stringResource(R.string.settings_debt_digest_desc),
+        title = stringResource(Strings.settings_debt_digest),
+        description = stringResource(Strings.settings_debt_digest_desc),
         checked = settings.debtDigestEnabled,
         onCheckedChange = { on -> actions.digest(on) { it.copy(debtDigestEnabled = on) } },
     )
     WeekdayRow(
-        title = stringResource(R.string.settings_debt_digest_day),
+        title = stringResource(Strings.settings_debt_digest_day),
         dayOfWeek = settings.debtDayOfWeek,
         enabled = settings.debtDigestEnabled,
         description = disabledSummaryHint(settings.debtDigestEnabled),
         onSet = { day -> actions.update { it.copy(debtDayOfWeek = day) } },
     )
     TimeRow(
-        title = stringResource(R.string.settings_debt_digest_time),
+        title = stringResource(Strings.settings_debt_digest_time),
         minuteOfDay = settings.debtMinuteOfDay,
         enabled = settings.debtDigestEnabled,
         onSet = { minutes -> actions.update { it.copy(debtMinuteOfDay = minutes) } },
@@ -168,4 +168,4 @@ private fun WeeklySummarySettings(settings: AppSettings, actions: NotificationSe
 
 @Composable
 private fun disabledSummaryHint(enabled: Boolean): String? =
-    if (enabled) null else stringResource(R.string.settings_summary_enable)
+    if (enabled) null else stringResource(Strings.settings_summary_enable)

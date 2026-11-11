@@ -53,9 +53,6 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.drawOutline
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.res.pluralStringResource
-import androidx.compose.ui.res.stringArrayResource
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -63,7 +60,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.seblful.klas.R
 import com.seblful.klas.domain.model.Currency
 import com.seblful.klas.domain.model.PaymentMethod
 import com.seblful.klas.domain.reports.ReportCsv
@@ -80,6 +76,13 @@ import com.seblful.klas.print.SheetPrinter
 import com.seblful.klas.queries.reports.ReportScope
 import com.seblful.klas.queries.reports.ScopeChoice
 import com.seblful.klas.storage.DocumentRef
+import com.seblful.klas.text.Plurals
+import com.seblful.klas.text.StringArrays
+import com.seblful.klas.text.StringResource
+import com.seblful.klas.text.Strings
+import com.seblful.klas.text.pluralStringResource
+import com.seblful.klas.text.stringArrayResource
+import com.seblful.klas.text.stringResource
 import com.seblful.klas.ui.common.EmptyState
 import com.seblful.klas.ui.common.FilterChipRow
 import com.seblful.klas.ui.common.FilterMenuAction
@@ -162,10 +165,10 @@ fun ReportsScreen(
         viewModel.debtsScrolled(debtsArrival)
     }
     val messages = rememberMessages()
-    val noPickerMsg = stringResource(R.string.student_contact_failed)
+    val noPickerMsg = stringResource(Strings.student_contact_failed)
 
-    val exportOkMsg = stringResource(R.string.reports_export_success)
-    val exportErrorMsg = stringResource(R.string.reports_export_error)
+    val exportOkMsg = stringResource(Strings.reports_export_success)
+    val exportErrorMsg = stringResource(Strings.reports_export_error)
     // Nothing to say when the sheet actually opened — the sheet is the feedback, and the app cannot see
     // whether the tutor went on to send anything. This is only for the case where it could not open.
     LaunchedEffect(Unit) {
@@ -189,11 +192,11 @@ fun ReportsScreen(
         viewModel.exportOrSay(document, saving) { messages.show(exportErrorMsg) }
     }
     // Names the period, so a report arriving in somebody's mail says which month it is.
-    val shareSubject = stringResource(R.string.reports_share_subject, periodTitle(period))
+    val shareSubject = stringResource(Strings.reports_share_subject, periodTitle(period))
 
     val twoPane = roomForSupportingPane()
     KlasScreen(
-        title = stringResource(R.string.reports_title),
+        title = stringResource(Strings.reports_title),
         messages = messages,
         maxContentWidth = if (twoPane) SupportingPaneMaxWidth else MaxContentWidth,
         actions = {
@@ -231,8 +234,8 @@ fun ReportsScreen(
         }
         if (!report.hasData) {
             EmptyState(
-                title = stringResource(R.string.reports_empty),
-                detail = stringResource(R.string.reports_empty_detail),
+                title = stringResource(Strings.reports_empty),
+                detail = stringResource(Strings.reports_empty_detail),
                 icon = KlasIcons.Outlined.QueryStats,
                 modifier = modifier.padding(bottomInset),
             )
@@ -290,14 +293,14 @@ private val SectionCardHeight = 132.dp
 
 @Composable
 private fun csvHeadings(period: ReportPeriod, methods: Map<PaymentMethod?, String>) = ReportCsv.Headings(
-    total = stringResource(R.string.reports_total_income),
+    total = stringResource(Strings.reports_total_income),
     period = periodTitle(period),
-    byGroup = stringResource(R.string.reports_by_group),
-    bySubject = stringResource(R.string.reports_by_subject),
-    byStudent = stringResource(R.string.reports_by_student),
-    debts = stringResource(R.string.reports_debts),
-    outstanding = stringResource(R.string.reports_total_outstanding),
-    received = stringResource(R.string.reports_received),
+    byGroup = stringResource(Strings.reports_by_group),
+    bySubject = stringResource(Strings.reports_by_subject),
+    byStudent = stringResource(Strings.reports_by_student),
+    debts = stringResource(Strings.reports_debts),
+    outstanding = stringResource(Strings.reports_total_outstanding),
+    received = stringResource(Strings.reports_received),
     methods = methods,
 )
 
@@ -316,27 +319,27 @@ private class ReportFiles(
 @Composable
 private fun rememberReportFiles(exportable: Reports.Report?, period: ReportPeriod, scopeName: String): ReportFiles? {
     val methods = (PaymentMethod.entries + null).associateWith { method ->
-        method?.let { paymentMethodLabel(it) } ?: stringResource(R.string.payment_method_none)
+        method?.let { paymentMethodLabel(it) } ?: stringResource(Strings.payment_method_none)
     }
     val summaryHeader = listOf(
-        stringResource(R.string.reports_csv_section),
-        stringResource(R.string.reports_csv_label),
-        stringResource(R.string.reports_csv_amount),
+        stringResource(Strings.reports_csv_section),
+        stringResource(Strings.reports_csv_label),
+        stringResource(Strings.reports_csv_amount),
     )
     val ledgerHeader = listOf(
-        stringResource(R.string.reports_ledger_day),
-        stringResource(R.string.reports_ledger_entry),
-        stringResource(R.string.reports_ledger_student),
-        stringResource(R.string.reports_ledger_detail),
-        stringResource(R.string.reports_csv_amount),
+        stringResource(Strings.reports_ledger_day),
+        stringResource(Strings.reports_ledger_entry),
+        stringResource(Strings.reports_ledger_student),
+        stringResource(Strings.reports_ledger_detail),
+        stringResource(Strings.reports_csv_amount),
     )
     val words = ReportCsv.LedgerWords(
-        lesson = stringResource(R.string.reports_ledger_lesson),
-        payment = stringResource(R.string.reports_ledger_payment),
+        lesson = stringResource(Strings.reports_ledger_lesson),
+        payment = stringResource(Strings.reports_ledger_payment),
         methods = methods,
     )
     val headings = csvHeadings(period, methods)
-    val title = stringResource(R.string.reports_share_subject, periodTitle(period))
+    val title = stringResource(Strings.reports_share_subject, periodTitle(period))
     val currency = LocalCurrency.current
     return remember(exportable, headings, words, title, scopeName, currency) {
         exportable?.let { report ->
@@ -376,9 +379,9 @@ private fun ReportBody(
     modifier: Modifier = Modifier,
 ) {
     val titles = BreakdownTitles(
-        byGroup = stringResource(R.string.reports_by_group),
-        bySubject = stringResource(R.string.reports_by_subject),
-        byStudent = stringResource(R.string.reports_by_student),
+        byGroup = stringResource(Strings.reports_by_group),
+        bySubject = stringResource(Strings.reports_by_subject),
+        byStudent = stringResource(Strings.reports_by_student),
     )
     val padding = PaddingValues(Spacing.gutter).plusInset(bottomInset)
 
@@ -418,7 +421,7 @@ private fun LazyListScope.summaryItems(state: Reports.Report, scope: ReportScope
     if (state.noIncome) {
         standalone("no-income") {
             Text(
-                stringResource(R.string.reports_no_income),
+                stringResource(Strings.reports_no_income),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -487,8 +490,8 @@ private fun PeriodNavigator(
 ) {
     var expanded by remember { mutableStateOf(false) }
     PageStepper(
-        previousDescription = stringResource(R.string.reports_previous_period),
-        nextDescription = stringResource(R.string.reports_next_period),
+        previousDescription = stringResource(Strings.reports_previous_period),
+        nextDescription = stringResource(Strings.reports_next_period),
         onPrevious = onPrevious,
         onNext = onNext,
         enabled = period.isNavigable,
@@ -510,7 +513,7 @@ private fun PeriodNavigator(
                         maxFontSize = MaterialTheme.typography.titleMedium.fontSize,
                     ),
                 )
-                Icon(KlasIcons.Filled.ArrowDropDown, stringResource(R.string.reports_period))
+                Icon(KlasIcons.Filled.ArrowDropDown, stringResource(Strings.reports_period))
             }
             KlasMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
                 ReportPeriod.Kind.entries.forEach { kind ->
@@ -528,14 +531,14 @@ private fun PeriodNavigator(
 @Composable
 private fun periodTitle(period: ReportPeriod): String = when (period.kind) {
     ReportPeriod.Kind.MONTH -> formatMonth(period.anchor)
-    ReportPeriod.Kind.YEAR -> stringResource(R.string.reports_period_year_title, period.anchor.year)
-    ReportPeriod.Kind.ALL -> stringResource(R.string.reports_period_all)
+    ReportPeriod.Kind.YEAR -> stringResource(Strings.reports_period_year_title, period.anchor.year)
+    ReportPeriod.Kind.ALL -> stringResource(Strings.reports_period_all)
 }
 
-private fun periodKindLabel(kind: ReportPeriod.Kind): Int = when (kind) {
-    ReportPeriod.Kind.MONTH -> R.string.reports_period_month
-    ReportPeriod.Kind.YEAR -> R.string.reports_period_year
-    ReportPeriod.Kind.ALL -> R.string.reports_period_all
+private fun periodKindLabel(kind: ReportPeriod.Kind): StringResource = when (kind) {
+    ReportPeriod.Kind.MONTH -> Strings.reports_period_month
+    ReportPeriod.Kind.YEAR -> Strings.reports_period_year
+    ReportPeriod.Kind.ALL -> Strings.reports_period_all
 }
 
 @Composable
@@ -545,7 +548,7 @@ internal fun IncomeCard(state: Reports.Report, showsReceived: Boolean = true) {
     var chosen by rememberSaveable { mutableStateOf(IncomeView.EARNED) }
     val view = if (showsReceived) chosen else IncomeView.EARNED
     HeroCard(
-        label = stringResource(R.string.reports_total_income),
+        label = stringResource(Strings.reports_total_income),
         value = (if (view == IncomeView.EARNED) state.totalIncome else state.received.total).text(),
     ) {
         if (showsReceived) {
@@ -566,16 +569,16 @@ internal fun IncomeCard(state: Reports.Report, showsReceived: Boolean = true) {
             IncomeView.EARNED -> {
                 if (!state.noIncome) TaughtLine(state.taught)
                 ComparisonLine(state)
-                Text(stringResource(R.string.reports_earned_hint), style = MaterialTheme.typography.bodySmall)
+                Text(stringResource(Strings.reports_earned_hint), style = MaterialTheme.typography.bodySmall)
             }
             IncomeView.RECEIVED -> ReceivedDetail(state.received)
         }
     }
 }
 
-private enum class IncomeView(val labelRes: Int) {
-    EARNED(R.string.reports_earned),
-    RECEIVED(R.string.reports_received),
+private enum class IncomeView(val labelRes: StringResource) {
+    EARNED(Strings.reports_earned),
+    RECEIVED(Strings.reports_received),
 }
 
 /** "121 lessons · 134 h · 42 ahead" — the period's teaching, on the hero rather than a card of its own. */
@@ -585,8 +588,8 @@ private fun TaughtLine(taught: Taught.Totals) {
     Text(
         bulletJoin(
             listOfNotNull(
-                pluralStringResource(R.plurals.lesson_count, taught.lessons, taught.lessons),
-                stringResource(R.string.hours_value, formatHours(taught.minutes)),
+                pluralStringResource(Plurals.lesson_count, taught.lessons, taught.lessons),
+                stringResource(Strings.hours_value, formatHours(taught.minutes)),
                 stat.hint,
             ),
         ),
@@ -602,14 +605,14 @@ private fun ReceivedDetail(received: Reports.Received) {
             bulletJoin(
                 received.byMethod.map { line ->
                     val method = line.method?.let { paymentMethodLabel(it) }
-                        ?: stringResource(R.string.payment_method_none)
+                        ?: stringResource(Strings.payment_method_none)
                     "$method ${line.amount.text()}"
                 },
             ),
             style = MaterialTheme.typography.bodyMedium,
         )
     }
-    Text(stringResource(R.string.reports_received_hint), style = MaterialTheme.typography.bodySmall)
+    Text(stringResource(Strings.reports_received_hint), style = MaterialTheme.typography.bodySmall)
 }
 
 /** The funnel narrowing the report to one subject or one student (R5), as the homework tab's does. */
@@ -617,8 +620,8 @@ private fun ReceivedDetail(received: Reports.Received) {
 private fun ScopeMenu(choices: List<ScopeChoice>, scope: ReportScope, onSelect: (ReportScope) -> Unit) {
     if (choices.isEmpty()) return
     FilterMenuAction(
-        name = stringResource(R.string.reports_filter),
-        allLabel = stringResource(R.string.reports_filter_all),
+        name = stringResource(Strings.reports_filter),
+        allLabel = stringResource(Strings.reports_filter_all),
         options = choices,
         selected = choices.firstOrNull { it.scope == scope },
         optionLabel = { it.name },
@@ -644,9 +647,9 @@ private fun ReportExportMenu(
     onShare: (name: String, file: ReportsViewModel.ReportFile) -> Unit,
     onSave: (name: String, file: ReportsViewModel.ReportFile) -> Unit,
 ) {
-    val summaryName = stringResource(R.string.reports_export_filename)
-    val ledgerName = stringResource(R.string.reports_ledger_filename)
-    val pdfName = stringResource(R.string.reports_pdf_filename)
+    val summaryName = stringResource(Strings.reports_export_filename)
+    val ledgerName = stringResource(Strings.reports_ledger_filename)
+    val pdfName = stringResource(Strings.reports_pdf_filename)
     ExportMenu(
         onShare = { files?.let { onShare(ReportCsv.fileName(period), it.summary) } },
         onSave = { files?.let { onSave(summaryName, it.summary) } },
@@ -669,38 +672,38 @@ internal fun ExportMenu(
 ) {
     var open by remember { mutableStateOf(false) }
     Box {
-        NamedIconButton(KlasIcons.Filled.Download, stringResource(R.string.reports_export_menu), { open = true })
+        NamedIconButton(KlasIcons.Filled.Download, stringResource(Strings.reports_export_menu), { open = true })
         KlasMenu(expanded = open, onDismissRequest = { open = false }) {
             MenuItem(
-                text = { Text(stringResource(R.string.reports_share)) },
+                text = { Text(stringResource(Strings.reports_share)) },
                 leadingIcon = { Icon(KlasIcons.Outlined.Share, contentDescription = null) },
                 onClick = { open = false; onShare() },
             )
             MenuItem(
-                text = { Text(stringResource(R.string.reports_export)) },
+                text = { Text(stringResource(Strings.reports_export)) },
                 leadingIcon = { Icon(KlasIcons.Filled.Download, contentDescription = null) },
                 onClick = { open = false; onSave() },
             )
             // Every lesson and payment, a row each — what an accountant reconciles, beside the summary a
             // tutor reads.
             MenuItem(
-                text = { Text(stringResource(R.string.reports_share_ledger)) },
+                text = { Text(stringResource(Strings.reports_share_ledger)) },
                 leadingIcon = { Icon(KlasIcons.Outlined.Share, contentDescription = null) },
                 onClick = { open = false; onShareLedger() },
             )
             MenuItem(
-                text = { Text(stringResource(R.string.reports_export_ledger)) },
+                text = { Text(stringResource(Strings.reports_export_ledger)) },
                 leadingIcon = { Icon(KlasIcons.Filled.Download, contentDescription = null) },
                 onClick = { open = false; onSaveLedger() },
             )
             // The summary as a page to read — for someone who will not open a spreadsheet.
             MenuItem(
-                text = { Text(stringResource(R.string.reports_share_pdf)) },
+                text = { Text(stringResource(Strings.reports_share_pdf)) },
                 leadingIcon = { Icon(KlasIcons.Outlined.Share, contentDescription = null) },
                 onClick = { open = false; onSharePdf() },
             )
             MenuItem(
-                text = { Text(stringResource(R.string.reports_export_pdf)) },
+                text = { Text(stringResource(Strings.reports_export_pdf)) },
                 leadingIcon = { Icon(KlasIcons.Filled.Download, contentDescription = null) },
                 onClick = { open = false; onSavePdf() },
             )
@@ -718,11 +721,11 @@ private fun ColumnScope.ComparisonLine(state: Reports.Report) {
     val toDate = state.changeToDate
     val text = when (change) {
         Reports.Change.NoBaseline -> stringResource(
-            if (toDate) R.string.reports_vs_previous_from_zero_to_date else R.string.reports_vs_previous_from_zero,
+            if (toDate) Strings.reports_vs_previous_from_zero_to_date else Strings.reports_vs_previous_from_zero,
             previousName,
         )
         is Reports.Change.Percent -> stringResource(
-            if (toDate) R.string.reports_vs_previous_to_date else R.string.reports_vs_previous,
+            if (toDate) Strings.reports_vs_previous_to_date else Strings.reports_vs_previous,
             signedPercent(change.value),
             previousName,
         )
@@ -755,24 +758,24 @@ private fun ColumnScope.ComparisonLine(state: Reports.Report) {
 
 @Composable
 private fun signedPercent(value: Long): String = when {
-    value > 0 -> stringResource(R.string.reports_percent_signed_up, value)
-    value < 0 -> stringResource(R.string.reports_percent_signed_down, -value)
-    else -> stringResource(R.string.reports_percent_signed_same)
+    value > 0 -> stringResource(Strings.reports_percent_signed_up, value)
+    value < 0 -> stringResource(Strings.reports_percent_signed_down, -value)
+    else -> stringResource(Strings.reports_percent_signed_same)
 }
 
 @Composable
 private fun TrendCard(trend: Reports.Trend) {
-    val months = stringArrayResource(R.array.month_short_names)
+    val months = stringArrayResource(StringArrays.month_short_names)
     val isMonths = trend.bucket == Reports.Trend.Bucket.MONTHS
-    ReportCard(stringResource(if (isMonths) R.string.reports_by_month else R.string.reports_by_year)) {
+    ReportCard(stringResource(if (isMonths) Strings.reports_by_month else Strings.reports_by_year)) {
         IncomeTrendChart(trend) { bar -> if (isMonths) months[bar.monthIndex] else bar.key.toString() }
         // The accent bar explained, and named: the chart itself is not read aloud.
         trend.peak?.let { peak ->
             PeakLegend(
                 if (isMonths) {
-                    stringResource(R.string.reports_best_month, formatMonthName(peak.monthIndex))
+                    stringResource(Strings.reports_best_month, formatMonthName(peak.monthIndex))
                 } else {
-                    stringResource(R.string.reports_best_year, peak.key.toString())
+                    stringResource(Strings.reports_best_year, peak.key.toString())
                 },
             )
         }
@@ -870,7 +873,7 @@ private fun IncomeTrendChart(trend: Reports.Trend, labelOf: (Reports.Trend.Bar) 
 
 @Composable
 private fun KindSplitCard(lines: List<Reports.KindLine>) {
-    ReportCard(stringResource(R.string.reports_by_kind)) {
+    ReportCard(stringResource(Strings.reports_by_kind)) {
         Row(Modifier.fillMaxWidth().height(KindBarHeight).clip(CircleShape)) {
             lines.forEach { line ->
                 Box(
@@ -895,7 +898,7 @@ private fun KindSplitCard(lines: List<Reports.KindLine>) {
                 )
                 Spacer(Modifier.width(Spacing.itemGap))
                 Text(
-                    stringResource(R.string.reports_amount_share, line.amount.text(), line.percent),
+                    stringResource(Strings.reports_amount_share, line.amount.text(), line.percent),
                     style = MaterialTheme.typography.titleSmall,
                 )
             }
@@ -918,7 +921,7 @@ private fun RankedLine(line: Reports.Line, onClick: (() -> Unit)? = null) {
                 line.percent?.let {
                     Spacer(Modifier.width(Spacing.inline))
                     Text(
-                        stringResource(R.string.reports_percent, it),
+                        stringResource(Strings.reports_percent, it),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -956,14 +959,14 @@ private fun LazyListScope.debtsSection(state: Reports.Report, onStudentClick: (L
     // the card's first row it sat a full item gap below the heading and read as a caption to the total.
     item(key = "debt/heading", contentType = CARD_HEADING) {
         CardSlice(first = true) {
-            CardHeading(stringResource(R.string.reports_debts), stringResource(R.string.reports_debts_all_time))
+            CardHeading(stringResource(Strings.reports_debts), stringResource(Strings.reports_debts_all_time))
         }
     }
     if (state.debts.isEmpty()) {
         item(key = "debt/none", contentType = "debt-none") {
             CardSlice(last = true, gapAbove = Spacing.itemGap) {
                 Text(
-                    stringResource(R.string.reports_no_debts),
+                    stringResource(Strings.reports_no_debts),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -974,7 +977,7 @@ private fun LazyListScope.debtsSection(state: Reports.Report, onStudentClick: (L
     item(key = "debt/total", contentType = "debt-total") {
         CardSlice(gapAbove = Spacing.itemGap) {
             AmountRow(
-                label = stringResource(R.string.reports_total_outstanding),
+                label = stringResource(Strings.reports_total_outstanding),
                 amount = AmountText(state.totalOutstanding.text()),
                 bold = true,
                 // In the column the debts below it are in, which their chevron pulls inwards.
@@ -1118,7 +1121,7 @@ private fun AmountRow(
         if (onClick != null) {
             Icon(
                 KlasIcons.Filled.ChevronRight,
-                contentDescription = stringResource(R.string.reports_open_student),
+                contentDescription = stringResource(Strings.reports_open_student),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(ChevronSize),
             )

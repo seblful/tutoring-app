@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.test.core.app.ApplicationProvider
 import com.seblful.klas.testutil.AppLocaleRule
+import com.seblful.klas.testutil.texts
 import com.seblful.klas.ui.theme.KlasTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
@@ -132,7 +133,7 @@ class DockedTabBarTest {
         val complaints = TopDestination.entries.mapNotNull { dest ->
             compose.runOnIdle { selected.value = dest }
             compose.waitForIdle()
-            val label = context.getString(dest.labelRes)
+            val label = context.texts().string(dest.labelRes)
             val layout = layoutOf(label)
             "«$label» is cut short".takeIf { layout.lineCount != 1 || layout.isLineEllipsized(0) }
         }
@@ -141,7 +142,7 @@ class DockedTabBarTest {
 
     private fun assertShownLabels(marked: TopDestination) {
         TopDestination.entries.forEach { dest ->
-            val width = compose.onNodeWithText(context.getString(dest.labelRes), useUnmergedTree = true)
+            val width = compose.onNodeWithText(context.texts().string(dest.labelRes), useUnmergedTree = true)
                 .getBoundsInRoot().let { it.right - it.left }.value
             if (dest == marked) {
                 assertTrue("${dest.name}'s label should show", width > 0f)
@@ -155,7 +156,7 @@ class DockedTabBarTest {
     private fun namesShownWhenHeld(dest: TopDestination): Int {
         compose.onNode(tabOf(dest)).performTouchInput { longClick() }
         compose.waitForIdle()
-        return compose.onAllNodesWithText(context.getString(dest.labelRes), useUnmergedTree = true)
+        return compose.onAllNodesWithText(context.texts().string(dest.labelRes), useUnmergedTree = true)
             .fetchSemanticsNodes().size
     }
 
@@ -191,7 +192,7 @@ class DockedTabBarTest {
         compose.waitForIdle()
     }
 
-    private fun tabOf(dest: TopDestination) = hasText(context.getString(dest.labelRes)) and isSelectable()
+    private fun tabOf(dest: TopDestination) = hasText(context.texts().string(dest.labelRes)) and isSelectable()
 
     private companion object {
         const val BAR = "bar"

@@ -1,6 +1,5 @@
 package com.seblful.klas.ui.schedule
 
-import androidx.annotation.StringRes
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.filterToOne
 import androidx.compose.ui.test.hasClickAction
@@ -18,7 +17,6 @@ import androidx.compose.ui.test.performTouchInput
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import com.seblful.klas.MainActivity
-import com.seblful.klas.R
 import com.seblful.klas.format.formatDay
 import com.seblful.klas.store.DemoTutor
 import com.seblful.klas.store.StoreApp
@@ -27,6 +25,9 @@ import com.seblful.klas.testutil.FakeCalendarPermission
 import com.seblful.klas.testutil.FakeCalendarSync
 import com.seblful.klas.testutil.RecordingDigestScheduler
 import com.seblful.klas.testutil.RecordingReminderScheduler
+import com.seblful.klas.testutil.texts
+import com.seblful.klas.text.StringResource
+import com.seblful.klas.text.Strings
 import dev.zacsweers.metro.createGraphFactory
 import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.LocalDate
@@ -84,12 +85,12 @@ class CancelLessonFlowTest {
     fun `a planned lesson cancelled from its sheet is cancelled`() {
         ActivityScenario.launch(MainActivity::class.java).use {
             openDay(LATER_DAY)
-            lesson(R.string.class_status_scheduled).performClick()
+            lesson(Strings.class_status_scheduled).performClick()
             compose.waitForIdle()
 
-            compose.onAllNodesWithText(string(R.string.class_cancel_lesson)).onFirst().performScrollTo().performClick()
+            compose.onAllNodesWithText(string(Strings.class_cancel_lesson)).onFirst().performScrollTo().performClick()
 
-            waitFor(string(R.string.class_status_cancelled))
+            waitFor(string(Strings.class_status_cancelled))
         }
     }
 
@@ -98,12 +99,12 @@ class CancelLessonFlowTest {
     fun `a taught lesson held and cancelled from the bar is cancelled`() {
         ActivityScenario.launch(MainActivity::class.java).use {
             openDay(EARLIER_DAY)
-            lesson(R.string.class_status_completed).performTouchInput { longClick() }
+            lesson(Strings.class_status_completed).performTouchInput { longClick() }
             compose.waitForIdle()
 
-            compose.onNodeWithContentDescription(string(R.string.batch_cancel)).performClick()
+            compose.onNodeWithContentDescription(string(Strings.batch_cancel)).performClick()
 
-            waitFor(string(R.string.class_status_cancelled))
+            waitFor(string(Strings.class_status_cancelled))
         }
     }
 
@@ -111,34 +112,34 @@ class CancelLessonFlowTest {
     fun `a cancelled lesson held returns to the plan from the same place in the bar`() {
         ActivityScenario.launch(MainActivity::class.java).use {
             openDay(EARLIER_DAY)
-            lesson(R.string.class_status_completed).performTouchInput { longClick() }
+            lesson(Strings.class_status_completed).performTouchInput { longClick() }
             compose.waitForIdle()
-            compose.onNodeWithContentDescription(string(R.string.batch_cancel)).performClick()
-            waitFor(string(R.string.class_status_cancelled))
+            compose.onNodeWithContentDescription(string(Strings.batch_cancel)).performClick()
+            waitFor(string(Strings.class_status_cancelled))
             // Held by its action rather than a press: the Undo message lies over the row.
-            lesson(R.string.class_status_cancelled).performSemanticsAction(SemanticsActions.OnLongClick)
+            lesson(Strings.class_status_cancelled).performSemanticsAction(SemanticsActions.OnLongClick)
             compose.waitForIdle()
-            compose.onNodeWithContentDescription(string(R.string.class_correct_planned)).performClick()
+            compose.onNodeWithContentDescription(string(Strings.class_correct_planned)).performClick()
 
             // Planned again, and over: it asks to be marked.
-            waitFor(string(R.string.class_status_overdue))
+            waitFor(string(Strings.class_status_overdue))
         }
     }
 
     private fun openDay(day: String) {
-        compose.onAllNodesWithText(string(R.string.nav_schedule)).filterToOne(isSelectable()).performClick()
+        compose.onAllNodesWithText(string(Strings.nav_schedule)).filterToOne(isSelectable()).performClick()
         compose.waitForIdle()
-        click(R.string.schedule_view_month)
+        click(Strings.schedule_view_month)
         compose.onAllNodesWithText(day).filterToOne(isSelectable()).performClick()
         // Its own header: the day's week is a read the test clock does not wait for, and until it lands the
         // list is still today's, whose lessons [lesson] would find.
         waitFor(LocalDate(DemoTutor.NOW.year, DemoTutor.NOW.month, day.toInt()).formatDay())
     }
 
-    private fun lesson(@StringRes status: Int) =
+    private fun lesson(status: StringResource) =
         compose.onAllNodes(hasText(string(status), substring = true) and hasClickAction()).onFirst()
 
-    private fun click(@StringRes label: Int) {
+    private fun click(label: StringResource) {
         compose.onAllNodesWithText(string(label)).filterToOne(hasClickAction()).performClick()
         compose.waitForIdle()
     }
@@ -150,7 +151,8 @@ class CancelLessonFlowTest {
         }
     }
 
-    private fun string(@StringRes id: Int): String = ApplicationProvider.getApplicationContext<StoreApp>().getString(id)
+    private fun string(id: StringResource): String =
+        ApplicationProvider.getApplicationContext<StoreApp>().texts().string(id)
 
     private companion object {
         const val TIMEOUT_MS = 10_000L

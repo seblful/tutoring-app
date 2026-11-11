@@ -18,10 +18,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.seblful.klas.R
+import com.seblful.klas.text.Strings
+import com.seblful.klas.text.stringResource
 import com.seblful.klas.ui.common.KlasMenu
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.common.TickedMenuItem
@@ -60,7 +60,7 @@ fun FilterBar(
 private fun MoreFilters(options: List<FilterOption>) {
     val chosen = options.firstOrNull { it.selected }
     // What is chosen in here, by name — a bare «Filter» in the accent would not say what narrowed the list.
-    MenuChip(label = chosen?.label ?: stringResource(R.string.filter_more), narrowed = chosen != null) { close ->
+    MenuChip(label = chosen?.label ?: stringResource(Strings.filter_more), narrowed = chosen != null) { close ->
         options.forEach { option ->
             TickedMenuItem(text = option.label, selected = option.selected, onClick = {
                 close()

@@ -35,12 +35,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.pluralStringResource
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.seblful.klas.R
 import com.seblful.klas.domain.guide.Tip
 import com.seblful.klas.domain.lesson.DeleteWarning
 import com.seblful.klas.domain.lesson.LessonPhase
@@ -48,6 +45,11 @@ import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.schedule.DaySummary
 import com.seblful.klas.domain.schedule.ScheduleEmpty
 import com.seblful.klas.domain.schedule.TimeConflict
+import com.seblful.klas.text.Plurals
+import com.seblful.klas.text.StringResource
+import com.seblful.klas.text.Strings
+import com.seblful.klas.text.pluralStringResource
+import com.seblful.klas.text.stringResource
 import com.seblful.klas.ui.common.ConfirmDialog
 import com.seblful.klas.ui.common.EmptyState
 import com.seblful.klas.ui.common.FabClearance
@@ -154,7 +156,7 @@ fun ScheduleScreen(
     val listState = rememberLazyListState()
     val listScope = rememberCoroutineScope()
     ScrollsToTopOnReselect(listState)
-    val cancelDayLabel = stringResource(R.string.schedule_cancel_day)
+    val cancelDayLabel = stringResource(Strings.schedule_cancel_day)
     val openDay = { viewModel.setViewMode(ScheduleViewMode.DAY) }
     // A change of view is a new page, and a page starts at the top. Keyed on the view the list was last put
     // at the top *for*, and saved with it: an effect keyed on the mode alone would also run on every return
@@ -187,10 +189,10 @@ fun ScheduleScreen(
     // These actions are tapped in a sheet that closes as they are tapped, so a write that failed would
     // otherwise read as one that had not been tapped at all.
     val messages = rememberMessages()
-    val actionFailedMsg = stringResource(R.string.action_failed)
-    val lessonGoneMsg = stringResource(R.string.class_gone)
-    val correctionChangedMsg = stringResource(R.string.class_correction_changed)
-    val undoChangedMsg = stringResource(R.string.class_undo_changed)
+    val actionFailedMsg = stringResource(Strings.action_failed)
+    val lessonGoneMsg = stringResource(Strings.class_gone)
+    val correctionChangedMsg = stringResource(Strings.class_correction_changed)
+    val undoChangedMsg = stringResource(Strings.class_undo_changed)
     ShowMessagesFor(viewModel.events, messages) { event ->
         when (event) {
             ScheduleViewModel.Event.ACTION_FAILED -> actionFailedMsg
@@ -199,7 +201,7 @@ fun ScheduleScreen(
             ScheduleViewModel.Event.UNDO_CHANGED -> undoChangedMsg
         }
     }
-    val completedMsg = stringResource(R.string.class_completed_message)
+    val completedMsg = stringResource(Strings.class_completed_message)
     LaunchedEffect(viewModel, completedMsg) {
         viewModel.completions.stream.collect { completed ->
             messages.undoable(completedMsg) { viewModel.undoCompletion(completed) }
@@ -226,8 +228,8 @@ fun ScheduleScreen(
     }
 
     // What the add button says on a day nothing can be booked into yet — and the step that fixes it.
-    val cannotBookMsg = stringResource(R.string.schedule_need_setup)
-    val addStudentLabel = stringResource(R.string.schedule_add_student)
+    val cannotBookMsg = stringResource(Strings.schedule_need_setup)
+    val addStudentLabel = stringResource(Strings.schedule_add_student)
 
     // On an expanded window the month is Material's supporting pane: the grid beside the day it picks.
     val monthBeside = viewMode == ScheduleViewMode.MONTH && roomForSupportingPane()
@@ -264,7 +266,7 @@ fun ScheduleScreen(
     }
     CompositionLocalProvider(LocalLessonPicking provides picking, LocalLessonTip provides lessonTip) {
         KlasScreen(
-            title = stringResource(R.string.schedule_title),
+            title = stringResource(Strings.schedule_title),
             page = viewMode,
             messages = messages,
             maxContentWidth = if (monthBeside) SupportingPaneMaxWidth else MaxContentWidth,
@@ -291,7 +293,7 @@ fun ScheduleScreen(
                 // together. The empty state below offers the same step for a tutor who reads the page
                 // instead of reaching for the button.
                 KlasFab(
-                    label = stringResource(R.string.class_book),
+                    label = stringResource(Strings.class_book),
                     onClick = {
                         // Before the setup has been read there is no answer yet, and the tap waits for it.
                         when (canAddClass.valueOrNull()) {
@@ -630,8 +632,8 @@ fun ScheduleScreen(
     }
     correctingRow?.let { row ->
         ConfirmDialog(
-            text = stringResource(R.string.class_correct_planned_confirm),
-            confirmLabel = stringResource(R.string.class_correct_planned),
+            text = stringResource(Strings.class_correct_planned_confirm),
+            confirmLabel = stringResource(Strings.class_correct_planned),
             onConfirm = { viewModel.correctCompletion(row.session); correctingRow = null },
             onDismiss = { correctingRow = null },
         )
@@ -658,11 +660,11 @@ fun ScheduleScreen(
         val count = warning.classes
         val confirmText = when (warning.kind) {
             DeleteWarning.Kind.BILLED_GROUP ->
-                pluralStringResource(R.plurals.class_delete_group_completed_confirm, count, count)
-            DeleteWarning.Kind.BILLED -> stringResource(R.string.class_delete_completed_confirm)
+                pluralStringResource(Plurals.class_delete_group_completed_confirm, count, count)
+            DeleteWarning.Kind.BILLED -> stringResource(Strings.class_delete_completed_confirm)
             DeleteWarning.Kind.GROUP ->
-                pluralStringResource(R.plurals.class_delete_group_confirm, count, count)
-            DeleteWarning.Kind.PLAIN -> stringResource(R.string.class_delete_confirm)
+                pluralStringResource(Plurals.class_delete_group_confirm, count, count)
+            DeleteWarning.Kind.PLAIN -> stringResource(Strings.class_delete_confirm)
         }
         ConfirmDialog(
             text = confirmText,
@@ -675,7 +677,7 @@ fun ScheduleScreen(
 
 @Composable
 internal fun timeConflictText(conflict: TimeConflict): String = stringResource(
-    R.string.class_time_conflict,
+    Strings.class_time_conflict,
     conflict.who,
     "${conflict.slot.start.timeText()} – ${conflict.slot.end.timeText()}",
 )
@@ -701,8 +703,8 @@ private fun ScheduleEmptyState(
     }
     when (known) {
         ScheduleEmpty.FILTERED -> EmptyState(
-            title = stringResource(R.string.schedule_filter_empty),
-            detail = stringResource(R.string.schedule_filter_empty_detail),
+            title = stringResource(Strings.schedule_filter_empty),
+            detail = stringResource(Strings.schedule_filter_empty_detail),
             icon = KlasIcons.Outlined.EventBusy,
             modifier = modifier,
         )
@@ -710,22 +712,22 @@ private fun ScheduleEmptyState(
         ScheduleEmpty.QUIET -> EmptyState(
             title = stringResource(
                 when (whole) {
-                    ScheduleEmptySpan.DAY -> R.string.schedule_empty
-                    ScheduleEmptySpan.WEEK -> R.string.schedule_week_empty
+                    ScheduleEmptySpan.DAY -> Strings.schedule_empty
+                    ScheduleEmptySpan.WEEK -> Strings.schedule_week_empty
                 },
             ),
-            detail = stringResource(R.string.schedule_empty_detail),
+            detail = stringResource(Strings.schedule_empty_detail),
             icon = KlasIcons.Outlined.EventBusy,
-            actionLabel = stringResource(R.string.schedule_add_class),
+            actionLabel = stringResource(Strings.schedule_add_class),
             onAction = onAddClass,
             modifier = modifier,
         )
 
         ScheduleEmpty.NEEDS_STUDENT -> EmptyState(
-            title = stringResource(R.string.schedule_empty_no_setup),
-            detail = stringResource(R.string.schedule_empty_no_setup_detail),
+            title = stringResource(Strings.schedule_empty_no_setup),
+            detail = stringResource(Strings.schedule_empty_no_setup_detail),
             icon = KlasIcons.Outlined.PersonAdd,
-            actionLabel = stringResource(R.string.schedule_add_student),
+            actionLabel = stringResource(Strings.schedule_add_student),
             onAction = onAddStudent,
             modifier = modifier,
         )
@@ -800,7 +802,7 @@ private fun ChosenDayHeader(dayContent: Loadable<ScheduleContent.Day>, selected:
         date = day?.date ?: selected,
         summary = day?.summary ?: DaySummary.NONE,
         position = if (day?.rows.isNullOrEmpty()) SlicePosition.ONLY else SlicePosition.FIRST,
-        action = SectionAction(stringResource(R.string.schedule_open_day), onClick = onOpenDay),
+        action = SectionAction(stringResource(Strings.schedule_open_day), onClick = onOpenDay),
     )
 }
 
@@ -818,10 +820,10 @@ private fun LessonsSkeleton() {
     ListSkeleton(rows = 3, contentPadding = PaddingValues(0.dp))
 }
 
-private fun viewModeLabel(mode: ScheduleViewMode): Int = when (mode) {
-    ScheduleViewMode.DAY -> R.string.schedule_view_day
-    ScheduleViewMode.WEEK -> R.string.schedule_view_week
-    ScheduleViewMode.MONTH -> R.string.schedule_view_month
+private fun viewModeLabel(mode: ScheduleViewMode): StringResource = when (mode) {
+    ScheduleViewMode.DAY -> Strings.schedule_view_day
+    ScheduleViewMode.WEEK -> Strings.schedule_view_week
+    ScheduleViewMode.MONTH -> Strings.schedule_view_month
 }
 
 /** A month grid's own width beside the day it opens: Material's fixed supporting pane. */
@@ -833,10 +835,10 @@ private val DayEmptyMinHeight = 260.dp
 
 private typealias UndoableChange = ScheduleViewModel.Undoable.Change
 
-private val UndoableChange.message: Int
+private val UndoableChange.message: StringResource
     get() = when (this) {
-        UndoableChange.CANCELLED -> R.string.class_cancelled_message
-        UndoableChange.REPLANNED -> R.string.class_replanned_message
-        UndoableChange.MOVED -> R.string.class_moved_message
-        UndoableChange.ATTENDANCE -> R.string.class_attendance_message
+        UndoableChange.CANCELLED -> Strings.class_cancelled_message
+        UndoableChange.REPLANNED -> Strings.class_replanned_message
+        UndoableChange.MOVED -> Strings.class_moved_message
+        UndoableChange.ATTENDANCE -> Strings.class_attendance_message
     }

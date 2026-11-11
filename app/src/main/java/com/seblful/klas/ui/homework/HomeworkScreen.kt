@@ -20,11 +20,9 @@ import androidx.compose.runtime.saveable.rememberSerializable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.seblful.klas.R
 import com.seblful.klas.domain.guide.Tip
 import com.seblful.klas.domain.lesson.LessonKind
 import com.seblful.klas.domain.model.Assignee
@@ -33,6 +31,9 @@ import com.seblful.klas.queries.homework.HomeworkRow
 import com.seblful.klas.queries.homework.HomeworkSection
 import com.seblful.klas.queries.homework.HomeworkState
 import com.seblful.klas.queries.homework.bySection
+import com.seblful.klas.text.StringResource
+import com.seblful.klas.text.Strings
+import com.seblful.klas.text.stringResource
 import com.seblful.klas.ui.common.EmptyState
 import com.seblful.klas.ui.common.FabClearance
 import com.seblful.klas.ui.common.FilterChipRow
@@ -62,9 +63,9 @@ import com.seblful.klas.ui.theme.klasSemantics
 import dev.zacsweers.metrox.viewmodel.metroViewModel
 import kotlinx.coroutines.launch
 
-private enum class HomeworkSide(val labelRes: Int) {
-    CURRENT(R.string.homework_side_current),
-    ARCHIVE(R.string.homework_side_archive),
+private enum class HomeworkSide(val labelRes: StringResource) {
+    CURRENT(Strings.homework_side_current),
+    ARCHIVE(Strings.homework_side_archive),
 }
 
 /** Задания» — every student's and group's homework: **what is current, and the archive**. */
@@ -84,7 +85,7 @@ fun HomeworkScreen(
     val scope = rememberCoroutineScope()
 
     val messages = rememberMessages()
-    val failed = stringResource(R.string.action_failed)
+    val failed = stringResource(Strings.action_failed)
     ShowMessagesFor(viewModel.events, messages) { failed }
     val undo = homeworkUndo(
         messages = messages,
@@ -93,8 +94,8 @@ fun HomeworkScreen(
         delete = viewModel::delete,
         restore = viewModel::restore,
     )
-    val needStudent = stringResource(R.string.homework_need_student)
-    val addStudentLabel = stringResource(R.string.schedule_add_student)
+    val needStudent = stringResource(Strings.homework_need_student)
+    val addStudentLabel = stringResource(Strings.schedule_add_student)
 
     fun add() {
         // Before the tab has loaded there is no answer yet, and the tap waits for the list like any other.
@@ -109,7 +110,7 @@ fun HomeworkScreen(
         dialogOpen = editor.open,
     )
     KlasScreen(
-        title = stringResource(R.string.nav_homework),
+        title = stringResource(Strings.nav_homework),
         page = side,
         messages = messages,
         selection = Selection(picked.size, viewModel.batch::clear) { MarkPickedDone(viewModel.batch, messages) },
@@ -120,7 +121,7 @@ fun HomeworkScreen(
         // The cards lay themselves out in columns (see [HomeworkList]); the tabs above them keep a column's width.
         maxContentWidth = Dp.Infinity,
         floatingActionButton = {
-            KlasFab(stringResource(R.string.homework_add), onClick = ::add)
+            KlasFab(stringResource(Strings.homework_add), onClick = ::add)
         },
     ) { modifier, bottomInset ->
         // The same two-sided shape as «Люди»: segments on the page, and a drag across the body turns it.
@@ -194,7 +195,7 @@ private fun rememberHomeworkTip(current: List<HomeworkRow>?, dialogOpen: Boolean
         Tip.forHomework(seen, current = current.orEmpty().size)
     }
     val reader = rememberTouchExploration()
-    val text = stringResource(if (reader) R.string.tip_homework_swipe_reader else R.string.tip_homework_swipe)
+    val text = stringResource(if (reader) Strings.tip_homework_swipe_reader else Strings.tip_homework_swipe)
     val tip = HomeworkTip(text, screenTip.dismiss, peek = !reader).takeIf { screenTip.tip == Tip.HOMEWORK_SWIPE }
     return screenTip to tip
 }
@@ -204,8 +205,8 @@ private fun HomeworkFilterAction(loaded: HomeworkState, onSelect: (Assignee?) ->
     // Keep the clear action available if the last homework for the selected filter is deleted.
     if (loaded.filterAssignees.isEmpty() && loaded.filter == null) return
     FilterMenuAction(
-        name = stringResource(R.string.homework_filter),
-        allLabel = stringResource(R.string.homework_filter_all),
+        name = stringResource(Strings.homework_filter),
+        allLabel = stringResource(Strings.homework_filter_all),
         options = loaded.filterAssignees,
         selected = loaded.filter,
         optionLabel = loaded.captions::titleOf,
@@ -220,7 +221,7 @@ private fun HomeworkFilterAction(loaded: HomeworkState, onSelect: (Assignee?) ->
 private fun sideLabel(side: HomeworkSide, lists: HomeworkLists?): String {
     val name = stringResource(side.labelRes)
     val count = lists?.current?.size?.takeIf { side == HomeworkSide.CURRENT && it > 0 }
-    return if (count != null) stringResource(R.string.homework_side_count, name, count) else name
+    return if (count != null) stringResource(Strings.homework_side_count, name, count) else name
 }
 
 @Composable
@@ -302,22 +303,22 @@ private fun HomeworkEmpty(side: HomeworkSide, filterName: String?, onAdd: () -> 
     when {
         // The way out is the chip above, which is where the tutor put the filter.
         filterName != null -> EmptyState(
-            title = stringResource(R.string.homework_filter_empty, filterName),
-            detail = stringResource(R.string.homework_filter_empty_detail),
+            title = stringResource(Strings.homework_filter_empty, filterName),
+            detail = stringResource(Strings.homework_filter_empty_detail),
             icon = KlasIcons.Outlined.Assignment,
             modifier = modifier,
         )
         side == HomeworkSide.CURRENT -> EmptyState(
-            title = stringResource(R.string.homework_empty_current),
-            detail = stringResource(R.string.homework_empty_current_detail),
+            title = stringResource(Strings.homework_empty_current),
+            detail = stringResource(Strings.homework_empty_current_detail),
             icon = KlasIcons.Outlined.Assignment,
-            actionLabel = stringResource(R.string.homework_add),
+            actionLabel = stringResource(Strings.homework_add),
             onAction = onAdd,
             modifier = modifier,
         )
         else -> EmptyState(
-            title = stringResource(R.string.homework_empty_archive),
-            detail = stringResource(R.string.homework_empty_archive_detail),
+            title = stringResource(Strings.homework_empty_archive),
+            detail = stringResource(Strings.homework_empty_archive_detail),
             icon = KlasIcons.Outlined.Inventory2,
             modifier = modifier,
         )
@@ -327,11 +328,11 @@ private fun HomeworkEmpty(side: HomeworkSide, filterName: String?, onAdd: () -> 
 @Composable
 private fun sectionLabel(section: HomeworkSection): String = stringResource(
     when (section) {
-        HomeworkSection.OVERDUE -> R.string.homework_section_past
-        HomeworkSection.TODAY -> R.string.homework_section_today
-        HomeworkSection.NEXT_7_DAYS -> R.string.homework_section_next_7_days
-        HomeworkSection.LATER -> R.string.homework_section_later
-        HomeworkSection.UNBOOKED -> R.string.homework_unbooked
+        HomeworkSection.OVERDUE -> Strings.homework_section_past
+        HomeworkSection.TODAY -> Strings.homework_section_today
+        HomeworkSection.NEXT_7_DAYS -> Strings.homework_section_next_7_days
+        HomeworkSection.LATER -> Strings.homework_section_later
+        HomeworkSection.UNBOOKED -> Strings.homework_unbooked
     },
 )
 

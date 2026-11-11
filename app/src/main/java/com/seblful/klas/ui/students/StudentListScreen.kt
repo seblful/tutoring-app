@@ -15,10 +15,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.pluralStringResource
-import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.seblful.klas.R
 import com.seblful.klas.domain.lesson.LessonFilter
 import com.seblful.klas.domain.model.Assignee
 import com.seblful.klas.domain.model.LessonStatus
@@ -29,6 +26,11 @@ import com.seblful.klas.format.formatMonth
 import com.seblful.klas.queries.students.LessonMonth
 import com.seblful.klas.queries.students.StudentDetails
 import com.seblful.klas.queries.students.statusTally
+import com.seblful.klas.text.Plurals
+import com.seblful.klas.text.Strings
+import com.seblful.klas.text.currentTexts
+import com.seblful.klas.text.pluralStringResource
+import com.seblful.klas.text.stringResource
 import com.seblful.klas.ui.common.AddRow
 import com.seblful.klas.ui.common.EmptyState
 import com.seblful.klas.ui.common.KlasScreen
@@ -122,7 +124,7 @@ private fun StudentList(
 /** The card's events, in the card's words — a payment corrected on this page is offered back here. */
 @Composable
 private fun ShowStudentMessages(viewModel: StudentDetailViewModel, messages: Messages) {
-    val resources by rememberUpdatedState(LocalContext.current.resources)
+    val resources by rememberUpdatedState(currentTexts())
     LaunchedEffect(viewModel) {
         viewModel.events.stream.collect { messages.showStudentEvent(it, resources, viewModel) }
     }
@@ -175,7 +177,7 @@ private fun LazyListScope.lessons(
         item(key = StudentDetailKeys.CLASSES_EMPTY, contentType = StudentDetailKeys.CLASSES_EMPTY) {
             // No action: booking belongs to the schedule's form, reached from the card's next lesson.
             EmptyState(
-                title = stringResource(R.string.student_lessons_empty),
+                title = stringResource(Strings.student_lessons_empty),
                 icon = KlasIcons.Outlined.EventBusy,
                 compact = true,
             )
@@ -204,9 +206,9 @@ private fun LazyListScope.payments(
     if (payments.isEmpty()) {
         item(key = StudentDetailKeys.PAYMENTS_EMPTY, contentType = StudentDetailKeys.PAYMENTS_EMPTY) {
             EmptyState(
-                title = stringResource(R.string.payments_empty),
+                title = stringResource(Strings.payments_empty),
                 icon = KlasIcons.Outlined.Payments,
-                actionLabel = stringResource(R.string.add_payment),
+                actionLabel = stringResource(Strings.add_payment),
                 onAction = onAdd,
                 compact = true,
             )
@@ -214,7 +216,7 @@ private fun LazyListScope.payments(
         return
     }
     item(key = StudentDetailKeys.PAYMENTS_ADD, contentType = StudentDetailKeys.PAYMENTS_ADD) {
-        AddRow(stringResource(R.string.add_payment), onAdd)
+        AddRow(stringResource(Strings.add_payment), onAdd)
     }
     items(payments, key = { StudentDetailKeys.payment(it.id) }, contentType = { "payment" }) { payment ->
         PaymentRow(
@@ -228,11 +230,11 @@ private fun LazyListScope.payments(
 /** "9 lessons · 12 h · 287.50 $ earned" — the earned part only once the month has taught something. */
 @Composable
 private fun monthSummary(month: LessonMonth): String {
-    val lessons = pluralStringResource(R.plurals.lesson_count, month.held, month.held)
-    val hours = stringResource(R.string.hours_value, formatHours(month.minutes))
+    val lessons = pluralStringResource(Plurals.lesson_count, month.held, month.held)
+    val hours = stringResource(Strings.hours_value, formatHours(month.minutes))
     return if (month.earned.isZero) {
         bulletJoin(lessons, hours)
     } else {
-        bulletJoin(lessons, hours, stringResource(R.string.lesson_month_earned, month.earned.text()))
+        bulletJoin(lessons, hours, stringResource(Strings.lesson_month_earned, month.earned.text()))
     }
 }

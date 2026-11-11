@@ -11,8 +11,9 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
 import androidx.test.core.app.ApplicationProvider
-import com.seblful.klas.R
 import com.seblful.klas.domain.model.Student
+import com.seblful.klas.testutil.texts
+import com.seblful.klas.text.Strings
 import com.seblful.klas.ui.theme.KlasTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -47,8 +48,8 @@ class ContactBlockTest {
     fun `the phone is pressed alone, not the place under it`() {
         show(Student(name = "Liam", phone = PHONE))
 
-        rule.onNodeWithText(PHONE).assert(clickableAs(context.getString(R.string.student_message))).performClick()
-        rule.onNodeWithText(context.getString(R.string.class_mode_in_person)).assert(notClickable)
+        rule.onNodeWithText(PHONE).assert(clickableAs(context.texts().string(Strings.student_message))).performClick()
+        rule.onNodeWithText(context.texts().string(Strings.class_mode_in_person)).assert(notClickable)
         assertEquals(listOf(PHONE), messaged)
     }
 
@@ -56,7 +57,9 @@ class ContactBlockTest {
     fun `an email standing in for the phone writes to it`() {
         show(Student(name = "Liam", email = EMAIL))
 
-        rule.onNodeWithText(EMAIL).assert(clickableAs(context.getString(R.string.student_write_email))).performClick()
+        rule.onNodeWithText(EMAIL)
+            .assert(clickableAs(context.texts().string(Strings.student_write_email)))
+            .performClick()
         assertEquals(listOf(EMAIL), emailed)
     }
 
@@ -64,13 +67,13 @@ class ContactBlockTest {
     fun `an archived student says so beside the place, as an archived group does`() {
         show(Student(name = "Liam", archived = true))
 
-        rule.onNodeWithText(context.getString(R.string.student_archived_badge)).assertExists()
+        rule.onNodeWithText(context.texts().string(Strings.student_archived_badge)).assertExists()
     }
 
     @Test
     fun `a held contact icon names itself, as the bar's icons do`() {
         show(Student(name = "Liam", phone = PHONE))
-        val call = context.getString(R.string.student_call)
+        val call = context.texts().string(Strings.student_call)
 
         rule.onNodeWithContentDescription(call).performTouchInput { longClick() }
         rule.waitForIdle()

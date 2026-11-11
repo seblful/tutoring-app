@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_today_name">오늘의 수업</string>
+    <string name="widget_today_description">오늘의 수업을 한 번 눌러 진행 완료로 표시하세요</string>
+    <string name="widget_quick_actions_name">Klas 바로가기</string>
+    <string name="widget_quick_actions_description">수업 예약, 학생 추가 또는 오늘, 숙제, 미수금 열기</string>
+</resources>

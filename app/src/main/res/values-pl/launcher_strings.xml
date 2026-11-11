@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_today_name">Dzisiejsze lekcje</string>
+    <string name="widget_today_description">Oznaczaj dzisiejsze lekcje jako przeprowadzone jednym dotknięciem</string>
+    <string name="widget_quick_actions_name">Skróty Klas</string>
+    <string name="widget_quick_actions_description">Zarezerwuj lekcję, dodaj ucznia lub otwórz Dzisiaj, prace domowe i długi</string>
+</resources>

@@ -3,13 +3,15 @@ package com.seblful.klas.notifications
 import android.content.Context
 import android.content.Intent
 import androidx.annotation.DrawableRes
-import androidx.annotation.StringRes
 import androidx.core.content.pm.ShortcutInfoCompat
 import androidx.core.content.pm.ShortcutManagerCompat
 import androidx.core.graphics.drawable.IconCompat
 import com.seblful.klas.MainActivity
 import com.seblful.klas.R
 import com.seblful.klas.runCatchingCancellable
+import com.seblful.klas.text.StringResource
+import com.seblful.klas.text.Strings
+import com.seblful.klas.text.Texts
 
 /**
  * The launcher's long-press menu on the app icon: the four things a tutor opens the app *to do*, each the
@@ -22,22 +24,22 @@ object AppShortcuts {
 
     private class Entry(
         val id: String,
-        @param:StringRes val label: Int,
+        val label: StringResource,
         @param:DrawableRes val icon: Int,
         val action: String,
     )
 
     private val entries = listOf(
-        Entry("book", R.string.schedule_add_class, R.drawable.widget_icon_add, TrayNavigation.ACTION_BOOK_LESSON),
-        Entry("today", R.string.nav_today, R.drawable.widget_icon_today, TrayNavigation.ACTION_OPEN_TODAY),
-        Entry("homework", R.string.nav_homework, R.drawable.widget_icon_homework, TrayNavigation.ACTION_OPEN_HOMEWORK),
-        Entry("debts", R.string.reports_debts, R.drawable.widget_icon_debts, TrayNavigation.ACTION_OPEN_DEBTS),
+        Entry("book", Strings.schedule_add_class, R.drawable.widget_icon_add, TrayNavigation.ACTION_BOOK_LESSON),
+        Entry("today", Strings.nav_today, R.drawable.widget_icon_today, TrayNavigation.ACTION_OPEN_TODAY),
+        Entry("homework", Strings.nav_homework, R.drawable.widget_icon_homework, TrayNavigation.ACTION_OPEN_HOMEWORK),
+        Entry("debts", Strings.reports_debts, R.drawable.widget_icon_debts, TrayNavigation.ACTION_OPEN_DEBTS),
     )
 
-    /** Publishes the shortcuts, labelled in [context]'s language. A launcher that refuses them costs nothing. */
-    fun publish(context: Context) {
+    /** Publishes the shortcuts, labelled in [texts]' language. A launcher that refuses them costs nothing. */
+    fun publish(context: Context, texts: Texts) {
         val shortcuts = entries.mapIndexed { rank, entry ->
-            val label = context.getString(entry.label)
+            val label = texts.string(entry.label)
             ShortcutInfoCompat.Builder(context, entry.id)
                 .setShortLabel(label)
                 .setLongLabel(label)

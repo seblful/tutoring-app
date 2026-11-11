@@ -1,12 +1,10 @@
 package com.seblful.klas.ui.navigation
 
-import androidx.annotation.StringRes
 import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
 import androidx.compose.material3.adaptive.navigation3.ListDetailSceneStrategy
 import androidx.compose.material3.adaptive.navigation3.LocalListDetailSceneScope
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.DEFAULT_ARGS_KEY
 import androidx.lifecycle.HasDefaultViewModelProviderFactory
 import androidx.lifecycle.ViewModel
@@ -17,8 +15,10 @@ import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.result.LocalResultEventBus
 import androidx.navigation3.runtime.result.ResultEffect
 import androidx.savedstate.serialization.encodeToSavedState
-import com.seblful.klas.R
 import com.seblful.klas.domain.model.Assignee
+import com.seblful.klas.text.StringResource
+import com.seblful.klas.text.Strings
+import com.seblful.klas.text.stringResource
 import com.seblful.klas.ui.backup.BackupScreen
 import com.seblful.klas.ui.common.EmptyState
 import com.seblful.klas.ui.diagnostics.DiagnosticsScreen
@@ -326,10 +326,10 @@ private fun Route.list(): Route? = when (this) {
 @OptIn(ExperimentalMaterial3AdaptiveApi::class)
 private fun Route.paneMetadata(): Map<String, Any> = when (this) {
     Routes.People -> ListDetailSceneStrategy.listPane(sceneKey = this) {
-        PickDetail(R.string.people_pick_card, KlasIcons.Outlined.Group)
+        PickDetail(Strings.people_pick_card, KlasIcons.Outlined.Group)
     }
     Routes.Settings -> ListDetailSceneStrategy.listPane(sceneKey = this) {
-        PickDetail(R.string.settings_pick_page, KlasIcons.Outlined.Settings)
+        PickDetail(Strings.settings_pick_page, KlasIcons.Outlined.Settings)
     }
     else -> list()?.let { ListDetailSceneStrategy.detailPane(sceneKey = it) }.orEmpty()
 }
@@ -345,7 +345,7 @@ fun listBesideDetail(backStack: List<Screen>): Route? {
 }
 
 @Composable
-private fun PickDetail(@StringRes title: Int, icon: ImageVector) {
+private fun PickDetail(title: StringResource, icon: ImageVector) {
     EmptyState(title = stringResource(title), icon = icon)
 }
 

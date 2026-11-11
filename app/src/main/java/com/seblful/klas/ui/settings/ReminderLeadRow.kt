@@ -1,7 +1,5 @@
 package com.seblful.klas.ui.settings
 
-import androidx.annotation.PluralsRes
-import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,12 +15,15 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.pluralStringResource
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
-import com.seblful.klas.R
 import com.seblful.klas.domain.time.MINUTES_PER_DAY
 import com.seblful.klas.domain.time.MINUTES_PER_HOUR
+import com.seblful.klas.text.PluralResource
+import com.seblful.klas.text.Plurals
+import com.seblful.klas.text.StringResource
+import com.seblful.klas.text.Strings
+import com.seblful.klas.text.pluralStringResource
+import com.seblful.klas.text.stringResource
 import com.seblful.klas.ui.common.ChoiceField
 import com.seblful.klas.ui.common.KlasMenu
 import com.seblful.klas.ui.common.Spacing
@@ -42,7 +43,7 @@ internal fun ReminderLeadRow(minutes: Int, enabled: Boolean, onSelect: (Int) -> 
     var expanded by rememberSaveable { mutableStateOf(false) }
     var custom by rememberSaveable { mutableStateOf(false) }
     Box {
-        ValueRow(stringResource(R.string.settings_reminder_lead), reminderLeadLabel(minutes), enabled, description) {
+        ValueRow(stringResource(Strings.settings_reminder_lead), reminderLeadLabel(minutes), enabled, description) {
             expanded = true
         }
         KlasMenu(expanded = expanded && enabled, onDismissRequest = { expanded = false }) {
@@ -57,7 +58,7 @@ internal fun ReminderLeadRow(minutes: Int, enabled: Boolean, onSelect: (Int) -> 
                 )
             }
             TickedMenuItem(
-                text = stringResource(R.string.settings_reminder_lead_custom),
+                text = stringResource(Strings.settings_reminder_lead_custom),
                 selected = minutes !in LeadPresets,
                 onClick = {
                     expanded = false
@@ -81,7 +82,7 @@ internal fun ReminderLeadRow(minutes: Int, enabled: Boolean, onSelect: (Int) -> 
 /** [ReminderLeadRow]'s second line wherever it is shown: shared with the other page, or why it is off. */
 @Composable
 internal fun reminderLeadDescription(enabled: Boolean): String =
-    stringResource(if (enabled) R.string.settings_reminder_shared else R.string.settings_reminder_enable)
+    stringResource(if (enabled) Strings.settings_reminder_shared else Strings.settings_reminder_enable)
 
 @Composable
 private fun reminderLeadLabel(minutes: Int): String {
@@ -96,9 +97,9 @@ internal fun ReminderLeadPickerModal(initialMinutes: Int, onConfirm: (Int) -> Un
     var amount by rememberSaveable { mutableStateOf((initialMinutes / unit.minutes).toString()) }
     val total = unit.totalMinutes(amount)
     FormDialog(
-        title = stringResource(R.string.settings_reminder_lead),
+        title = stringResource(Strings.settings_reminder_lead),
         confirm = DialogAction(
-            label = stringResource(R.string.action_done),
+            label = stringResource(Strings.action_done),
             onClick = { total?.let(onConfirm) },
             enabled = total != null,
         ),
@@ -119,7 +120,7 @@ internal fun ReminderLeadFields(
             OutlinedTextField(
                 value = amount,
                 onValueChange = { onAmountChange(it.filter(Char::isDigit)) },
-                label = { Text(stringResource(R.string.settings_reminder_amount)) },
+                label = { Text(stringResource(Strings.settings_reminder_amount)) },
                 isError = invalid,
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -127,7 +128,7 @@ internal fun ReminderLeadFields(
             )
             Column(Modifier.weight(1f)) {
                 ChoiceField(
-                    label = stringResource(R.string.settings_reminder_unit),
+                    label = stringResource(Strings.settings_reminder_unit),
                     selected = unit,
                     options = ReminderUnit.entries,
                     optionLabel = { stringResource(it.label) },
@@ -137,9 +138,9 @@ internal fun ReminderLeadFields(
         }
         Text(
             text = if (invalid) {
-                stringResource(R.string.settings_reminder_amount_range, unit.maximum)
+                stringResource(Strings.settings_reminder_amount_range, unit.maximum)
             } else {
-                stringResource(R.string.settings_reminder_day_explanation)
+                stringResource(Strings.settings_reminder_day_explanation)
             },
             style = MaterialTheme.typography.bodySmall,
             color = if (invalid) klasSemantics.validation else MaterialTheme.colorScheme.onSurfaceVariant,
@@ -150,12 +151,12 @@ internal fun ReminderLeadFields(
 
 internal enum class ReminderUnit(
     val minutes: Int,
-    @param:StringRes val label: Int,
-    @param:PluralsRes val beforeLabel: Int,
+    val label: StringResource,
+    val beforeLabel: PluralResource,
 ) {
-    MINUTES(1, R.string.duration_minutes_label, R.plurals.settings_reminder_minutes_before),
-    HOURS(MINUTES_PER_HOUR, R.string.duration_hours_label, R.plurals.settings_reminder_hours_before),
-    DAYS(MINUTES_PER_DAY, R.string.settings_reminder_days, R.plurals.settings_reminder_days_before),
+    MINUTES(1, Strings.duration_minutes_label, Plurals.settings_reminder_minutes_before),
+    HOURS(MINUTES_PER_HOUR, Strings.duration_hours_label, Plurals.settings_reminder_hours_before),
+    DAYS(MINUTES_PER_DAY, Strings.settings_reminder_days, Plurals.settings_reminder_days_before),
     ;
 
     val maximum: Int get() = Int.MAX_VALUE / minutes

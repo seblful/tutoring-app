@@ -9,10 +9,11 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.pluralStringResource
-import androidx.compose.ui.res.stringResource
-import com.seblful.klas.R
 import com.seblful.klas.format.bulletJoin
+import com.seblful.klas.text.Plurals
+import com.seblful.klas.text.Strings
+import com.seblful.klas.text.pluralStringResource
+import com.seblful.klas.text.stringResource
 import com.seblful.klas.ui.common.ArchivedBadge
 import com.seblful.klas.ui.common.EmptyState
 import com.seblful.klas.ui.common.FabListPadding
@@ -74,10 +75,10 @@ private fun GroupRows(
             NoSearchResults(modifier.padding(bottomInset))
         } else {
             EmptyState(
-                title = stringResource(R.string.groups_empty),
-                detail = stringResource(R.string.groups_empty_detail),
+                title = stringResource(Strings.groups_empty),
+                detail = stringResource(Strings.groups_empty_detail),
                 icon = KlasIcons.Outlined.Groups,
-                actionLabel = stringResource(R.string.groups_add),
+                actionLabel = stringResource(Strings.groups_add),
                 onAction = onAddGroup,
                 modifier = modifier.padding(bottomInset),
             )
@@ -121,9 +122,9 @@ internal fun GroupCard(
             lessonLineText(row.lessons),
             row.subjectName.orEmpty(),
             if (row.memberNames.isEmpty()) {
-                stringResource(R.string.group_no_members)
+                stringResource(Strings.group_no_members)
             } else {
-                pluralStringResource(R.plurals.members_count, row.memberNames.size, row.memberNames.size)
+                pluralStringResource(Plurals.members_count, row.memberNames.size, row.memberNames.size)
             },
         ),
         onClick = onClick,

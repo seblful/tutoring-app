@@ -21,12 +21,12 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.LocalTextToolbar
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.navigationevent.NavigationEventInfo
 import androidx.navigationevent.compose.NavigationBackHandler
 import androidx.navigationevent.compose.rememberNavigationEventState
-import com.seblful.klas.R
+import com.seblful.klas.text.Strings
+import com.seblful.klas.text.stringResource
 import com.seblful.klas.ui.common.HeroIconSize
 import com.seblful.klas.ui.common.Spacing
 import com.seblful.klas.ui.designsystem.component.KlasButton
@@ -63,7 +63,7 @@ fun AppLockGate(locked: Boolean, onUnlock: (title: String) -> Unit, content: @Co
 /** The prompt opens as the page does; a dismissed prompt leaves the page, with its button, to ask again. */
 @Composable
 internal fun AppLockScreen(onUnlock: (title: String) -> Unit) {
-    val title = stringResource(R.string.app_lock_prompt_title, stringResource(R.string.app_name))
+    val title = stringResource(Strings.app_lock_prompt_title, stringResource(Strings.app_name))
     LaunchedEffect(Unit) { onUnlock(title) }
     // Back leaves the app rather than reaching the screens underneath.
     val activity = LocalActivity.current
@@ -90,9 +90,9 @@ internal fun AppLockScreen(onUnlock: (title: String) -> Unit) {
             modifier = Modifier.size(HeroIconSize),
         )
         Text(
-            stringResource(R.string.app_lock_locked, stringResource(R.string.app_name)),
+            stringResource(Strings.app_lock_locked, stringResource(Strings.app_name)),
             style = MaterialTheme.typography.titleLarge,
         )
-        KlasButton(onClick = { onUnlock(title) }) { Text(stringResource(R.string.app_lock_unlock)) }
+        KlasButton(onClick = { onUnlock(title) }) { Text(stringResource(Strings.app_lock_unlock)) }
     }
 }
