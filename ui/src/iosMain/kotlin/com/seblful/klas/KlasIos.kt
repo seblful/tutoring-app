@@ -20,6 +20,8 @@ import dev.zacsweers.metrox.viewmodel.metroViewModel
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import platform.Foundation.NSNumber
 import platform.LocalAuthentication.LAContext
 import platform.LocalAuthentication.LAPolicyDeviceOwnerAuthentication
 import platform.UIKit.UIViewController
@@ -111,8 +113,9 @@ private fun CrashLogger.install() {
 }
 
 /**
- * A tap on one of the app's notifications goes where the same tap goes on Android ([IosArrivals]); one
- * arriving while the app is open still shows, as a banner.
+ * A tap on one of the app's notifications, or one of its buttons, does what it does on Android: a tap or an
+ * Open button goes to its link ([IosArrivals]), and «Проведено» marks the lesson through `ReminderActions`
+ * without opening the app. One arriving while the app is open still shows, as a banner.
  */
 private class NotificationTaps : NSObject(), UNUserNotificationCenterDelegateProtocol {
 
@@ -122,7 +125,20 @@ private class NotificationTaps : NSObject(), UNUserNotificationCenterDelegatePro
         withCompletionHandler: () -> Unit,
     ) {
         val info = didReceiveNotificationResponse.notification.request.content.userInfo
-        (info[IosNotifier.KEY_LINK] as? String)?.let(IosArrivals::openLink)
+        val action = didReceiveNotificationResponse.actionIdentifier
+        val classId = (info[IosNotifier.KEY_CLASS_ID] as? NSNumber)?.longLongValue
+        if (action == IosNotifier.ACTION_COMPLETE && classId != null) {
+            KlasIos.graph.applicationScope.launch {
+                try {
+                    KlasIos.graph.reminderActions.complete(classId)
+                } finally {
+                    withContext(Dispatchers.Main) { withCompletionHandler() }
+                }
+            }
+            return
+        }
+        // An Open button's link is keyed by its action; the tap itself (the default action) by KEY_LINK.
+        ((info[action] ?: info[IosNotifier.KEY_LINK]) as? String)?.let(IosArrivals::openLink)
         withCompletionHandler()
     }
 

@@ -10,14 +10,9 @@ import android.os.Build
 import android.text.format.DateFormat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
-import com.seblful.klas.MainActivity
 import com.seblful.klas.R
 import com.seblful.klas.data.settings.SettingsRepository
 import com.seblful.klas.di.ApplicationContext
-import com.seblful.klas.domain.model.Currency
-import com.seblful.klas.domain.model.Money
-import com.seblful.klas.domain.model.TutoringClass
-import com.seblful.klas.domain.reminders.Digests
 import com.seblful.klas.format.DisplayLocale
 import com.seblful.klas.text.StringResource
 import com.seblful.klas.text.Strings
@@ -26,10 +21,10 @@ import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
-import kotlinx.datetime.LocalDate
+import dev.zacsweers.metro.binding
 
 /** Creates the app's channels and posts every notification it sends through the platform. */
-@ContributesBinding(AppScope::class)
+@ContributesBinding(AppScope::class, binding = binding<Notifier>())
 @SingleIn(AppScope::class)
 class AndroidNotifier @Inject constructor(
     @param:ApplicationContext private val context: Context,
@@ -37,7 +32,7 @@ class AndroidNotifier @Inject constructor(
     private val permission: NotificationPermission,
     private val displayLocale: DisplayLocale,
     private val settings: SettingsRepository,
-) : Notifier {
+) : TrayNotifier(displayLocale) {
 
     private val words: Texts get() = displayLocale.texts
 
@@ -78,15 +73,6 @@ class AndroidNotifier @Inject constructor(
             if (!details) lockscreenVisibility = Notification.VISIBILITY_PRIVATE
         }
 
-    @androidx.annotation.RequiresApi(Build.VERSION_CODES.O)
-    private fun NotificationChannel.carry(from: NotificationChannel) {
-        importance = from.importance
-        setSound(from.sound, from.audioAttributes)
-        enableVibration(from.shouldVibrate())
-        vibrationPattern = from.vibrationPattern
-        setShowBadge(from.canShowBadge())
-    }
-
     /**
      * Whether the shown set is in force: the tutor's choice once the settings row has been read, and
      * until then whichever set exists — so a cold start never swaps the channels back and forth.
@@ -98,42 +84,46 @@ class AndroidNotifier @Inject constructor(
                     .getNotificationChannel(Kind.REMINDERS.id(details = true)) != null
             )
 
-    /** No-ops silently if notification permission is missing. */
-    override fun showClassReminder(
-        klass: TutoringClass,
-        whoName: String,
-        subjectName: String,
-        homeworkToCheck: String?,
-    ) {
-        if (!mayPost()) return
+    override fun hour12(): Boolean = !DateFormat.is24HourFormat(context)
 
-        // 12- or 24-hour from the phone, like every other time the tutor is shown. A reminder is read
-        // *on* the phone, so a lesson booked at 9:00 PM must not be announced as «21:00».
-        val entry = text().reminder(klass, whoName, subjectName, homeworkToCheck)
-
-        val notification = builder(Kind.REMINDERS, entry.title)
+    /**
+     * Draws [notice] in the platform's terms: its channel, a style that suits its words, and its tap and
+     * buttons as intents. No-ops silently if notification permission is missing.
+     */
+    override fun post(notice: TrayNotice) {
+        if (!permission.isGranted()) return
+        ensureChannels()
+        val kind = notice.kind.channelKind
+        val id = notice.classId?.toInt() ?: kind.fixedId
+        val entry = notice.entry
+        val builder = builder(kind, entry.title)
             .setContentText(entry.text)
-            .setStyle(NotificationCompat.BigTextStyle().bigText(entry.expanded))
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
-            .setCategory(NotificationCompat.CATEGORY_REMINDER)
-            // The lesson on the schedule, with its sheet open — what tapping its card does in the app.
-            .setContentIntent(
-                openApp(klass.id.toInt(), TrayNavigation.Destination.LessonOnSchedule(klass.id)),
-            )
-            // Reminders stack: a tutor with back-to-back lessons can have two or three in the tray at
-            // once, and un-grouped they sit among everything else the phone has to say. Grouping is only
-            // half of it — Android needs a *summary* to collapse them under, which is why [remindersSummary]
-            // is posted straight after this one.
-            .setGroup(GROUP_REMINDERS)
-            // The two things a tutor does about the lesson they have just been reminded of, in the order
-            // the reminder makes them likely: it happened, or it has to move. Same words as the schedule's
-            // own actions — «Проведено» and «Перенести» are one idea each, so they are one string each.
-            .addAction(completeAction(klass.id))
-            .addAction(rescheduleAction(klass.id))
-            .build()
-
-        post(klass.id.toInt(), notification)
-        remindersSummary()
+            .setContentIntent(openApp(id, notice.tap))
+        when (notice.kind) {
+            TrayKind.REMINDER ->
+                builder
+                    .setStyle(NotificationCompat.BigTextStyle().bigText(entry.expanded))
+                    .setPriority(NotificationCompat.PRIORITY_HIGH)
+                    .setCategory(NotificationCompat.CATEGORY_REMINDER)
+                    // Reminders stack: a tutor with back-to-back lessons can have two or three in the tray at
+                    // once, and Android needs a *summary* to collapse them under — [remindersSummary].
+                    .setGroup(GROUP_REMINDERS)
+            // InboxStyle rather than BigTextStyle: a digest is a *list*, and the platform draws each line
+            // whole and elides the ones that do not fit rather than truncating a sentence.
+            TrayKind.AGENDA, TrayKind.UNFINISHED ->
+                builder
+                    .setStyle(
+                        NotificationCompat.InboxStyle().also { style ->
+                            entry.lines.forEach(style::addLine)
+                            entry.more?.let(style::setSummaryText)
+                        },
+                    )
+                    .setCategory(NotificationCompat.CATEGORY_REMINDER)
+            TrayKind.DEBTS, TrayKind.UPKEEP -> builder.setCategory(NotificationCompat.CATEGORY_STATUS)
+        }
+        notice.buttons.forEach { builder.addAction(action(it, id)) }
+        post(id, builder.build())
+        if (notice.kind == TrayKind.REMINDER) remindersSummary()
     }
 
     override fun cancelClassReminder(classId: Long) {
@@ -149,66 +139,6 @@ class AndroidNotifier @Inject constructor(
             .setContentIntent(openApp(ID_REMINDERS_SUMMARY, TrayNavigation.Destination.Today))
             .build()
         post(ID_REMINDERS_SUMMARY, summary)
-    }
-
-    override fun showAgenda(agenda: Digests.Agenda, currency: Currency) {
-        if (!mayPost()) return
-
-        // InboxStyle rather than BigTextStyle: this is a *list*, and the platform draws each line whole and
-        // elides the ones that do not fit rather than truncating the middle of a sentence.
-        val notification = listed(Kind.AGENDA, text().agenda(agenda, currency))
-            .setCategory(NotificationCompat.CATEGORY_REMINDER)
-            .setContentIntent(openDay(ID_AGENDA, agenda.day))
-            .build()
-
-        post(ID_AGENDA, notification)
-    }
-
-    override fun showUnfinished(unfinished: Digests.Unfinished) {
-        if (!mayPost()) return
-
-        val notification = listed(Kind.UNFINISHED, text().unfinished(unfinished))
-            .setCategory(NotificationCompat.CATEGORY_REMINDER)
-            // Straight to the day's schedule, where each of these is one swipe from being marked. No
-            // action buttons: «Проведено» on a list of five lessons could only guess, and this one bills.
-            .setContentIntent(openDay(ID_UNFINISHED, unfinished.day))
-            .build()
-
-        post(ID_UNFINISHED, notification)
-    }
-
-    override fun showDebts(debts: Digests.Debts, currency: Currency) {
-        if (!mayPost()) return
-
-        val entry = text().debts(debts, currency)
-        val notification = builder(Kind.DEBTS, entry.title)
-            .setContentText(entry.text)
-            .setCategory(NotificationCompat.CATEGORY_STATUS)
-            // Straight to the report that lists them, where each debt row opens the student — the tray can
-            // say how much is owed in total and nothing at all about by whom.
-            .setContentIntent(openApp(ID_DEBTS, TrayNavigation.Destination.Debts))
-            .build()
-
-        post(ID_DEBTS, notification)
-    }
-
-    override fun showAutoCompleted(lessons: Int, billed: Money, day: LocalDate, currency: Currency) {
-        if (!mayPost()) return
-
-        val entry = text().autoCompleted(lessons, billed, currency)
-        val notification = builder(Kind.UPKEEP, entry.title)
-            .setContentText(entry.text)
-            .setCategory(NotificationCompat.CATEGORY_STATUS)
-            .setContentIntent(openDay(ID_UPKEEP, day))
-            .build()
-
-        post(ID_UPKEEP, notification)
-    }
-
-    private fun mayPost(): Boolean {
-        if (!permission.isGranted()) return false
-        ensureChannels()
-        return true
     }
 
     private fun builder(kind: Kind, title: String): NotificationCompat.Builder {
@@ -229,14 +159,6 @@ class AndroidNotifier @Inject constructor(
             )
     }
 
-    /** A digest that lists lessons: its sentence collapsed, its lines expanded. */
-    private fun listed(kind: Kind, entry: TrayText.Entry): NotificationCompat.Builder {
-        val style = NotificationCompat.InboxStyle()
-        entry.lines.forEach(style::addLine)
-        entry.more?.let(style::setSummaryText)
-        return builder(kind, entry.title).setContentText(entry.text).setStyle(style)
-    }
-
     private fun post(id: Int, notification: android.app.Notification) {
         try {
             NotificationManagerCompat.from(context).notify(id, notification)
@@ -245,43 +167,30 @@ class AndroidNotifier @Inject constructor(
         }
     }
 
-    /** The words, in the app's language and on the phone's clock — the same as iOS's tray says. */
-    private fun text() = TrayText(words, displayLocale.tag, hour12 = !DateFormat.is24HourFormat(context))
-
     private fun openApp(requestCode: Int, destination: TrayNavigation.Destination): PendingIntent {
         val intent = context.openAppIntent(destination).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
         return PendingIntent.getActivity(context, requestCode, intent, FLAGS)
     }
 
-    private fun openDay(requestCode: Int, day: LocalDate): PendingIntent =
-        openApp(requestCode, TrayNavigation.Destination.Day(day))
-
-    private fun completeAction(classId: Long): NotificationCompat.Action {
-        val intent = Intent(context, ReminderActionReceiver::class.java)
-            .setAction(ReminderActionReceiver.ACTION_COMPLETE)
-            .putExtra(TrayNavigation.EXTRA_CLASS_ID, classId)
-        // It bills the lesson, so from a locked phone it asks for the unlock first (Android 12+).
-        return action(
-            Strings.class_status_completed,
-            PendingIntent.getBroadcast(context, classId.toInt(), intent, FLAGS),
-            authenticated = true,
-        )
+    /** [button] as the platform's action; [requestCode] is the notification's, which its intents share. */
+    private fun action(button: TrayButton, requestCode: Int): NotificationCompat.Action = when (button) {
+        is TrayButton.Complete -> {
+            val intent = Intent(context, ReminderActionReceiver::class.java)
+                .setAction(ReminderActionReceiver.ACTION_COMPLETE)
+                .putExtra(TrayNavigation.EXTRA_CLASS_ID, button.classId)
+            NotificationCompat.Action.Builder(
+                0,
+                words.string(button.label),
+                PendingIntent.getBroadcast(context, requestCode, intent, FLAGS),
+            )
+                // It bills the lesson, so from a locked phone it asks for the unlock first (Android 12+).
+                .setAuthenticationRequired(true)
+                .build()
+        }
+        is TrayButton.Open ->
+            NotificationCompat.Action.Builder(0, words.string(button.label), openApp(requestCode, button.destination))
+                .build()
     }
-
-    private fun rescheduleAction(classId: Long): NotificationCompat.Action =
-        action(
-            Strings.class_move,
-            openApp(classId.toInt(), TrayNavigation.Destination.Lesson(classId)),
-        )
-
-    private fun action(
-        labelRes: StringResource,
-        intent: PendingIntent,
-        authenticated: Boolean = false,
-    ): NotificationCompat.Action =
-        NotificationCompat.Action.Builder(0, words.string(labelRes), intent)
-            .setAuthenticationRequired(authenticated)
-            .build()
 
     /**
      * The five kinds of notification, one channel each so each can be tuned or silenced on its own. Every
@@ -290,32 +199,33 @@ class AndroidNotifier @Inject constructor(
      * two exists at a time; [legacyId] is the channel from before the split, replaced once.
      */
     private enum class Kind(
+        val fixedId: Int,
         val legacyId: String,
         val nameRes: StringResource,
         val descRes: StringResource,
         val importance: Int,
     ) {
         REMINDERS(
-            "class_reminders", Strings.reminder_channel_name, Strings.reminder_channel_desc,
+            ID_REMINDERS_SUMMARY, "class_reminders", Strings.reminder_channel_name, Strings.reminder_channel_desc,
             NotificationManager.IMPORTANCE_HIGH,
         ),
         AGENDA(
-            "daily_agenda", Strings.agenda_channel_name, Strings.agenda_channel_desc,
+            ID_AGENDA, "daily_agenda", Strings.agenda_channel_name, Strings.agenda_channel_desc,
             NotificationManager.IMPORTANCE_DEFAULT,
         ),
         UNFINISHED(
-            "unfinished_digest", Strings.unfinished_channel_name, Strings.unfinished_channel_desc,
+            ID_UNFINISHED, "unfinished_digest", Strings.unfinished_channel_name, Strings.unfinished_channel_desc,
             NotificationManager.IMPORTANCE_DEFAULT,
         ),
         DEBTS(
-            "debt_digest", Strings.debts_channel_name, Strings.debts_channel_desc,
+            ID_DEBTS, "debt_digest", Strings.debts_channel_name, Strings.debts_channel_desc,
             NotificationManager.IMPORTANCE_DEFAULT,
         ),
 
         // LOW: no sound, no peek. The tutor is being told what the app did while they were away, which is
         // worth being able to read and never worth interrupting anything for.
         UPKEEP(
-            "upkeep_report", Strings.upkeep_channel_name, Strings.upkeep_channel_desc,
+            ID_UPKEEP, "upkeep_report", Strings.upkeep_channel_name, Strings.upkeep_channel_desc,
             NotificationManager.IMPORTANCE_LOW,
         ),
         ;
@@ -325,6 +235,15 @@ class AndroidNotifier @Inject constructor(
         /** The channels the set in force replaces: the other set, and the one from before the split. */
         fun replaced(details: Boolean): List<String> = listOf(id(!details), legacyId)
     }
+
+    private val TrayKind.channelKind: Kind
+        get() = when (this) {
+            TrayKind.REMINDER -> Kind.REMINDERS
+            TrayKind.AGENDA -> Kind.AGENDA
+            TrayKind.UNFINISHED -> Kind.UNFINISHED
+            TrayKind.DEBTS -> Kind.DEBTS
+            TrayKind.UPKEEP -> Kind.UPKEEP
+        }
 
     companion object {
         private const val PRIVATE = ".private"
@@ -340,4 +259,14 @@ class AndroidNotifier @Inject constructor(
 
         private const val FLAGS = PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
     }
+}
+
+/** What the tutor tuned on [from], carried onto its replacement. */
+@androidx.annotation.RequiresApi(Build.VERSION_CODES.O)
+private fun NotificationChannel.carry(from: NotificationChannel) {
+    importance = from.importance
+    setSound(from.sound, from.audioAttributes)
+    enableVibration(from.shouldVibrate())
+    vibrationPattern = from.vibrationPattern
+    setShowBadge(from.canShowBadge())
 }

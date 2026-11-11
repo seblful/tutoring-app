@@ -39,9 +39,10 @@ class DueReminder @Inject constructor(
     /**
      * Posts the reminder for [classId] if it is still owed at [now], and reports whether it did.
      * A class that has since been deleted, cancelled, completed or moved is simply not announced.
-     * [now] defaults to the injected clock, so the shipped path is the one a test can move.
+     * [now] defaults to the injected clock, so the shipped path is the one a test can move. [to] is where it is
+     * posted: iOS decides ahead and passes a notifier that shows it at [now].
      */
-    suspend fun post(classId: Long, now: Instant = clock.now()): Boolean {
+    suspend fun post(classId: Long, now: Instant = clock.now(), to: Notifier = notifier): Boolean {
         val klass = classes.getById(classId) ?: return false
         val settings = settings.get()
         val lead = settings.reminderLeadMinutes.minutes
@@ -55,7 +56,7 @@ class DueReminder @Inject constructor(
             .orEmpty()
             .joinToString("; ") { it.text }
             .ifEmpty { null }
-        notifier.showClassReminder(klass, who, names.subject(klass), attached)
+        to.showClassReminder(klass, who, names.subject(klass), attached)
         return true
     }
 }

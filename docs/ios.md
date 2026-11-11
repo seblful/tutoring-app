@@ -35,7 +35,9 @@ after changing it. The generated project, `Info.plist` and build output are igno
 | Crash log | `FileCrashLogStore`, `CrashHandler` | `IosCrashLogStore`, `KlasIos.start` |
 | Screen-level seams (pickers, permissions, theme, lock) | `ui/src/androidMain` `*.android.kt` | `ui/src/iosMain` `*.ios.kt` |
 
-Words every notification says come from the shared `TrayText`, so the two trays read the same. The
+Every notification is decided once as a `TrayNotice` (its kind, words from `TrayText`, where a tap goes
+and its buttons, built by `TrayNotices`), and both notifiers extend `TrayNotifier`, so they only draw it:
+a reminder's «Taught» and «Move» are Android actions and an iOS notification category alike. The
 widgets' rows (`TodayRows.kt`) and the shortcuts on the icon and the quick-actions widget (`Shortcuts`)
 are listed once in `:ui` too; each platform only maps `ShortcutIcon` to its own glyphs.
 A sealed backup is the same format on both: `AesGcm` in common code builds GCM over the platform's
@@ -45,7 +47,7 @@ AES block, so a backup sealed on one phone opens on the other.
 
 - **Notifications are decided ahead.** iOS does not wake an app to post a reminder, so `IosScheduler`
   runs the shared decisions (`DueReminder`, `DueDigest`) when the plan is made, as of the moment each
-  will show, and leaves the result with the system. The plan is made again after every change and each
+  will show, posting to `IosNotifier.at` that moment, which leaves the result with the system. The plan is made again after every change and each
   time the app comes to the front. At most 60 reminders are pending at once (iOS keeps 64).
 - **Upkeep runs in the foreground.** Auto-completion, the next reminder plan and the backup check run
   when the app opens or returns to the front; iOS gives no periodic background time to count on.

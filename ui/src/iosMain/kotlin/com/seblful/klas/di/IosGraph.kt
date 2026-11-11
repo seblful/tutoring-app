@@ -2,6 +2,7 @@ package com.seblful.klas.di
 
 import com.seblful.klas.diagnostics.CrashLogger
 import com.seblful.klas.notifications.IosNotificationPermission
+import com.seblful.klas.notifications.ReminderActions
 import com.seblful.klas.ui.AppSession
 import com.seblful.klas.widget.IosHomeScreen
 import dev.zacsweers.metro.AppScope
@@ -29,4 +30,7 @@ interface IosGraph : ViewModelGraph {
 
     @ApplicationScope
     val applicationScope: CoroutineScope
+
+    /** What a reminder's «Проведено» does, answered without opening the app. */
+    val reminderActions: ReminderActions
 }

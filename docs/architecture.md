@@ -122,7 +122,8 @@ counterpart (`PermissionPrompts`, `KeyboardShortcuts`, `Localization`) live in `
 
 Below the screens the same rule holds: each port (`Notifier`, `CalendarSync`, `DocumentStore`,
 `BackupCipher`, `SheetPrinter`…) has an Android adapter in `:app` and an iOS one in `ui/src/iosMain`, and
-whatever the two would both decide stays in common code — the tray's words in `TrayText`, which lessons a
+whatever the two would both decide stays in common code — each notification as a `TrayNotice` that both
+`TrayNotifier`s only draw, its words in `TrayText`, which lessons a
 digest names in `TrayContent`, GCM in `AesGcm`. [iOS](ios.md) lists the pairs and where iOS behaves
 differently.
 

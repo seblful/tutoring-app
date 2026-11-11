@@ -2,9 +2,6 @@ package com.seblful.klas.notifications
 
 import com.seblful.klas.data.settings.SettingsRepository
 import com.seblful.klas.di.ApplicationScope
-import com.seblful.klas.domain.model.Currency
-import com.seblful.klas.domain.model.Money
-import com.seblful.klas.domain.model.TutoringClass
 import com.seblful.klas.domain.reminders.DigestScheduler
 import com.seblful.klas.domain.reminders.Digests
 import com.seblful.klas.domain.reminders.ReminderScheduler
@@ -21,7 +18,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import platform.Foundation.NSDateComponents
@@ -34,6 +30,10 @@ import platform.UserNotifications.UNAuthorizationStatusNotDetermined
 import platform.UserNotifications.UNAuthorizationStatusProvisional
 import platform.UserNotifications.UNCalendarNotificationTrigger
 import platform.UserNotifications.UNMutableNotificationContent
+import platform.UserNotifications.UNNotificationAction
+import platform.UserNotifications.UNNotificationActionOptionAuthenticationRequired
+import platform.UserNotifications.UNNotificationActionOptionForeground
+import platform.UserNotifications.UNNotificationCategory
 import platform.UserNotifications.UNNotificationRequest
 import platform.UserNotifications.UNNotificationSound
 import platform.UserNotifications.UNUserNotificationCenter
@@ -45,10 +45,10 @@ import kotlin.time.Instant
 /*
  * iOS notifications. Android posts each one when an alarm or a worker fires and decides then what it says;
  * an iOS app is not woken to do that, so it decides ahead: the same shared decisions ([DueReminder],
- * [DueDigest]) run when the plans are made, *as of* the moment each will show, and [IosNotifier] hands
- * the result to the system with that moment as its trigger. A plan made again (after any change, and each
- * time the app comes to the front) replaces what was pending, so what shows is at most as old as the last
- * change.
+ * [DueDigest]) run when the plans are made, *as of* the moment each will show, posting to
+ * [IosNotifier.at] that moment, which hands the notice to the system with it as the trigger. A plan made
+ * again (after any change, and each time the app comes to the front) replaces what was pending, so what
+ * shows is at most as old as the last change.
  */
 
 /** The system's answer, read when the app comes to the front; iOS gives it only asynchronously. */
@@ -86,65 +86,51 @@ class IosExactAlarmPermission : ExactAlarmPermission {
 }
 
 /**
- * [Notifier] over `UNUserNotificationCenter`. A notification is shown at [deliverAt] when a scheduler has
- * set it — see the file's note — and at once otherwise. A redacted lock screen shows the collapsed line
- * only; iOS's own "Show Previews" setting hides even that.
+ * [Notifier] over `UNUserNotificationCenter`: shows each [TrayNotice] at once, or at the moment given to [at].
+ * A redacted lock screen shows the collapsed line only; iOS's own "Show Previews" setting hides even that.
+ * A notice's buttons are its category's actions, answered in `KlasIos`.
  */
-@ContributesBinding(AppScope::class)
+@ContributesBinding(AppScope::class, binding = binding<Notifier>())
 @SingleIn(AppScope::class)
 @Inject
 class IosNotifier(
     private val displayLocale: DisplayLocale,
     private val settings: SettingsRepository,
     private val clock: WallClock,
-) : Notifier {
-
-    /** When what is posted now is to show; set by [IosScheduler] around each decision it runs ahead. */
-    @Volatile
-    internal var deliverAt: Instant? = null
+) : TrayNotifier(displayLocale) {
 
     private val center get() = UNUserNotificationCenter.currentNotificationCenter()
 
-    private fun text() = TrayText(displayLocale.texts, displayLocale.tag, phoneHour12())
+    /** The button titles last registered with the system, which keeps them per category, not per notification. */
+    private var registered: List<String>? = null
+
+    override fun hour12(): Boolean = phoneHour12()
 
     override fun ensureChannels() = Unit
 
-    override fun showClassReminder(
-        klass: TutoringClass,
-        whoName: String,
-        subjectName: String,
-        homeworkToCheck: String?,
-    ) {
-        val entry = text().reminder(klass, whoName, subjectName, homeworkToCheck)
-        post(reminderId(klass.id), entry, TrayNavigation.Destination.LessonOnSchedule(klass.id), thread = REMINDERS)
-    }
+    override fun post(notice: TrayNotice) = deliver(notice, at = null)
 
     override fun cancelClassReminder(classId: Long) {
         center.removePendingNotificationRequestsWithIdentifiers(listOf(reminderId(classId)))
         center.removeDeliveredNotificationsWithIdentifiers(listOf(reminderId(classId)))
     }
 
-    override fun showAgenda(agenda: Digests.Agenda, currency: Currency) =
-        post(AGENDA, text().agenda(agenda, currency), TrayNavigation.Destination.Day(agenda.day))
+    /** This notifier showing what it is given at [at] rather than now — for the decisions made ahead. */
+    fun at(at: Instant): Notifier = object : TrayNotifier(displayLocale) {
+        override fun hour12(): Boolean = phoneHour12()
 
-    override fun showUnfinished(unfinished: Digests.Unfinished) =
-        post(UNFINISHED, text().unfinished(unfinished), TrayNavigation.Destination.Day(unfinished.day))
+        override fun ensureChannels() = Unit
 
-    override fun showDebts(debts: Digests.Debts, currency: Currency) =
-        post(DEBTS, text().debts(debts, currency), TrayNavigation.Destination.Debts)
+        override fun post(notice: TrayNotice) = deliver(notice, at)
 
-    override fun showAutoCompleted(lessons: Int, billed: Money, day: LocalDate, currency: Currency) =
-        post(UPKEEP, text().autoCompleted(lessons, billed, currency), TrayNavigation.Destination.Day(day))
+        override fun cancelClassReminder(classId: Long) = this@IosNotifier.cancelClassReminder(classId)
+    }
 
-    private fun post(
-        id: String,
-        entry: TrayText.Entry,
-        tap: TrayNavigation.Destination,
-        thread: String? = null,
-    ) {
+    private fun deliver(notice: TrayNotice, at: Instant?) {
         // No permission check: iOS drops a request the app may not show, and one set while the answer is
         // still being read at launch shows once it is yes.
         val details = settings.privacy.value?.lockScreenDetails ?: true
+        val entry = notice.entry
         val content = UNMutableNotificationContent().apply {
             setTitle(entry.title)
             setBody(
@@ -155,14 +141,55 @@ class IosNotifier(
                 },
             )
             setSound(UNNotificationSound.defaultSound)
-            thread?.let { setThreadIdentifier(it) }
-            setUserInfo(mapOf<Any?, Any?>(KEY_LINK to TrayNavigation.linkFor(tap)))
+            setThreadIdentifier(notice.kind.name.lowercase())
+            if (notice.buttons.isNotEmpty()) setCategoryIdentifier(category(notice.buttons))
+            setUserInfo(
+                buildMap<Any?, Any?> {
+                    put(KEY_LINK, TrayNavigation.linkFor(notice.tap))
+                    notice.buttons.forEachIndexed { index, button ->
+                        when (button) {
+                            is TrayButton.Complete -> put(KEY_CLASS_ID, button.classId)
+                            is TrayButton.Open -> put(openAction(index), TrayNavigation.linkFor(button.destination))
+                        }
+                    }
+                },
+            )
         }
-        val at = deliverAt?.takeIf { it > clock.now() }
-        val trigger = at?.let {
+        val trigger = at?.takeIf { it > clock.now() }?.let {
             UNCalendarNotificationTrigger.triggerWithDateMatchingComponents(components(it), repeats = false)
         }
-        center.addNotificationRequest(UNNotificationRequest.requestWithIdentifier(id, content, trigger), null)
+        center.addNotificationRequest(UNNotificationRequest.requestWithIdentifier(id(notice), content, trigger), null)
+    }
+
+    /**
+     * The category holding [buttons] as actions, registered again when their words change. Only reminders have
+     * buttons, so one category serves.
+     */
+    private fun category(buttons: List<TrayButton>): String {
+        val texts = displayLocale.texts
+        val titles = buttons.map { texts.string(it.label) }
+        if (titles != registered) {
+            val actions = buttons.mapIndexed { index, button ->
+                when (button) {
+                    // It bills, so a locked phone asks for the unlock first, as Android's does.
+                    is TrayButton.Complete -> UNNotificationAction.actionWithIdentifier(
+                        ACTION_COMPLETE,
+                        titles[index],
+                        UNNotificationActionOptionAuthenticationRequired,
+                    )
+                    is TrayButton.Open -> UNNotificationAction.actionWithIdentifier(
+                        openAction(index),
+                        titles[index],
+                        UNNotificationActionOptionForeground,
+                    )
+                }
+            }
+            center.setNotificationCategories(
+                setOf(UNNotificationCategory.categoryWithIdentifier(CATEGORY, actions, emptyList<Any>(), 0u)),
+            )
+            registered = titles
+        }
+        return CATEGORY
     }
 
     private fun components(at: Instant): NSDateComponents {
@@ -178,17 +205,32 @@ class IosNotifier(
     }
 
     internal companion object {
-        const val REMINDERS = "reminders"
-        const val AGENDA = "digest-agenda"
-        const val UNFINISHED = "digest-unfinished"
-        const val DEBTS = "digest-debts"
-        const val UPKEEP = "upkeep"
         /** Where a tap on it goes, as its `klas://` link. */
         const val KEY_LINK = "link"
 
-        const val REMINDER_PREFIX = "reminder-"
+        /** The lesson its «Проведено» marks. */
+        const val KEY_CLASS_ID = "classId"
+
+        /** The action marking the lesson taught. An Open button's action is [openAction], keyed to its link. */
+        const val ACTION_COMPLETE = "complete"
+
+        private const val CATEGORY = "reminder"
+        private const val REMINDER_PREFIX = "reminder-"
+
+        fun openAction(index: Int) = "open.$index"
 
         fun reminderId(classId: Long) = "$REMINDER_PREFIX$classId"
+
+        fun isReminder(id: String) = id.startsWith(REMINDER_PREFIX)
+
+        /** One request per lesson's reminder, and one per digest kind, which a newer one replaces. */
+        fun id(notice: TrayNotice): String = notice.classId?.let(::reminderId) ?: idFor(notice.kind)
+
+        /** The ids iOS builds before this one used, kept so a plan replaces what they left pending. */
+        fun idFor(kind: TrayKind): String = when (kind) {
+            TrayKind.UPKEEP -> "upkeep"
+            else -> "digest-${kind.name.lowercase()}"
+        }
 
         /** The phone's 12/24-hour switch, as its own clock reads it. */
         fun phoneHour12(): Boolean =
@@ -213,7 +255,7 @@ class IosScheduler(
     @param:ApplicationScope private val appScope: CoroutineScope,
 ) : ReminderScheduler, DigestScheduler {
 
-    /** One decision at a time, so each runs with its own [IosNotifier.deliverAt]. */
+    /** One plan at a time, so two plans' removals and additions do not interleave. */
     private val deciding = Mutex()
 
     private val center get() = UNUserNotificationCenter.currentNotificationCenter()
@@ -235,36 +277,27 @@ class IosScheduler(
         appScope.launch {
             deciding.withLock {
                 val planned = plans.map { IosNotifier.reminderId(it.classId) }.toSet()
-                pendingIds().filter { it.startsWith(IosNotifier.REMINDER_PREFIX) && it !in planned }
+                pendingIds().filter { IosNotifier.isReminder(it) && it !in planned }
                     .takeIf { it.isNotEmpty() }
                     ?.let { center.removePendingNotificationRequestsWithIdentifiers(it) }
                 plans.filterNot { it.due }.sortedBy { it.fireAt }.forEachIndexed { index, plan ->
                     val id = IosNotifier.reminderId(plan.classId)
                     center.removePendingNotificationRequestsWithIdentifiers(listOf(id))
-                    if (index < MAX_REMINDERS) deliveringAt(plan.fireAt) { reminders().post(plan.classId, now = it) }
+                    if (index < MAX_REMINDERS) reminders().post(plan.classId, plan.fireAt, notifier.at(plan.fireAt))
                 }
             }
         }
     }
 
     override suspend fun schedule(plan: Digests.Plan) = deciding.withLock {
-        arrange(IosNotifier.AGENDA, plan.agendaAt) { digests().postAgenda(now = it) }
-        arrange(IosNotifier.UNFINISHED, plan.unfinishedAt) { digests().postUnfinished(now = it) }
-        arrange(IosNotifier.DEBTS, plan.debtsAt) { digests().postDebts() }
+        arrange(TrayKind.AGENDA, plan.agendaAt) { digests().postAgenda(now = it, to = notifier.at(it)) }
+        arrange(TrayKind.UNFINISHED, plan.unfinishedAt) { digests().postUnfinished(now = it, to = notifier.at(it)) }
+        arrange(TrayKind.DEBTS, plan.debtsAt) { digests().postDebts(to = notifier.at(it)) }
     }
 
-    private suspend fun arrange(id: String, at: Instant?, post: suspend (Instant) -> Boolean) {
-        center.removePendingNotificationRequestsWithIdentifiers(listOf(id))
-        if (at != null) deliveringAt(at) { post(at) }
-    }
-
-    private suspend fun deliveringAt(at: Instant, decide: suspend (Instant) -> Boolean) {
-        notifier.deliverAt = at
-        try {
-            decide(at)
-        } finally {
-            notifier.deliverAt = null
-        }
+    private suspend fun arrange(kind: TrayKind, at: Instant?, post: suspend (Instant) -> Boolean) {
+        center.removePendingNotificationRequestsWithIdentifiers(listOf(IosNotifier.idFor(kind)))
+        if (at != null) post(at)
     }
 
     private suspend fun pendingIds(): List<String> = suspendCoroutine { done ->

@@ -54,7 +54,8 @@ system, and its calendar mirror has no guests or email reminder: see [iOS](ios.m
 - A passed reminder time with a lesson not yet ended is still **owed** (`Reminders.Plan.due`). Do not
   re-arm or cancel it: Doze may be holding its alarm. Read through `notEndedWithin` so running lessons
   keep their alarms. `Reminders.shouldPost` re-checks state and lead time at delivery.
-- «Проведено» bills through a broadcast. «Перенести» opens the lesson form over the current screen;
+- A reminder's buttons are `TrayNotices`' (`TrayButton`): «Проведено» bills through a broadcast on
+  Android and the notification category's action on iOS, both reaching `ReminderActions`. «Перенести» opens the lesson form over the current screen;
   an existing form waits underneath. Both re-check current legality because notifications can be stale.
 - `TabArrivals` opens targeted tabs and binds each request to its resulting entry in one operation.
   `TrayNavigation` decodes `klas://` links and older builds' intent actions; the navigator preserves a pushed form's draft for Back.

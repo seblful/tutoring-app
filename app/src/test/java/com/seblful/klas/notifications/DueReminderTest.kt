@@ -71,6 +71,17 @@ class DueReminderTest {
     }
 
     @Test
+    fun `a reminder decided ahead goes to the notifier it is given`() = runTest {
+        val id = scheduledClass(student("Аня"), subject("Математика"))
+        val ahead = RecordingNotifier()
+
+        assertTrue(due.post(id, now, to = ahead))
+
+        assertEquals(id, ahead.posted.single().klass.id)
+        assertTrue("not the injected one", notifier.posted.isEmpty())
+    }
+
+    @Test
     fun `a group lesson is announced by the group, not by whichever member it points at`() = runTest {
         val s = student("Аня")
         val subj = subject("Математика")

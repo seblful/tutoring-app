@@ -31,7 +31,9 @@ import kotlin.time.Instant
  * Outside the platform adapters so a JVM test can drive the posting rules over the repositories
  * and the [Notifier] port. WorkManager fires the three methods through `AgendaWorker`,
  * `UnfinishedDigestWorker` and `DebtDigestWorker` in `work/DigestWorkers.kt`; the workers
- * supply the trigger while this class decides what to post.
+ * supply the trigger while this class decides what to post. Each method posts to the injected notifier unless
+ * given another (`to`): iOS decides ahead, and passes one that shows the digest at the moment it was decided
+ * for.
  *
  * **Each method re-reads its own switch.** The work is enqueued when the setting is turned on and
  * cancelled when it is turned off, so in principle neither can run while off — but the enqueued work
@@ -66,7 +68,7 @@ class DueDigest @Inject constructor(
      * summary line — it gave its hour back, and a row for it among the day's real work would read as one
      * more thing to do.
      */
-    suspend fun postAgenda(now: Instant = clock.now()): Boolean {
+    suspend fun postAgenda(now: Instant = clock.now(), to: Notifier = notifier): Boolean {
         val current = settings.get()
         if (!current.dailyAgendaEnabled) return false
 
@@ -85,7 +87,7 @@ class DueDigest @Inject constructor(
         )
 
         if (!agenda.isWorthPosting) return false
-        notifier.showAgenda(agenda, current.currency)
+        to.showAgenda(agenda, current.currency)
         return true
     }
 
@@ -106,7 +108,7 @@ class DueDigest @Inject constructor(
      * Posts nothing when there is nothing unmarked, by the rule every digest here follows — an evening
      * with no notification is the app saying the day is closed.
      */
-    suspend fun postUnfinished(now: Instant = clock.now()): Boolean {
+    suspend fun postUnfinished(now: Instant = clock.now(), to: Notifier = notifier): Boolean {
         val current = settings.get()
         if (!current.unfinishedDigestEnabled) return false
 
@@ -121,7 +123,7 @@ class DueDigest @Inject constructor(
         )
 
         if (!digest.isWorthPosting) return false
-        notifier.showUnfinished(digest)
+        to.showUnfinished(digest)
         return true
     }
 
@@ -150,7 +152,7 @@ class DueDigest @Inject constructor(
      * the one exception `Reports` documents: charges from this year against payments from every year would
      * invent credit.
      */
-    suspend fun postDebts(): Boolean {
+    suspend fun postDebts(to: Notifier = notifier): Boolean {
         val current = settings.get()
         if (!current.debtDigestEnabled) return false
 
@@ -165,7 +167,7 @@ class DueDigest @Inject constructor(
         val digest = Digests.Debts(students = owed.students, total = owed.total)
 
         if (!digest.isWorthPosting) return false
-        notifier.showDebts(digest, current.currency)
+        to.showDebts(digest, current.currency)
         return true
     }
 }
