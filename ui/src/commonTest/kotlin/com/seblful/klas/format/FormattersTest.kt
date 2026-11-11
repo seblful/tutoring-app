@@ -55,7 +55,7 @@ class FormattersTest {
     fun `weekday short names are distinct and abbreviated`() {
         val names = DayOfWeek.entries.map { it.shortName() }
 
-        assertEquals("пн", DayOfWeek.MONDAY.shortName())
+        assertEquals("пн", DayOfWeek.MONDAY.shortName().lowercase())
         assertEquals(7, names.toSet().size, "all seven differ")
         assertTrue(names.all { it.length <= 4 }, "stay short enough for a calendar header")
     }

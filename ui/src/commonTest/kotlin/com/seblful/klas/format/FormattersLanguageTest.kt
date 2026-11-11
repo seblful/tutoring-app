@@ -40,7 +40,8 @@ class FormattersLanguageTest {
     @Test
     fun `a calendar header's weekdays are the language's own abbreviations`() {
         inLanguage(RUSSIAN) {
-            assertEquals("пн", DayOfWeek.MONDAY.shortName())
+            // Android's tables write «пн», Foundation's «Пн»: both are Russian's own, so the case is the platform's.
+            assertEquals("пн", DayOfWeek.MONDAY.shortName().lowercase())
         }
         inLanguage(ENGLISH) {
             assertEquals("Mon", DayOfWeek.MONDAY.shortName())
