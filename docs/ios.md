@@ -12,7 +12,9 @@ xcodegen generate --spec iosApp/project.yml
 open iosApp/Klas.xcodeproj
 ```
 
-Run the `Klas` scheme on a simulator or a phone (set a signing team for a phone). The Xcode build runs
+Run the `Klas` scheme on a simulator or a phone. For a phone, set a signing team on the `Klas` and
+`KlasWidgets` targets and register the app group `group.com.seblful.klas` for both; without the group
+the app runs and the widgets stay on their placeholder. The Xcode build runs
 `./gradlew :ui:embedAndSignAppleFrameworkForXcode`, which builds the framework and copies the Compose
 resources (fonts, images, licence) into the app. `iosApp/project.yml` is the project's source; regenerate
 after changing it. The generated project, `Info.plist` and build output are ignored by Git.
@@ -28,10 +30,14 @@ after changing it. The generated project, `Info.plist` and build output are igno
 | Calendar mirror | `DeviceCalendarSync` (CalendarContract) | `IosCalendar.kt` (EventKit) |
 | Files, sharing, backup folder, backup cipher | `app/.../storage/`, `data/backup` | `IosStorage.kt` |
 | PDF sheets | `PdfSheetPrinter` | `IosSheetPrinter` |
+| Home-screen widgets | Glance widgets (`app/.../widget/`), `WidgetUpdates` | `IosHomeScreen` writes a snapshot; `iosApp/Widgets` draws it |
+| Shortcuts on the app's icon | `AppShortcuts` | `IosHomeScreen` (quick actions); `KlasApp.swift` hands them over |
 | Crash log | `FileCrashLogStore`, `CrashHandler` | `IosCrashLogStore`, `KlasIos.start` |
 | Screen-level seams (pickers, permissions, theme, lock) | `ui/src/androidMain` `*.android.kt` | `ui/src/iosMain` `*.ios.kt` |
 
-Words every notification says come from the shared `TrayText`, so the two trays read the same.
+Words every notification says come from the shared `TrayText`, so the two trays read the same. The
+widgets' rows (`TodayRows.kt`) and the shortcuts on the icon and the quick-actions widget (`Shortcuts`)
+are listed once in `:ui` too; each platform only maps `ShortcutIcon` to its own glyphs.
 A sealed backup is the same format on both: `AesGcm` in common code builds GCM over the platform's
 AES block, so a backup sealed on one phone opens on the other.
 
@@ -45,8 +51,16 @@ AES block, so a backup sealed on one phone opens on the other.
   when the app opens or returns to the front; iOS gives no periodic background time to count on.
 - **The calendar mirror writes events only.** EventKit cannot invite guests, and an event alarm would
   repeat the app's own reminder, so iOS events carry neither.
-- **Not yet on iOS:** home-screen widgets (WidgetKit), launcher shortcuts, and optical centring of
-  digits in round badges (`rememberInkBounds` returns null).
+- **The widgets draw a snapshot.** A WidgetKit extension is Swift and cannot run the app's code, so
+  `IosHomeScreen` writes `WidgetSnapshot` (every word, and Today's pages for the next seven days: one
+  from each midnight and at each lesson's start and end) into the app group `group.com.seblful.klas`, and
+  asks WidgetKit to reload. The extension only lays it out. `WidgetSnapshotContractTest` (Kotlin) and
+  `WidgetSnapshotTests` (Swift) read the same fixture, `iosApp/Tests/Fixtures/widget-snapshot.json`.
+- **Today's tick opens the lesson.** Android's check marks a lesson taught in place, through the app's
+  code; on iOS a row and its check open the lesson's sheet (`klas://lesson/<id>`), where it is marked.
+  Lessons are redacted on a locked phone unless `Privacy.lockScreenWidgets` is on.
+- **Shortcuts are links.** Each quick action on the app's icon, and each widget button, is the
+  `klas://` link for its `TrayNavigation` action (`TrayNavigation.linkFor`).
 
 ## Tests
 
@@ -56,8 +70,9 @@ Common tests of `:domain`, `:shared` and `:ui` run on the iOS simulator:
 ./gradlew :domain:iosSimulatorArm64Test :shared:iosSimulatorArm64Test :ui:iosSimulatorArm64Test
 ```
 
-`iosApp/Tests/LaunchTests.swift` builds the app, checks that the screens come up, and relaunches it over
-the database it left. Choose a simulator UDID from `xcrun simctl list devices available`, then:
+`:ui`'s iOS tests also draw `InkCentredText` with Skia and measure where the digits' ink falls
+(`InkCentredTextIosTest`). `iosApp/Tests/LaunchTests.swift` builds the app, checks that the screens come up,
+and relaunches it over the database it left; `WidgetSnapshotTests.swift` reads the widget fixture. Choose a simulator UDID from `xcrun simctl list devices available`, then:
 
 ```bash
 xcodebuild test -project iosApp/Klas.xcodeproj -scheme Klas \

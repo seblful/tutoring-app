@@ -2,6 +2,7 @@ package com.seblful.klas.widget
 
 import android.content.Context
 import android.content.Intent
+import androidx.annotation.DrawableRes
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
@@ -15,17 +16,14 @@ import androidx.glance.appwidget.SizeMode
 import androidx.glance.appwidget.provideContent
 import com.seblful.klas.R
 import com.seblful.klas.di.appGraph
-import com.seblful.klas.notifications.TrayNavigation
-import com.seblful.klas.text.StringResource
+import com.seblful.klas.notifications.Shortcut
+import com.seblful.klas.notifications.ShortcutIcon
+import com.seblful.klas.notifications.Shortcuts
 import com.seblful.klas.text.Strings
 import com.seblful.klas.text.Texts
 import kotlinx.coroutines.flow.first
-import java.util.Locale
 
-/**
- * Shortcuts into the app. Booking is the prominent one; a payment is not here because it needs a student
- * first, so debts — whose rows open the student who owes — stand in for it.
- */
+/** Shortcuts into the app: [Shortcuts.widgetHeader] prominent, then [Shortcuts.widget]. */
 class QuickActionsWidget : GlanceAppWidget() {
 
     // Exact renders for the size the widget is, without holding a view per supported size in the host.
@@ -51,32 +49,30 @@ class QuickActionsWidget : GlanceAppWidget() {
     @Composable
     private fun Content(context: Context, tag: String) {
         val words = Texts.of(tag)
-        fun button(iconRes: Int, labelRes: StringResource, action: String) =
-            ToolBarButton(iconRes, words.string(labelRes), openApp(context, action))
+        fun button(shortcut: Shortcut) =
+            ToolBarButton(shortcut.icon.drawable, words.string(shortcut.label), openApp(context, shortcut.action))
 
         GlanceTheme(colors = KlasWidgetColors) {
             QuickActionsLayout(
                 appName = words.string(Strings.app_name),
                 openApp = openApp(context, Intent.ACTION_MAIN),
-                headerButton = button(
-                    R.drawable.widget_icon_add,
-                    Strings.schedule_add_class,
-                    TrayNavigation.ACTION_BOOK_LESSON,
-                ),
-                buttons = listOf(
-                    button(R.drawable.widget_icon_today, Strings.schedule_today, TrayNavigation.ACTION_OPEN_TODAY),
-                    button(R.drawable.widget_icon_people, Strings.nav_people, TrayNavigation.ACTION_OPEN_PEOPLE),
-                    button(
-                        R.drawable.widget_icon_homework,
-                        Strings.nav_homework,
-                        TrayNavigation.ACTION_OPEN_HOMEWORK,
-                    ),
-                    button(R.drawable.widget_icon_debts, Strings.debts_title, TrayNavigation.ACTION_OPEN_DEBTS),
-                ),
+                headerButton = button(Shortcuts.widgetHeader),
+                buttons = Shortcuts.widget.map(::button),
             )
         }
     }
 }
+
+/** The widget's and the launcher's drawable for [this] glyph. */
+@get:DrawableRes
+internal val ShortcutIcon.drawable: Int
+    get() = when (this) {
+        ShortcutIcon.BOOK -> R.drawable.widget_icon_add
+        ShortcutIcon.TODAY -> R.drawable.widget_icon_today
+        ShortcutIcon.PEOPLE -> R.drawable.widget_icon_people
+        ShortcutIcon.HOMEWORK -> R.drawable.widget_icon_homework
+        ShortcutIcon.DEBTS -> R.drawable.widget_icon_debts
+    }
 
 class QuickActionsWidgetReceiver : GlanceAppWidgetReceiver() {
     override val glanceAppWidget: GlanceAppWidget = QuickActionsWidget()

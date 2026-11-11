@@ -34,7 +34,7 @@ internal actual fun rememberAnimationsEnabled(): Boolean = remember { !UIAccessi
 internal actual fun phoneHour12Reader(): () -> Boolean = ::phoneHour12
 
 /** The phone's own hour pattern («h a» or «HH») for its locale and its 12/24-hour switch. */
-private fun phoneHour12(): Boolean =
+internal fun phoneHour12(): Boolean =
     NSDateFormatter.dateFormatFromTemplate("j", 0u, NSLocale.currentLocale)?.contains('a') == true
 
 /** An iOS app has no Back of its own to leave by; the lock screen simply stays. */

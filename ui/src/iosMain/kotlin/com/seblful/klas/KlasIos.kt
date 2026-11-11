@@ -13,6 +13,7 @@ import com.seblful.klas.ui.RootViewModel
 import com.seblful.klas.ui.common.LocalSearchKey
 import com.seblful.klas.ui.common.SearchKey
 import com.seblful.klas.ui.navigation.IosArrivals
+import com.seblful.klas.widget.WidgetReloads
 import dev.zacsweers.metro.createGraph
 import dev.zacsweers.metrox.viewmodel.LocalMetroViewModelFactory
 import dev.zacsweers.metrox.viewmodel.metroViewModel
@@ -36,7 +37,8 @@ import kotlin.experimental.ExperimentalNativeApi
 
 /**
  * What the Swift host calls: [start] once as the app launches, [MainViewController] for the window, and
- * [openLink] for a `klas://` URL. The counterpart of Android's `KlasApp` and `MainActivity`.
+ * [openLink] for a `klas://` URL, which is also how a quick action on the app's icon or a widget's button
+ * arrives. The counterpart of Android's `KlasApp` and `MainActivity`.
  */
 object KlasIos {
 
@@ -48,10 +50,12 @@ object KlasIos {
     /**
      * Before the first frame: crashes are recorded from here on, and a notification tapped while the app
      * was not running reaches [taps] — iOS hands it over only to a delegate set before launch finishes.
+     * [widgets] is WidgetKit's reload, which only Swift can call.
      */
-    fun start() {
+    fun start(widgets: WidgetReloads) {
         graph.crashLogger.install()
         UNUserNotificationCenter.currentNotificationCenter().delegate = taps
+        graph.homeScreen.start(widgets)
     }
 
     fun openLink(link: String) = IosArrivals.openLink(link)
@@ -72,6 +76,7 @@ fun MainViewController(): UIViewController = ComposeUIViewController {
         val returns = remember { intArrayOf(0) }
         LifecycleStartEffect(root) {
             graph.notificationPermission.refresh()
+            graph.homeScreen.foregrounded()
             if (returns[0]++ > 0) root.catchUp()
             root.appLock.foregrounded(root.settings.value?.privacy?.relockAfterMinutes, canUnlock())
             onStopOrDispose { root.appLock.backgrounded() }

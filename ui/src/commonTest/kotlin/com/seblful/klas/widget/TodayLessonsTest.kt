@@ -1,27 +1,22 @@
 package com.seblful.klas.widget
 
-import android.content.Context
-import androidx.test.core.app.ApplicationProvider
 import com.seblful.klas.text.Texts
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toInstant
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNull
-import org.junit.Assert.assertTrue
-import org.junit.Test
-import org.junit.runner.RunWith
-import org.robolectric.RobolectricTestRunner
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Instant
 
-@RunWith(RobolectricTestRunner::class)
 class TodayLessonsTest {
 
     @Test
-    fun `a row reads start to end then subject, and only the times when the subject has no name`() {
+    fun `a row reads start to end then subject - and only the times when the subject has no name`() {
         val lesson = TodayLesson(7, nine, nine + 1.hours, "Аня", "Алгебра", taught = false, canMarkTaught = true)
 
         assertEquals("09:00–10:00 · Алгебра", lesson.toRow(false, russian, nine, texts).supportingText)
@@ -29,7 +24,7 @@ class TodayLessonsTest {
     }
 
     @Test
-    fun `a lesson is on now from its start until its end or until it is marked, and its tick names it`() {
+    fun `a lesson is on now from its start until its end or until it is marked - and its tick names it`() {
         val lesson = TodayLesson(7, nine, nine + 1.hours, "Аня", "Алгебра", taught = false, canMarkTaught = true)
 
         assertFalse(lesson.toRow(false, russian, nine - 1.minutes, texts).onNow)
@@ -40,7 +35,7 @@ class TodayLessonsTest {
     }
 
     @Test
-    fun `the widget next redraws at the next start or end, and at none once the day is over`() {
+    fun `the widget next redraws at the next start or end - and at none once the day is over`() {
         val first = TodayLesson(1, nine, nine + 1.hours, "Аня", "", taught = false, canMarkTaught = true)
         val second = TodayLesson(2, nine + 2.hours, nine + 3.hours, "Иван", "", taught = false, canMarkTaught = true)
 
@@ -59,7 +54,7 @@ class TodayLessonsTest {
     )
 
     @Test
-    fun `the picker's sample day is in the app's language, its first lesson taught`() {
+    fun `the picker's sample day is in the app's language with its first lesson taught`() {
         val russian = "ru"
         val rows = Texts.of("ru").sampleRows(hour12 = false, russian)
 

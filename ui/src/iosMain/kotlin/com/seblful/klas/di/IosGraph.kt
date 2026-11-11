@@ -2,6 +2,7 @@ package com.seblful.klas.di
 
 import com.seblful.klas.diagnostics.CrashLogger
 import com.seblful.klas.notifications.IosNotificationPermission
+import com.seblful.klas.widget.IosHomeScreen
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.DependencyGraph
 import dev.zacsweers.metrox.viewmodel.ViewModelGraph
@@ -17,4 +18,7 @@ interface IosGraph : ViewModelGraph {
 
     /** Read again each time the app comes to the front: the Settings app may have changed it. */
     val notificationPermission: IosNotificationPermission
+
+    /** The widgets and the quick actions on the app's icon. */
+    val homeScreen: IosHomeScreen
 }

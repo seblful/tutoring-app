@@ -23,25 +23,14 @@ import androidx.glance.appwidget.action.actionRunCallback
 import androidx.glance.appwidget.provideContent
 import com.seblful.klas.data.settings.Privacy
 import com.seblful.klas.di.appGraph
-import com.seblful.klas.format.formatTime
 import com.seblful.klas.launchAsync
 import com.seblful.klas.notifications.ReminderActions
 import com.seblful.klas.notifications.TrayNavigation
-import com.seblful.klas.text.StringArrays
 import com.seblful.klas.text.Strings
 import com.seblful.klas.text.Texts
 import dev.zacsweers.metro.Inject
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
-import kotlinx.datetime.LocalTime
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.atTime
-import kotlinx.datetime.toInstant
-import kotlinx.datetime.todayIn
-import java.util.Locale
-import kotlin.time.Clock
-import kotlin.time.Duration.Companion.hours
-import kotlin.time.Instant
 
 /** Today's lessons on the home screen; the check marks one taught, as the schedule's swipe does. */
 class TodayWidget : GlanceAppWidget() {
@@ -123,57 +112,6 @@ internal fun listsLessons(hostCategory: Int, privacy: Privacy): Boolean =
 
 private fun Bundle.hostCategory(): Int =
     getInt(AppWidgetManager.OPTION_APPWIDGET_HOST_CATEGORY, AppWidgetProviderInfo.WIDGET_CATEGORY_HOME_SCREEN)
-
-/** [TodayTexts] from [this], a context in the app's language. */
-internal fun Texts.todayTexts() = TodayTexts(
-    title = string(Strings.schedule_today),
-    empty = string(Strings.widget_today_empty),
-    bookLesson = string(Strings.schedule_add_class),
-    markTaught = string(Strings.class_mark_completed),
-    taught = string(Strings.class_status_completed),
-    onNow = string(Strings.class_status_in_progress),
-    markLesson = string(Strings.widget_mark_lesson),
-    lessonTaught = string(Strings.widget_lesson_taught),
-)
-
-/** The picker's sample day, from [this], a context in the app's language: the first lesson taught. */
-internal fun Texts.sampleRows(hour12: Boolean, tag: String): List<TodayRow> {
-    val today = Clock.System.todayIn(TimeZone.currentSystemDefault())
-    return array(StringArrays.widget_preview_lessons).chunked(2)
-        .zip(listOf("09:00", "14:30", "17:00").map(LocalTime::parse))
-        .mapIndexed { index, (lesson, time) ->
-            val start = today.atTime(time).toInstant(TimeZone.currentSystemDefault())
-            TodayLesson(
-                classId = index.toLong(),
-                start = start,
-                end = start + 1.hours,
-                who = lesson[0],
-                subject = lesson[1],
-                taught = index == 0,
-                canMarkTaught = index != 0,
-            ).toRow(hour12, tag, now = Instant.DISTANT_PAST, texts = todayTexts())
-        }
-}
-
-/** The row for this lesson as it stands at [now]: «10:00–11:00 · Maths», «On now» while it is taught. */
-internal fun TodayLesson.toRow(hour12: Boolean, tag: String, now: Instant, texts: TodayTexts): TodayRow {
-    val starts = start.formatTime(hour12, tag)
-    val range = "$starts–${end.formatTime(hour12, tag)}"
-    return TodayRow(
-        classId = classId,
-        title = who,
-        supportingText = listOf(range, subject).filter { it.isNotBlank() }.joinToString(" · "),
-        taught = taught,
-        canMarkTaught = canMarkTaught,
-        onNow = isOnAt(now),
-        tickLabel = String.format(
-            Locale.forLanguageTag(tag),
-            if (taught) texts.lessonTaught else texts.markLesson,
-            who,
-            starts,
-        ),
-    )
-}
 
 class TodayWidgetReceiver : GlanceAppWidgetReceiver() {
 

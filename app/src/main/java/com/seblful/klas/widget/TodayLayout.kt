@@ -26,35 +26,6 @@ import com.seblful.klas.MainActivity
 import com.seblful.klas.R
 import com.seblful.klas.ui.common.Spacing
 
-/** One lesson as the Today widget draws it. */
-internal data class TodayRow(
-    val classId: Long,
-    /** Who the lesson is with. */
-    val title: String,
-    /** When, and in what: «10:00–11:00 · Математика». */
-    val supportingText: String,
-    val taught: Boolean,
-    val canMarkTaught: Boolean,
-    /** Being taught now: said before the time, as the Day view does. */
-    val onNow: Boolean = false,
-    /** What the tick says, naming its lesson: «Mark Olivia Brooks, 15:00 taught». */
-    val tickLabel: String = "",
-)
-
-/** What the Today widget says, in the app's language rather than the phone's. */
-internal data class TodayTexts(
-    val title: String,
-    val empty: String,
-    val bookLesson: String,
-    val markTaught: String,
-    val taught: String,
-    val onNow: String = "",
-    /** «Mark %1$s, %2$s taught»: who, and when it starts. */
-    val markLesson: String = "%1\$s, %2\$s",
-    /** «%1$s, %2$s: taught». */
-    val lessonTaught: String = "%1\$s, %2\$s",
-)
-
 /**
  * The Glance canonical check list layout (Android platform samples), as today's lessons: the check marks
  * a lesson taught, a taught lesson stays checked — in the app's green for taught — rather than leaving the

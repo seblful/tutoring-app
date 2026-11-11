@@ -265,7 +265,8 @@ Build screens from shared state and controls. Feature rules belong in the domain
 
 - Every way into the app but its icon is a `TrayNavigation` entry, so each lands where the same tap in
   the tray or on the widget does: notifications, widgets, the launcher's long-press shortcuts
-  (`AppShortcuts`: Book a lesson, Today, Homework, Debts — published in the app's language), `klas://`
+  (`Shortcuts.launcher`: Book a lesson, Today, Homework, Debts — published in the app's language, by
+  `AppShortcuts` on Android and as quick actions on iOS), `klas://`
   links (today, schedule, people, homework, reports, debts, book, settings, `lesson/<id>`, `day/<date>`,
   `student/<id>`;
   they only ever open somewhere, never write) and Ctrl-chords on a hardware keyboard (`KeyboardShortcuts`:

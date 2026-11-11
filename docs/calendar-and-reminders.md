@@ -81,7 +81,8 @@ system, and its calendar mirror has no guests or email reminder: see [iOS](ios.m
   tutor gave the old one; before the settings row is read, the set in place is kept.
 - «Taught» from the tray bills the lesson, so it asks for the unlock first (`setAuthenticationRequired`).
 - On a keyguard host the Today widget shows only its title and «unlock», unless
-  `Privacy.lockScreenWidgets` is on (`listsLessons`).
+  `Privacy.lockScreenWidgets` is on (`listsLessons`). iOS redacts its rows on a locked phone under the
+  same setting (`TodaySnapshot.privateWhenLocked`).
 - The app lock (`AppLock`, `AppLockGate`) covers the app until `BiometricPrompt` succeeds with
   biometrics or the screen lock (`UNLOCK_WITH`), and again after `relockAfterMinutes` in the background
   on a monotonic clock. The app stays composed beneath, hidden from touch and screen readers, so the tutor

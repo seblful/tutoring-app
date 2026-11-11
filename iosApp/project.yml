@@ -36,6 +36,13 @@ targets:
         CFBundleURLTypes:
           - CFBundleURLName: com.seblful.klas
             CFBundleURLSchemes: [klas]
+    # The app writes the widgets' snapshot into the group they share (`IosHomeScreen`).
+    entitlements:
+      path: Sources/Klas.entitlements
+      properties:
+        com.apple.security.application-groups: [group.com.seblful.klas]
+    dependencies:
+      - target: KlasWidgets
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.seblful.klas
@@ -54,15 +61,48 @@ targets:
           fi
           cd "$SRCROOT/.."
           ./gradlew :ui:embedAndSignAppleFrameworkForXcode --console=plain
+  KlasWidgets:
+    type: app-extension
+    platform: iOS
+    sources: [Widgets]
+    info:
+      path: Widgets/Info.plist
+      properties:
+        CFBundleDisplayName: Klas
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    entitlements:
+      path: Widgets/KlasWidgets.entitlements
+      properties:
+        com.apple.security.application-groups: [group.com.seblful.klas]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.seblful.klas.widgets
+        GENERATE_INFOPLIST_FILE: YES
   KlasUITests:
     type: bundle.ui-testing
     platform: iOS
-    sources: [Tests]
+    sources: [Tests/LaunchTests.swift]
     dependencies:
       - target: Klas
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.seblful.klas.uitests
+        GENERATE_INFOPLIST_FILE: YES
+  # The snapshot the app writes, read as the extension reads it; no app to host it, so no Kotlin build.
+  KlasWidgetsTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - Tests/WidgetSnapshotTests.swift
+      - Widgets/WidgetSnapshot.swift
+      - path: Tests/Fixtures
+        buildPhase: resources
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.seblful.klas.widgetstests
         GENERATE_INFOPLIST_FILE: YES
 schemes:
   Klas:
@@ -70,7 +110,9 @@ schemes:
       targets:
         Klas: all
         KlasUITests: [test]
+        KlasWidgetsTests: [test]
     test:
       targets:
+        - name: KlasWidgetsTests
         - name: KlasUITests
           parallelizable: false

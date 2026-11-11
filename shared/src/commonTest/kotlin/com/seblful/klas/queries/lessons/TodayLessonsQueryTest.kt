@@ -68,6 +68,25 @@ class TodayLessonsQueryTest {
     }
 
     @Test
+    fun `days ahead each list their own lessons from today on`() = runTest {
+        val subject = env.fixtures.subject()
+        val ann = env.fixtures.pricedStudent(subjectId = subject)
+        val today = env.fixtures.lesson(subject, listOf(ann), today(9)).single()
+        val tomorrow = env.fixtures.lesson(subject, listOf(ann), Instant.parse("2026-06-02T09:00:00+03:00")).single()
+        val late = env.fixtures.lesson(subject, listOf(ann), Instant.parse("2026-06-03T23:30:00+03:00")).single()
+        env.fixtures.lesson(subject, listOf(ann), Instant.parse("2026-05-31T23:00:00+03:00"))
+        env.fixtures.lesson(subject, listOf(ann), Instant.parse("2026-06-04T09:00:00+03:00"))
+
+        val days = store.todayLessons.observeDays(3).first()
+
+        assertEquals(listOf("2026-06-01", "2026-06-02", "2026-06-03"), days.map { it.day.toString() })
+        assertEquals(
+            listOf(listOf(today), listOf(tomorrow), listOf(late)),
+            days.map { day -> day.lessons.map { it.session.first.id } },
+        )
+    }
+
+    @Test
     fun `names follow student subject and group edits`() = runTest {
         val subject = env.fixtures.subject("Maths")
         val ann = env.fixtures.pricedStudent("Ann", subject)

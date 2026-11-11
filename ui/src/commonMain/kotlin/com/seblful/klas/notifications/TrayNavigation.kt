@@ -178,6 +178,16 @@ object TrayNavigation {
         }
     }
 
+    /**
+     * The `klas://` link that goes where [action] does, for a place that carries nothing but its name; null
+     * for any other action. iOS opens its shortcuts and widget buttons by link.
+     */
+    fun linkFor(action: String): String? =
+        places.firstOrNull { it.action == action }?.let { "$LINK_SCHEME://${it.link}" }
+
+    /** The link to the lesson's sheet on the schedule: where [ACTION_SHOW_LESSON] goes. */
+    fun lessonLink(classId: Long): String = "$LINK_SCHEME://lesson/$classId"
+
     /** The years the schedule can lay a month out in; its grid reaches past the day it is opened on. */
     private val DRAWABLE_DAYS = LocalDate(1900, 1, 1)..LocalDate(9999, 12, 31)
 

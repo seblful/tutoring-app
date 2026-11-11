@@ -54,6 +54,9 @@ output.json
 iosApp/*.xcodeproj/
 iosApp/DerivedData/
 iosApp/Sources/Info.plist
+iosApp/Sources/Klas.entitlements
+iosApp/Widgets/Info.plist
+iosApp/Widgets/KlasWidgets.entitlements
 *.xcresult/
 
 # Play policy audit scratch output (android-skills:play-policy-insights).

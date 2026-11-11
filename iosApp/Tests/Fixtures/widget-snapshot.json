@@ -1,0 +1,73 @@
+{
+    "today": {
+        "title": "Today",
+        "empty": "No lessons today",
+        "onNow": "On now",
+        "bookLesson": "Book a lesson",
+        "bookLink": "klas://book",
+        "openLink": "klas://today",
+        "privateWhenLocked": true,
+        "pages": [
+            {
+                "from": 1780261200,
+                "rows": [
+                    {
+                        "title": "Anna",
+                        "detail": "09:00–10:00 · Maths",
+                        "taught": false,
+                        "onNow": false,
+                        "statusLabel": "Mark Anna, 09:00 taught",
+                        "link": "klas://lesson/7"
+                    }
+                ]
+            },
+            {
+                "from": 1780293600,
+                "rows": [
+                    {
+                        "title": "Anna",
+                        "detail": "09:00–10:00 · Maths",
+                        "taught": false,
+                        "onNow": true,
+                        "statusLabel": "Mark Anna, 09:00 taught",
+                        "link": "klas://lesson/7"
+                    }
+                ]
+            },
+            {
+                "from": 1780347600,
+                "rows": []
+            }
+        ]
+    },
+    "quickActions": {
+        "appName": "Klas",
+        "header": {
+            "label": "Book a lesson",
+            "link": "klas://book",
+            "icon": "plus"
+        },
+        "buttons": [
+            {
+                "label": "Today",
+                "link": "klas://today",
+                "icon": "calendar"
+            },
+            {
+                "label": "People",
+                "link": "klas://people",
+                "icon": "person.2"
+            },
+            {
+                "label": "Homework",
+                "link": "klas://homework",
+                "icon": "book.closed"
+            },
+            {
+                "label": "Debts",
+                "link": "klas://debts",
+                "icon": "creditcard"
+            }
+        ]
+    }
+}

@@ -13,8 +13,9 @@ builds used by CI. Device and iOS simulator execution are separate checks.
 |---|---|
 | `domain/src/commonTest` | Pure rules with `kotlin.test`; the same tests run on JVM and iOS. |
 | `shared/src/commonTest` | Repository atomicity and race cases, backup contracts, feature queries, parsing and clock events over real Room databases. Platform test source sets provide database creation. |
-| `ui/src/commonTest` | Date, time and money formatting in each language, and what the notification tray says (`TrayText`). The JVM run reads Android's `java.text`/`java.time` tables; the iOS run reads Foundation's, so both platforms' CLDR data meet the same expectations. |
-| `ui/src/androidHostTest` | Common code checked against a JVM reference, such as `AesGcm` against the JDK's GCM. |
+| `ui/src/commonTest` | Date, time and money formatting in each language, what the notification tray says (`TrayText`), and what the widgets and shortcuts say and open (`TodayLessonsTest`, `WidgetSnapshotsTest`, `ShortcutsTest`). The JVM run reads Android's `java.text`/`java.time` tables; the iOS run reads Foundation's, so both platforms' CLDR data meet the same expectations. |
+| `ui/src/androidHostTest` | Common code checked against a JVM reference, such as `AesGcm` against the JDK's GCM, and the iOS widget snapshot against its fixture (`WidgetSnapshotContractTest`). |
+| `ui/src/iosTest` | What only iOS can show, drawn by Compose's own test rule: `InkCentredTextIosTest` measures Skia's pixels. |
 | `app/src/test` | Android locale/graph behavior, view models, mappers and source/artifact tripwires. Unmocked Android calls fail (`isReturnDefaultValues` is off). |
 
 - Seed valid application states through `testutil/Fixtures`; use `storedClass` for raw persisted states.
@@ -56,7 +57,7 @@ builds used by CI. Device and iOS simulator execution are separate checks.
   Set `KMP_IOS_SIMULATOR_ID` to an available simulator UDID to select a device. CI selects an available
   iPhone, runs the three suites and compiles the iOS device code. Windows can compile native Kotlin
   libraries but cannot link or run the simulator tests. CI also builds the [iOS app](ios.md)
-  and runs its launch/relaunch test.
+  and runs its launch/relaunch test and the widget snapshot's Swift test.
 
 ## Screenshot tests
 
