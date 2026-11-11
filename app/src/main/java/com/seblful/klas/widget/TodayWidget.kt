@@ -56,10 +56,10 @@ class TodayWidget : GlanceAppWidget() {
                 TodayLayout(
                     texts = words.todayTexts(),
                     rows = rows,
-                    openToday = openApp(context, TrayNavigation.ACTION_OPEN_TODAY),
-                    bookLesson = openApp(context, TrayNavigation.ACTION_BOOK_LESSON),
-                    openLesson = { openApp(context, TrayNavigation.ACTION_OPEN_TODAY) },
-                    markTaught = { openApp(context, TrayNavigation.ACTION_OPEN_TODAY) },
+                    openToday = openApp(context, TrayNavigation.Destination.Today),
+                    bookLesson = openApp(context, TrayNavigation.Destination.NewLesson),
+                    openLesson = { openApp(context, TrayNavigation.Destination.Today) },
+                    markTaught = { openApp(context, TrayNavigation.Destination.Today) },
                 )
             }
         }
@@ -91,9 +91,9 @@ class TodayWidget : GlanceAppWidget() {
                     } else {
                         emptyList()
                     },
-                    openToday = openApp(context, TrayNavigation.ACTION_OPEN_TODAY),
-                    bookLesson = openApp(context, TrayNavigation.ACTION_BOOK_LESSON),
-                    openLesson = { classId -> openApp(context, TrayNavigation.ACTION_SHOW_LESSON, classId) },
+                    openToday = openApp(context, TrayNavigation.Destination.Today),
+                    bookLesson = openApp(context, TrayNavigation.Destination.NewLesson),
+                    openLesson = { classId -> openApp(context, TrayNavigation.Destination.LessonOnSchedule(classId)) },
                     markTaught = { classId ->
                         actionRunCallback<MarkTaughtAction>(actionParametersOf(MarkTaughtAction.ClassId to classId))
                     },

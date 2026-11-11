@@ -4,7 +4,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberUpdatedState
-import com.seblful.klas.notifications.ACTION_VIEW
 import com.seblful.klas.notifications.TrayNavigation
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.receiveAsFlow
@@ -22,13 +21,8 @@ internal actual fun PlatformArrivals(arrive: (TrayNavigation.Destination?) -> Un
 object IosArrivals {
     internal val destinations = Channel<TrayNavigation.Destination?>(Channel.BUFFERED)
 
-    /** A `klas://` link the system opened the app with. */
+    /** A `klas://` link: a notification's tap, a widget's button, a quick action or another app's. */
     fun openLink(link: String) {
-        destinations.trySend(TrayNavigation.destinationFor(action = ACTION_VIEW, classId = 0L, link = link))
-    }
-
-    /** A notification's tap: its action, and the lesson or day it carries (0 / null when none). */
-    fun openNotification(action: String, classId: Long, epochDay: Long?) {
-        destinations.trySend(TrayNavigation.destinationFor(action = action, classId = classId, epochDay = epochDay))
+        destinations.trySend(TrayNavigation.destinationForLink(link))
     }
 }

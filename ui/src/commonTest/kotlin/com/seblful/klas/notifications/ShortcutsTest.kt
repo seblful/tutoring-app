@@ -1,20 +1,18 @@
 package com.seblful.klas.notifications
 
+import com.seblful.klas.notifications.TrayNavigation.Destination
+import kotlinx.datetime.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
-import kotlin.test.assertNull
 
 class ShortcutsTest {
 
     private val all = Shortcuts.launcher + Shortcuts.widgetHeader + Shortcuts.widget
 
     @Test
-    fun `a shortcut's link goes where its action does`() {
+    fun `a shortcut's link opens its place`() {
         all.forEach { shortcut ->
-            val byAction = TrayNavigation.destinationFor(action = shortcut.action, classId = 0L)
-            assertNotNull(byAction, shortcut.action)
-            assertEquals(byAction, TrayNavigation.destinationForLink(shortcut.link), shortcut.link)
+            assertEquals(shortcut.destination, TrayNavigation.destinationForLink(shortcut.link), shortcut.link)
         }
     }
 
@@ -25,11 +23,30 @@ class ShortcutsTest {
     }
 
     @Test
-    fun `a lesson's link opens its sheet and other actions have no link`() {
-        assertEquals(
-            TrayNavigation.Destination.LessonOnSchedule(42),
-            TrayNavigation.destinationForLink(TrayNavigation.lessonLink(42)),
+    fun `every destination reads back from its link`() {
+        val every = listOf(
+            Destination.Lesson(42),
+            Destination.LessonOnSchedule(42),
+            Destination.Debts,
+            Destination.Today,
+            Destination.Day(LocalDate(2026, 11, 11)),
+            Destination.NewLesson,
+            Destination.Homework,
+            Destination.People,
+            Destination.Schedule,
+            Destination.Reports,
+            Destination.Settings,
+            Destination.Student(7),
         )
-        assertNull(TrayNavigation.linkFor(TrayNavigation.ACTION_SHOW_LESSON))
+        every.forEach { destination ->
+            val link = TrayNavigation.linkFor(destination)
+            assertEquals(destination, TrayNavigation.destinationForLink(link), link)
+        }
+    }
+
+    @Test
+    fun `a lesson's sheet and its form have links of their own`() {
+        assertEquals("klas://lesson/42", TrayNavigation.linkFor(Destination.LessonOnSchedule(42)))
+        assertEquals("klas://lesson/42/edit", TrayNavigation.linkFor(Destination.Lesson(42)))
     }
 }

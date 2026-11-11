@@ -57,7 +57,7 @@ system, and its calendar mirror has no guests or email reminder: see [iOS](ios.m
 - «Проведено» bills through a broadcast. «Перенести» opens the lesson form over the current screen;
   an existing form waits underneath. Both re-check current legality because notifications can be stale.
 - `TabArrivals` opens targeted tabs and binds each request to its resulting entry in one operation.
-  `TrayNavigation` decodes system intents; the navigator preserves a pushed form's draft for Back.
+  `TrayNavigation` decodes `klas://` links and older builds' intent actions; the navigator preserves a pushed form's draft for Back.
   `Arrival` consumes each tap once, bound to that destination entry so an older tab cannot replay it:
 
   | Entry | Destination |

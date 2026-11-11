@@ -263,11 +263,12 @@ Build screens from shared state and controls. Feature rules belong in the domain
 
 ## Motion, navigation and accessibility
 
-- Every way into the app but its icon is a `TrayNavigation` entry, so each lands where the same tap in
-  the tray or on the widget does: notifications, widgets, the launcher's long-press shortcuts
+- Every way into the app but its icon is a `TrayNavigation.Destination`, written as its `klas://` link
+  (`TrayNavigation.linkFor`, read back by `destinationForLink`), so each lands where the same tap in the
+  tray or on the widget does. Intent actions from older builds are only read, never written: notifications, widgets, the launcher's long-press shortcuts
   (`Shortcuts.launcher`: Book a lesson, Today, Homework, Debts — published in the app's language, by
   `AppShortcuts` on Android and as quick actions on iOS), `klas://`
-  links (today, schedule, people, homework, reports, debts, book, settings, `lesson/<id>`, `day/<date>`,
+  links (today, schedule, people, homework, reports, debts, book, settings, `lesson/<id>`, `lesson/<id>/edit`, `day/<date>`,
   `student/<id>`;
   they only ever open somewhere, never write) and Ctrl-chords on a hardware keyboard (`KeyboardShortcuts`:
   Ctrl+1–5 the tabs, Ctrl+N a new lesson, Ctrl+, Settings, listed under Meta+/). Bare keys work when no

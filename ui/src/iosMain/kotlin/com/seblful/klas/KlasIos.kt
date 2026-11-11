@@ -20,7 +20,6 @@ import dev.zacsweers.metrox.viewmodel.metroViewModel
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import platform.Foundation.NSNumber
 import platform.LocalAuthentication.LAContext
 import platform.LocalAuthentication.LAPolicyDeviceOwnerAuthentication
 import platform.UIKit.UIViewController
@@ -123,13 +122,7 @@ private class NotificationTaps : NSObject(), UNUserNotificationCenterDelegatePro
         withCompletionHandler: () -> Unit,
     ) {
         val info = didReceiveNotificationResponse.notification.request.content.userInfo
-        (info[IosNotifier.KEY_ACTION] as? String)?.let { action ->
-            IosArrivals.openNotification(
-                action = action,
-                classId = (info[IosNotifier.KEY_CLASS_ID] as? NSNumber)?.longLongValue ?: 0L,
-                epochDay = (info[IosNotifier.KEY_DAY] as? NSNumber)?.longLongValue,
-            )
-        }
+        (info[IosNotifier.KEY_LINK] as? String)?.let(IosArrivals::openLink)
         withCompletionHandler()
     }
 

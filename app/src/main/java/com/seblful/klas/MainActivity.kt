@@ -1,7 +1,6 @@
 package com.seblful.klas
 
 import android.content.Context
-import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import android.view.KeyEvent
@@ -25,6 +24,7 @@ import com.seblful.klas.format.localeFor
 import com.seblful.klas.lock.canUnlock
 import com.seblful.klas.lock.unlockPrompt
 import com.seblful.klas.notifications.AppShortcuts
+import com.seblful.klas.notifications.openAppIntent
 import com.seblful.klas.text.Texts
 import com.seblful.klas.ui.AppRoot
 import com.seblful.klas.ui.HostEffects
@@ -109,9 +109,9 @@ class MainActivity : FragmentActivity() {
      * tap reaches, so a chord goes where that tap would.
      */
     override fun onKeyShortcut(keyCode: Int, event: KeyEvent): Boolean {
-        val action = KeyboardShortcuts.actionFor(keyCode, event.isCtrlPressed)
+        val destination = KeyboardShortcuts.destinationFor(keyCode, event.isCtrlPressed)
             ?: return super.onKeyShortcut(keyCode, event)
-        onNewIntent(Intent(action, null, this, MainActivity::class.java))
+        onNewIntent(openAppIntent(destination))
         return true
     }
 
@@ -120,10 +120,10 @@ class MainActivity : FragmentActivity() {
      * [KeyboardShortcuts.keys] go where their tray entries do.
      */
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
-        val handled = event.hasNoModifiers() && when (val action = KeyboardShortcuts.keyActionFor(keyCode)) {
+        val handled = event.hasNoModifiers() && when (val destination = KeyboardShortcuts.keyDestinationFor(keyCode)) {
             null -> keyCode == KeyEvent.KEYCODE_SLASH && searchKey.press()
             else -> {
-                onNewIntent(Intent(action, null, this, MainActivity::class.java))
+                onNewIntent(openAppIntent(destination))
                 true
             }
         }

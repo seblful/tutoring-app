@@ -5,6 +5,7 @@ import android.view.KeyEvent
 import android.view.KeyboardShortcutGroup
 import android.view.KeyboardShortcutInfo
 import com.seblful.klas.notifications.TrayNavigation
+import com.seblful.klas.notifications.TrayNavigation.Destination
 import com.seblful.klas.text.StringResource
 import com.seblful.klas.text.Strings
 import com.seblful.klas.text.Texts
@@ -16,16 +17,16 @@ import com.seblful.klas.text.Texts
  */
 object KeyboardShortcuts {
 
-    class Chord(val keyCode: Int, val label: StringResource, val action: String)
+    class Chord(val keyCode: Int, val label: StringResource, val destination: Destination)
 
     val chords: List<Chord> = listOf(
-        Chord(KeyEvent.KEYCODE_1, Strings.nav_today, TrayNavigation.ACTION_OPEN_TODAY),
-        Chord(KeyEvent.KEYCODE_2, Strings.nav_schedule, TrayNavigation.ACTION_OPEN_SCHEDULE),
-        Chord(KeyEvent.KEYCODE_3, Strings.nav_people, TrayNavigation.ACTION_OPEN_PEOPLE),
-        Chord(KeyEvent.KEYCODE_4, Strings.nav_homework, TrayNavigation.ACTION_OPEN_HOMEWORK),
-        Chord(KeyEvent.KEYCODE_5, Strings.nav_reports, TrayNavigation.ACTION_OPEN_REPORTS),
-        Chord(KeyEvent.KEYCODE_N, Strings.schedule_add_class, TrayNavigation.ACTION_BOOK_LESSON),
-        Chord(KeyEvent.KEYCODE_COMMA, Strings.settings_title, TrayNavigation.ACTION_OPEN_SETTINGS),
+        Chord(KeyEvent.KEYCODE_1, Strings.nav_today, Destination.Today),
+        Chord(KeyEvent.KEYCODE_2, Strings.nav_schedule, Destination.Schedule),
+        Chord(KeyEvent.KEYCODE_3, Strings.nav_people, Destination.People),
+        Chord(KeyEvent.KEYCODE_4, Strings.nav_homework, Destination.Homework),
+        Chord(KeyEvent.KEYCODE_5, Strings.nav_reports, Destination.Reports),
+        Chord(KeyEvent.KEYCODE_N, Strings.schedule_add_class, Destination.NewLesson),
+        Chord(KeyEvent.KEYCODE_COMMA, Strings.settings_title, Destination.Settings),
     )
 
     /**
@@ -33,16 +34,16 @@ object KeyboardShortcuts {
      * `/` searches too, but opens the screen in front's own search rather than going anywhere.
      */
     val keys: List<Chord> = listOf(
-        Chord(KeyEvent.KEYCODE_N, Strings.schedule_add_class, TrayNavigation.ACTION_BOOK_LESSON),
-        Chord(KeyEvent.KEYCODE_T, Strings.nav_today, TrayNavigation.ACTION_OPEN_TODAY),
+        Chord(KeyEvent.KEYCODE_N, Strings.schedule_add_class, Destination.NewLesson),
+        Chord(KeyEvent.KEYCODE_T, Strings.nav_today, Destination.Today),
     )
 
-    /** The tray action the bare [keyCode] stands for, or null for any other key. */
-    fun keyActionFor(keyCode: Int): String? = keys.firstOrNull { it.keyCode == keyCode }?.action
+    /** Where the bare [keyCode] goes, or null for any other key. */
+    fun keyDestinationFor(keyCode: Int): Destination? = keys.firstOrNull { it.keyCode == keyCode }?.destination
 
-    /** The tray action [keyCode] stands for with Ctrl held, or null for any other key. */
-    fun actionFor(keyCode: Int, ctrl: Boolean): String? =
-        chords.firstOrNull { ctrl && it.keyCode == keyCode }?.action
+    /** Where [keyCode] goes with Ctrl held, or null for any other key. */
+    fun destinationFor(keyCode: Int, ctrl: Boolean): Destination? =
+        chords.firstOrNull { ctrl && it.keyCode == keyCode }?.destination
 
     /** The chords and keys as the system lists them, in [texts]' language. */
     fun group(texts: Texts): KeyboardShortcutGroup = KeyboardShortcutGroup(

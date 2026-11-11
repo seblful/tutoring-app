@@ -1,7 +1,6 @@
 package com.seblful.klas.widget
 
 import android.content.Context
-import android.content.Intent
 import androidx.annotation.DrawableRes
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -50,12 +49,12 @@ class QuickActionsWidget : GlanceAppWidget() {
     private fun Content(context: Context, tag: String) {
         val words = Texts.of(tag)
         fun button(shortcut: Shortcut) =
-            ToolBarButton(shortcut.icon.drawable, words.string(shortcut.label), openApp(context, shortcut.action))
+            ToolBarButton(shortcut.icon.drawable, words.string(shortcut.label), openApp(context, shortcut.destination))
 
         GlanceTheme(colors = KlasWidgetColors) {
             QuickActionsLayout(
                 appName = words.string(Strings.app_name),
-                openApp = openApp(context, Intent.ACTION_MAIN),
+                openApp = openApp(context, destination = null),
                 headerButton = button(Shortcuts.widgetHeader),
                 buttons = Shortcuts.widget.map(::button),
             )

@@ -118,9 +118,7 @@ class AndroidNotifier @Inject constructor(
             .setCategory(NotificationCompat.CATEGORY_REMINDER)
             // The lesson on the schedule, with its sheet open — what tapping its card does in the app.
             .setContentIntent(
-                openApp(klass.id.toInt(), TrayNavigation.ACTION_SHOW_LESSON) {
-                    putExtra(TrayNavigation.EXTRA_CLASS_ID, klass.id)
-                },
+                openApp(klass.id.toInt(), TrayNavigation.Destination.LessonOnSchedule(klass.id)),
             )
             // Reminders stack: a tutor with back-to-back lessons can have two or three in the tray at
             // once, and un-grouped they sit among everything else the phone has to say. Grouping is only
@@ -148,7 +146,7 @@ class AndroidNotifier @Inject constructor(
             .setGroupSummary(true)
             .setOnlyAlertOnce(true)
             // Several lessons, all of them within the next hour or so: today's schedule, where they all are.
-            .setContentIntent(openApp(ID_REMINDERS_SUMMARY, TrayNavigation.ACTION_OPEN_TODAY))
+            .setContentIntent(openApp(ID_REMINDERS_SUMMARY, TrayNavigation.Destination.Today))
             .build()
         post(ID_REMINDERS_SUMMARY, summary)
     }
@@ -188,7 +186,7 @@ class AndroidNotifier @Inject constructor(
             .setCategory(NotificationCompat.CATEGORY_STATUS)
             // Straight to the report that lists them, where each debt row opens the student — the tray can
             // say how much is owed in total and nothing at all about by whom.
-            .setContentIntent(openApp(ID_DEBTS, TrayNavigation.ACTION_OPEN_DEBTS))
+            .setContentIntent(openApp(ID_DEBTS, TrayNavigation.Destination.Debts))
             .build()
 
         post(ID_DEBTS, notification)
@@ -250,18 +248,13 @@ class AndroidNotifier @Inject constructor(
     /** The words, in the app's language and on the phone's clock — the same as iOS's tray says. */
     private fun text() = TrayText(words, displayLocale.tag, hour12 = !DateFormat.is24HourFormat(context))
 
-    private fun openApp(requestCode: Int, action: String, extras: Intent.() -> Unit = {}): PendingIntent {
-        val intent = Intent(context, MainActivity::class.java)
-            .addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
-            .setAction(action)
-            .apply(extras)
+    private fun openApp(requestCode: Int, destination: TrayNavigation.Destination): PendingIntent {
+        val intent = context.openAppIntent(destination).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
         return PendingIntent.getActivity(context, requestCode, intent, FLAGS)
     }
 
     private fun openDay(requestCode: Int, day: LocalDate): PendingIntent =
-        openApp(requestCode, TrayNavigation.ACTION_OPEN_DAY) {
-            putExtra(TrayNavigation.EXTRA_DAY, day.toEpochDays())
-        }
+        openApp(requestCode, TrayNavigation.Destination.Day(day))
 
     private fun completeAction(classId: Long): NotificationCompat.Action {
         val intent = Intent(context, ReminderActionReceiver::class.java)
@@ -278,9 +271,7 @@ class AndroidNotifier @Inject constructor(
     private fun rescheduleAction(classId: Long): NotificationCompat.Action =
         action(
             Strings.class_move,
-            openApp(classId.toInt(), TrayNavigation.ACTION_OPEN_LESSON) {
-                putExtra(TrayNavigation.EXTRA_CLASS_ID, classId)
-            },
+            openApp(classId.toInt(), TrayNavigation.Destination.Lesson(classId)),
         )
 
     private fun action(

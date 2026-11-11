@@ -1,11 +1,9 @@
 package com.seblful.klas.notifications
 
 import android.content.Context
-import android.content.Intent
 import androidx.core.content.pm.ShortcutInfoCompat
 import androidx.core.content.pm.ShortcutManagerCompat
 import androidx.core.graphics.drawable.IconCompat
-import com.seblful.klas.MainActivity
 import com.seblful.klas.runCatchingCancellable
 import com.seblful.klas.text.Texts
 import com.seblful.klas.widget.drawable
@@ -26,7 +24,7 @@ object AppShortcuts {
                 .setShortLabel(label)
                 .setLongLabel(label)
                 .setIcon(IconCompat.createWithResource(context, entry.icon.drawable))
-                .setIntent(Intent(entry.action, null, context, MainActivity::class.java))
+                .setIntent(context.openAppIntent(entry.destination))
                 // The launcher's order, which it is otherwise free to choose: booking first, as on the widget.
                 .setRank(rank)
                 .build()

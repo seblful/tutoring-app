@@ -6,8 +6,8 @@ import androidx.glance.action.Action
 import androidx.glance.appwidget.action.actionStartActivity
 import androidx.glance.color.ColorProvider
 import androidx.glance.material3.ColorProviders
-import com.seblful.klas.MainActivity
 import com.seblful.klas.notifications.TrayNavigation
+import com.seblful.klas.notifications.openAppIntent
 import com.seblful.klas.ui.theme.ContrastLevel
 import com.seblful.klas.ui.theme.klasColorScheme
 import com.seblful.klas.ui.theme.md_success
@@ -26,14 +26,6 @@ internal val KlasWidgetColors = ColorProviders(
 /** The app's green for a taught lesson, as the schedule colours its status. */
 internal val TaughtColor = ColorProvider(day = md_success, night = md_success_d)
 
-/**
- * Opens the app at [action], one of [TrayNavigation]'s, so a widget tap and a notification tap land
- * the same way.
- */
-internal fun openApp(context: Context, action: String, classId: Long? = null): Action =
-    actionStartActivity(
-        Intent(context, MainActivity::class.java)
-            .setAction(action)
-            .addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
-            .apply { classId?.let { putExtra(TrayNavigation.EXTRA_CLASS_ID, it) } },
-    )
+/** Opens the app at [destination] (plainly when null), so a widget tap and a notification tap land the same way. */
+internal fun openApp(context: Context, destination: TrayNavigation.Destination?): Action =
+    actionStartActivity(context.openAppIntent(destination).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP))

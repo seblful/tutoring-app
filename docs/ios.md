@@ -62,8 +62,9 @@ AES block, so a backup sealed on one phone opens on the other.
 - **The switcher sees a cover.** Android blanks the recent-apps preview; iOS has no such switch, so when
   `Privacy.hideInRecents` or the app lock is on, `IosHostEffects` covers the window as the app resigns
   active, which is the picture the app switcher keeps. Control Center and the Face ID prompt show it briefly.
-- **Shortcuts are links.** Each quick action on the app's icon, and each widget button, is the
-  `klas://` link for its `TrayNavigation` action (`TrayNavigation.linkFor`).
+- **Everything outside the app is a link.** Each notification's tap, quick action on the app's icon and
+  widget button carries the `klas://` link of its `TrayNavigation.Destination` (`TrayNavigation.linkFor`),
+  as Android's intents do; `KlasIos.openLink` reads it back.
 
 ## Tests
 

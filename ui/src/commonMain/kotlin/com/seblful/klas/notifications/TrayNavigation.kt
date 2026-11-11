@@ -26,8 +26,9 @@ import kotlinx.datetime.LocalDate
 object TrayNavigation {
 
     /**
-     * The action strings ride in `PendingIntent`s that may already be sitting in a tray, so their
-     * **values** are not free to change.
+     * What older builds put in intents: notifications still in a tray, widgets not yet redrawn and pinned
+     * shortcuts still carry them, so [destinationFor] keeps reading them and their **values** are not free to
+     * change. Everything the app writes now is a [linkFor] link.
      */
     const val ACTION_OPEN_LESSON = "${ACTION_PREFIX}OPEN_LESSON"
     const val ACTION_OPEN_DEBTS = "${ACTION_PREFIX}OPEN_DEBTS"
@@ -38,7 +39,7 @@ object TrayNavigation {
     const val ACTION_OPEN_PEOPLE = "${ACTION_PREFIX}OPEN_PEOPLE"
     const val ACTION_OPEN_HOMEWORK = "${ACTION_PREFIX}OPEN_HOMEWORK"
 
-    /** The tabs and the page a keyboard chord can open besides the tray's — see `KeyboardShortcuts`. */
+    /** Pages only a keyboard chord used to open by action, kept for [destinationFor]. */
     const val ACTION_OPEN_SCHEDULE = "${ACTION_PREFIX}OPEN_SCHEDULE"
     const val ACTION_OPEN_REPORTS = "${ACTION_PREFIX}OPEN_REPORTS"
     const val ACTION_OPEN_SETTINGS = "${ACTION_PREFIX}OPEN_SETTINGS"
@@ -159,7 +160,8 @@ object TrayNavigation {
      * `klas://book` opens an empty form, it does not book.
      *
      * `klas://today`, `schedule`, `people`, `homework`, `reports`, `debts`, `book`, `settings`,
-     * `lesson/<id>` (its sheet on the schedule), `day/<yyyy-mm-dd>` and `student/<id>` (their profile).
+     * `lesson/<id>` (its sheet on the schedule), `lesson/<id>/edit` (its form), `day/<yyyy-mm-dd>` and
+     * `student/<id>` (their profile). [linkFor] writes them.
      */
     fun destinationForLink(link: String?): Destination? {
         val path = link?.takeIf { it.startsWith("$LINK_SCHEME://") }
@@ -170,7 +172,9 @@ object TrayNavigation {
             ?: return null
         val argument = path.getOrNull(1)
         return when (path.first()) {
-            "lesson" -> argument?.toLongOrNull()?.let(::lessonIdOrNull)?.let { Destination.LessonOnSchedule(it) }
+            "lesson" -> argument?.toLongOrNull()?.let(::lessonIdOrNull)?.let {
+                if (path.getOrNull(2) == EDIT) Destination.Lesson(it) else Destination.LessonOnSchedule(it)
+            }
             "day" -> argument?.let { runCatching { LocalDate.parse(it) }.getOrNull()?.drawable() }
                 ?.let { Destination.Day(it) }
             "student" -> argument?.toLongOrNull()?.takeIf { it > 0 }?.let { Destination.Student(it) }
@@ -179,14 +183,19 @@ object TrayNavigation {
     }
 
     /**
-     * The `klas://` link that goes where [action] does, for a place that carries nothing but its name; null
-     * for any other action. iOS opens its shortcuts and widget buttons by link.
+     * The `klas://` link to [destination] — the one way the app addresses a place from outside its screens:
+     * notifications, widgets, the icon's shortcuts and keyboard chords on both platforms.
+     * [destinationForLink] reads it back to the same destination.
      */
-    fun linkFor(action: String): String? =
-        places.firstOrNull { it.action == action }?.let { "$LINK_SCHEME://${it.link}" }
+    fun linkFor(destination: Destination): String = "$LINK_SCHEME://" + when (destination) {
+        is Destination.Lesson -> "lesson/${destination.classId}/$EDIT"
+        is Destination.LessonOnSchedule -> "lesson/${destination.classId}"
+        is Destination.Day -> "day/${destination.date}"
+        is Destination.Student -> "student/${destination.studentId}"
+        else -> places.first { it.destination == destination }.link
+    }
 
-    /** The link to the lesson's sheet on the schedule: where [ACTION_SHOW_LESSON] goes. */
-    fun lessonLink(classId: Long): String = "$LINK_SCHEME://lesson/$classId"
+    private const val EDIT = "edit"
 
     /** The years the schedule can lay a month out in; its grid reaches past the day it is opened on. */
     private val DRAWABLE_DAYS = LocalDate(1900, 1, 1)..LocalDate(9999, 12, 31)

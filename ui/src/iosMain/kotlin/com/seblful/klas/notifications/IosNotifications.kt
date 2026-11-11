@@ -116,7 +116,7 @@ class IosNotifier(
         homeworkToCheck: String?,
     ) {
         val entry = text().reminder(klass, whoName, subjectName, homeworkToCheck)
-        post(reminderId(klass.id), entry, TrayNavigation.ACTION_SHOW_LESSON, classId = klass.id, thread = REMINDERS)
+        post(reminderId(klass.id), entry, TrayNavigation.Destination.LessonOnSchedule(klass.id), thread = REMINDERS)
     }
 
     override fun cancelClassReminder(classId: Long) {
@@ -125,23 +125,21 @@ class IosNotifier(
     }
 
     override fun showAgenda(agenda: Digests.Agenda, currency: Currency) =
-        post(AGENDA, text().agenda(agenda, currency), TrayNavigation.ACTION_OPEN_DAY, day = agenda.day)
+        post(AGENDA, text().agenda(agenda, currency), TrayNavigation.Destination.Day(agenda.day))
 
     override fun showUnfinished(unfinished: Digests.Unfinished) =
-        post(UNFINISHED, text().unfinished(unfinished), TrayNavigation.ACTION_OPEN_DAY, day = unfinished.day)
+        post(UNFINISHED, text().unfinished(unfinished), TrayNavigation.Destination.Day(unfinished.day))
 
     override fun showDebts(debts: Digests.Debts, currency: Currency) =
-        post(DEBTS, text().debts(debts, currency), TrayNavigation.ACTION_OPEN_DEBTS)
+        post(DEBTS, text().debts(debts, currency), TrayNavigation.Destination.Debts)
 
     override fun showAutoCompleted(lessons: Int, billed: Money, day: LocalDate, currency: Currency) =
-        post(UPKEEP, text().autoCompleted(lessons, billed, currency), TrayNavigation.ACTION_OPEN_DAY, day = day)
+        post(UPKEEP, text().autoCompleted(lessons, billed, currency), TrayNavigation.Destination.Day(day))
 
     private fun post(
         id: String,
         entry: TrayText.Entry,
-        action: String,
-        classId: Long = 0L,
-        day: LocalDate? = null,
+        tap: TrayNavigation.Destination,
         thread: String? = null,
     ) {
         // No permission check: iOS drops a request the app may not show, and one set while the answer is
@@ -158,13 +156,7 @@ class IosNotifier(
             )
             setSound(UNNotificationSound.defaultSound)
             thread?.let { setThreadIdentifier(it) }
-            setUserInfo(
-                buildMap<Any?, Any?> {
-                    put(KEY_ACTION, action)
-                    put(KEY_CLASS_ID, classId)
-                    day?.let { put(KEY_DAY, it.toEpochDays()) }
-                },
-            )
+            setUserInfo(mapOf<Any?, Any?>(KEY_LINK to TrayNavigation.linkFor(tap)))
         }
         val at = deliverAt?.takeIf { it > clock.now() }
         val trigger = at?.let {
@@ -191,9 +183,8 @@ class IosNotifier(
         const val UNFINISHED = "digest-unfinished"
         const val DEBTS = "digest-debts"
         const val UPKEEP = "upkeep"
-        const val KEY_ACTION = "action"
-        const val KEY_CLASS_ID = "classId"
-        const val KEY_DAY = "epochDay"
+        /** Where a tap on it goes, as its `klas://` link. */
+        const val KEY_LINK = "link"
 
         const val REMINDER_PREFIX = "reminder-"
 

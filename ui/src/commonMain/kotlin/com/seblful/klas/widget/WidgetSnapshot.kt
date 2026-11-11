@@ -125,7 +125,7 @@ object WidgetSnapshots {
                             taught = row.taught,
                             onNow = row.onNow,
                             statusLabel = row.tickLabel,
-                            link = TrayNavigation.lessonLink(row.classId),
+                            link = TrayNavigation.linkFor(TrayNavigation.Destination.LessonOnSchedule(row.classId)),
                         )
                     },
                 )
@@ -139,7 +139,7 @@ object WidgetSnapshots {
                 onNow = rowTexts.onNow,
                 bookLesson = rowTexts.bookLesson,
                 bookLink = Shortcuts.widgetHeader.link,
-                openLink = checkNotNull(TrayNavigation.linkFor(TrayNavigation.ACTION_OPEN_TODAY)),
+                openLink = TrayNavigation.linkFor(TrayNavigation.Destination.Today),
                 privateWhenLocked = !privacy.lockScreenWidgets,
                 pages = pages,
             ),
