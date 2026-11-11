@@ -7,7 +7,7 @@ package com.seblful.klas.storage
  *
  * Only what a sealed backup uses: a 96-bit IV and no additional authenticated data.
  */
-internal class AesGcm(private val encryptBlock: (ByteArray) -> ByteArray) {
+class AesGcm(private val encryptBlock: (ByteArray) -> ByteArray) {
 
     private val hashKey: ByteArray = encryptBlock(ByteArray(BLOCK))
 

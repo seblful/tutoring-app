@@ -2,8 +2,9 @@
 
 Room is the source of truth. Calendar events and notifications are best-effort mirrors, never inputs.
 Screens, view models, theme, text and display formatting live in `:ui` (Compose Multiplatform). `:app` is
-the Android host: device adapters, workers, widgets and the Metro graph. The [iOS app](ios.md) is `:ui`'s
-`iosMain` (its adapters, graph and entry point) linked into the SwiftUI shell in `iosApp/`. Shared persistence and workflows live
+the Android host: device adapters, workers, widgets and the Metro graph. `:iosHost` is the iOS host — its
+adapters, graph and entry point — linked as the `KlasApp` framework into the SwiftUI shell in `iosApp/`
+([iOS app](ios.md)); `:ui`'s `iosMain` keeps only the screens' `*.ios.kt` seams. Shared persistence and workflows live
 in `:shared`; pure rules live in `:domain`. The three libraries use Kotlin Multiplatform with iOS targets. `:baselineprofile`
 drives the app to collect its baseline profile and ships nothing. Shared common
 sources reject Android/JDK APIs. Dates use kotlinx-datetime; instants/durations use `kotlin.time`.
@@ -14,7 +15,7 @@ flowchart TB
     App["app: Android host, workers and adapters"] --> Ui["ui: screens, view models and theme"]
     Ui --> Shared["shared: repositories and workflows"]
     App --> Shared
-    Ios["iosApp: SwiftUI shell"] --> IosUi["ui iosMain: iOS graph and adapters"]
+    Ios["iosApp: SwiftUI shell"] --> IosUi["iosHost: iOS graph and adapters"]
     IosUi --> Ui
     Shared --> Domain["domain: models and pure rules"]
     Shared --> Room[(Room DB)]
@@ -37,7 +38,7 @@ Paths below are inside `com.seblful.klas`; follow the linked sources for individ
 | [Android calendar](../app/src/main/java/com/seblful/klas/calendar/) / [notifications](../app/src/main/java/com/seblful/klas/notifications/) / [work](../app/src/main/java/com/seblful/klas/work/) | Device adapters, receivers and WorkManager scheduling. The permission prompts and tray navigation the screens use are in `:ui` ([calendar](../ui/src/commonMain/kotlin/com/seblful/klas/calendar/), [notifications](../ui/src/commonMain/kotlin/com/seblful/klas/notifications/)). |
 | [Android widgets](../app/src/main/java/com/seblful/klas/widget/) | Glance home-screen widgets: today's lessons and shortcuts. Today and its widget read the same shared lesson query, and the rows (`TodayRows.kt`) and buttons (`Shortcuts`) are `:ui`'s, shared with iOS's widgets. Both open the app by `klas://` link (`TrayNavigation.linkFor`); the check marks a lesson taught through `ReminderActions`. They speak the stored language (`DisplayLocale.observe`), not the last one read. `WidgetUpdates` redraws them while the process lives — on lesson or language changes, and on a clock change via `ClockChangeReceiver` — and Today at its next lesson's start or end (when «On now» moves; `TodayLessons.nextChange`), else at midnight, through a non-waking alarm. Its rows give start–end like the Day view, its tick is read as «Mark Olivia Brooks, 15:00 taught», and its spacing is the app's `Spacing`; only the type stays Glance's (sp, system font). `WidgetPreviews` publishes the Android 15+ picker previews once per install and language. |
 | [Android storage](../app/src/main/java/com/seblful/klas/storage/) / [diagnostics](../app/src/main/java/com/seblful/klas/diagnostics/) | SAF document store, sharing and backup-folder adapters and the file-backed crash log; the screens' side (`FolderGrants`, `SharedDocuments`, `CrashLogStore`) is in `:ui`. |
-| [Print](../ui/src/commonMain/kotlin/com/seblful/klas/print/) | `Sheet` (title, sections of label–amount rows, paginated purely) and the `SheetPrinter` port in `:ui`; Android's [`PdfSheetPrinter`](../app/src/main/java/com/seblful/klas/print/PdfSheetPrinter.kt) draws it over `PdfDocument`, iOS's [`IosSheetPrinter`](../ui/src/iosMain/kotlin/com/seblful/klas/print/IosSheetPrinter.kt) over UIKit's PDF renderer. The report summary and the statement print through it. Only a device can write the PDF, so its test is in `androidTest`. |
+| [Print](../ui/src/commonMain/kotlin/com/seblful/klas/print/) | `Sheet` (title, sections of label–amount rows, paginated purely) and the `SheetPrinter` port in `:ui`; Android's [`PdfSheetPrinter`](../app/src/main/java/com/seblful/klas/print/PdfSheetPrinter.kt) draws it over `PdfDocument`, iOS's [`IosSheetPrinter`](../iosHost/src/iosMain/kotlin/com/seblful/klas/print/IosSheetPrinter.kt) over UIKit's PDF renderer. The report summary and the statement print through it. Only a device can write the PDF, so its test is in `androidTest`. |
 | [Shared format](../shared/src/commonMain/kotlin/com/seblful/klas/format/) / [display format](../ui/src/commonMain/kotlin/com/seblful/klas/format/) / [device preferences](../app/src/main/java/com/seblful/klas/format/) | Portable exact amount parsing and observable-clock interface; `:ui` owns localized display, the host reads the device clock, language and week start. |
 | [UI](../ui/src/commonMain/kotlin/com/seblful/klas/ui/) | Screens and view models by feature; generic design-system parts (no domain types) in `designsystem/`, shared atoms/state in `common/`, routes in `navigation/`, the start tab in `today/`, booking in `schedule/booking/`, settings index/categories and permission UI in `settings/`. Feature-only parts stay with their feature. |
 | [DI](../app/src/main/java/com/seblful/klas/di/) | Metro graph and platform bindings; the qualifiers the screens inject are in [`:ui`](../ui/src/commonMain/kotlin/com/seblful/klas/di/Qualifiers.kt). `KlasApp` owns the graph/upkeep; `MainActivity` hosts `AppRoot`. |
@@ -121,14 +122,14 @@ An `expect` names what the screen needs, never a platform type. Android-only hel
 counterpart (`PermissionPrompts`, `KeyboardShortcuts`, `Localization`) live in `androidMain` only.
 
 Below the screens the same rule holds: each port (`Notifier`, `CalendarSync`, `DocumentStore`,
-`BackupCipher`, `SheetPrinter`…) has an Android adapter in `:app` and an iOS one in `ui/src/iosMain`, and
+`BackupCipher`, `SheetPrinter`…) has an Android adapter in `:app` and an iOS one in `:iosHost`, and
 whatever the two would both decide stays in common code — each notification as a `TrayNotice` that both
 `TrayNotifier`s only draw, its words in `TrayText`, which lessons a
 digest names in `TrayContent`, GCM in `AesGcm`. [iOS](ios.md) lists the pairs and where iOS behaves
 differently.
 
-`:ui:compileKotlinIosSimulatorArm64` is the purity check: it compiles common code without Android or the
-JDK, checks the iOS Metro graph, and runs on Windows. Formatting reads `LocaleData` from each platform (see [Text](#text)), so
+`:iosHost:compileKotlinIosSimulatorArm64` is the purity check: it compiles common code without Android or
+the JDK, checks the iOS Metro graph, and runs on Windows. Formatting reads `LocaleData` from each platform (see [Text](#text)), so
 `:ui` common tests hold both platforms to the same expectations.
 
 ## Dependency injection
@@ -153,7 +154,7 @@ in [the version catalog](../gradle/libs.versions.toml).
 - Test graphs replace bindings with `excludes` (`StoreGraph`). `KlasGraphTest` checks runtime discovery
   of view models, workers and manifest receivers.
 
-iOS has its own graph, `IosGraph` in `ui/src/iosMain/.../di/`, over the same `AppScope` contributions:
+iOS has its own graph, `IosGraph` in `:iosHost` (`di/`), over the same `AppScope` contributions:
 every shared and `:ui` binding is found by both graphs, and each platform contributes its adapters. A
 binding added to common code with no adapter on one platform fails that platform's compile. Keep shared
 constructors independent of Android graph types.

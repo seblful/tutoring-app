@@ -4,7 +4,7 @@ import UIKit
 import WidgetKit
 
 /// The iOS app: the shared Compose screens in one window. Everything the app does lives in Kotlin
-/// (`ui/src/iosMain/.../KlasIos.kt`); this file only hands the window, the links and the quick actions over.
+/// (`iosHost/src/iosMain/.../KlasIos.kt`); this file only hands the window, the links and the quick actions over.
 @main
 struct KlasIosApp: App {
     @UIApplicationDelegateAdaptor(QuickActionLaunch.self) private var launch

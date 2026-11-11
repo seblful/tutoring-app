@@ -71,7 +71,7 @@ tasks.register("verify") {
         ":domain:jvmTest", ":shared:jvmTest", ":ui:testAndroidHostTest", ":app:verifyRoborazziDebug", ":app:lintDebug",
         ":app:assembleDebug", ":app:assembleDebugAndroidTest",
     )
-    listOf(":app", ":domain", ":shared", ":ui", ":baselineprofile").forEach { module ->
+    listOf(":app", ":domain", ":shared", ":ui", ":iosHost", ":baselineprofile").forEach { module ->
         dependsOn("$module:ktlintCheck", "$module:detekt")
     }
 }

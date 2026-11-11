@@ -9,6 +9,7 @@ import com.seblful.klas.domain.reminders.Reminders
 import com.seblful.klas.domain.time.WallClock
 import com.seblful.klas.format.DisplayLocale
 import com.seblful.klas.maintenance.Maintenance
+import com.seblful.klas.ui.common.phoneHour12
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.Inject
@@ -21,9 +22,6 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import platform.Foundation.NSDateComponents
-import platform.Foundation.NSDateFormatter
-import platform.Foundation.NSLocale
-import platform.Foundation.currentLocale
 import platform.UserNotifications.UNAuthorizationStatusAuthorized
 import platform.UserNotifications.UNAuthorizationStatusEphemeral
 import platform.UserNotifications.UNAuthorizationStatusNotDetermined
@@ -231,10 +229,6 @@ class IosNotifier(
             TrayKind.UPKEEP -> "upkeep"
             else -> "digest-${kind.name.lowercase()}"
         }
-
-        /** The phone's 12/24-hour switch, as its own clock reads it. */
-        fun phoneHour12(): Boolean =
-            NSDateFormatter.dateFormatFromTemplate("j", 0u, NSLocale.currentLocale)?.contains('a') == true
     }
 }
 

@@ -1,7 +1,8 @@
 # Run the iOS app
 
 The iOS app is the Android app's screens and logic compiled for iOS: one Compose Multiplatform UI in
-`:ui`, linked as the static `KlasApp` framework into a SwiftUI shell in `iosApp/`. A change to a screen,
+`:ui`, hosted by `:iosHost` (as `:app` hosts it on Android) and linked as the static `KlasApp` framework
+into a SwiftUI shell in `iosApp/`. A change to a screen,
 a rule or a word reaches both apps; only the platform adapters below are written twice.
 
 On an Apple Silicon Mac with Xcode, JDK 21 and the Android SDK configured as in the README:
@@ -15,7 +16,7 @@ open iosApp/Klas.xcodeproj
 Run the `Klas` scheme on a simulator or a phone. For a phone, set a signing team on the `Klas` and
 `KlasWidgets` targets and register the app group `group.com.seblful.klas` for both; without the group
 the app runs and the widgets stay on their placeholder. The Xcode build runs
-`./gradlew :ui:embedAndSignAppleFrameworkForXcode`, which builds the framework and copies the Compose
+`./gradlew :iosHost:embedAndSignAppleFrameworkForXcode`, which builds the framework and copies the Compose
 resources (fonts, images, licence) into the app. `iosApp/project.yml` is the project's source; regenerate
 after changing it. The generated project, `Info.plist` and build output are ignored by Git.
 
@@ -24,7 +25,7 @@ after changing it. The generated project, `Info.plist` and build output are igno
 | Part | Android | iOS |
 | --- | --- | --- |
 | Entry point | `KlasApp`, `MainActivity` | `iosApp/Sources/KlasApp.swift` → `KlasIos`, `MainViewController` |
-| Graph | `KlasGraph` (`app/`) | `IosGraph` (`ui/src/iosMain/.../di/`) |
+| Graph | `KlasGraph` (`app/`) | `IosGraph` (`iosHost/`, `di/`) |
 | Database, clock, locales, device facts | `app/.../di/` modules | `IosModule` |
 | Notifications and their schedule | `AndroidNotifier`, alarms, WorkManager | `IosNotifications.kt` |
 | Calendar mirror | `DeviceCalendarSync` (CalendarContract) | `IosCalendar.kt` (EventKit) |
@@ -87,5 +88,5 @@ xcodebuild test -project iosApp/Klas.xcodeproj -scheme Klas \
 ```
 
 The macOS job in [CI](../.github/workflows/ci.yml) runs both. Windows compiles the iOS Kotlin
-(`./gradlew :ui:compileKotlinIosSimulatorArm64`), which also checks the iOS graph; linking, Swift and
+(`./gradlew :iosHost:compileKotlinIosSimulatorArm64`), which also checks the iOS graph; linking, Swift and
 the simulator need macOS.

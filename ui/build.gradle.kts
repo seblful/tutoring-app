@@ -2,7 +2,7 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.targets.native.tasks.KotlinNativeSimulatorTest
 
 // The app's screens for Android and iOS: Compose Multiplatform UI, view models, navigation, theme, text and
-// formatting. Platform hosts (`:app`, `iosApp/`) supply adapters and the window.
+// formatting. Platform hosts (`:app`, `:iosHost`) supply adapters and the window.
 plugins {
     alias(libs.plugins.kotlin.multiplatform)
     alias(libs.plugins.android.multiplatform.library)
@@ -30,13 +30,9 @@ kotlin {
         // commonTest on the JVM, against Android's java.text tables; iOS runs it on the simulator.
         withHostTest {}
     }
-    // The iOS app: one static framework holding every module, linked by `iosApp/`.
-    listOf(iosArm64(), iosSimulatorArm64()).forEach { target ->
-        target.binaries.framework {
-            baseName = "KlasApp"
-            isStatic = true
-        }
-    }
+    // `:iosHost` links the iOS framework; these targets compile the screens and their `*.ios.kt` seams.
+    iosArm64()
+    iosSimulatorArm64()
 
     compilerOptions {
         // Compose Styles (`ui/theme/KlasStyles.kt`) are still experimental in foundation 1.12.
