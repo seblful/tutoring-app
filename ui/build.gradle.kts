@@ -68,6 +68,7 @@ kotlin {
         }
         commonTest.dependencies {
             implementation(kotlin("test"))
+            implementation(libs.kotlinx.coroutines.test)
         }
         iosTest.dependencies {
             // Compose's own test rule, drawn by Skia as the app is: Android's UI tests run on Robolectric in :app.

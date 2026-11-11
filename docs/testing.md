@@ -13,10 +13,10 @@ builds used by CI. Device and iOS simulator execution are separate checks.
 |---|---|
 | `domain/src/commonTest` | Pure rules with `kotlin.test`; the same tests run on JVM and iOS. |
 | `shared/src/commonTest` | Repository atomicity and race cases, backup contracts, feature queries, parsing and clock events over real Room databases. Platform test source sets provide database creation. |
-| `ui/src/commonTest` | Date, time and money formatting in each language, what the notification tray says and does (`TrayText`, `TrayNoticesTest`), and what the widgets and shortcuts say and open (`TodayLessonsTest`, `WidgetSnapshotsTest`, `ShortcutsTest`). The JVM run reads Android's `java.text`/`java.time` tables; the iOS run reads Foundation's, so both platforms' CLDR data meet the same expectations. |
+| `ui/src/commonTest` | Date, time and money formatting in each language, what the notification tray says and does (`TrayText`, `TrayNoticesTest`), what the widgets and shortcuts say and open (`TodayLessonsTest`, `WidgetSnapshotsTest`, `ShortcutsTest`), and screen logic that needs no database or Android: navigation state, form reducers, pagers, sorting (`kotlin.test`, `kotlinx-coroutines-test`; test names avoid commas, which Kotlin/Native refuses). The JVM run reads Android's `java.text`/`java.time` tables; the iOS run reads Foundation's, so both platforms' CLDR data meet the same expectations. |
 | `ui/src/androidHostTest` | Common code checked against a JVM reference, such as `AesGcm` against the JDK's GCM, and the iOS widget snapshot against its fixture (`WidgetSnapshotContractTest`). |
 | `ui/src/iosTest` | What only iOS can show, drawn by Compose's own test rule: `InkCentredTextIosTest` measures Skia's pixels. |
-| `app/src/test` | Android locale/graph behavior, view models, mappers and source/artifact tripwires. Unmocked Android calls fail (`isReturnDefaultValues` is off). |
+| `app/src/test` | Android locale/graph behavior, view models over a real database, Compose UI on Robolectric, mappers and source/artifact tripwires. A `:ui` test that needs none of these goes in `ui/src/commonTest`, so it runs on iOS too. Unmocked Android calls fail (`isReturnDefaultValues` is off). |
 
 - Seed valid application states through `testutil/Fixtures`; use `storedClass` for raw persisted states.
   `DirectSeedingRatchetTest` lists the few direct-write exceptions by file and purpose, and fails if an

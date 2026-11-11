@@ -25,7 +25,7 @@ class TrayNoticesTest {
     )
 
     @Test
-    fun `a reminder shows its lesson, and offers to mark it taught or move it`() {
+    fun `a reminder shows its lesson — and offers to mark it taught or move it`() {
         val notice = notices.reminder(klass, "Anna", "Algebra", homeworkToCheck = null)
 
         assertEquals(TrayKind.REMINDER, notice.kind)
@@ -38,7 +38,7 @@ class TrayNoticesTest {
     }
 
     @Test
-    fun `the digests open the day they are about, and have no buttons`() {
+    fun `the digests open the day they are about — and have no buttons`() {
         val none = DaySummary(lessons = 0, minutes = 0, money = Money.ZERO, cancelled = 0)
         val agenda = notices.agenda(Digests.Agenda(day, none, emptyList()), Currency.USD)
         val unfinished = notices.unfinished(Digests.Unfinished(day, emptyList()))
