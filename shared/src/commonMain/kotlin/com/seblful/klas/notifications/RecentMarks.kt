@@ -1,6 +1,7 @@
 package com.seblful.klas.notifications
 
 import com.seblful.klas.domain.model.ClassSession
+import com.seblful.klas.lessons.LessonChange
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
@@ -20,7 +21,10 @@ import kotlin.time.Instant
 class RecentMarks @Inject constructor() {
 
     /** [session] as it was written taught, [at] that time. */
-    data class Mark(val session: ClassSession, val at: Instant)
+    data class Mark(val session: ClassSession, val at: Instant) {
+        /** Its guarded undo, as for every completion. */
+        val change: LessonChange get() = LessonChange.completed(session)
+    }
 
     private val _marks = MutableStateFlow<List<Mark>>(emptyList())
 

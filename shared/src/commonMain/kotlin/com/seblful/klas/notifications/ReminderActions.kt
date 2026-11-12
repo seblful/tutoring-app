@@ -1,7 +1,7 @@
 package com.seblful.klas.notifications
 
 import com.seblful.klas.domain.time.WallClock
-import com.seblful.klas.lessons.LessonCompletions
+import com.seblful.klas.lessons.LessonChanges
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
@@ -19,7 +19,7 @@ import dev.zacsweers.metro.SingleIn
  */
 @SingleIn(AppScope::class)
 class ReminderActions @Inject constructor(
-    private val completions: LessonCompletions,
+    private val changes: LessonChanges,
     private val notifier: Notifier,
     private val marks: RecentMarks,
     private val clock: WallClock,
@@ -29,7 +29,7 @@ class ReminderActions @Inject constructor(
      *
      * **The lesson, not the class.** A group reminder names the group and is one notification, so its
      * «Проведено» has to settle the room the same way the schedule's swipe does: one status, and every
-     * still-expected member carried to present and billed ([LessonCompletions.complete]).
+     * still-expected member carried to present and billed ([LessonChanges.complete]).
      *
      * **Legality is checked inside the completion transaction**, so the
      * button can never do what the app's own menu would refuse. It matters here more than on screen,
@@ -43,7 +43,7 @@ class ReminderActions @Inject constructor(
      * read would otherwise leave the reminder there, still offering a tap that had already been made.
      */
     suspend fun complete(classId: Long): Boolean = try {
-        completions.complete(classId)?.let { marks.record(it, clock.now()) } != null
+        changes.complete(classId)?.let { marks.record(it.lesson, clock.now()) } != null
     } finally {
         notifier.cancelClassReminder(classId)
     }

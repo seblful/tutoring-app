@@ -16,7 +16,7 @@ import com.seblful.klas.data.settings.SettingsRepository
 import com.seblful.klas.domain.reminders.DigestScheduler
 import com.seblful.klas.domain.reminders.ReminderScheduler
 import com.seblful.klas.domain.time.WallClock
-import com.seblful.klas.lessons.LessonCompletions
+import com.seblful.klas.lessons.LessonChanges
 import com.seblful.klas.notifications.Notifier
 import com.seblful.klas.queries.groups.GroupDetailsQuery
 import com.seblful.klas.queries.homework.HomeworkQuery
@@ -37,7 +37,7 @@ interface KlasStore {
     val groups: GroupRepository
     val enrollment: EnrollmentRepository
     val classes: ClassRepository
-    val lessonCompletions: LessonCompletions
+    val lessonChanges: LessonChanges
     val payments: PaymentRepository
     val homework: HomeworkRepository
     val homeworkQuery: HomeworkQuery

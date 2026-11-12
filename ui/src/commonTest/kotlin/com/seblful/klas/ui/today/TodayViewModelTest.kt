@@ -63,7 +63,7 @@ class TodayViewModelTest : UiTest() {
 
     private fun vm() = main.own(
         TodayViewModel(
-            completions = env.lessonCompletions,
+            lessonChanges = env.lessonChanges,
             students = env.studentRepo,
             todayLessons = TodayLessonsQuery(
                 env.classRepo, env.studentRepo, env.subjectRepo, env.groupRepo, env.clock,
@@ -193,7 +193,7 @@ class TodayViewModelTest : UiTest() {
             runCurrent()
             val marked = vm.events.stream.first() as TodayViewModel.Event.Marked
 
-            assertEquals(2, marked.sessions.size)
+            assertEquals(2, marked.changes.size)
             assertTrue(vm.state.current.toMark.isEmpty())
             assertEquals(
                 LessonPhase.UPCOMING,

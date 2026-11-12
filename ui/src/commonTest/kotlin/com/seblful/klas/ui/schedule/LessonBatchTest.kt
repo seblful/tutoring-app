@@ -34,7 +34,7 @@ class LessonBatchTest : UiTest() {
 
     private val env = UiTestEnv()
 
-    private val batch get() = LessonBatch(env.classRepo, env.lessonChanges, env.lessonCompletions, main.appScope)
+    private val batch get() = LessonBatch(env.classRepo, env.lessonChanges, main.appScope)
 
     /** Three lessons this morning, already over on the test clock (15:00 in Minsk). */
     private suspend fun morning(): List<Long> {
@@ -59,7 +59,7 @@ class LessonBatchTest : UiTest() {
             runCurrent()
             val marked = batch.done.stream.first() as LessonBatch.Done.Marked
 
-            assertEquals(2, marked.sessions.size)
+            assertEquals(2, marked.changes.size)
             assertEquals(
                 listOf(LessonStatus.COMPLETED, LessonStatus.COMPLETED, LessonStatus.CANCELLED),
                 listOf(status(a), status(b), status(c)),

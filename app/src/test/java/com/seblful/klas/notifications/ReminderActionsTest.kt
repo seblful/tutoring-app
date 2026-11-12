@@ -23,7 +23,7 @@ class ReminderActionsTest {
 
     private val marks = RecentMarks()
     private val actions =
-        ReminderActions(completions = env.lessonCompletions, notifier = notifier, marks = marks, clock = env.clock)
+        ReminderActions(changes = env.lessonChanges, notifier = notifier, marks = marks, clock = env.clock)
 
     private val start: Instant = Instant.parse("2026-07-25T10:00:00Z")
 

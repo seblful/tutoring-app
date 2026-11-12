@@ -63,7 +63,7 @@ mirrors and [database and backup](database-and-backup.md) for persistence contra
 - An explicit completion correction returns a taught lesson to Planned, voids charges and turns Present
   into Expected while preserving absences. Immediate Undo is guarded by its completion snapshot so later
   edits, cancellations or deletions cannot be overwritten.
-- Manual completion uses `LessonCompletions`: eligibility is checked inside the write transaction and a
+- Manual completion goes through `LessonChanges.complete`: eligibility is checked inside the write transaction and a
   group is completed once. Today offers started lessons and its mark-all covers only finished ones;
   Schedule and external actions also allow early marks. A stale cancelled or deleted lesson is skipped.
 - Cancelling, re-planning, rescheduling and attendance marks are undone the same way: a

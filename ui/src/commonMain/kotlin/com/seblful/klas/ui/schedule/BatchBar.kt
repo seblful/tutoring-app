@@ -42,7 +42,7 @@ internal fun BatchMessages(batch: LessonBatch, messages: Messages) {
         batch.done.stream.collect { done ->
             when (done) {
                 is LessonBatch.Done.Marked -> messages.undoable(
-                    resources.plural(Plurals.today_marked, done.sessions.size, done.sessions.size),
+                    resources.plural(Plurals.today_marked, done.changes.size, done.changes.size),
                 ) { batch.undo(done) }
                 is LessonBatch.Done.Cancelled -> messages.undoable(
                     resources.plural(Plurals.batch_cancelled, done.changes.size, done.changes.size),

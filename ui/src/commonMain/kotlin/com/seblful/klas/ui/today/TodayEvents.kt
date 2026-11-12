@@ -17,7 +17,7 @@ internal fun TodayEvents(viewModel: TodayViewModel, messages: Messages) {
         viewModel.events.stream.collect { event ->
             when (event) {
                 is TodayViewModel.Event.Marked -> messages.undoable(
-                    resources.plural(Plurals.today_marked, event.sessions.size, event.sessions.size),
+                    resources.plural(Plurals.today_marked, event.changes.size, event.changes.size),
                 ) { viewModel.undo(event) }
                 TodayViewModel.Event.UndoChanged -> messages.show(resources.string(Strings.class_undo_changed))
                 TodayViewModel.Event.ActionFailed -> messages.show(resources.string(Strings.action_failed))

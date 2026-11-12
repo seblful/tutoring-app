@@ -37,7 +37,7 @@ class BatchActionsTest {
     @get:Rule(order = 3)
     val language = AppLocaleRule.english()
 
-    private val batch get() = LessonBatch(env.classRepo, env.lessonChanges, env.lessonCompletions, mainRule.appScope)
+    private val batch get() = LessonBatch(env.classRepo, env.lessonChanges, mainRule.appScope)
 
     @Test
     fun `the bar's cancel is drawn red, and marking taught is not`() {

@@ -2,6 +2,7 @@ package com.seblful.klas.ui.today
 
 import androidx.lifecycle.ViewModel
 import com.seblful.klas.data.backup.AutoBackup
+import com.seblful.klas.data.lessons.UndoResult
 import com.seblful.klas.data.people.GroupRepository
 import com.seblful.klas.data.people.StudentRepository
 import com.seblful.klas.data.settings.GuideRepository
@@ -19,7 +20,8 @@ import com.seblful.klas.domain.reports.Reports
 import com.seblful.klas.domain.schedule.DaySummary
 import com.seblful.klas.domain.time.WallClock
 import com.seblful.klas.format.minutes
-import com.seblful.klas.lessons.LessonCompletions
+import com.seblful.klas.lessons.LessonChange
+import com.seblful.klas.lessons.LessonChanges
 import com.seblful.klas.notifications.NotificationPermission
 import com.seblful.klas.notifications.RecentMarks
 import com.seblful.klas.queries.billing.Debtor
@@ -105,7 +107,7 @@ data class FirstStepsCard(val steps: FirstSteps, val student: Long?)
 @ViewModelKey
 @ContributesIntoMap(AppScope::class, binding = binding<ViewModel>())
 class TodayViewModel @Inject constructor(
-    private val completions: LessonCompletions,
+    private val lessonChanges: LessonChanges,
     students: StudentRepository,
     todayLessons: TodayLessonsQuery,
     groups: GroupRepository,
@@ -122,7 +124,7 @@ class TodayViewModel @Inject constructor(
 
     sealed interface Event {
         /** Lessons just marked taught, for the snackbar's one Undo. */
-        data class Marked(val sessions: List<ClassSession>) : Event
+        data class Marked(val changes: List<LessonChange>) : Event
 
         /** An undo found a lesson changed since it was marked, and left it. */
         data object UndoChanged : Event
@@ -137,6 +139,8 @@ class TodayViewModel @Inject constructor(
     }
 
     val events = UiEvents<Event>()
+
+    private val changes = lessonChanges.inScope(appScope) { events.send(Event.ActionFailed) }
 
     private val captions: Flow<Captions> =
         combine(students.observeAll(), groups.observeAll()) { people, groupList ->
@@ -286,7 +290,7 @@ class TodayViewModel @Inject constructor(
     private fun mark(sessions: List<ClassSession>, timing: CompletionTiming) {
         if (sessions.isEmpty()) return
         appScope.write(events, Event.ActionFailed) {
-            val marked = completions.complete(sessions.map { it.first.id }, timing)
+            val marked = lessonChanges.complete(sessions.map { it.first.id }, timing)
             if (marked.isNotEmpty()) events.send(Event.Marked(marked))
         }
     }
@@ -295,16 +299,14 @@ class TodayViewModel @Inject constructor(
     fun undo(recent: TodayMark) {
         recentMarks.forget(recent.mark.session)
         appScope.write(events, Event.ActionFailed) {
-            val session = recent.mark.session
-            if (!completions.undo(session)) events.send(Event.UndoChanged)
+            if (changes.undo(recent.mark.change) != UndoResult.Restored) events.send(Event.UndoChanged)
         }
     }
 
     /** Takes back [marked], each only if nothing about it has changed since. */
     fun undo(marked: Event.Marked) {
         appScope.write(events, Event.ActionFailed) {
-            val kept = completions.undoAll(marked.sessions)
-            if (kept > 0) events.send(Event.UndoChanged)
+            if (changes.undoAll(marked.changes).any { it != UndoResult.Restored }) events.send(Event.UndoChanged)
         }
     }
 }

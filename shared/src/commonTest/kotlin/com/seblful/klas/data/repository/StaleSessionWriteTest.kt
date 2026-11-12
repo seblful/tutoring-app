@@ -7,7 +7,7 @@ import com.seblful.klas.domain.lesson.SessionEdit
 import com.seblful.klas.domain.model.ClassMode
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
-import com.seblful.klas.lessons.LessonCompletions
+import com.seblful.klas.lessons.LessonChanges
 import com.seblful.klas.testutil.TestEnv
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.async
@@ -115,7 +115,8 @@ class StaleSessionWriteTest {
     fun `completion ignores a lesson cancelled before its write transaction`() = runTest {
         val (subject, student) = seed()
         val id = env.fixtures.lesson(subject, listOf(student), start).single()
-        val written = interleave({ LessonCompletions(it, env.clock).complete(listOf(id)) }) {
+        val changes = { classes: ClassRepository -> LessonChanges(classes, env.studentRepo, env.groupRepo, env.clock) }
+        val written = interleave({ changes(it).complete(listOf(id)) }) {
             env.fixtures.setStatus(id, LessonStatus.CANCELLED)
         }
 

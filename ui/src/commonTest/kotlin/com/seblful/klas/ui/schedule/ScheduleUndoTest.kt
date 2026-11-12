@@ -143,6 +143,6 @@ class ScheduleUndoTest : ScheduleTestFixture() {
         vm.setStatus(lesson, LessonStatus.COMPLETED)
         advanceUntilIdle()
 
-        assertEquals(LessonStatus.COMPLETED, vm.completions.stream.first().status)
+        assertEquals(LessonStatus.COMPLETED, vm.completions.stream.first().lesson.status)
     }
 }

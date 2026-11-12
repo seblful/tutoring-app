@@ -8,7 +8,6 @@ import com.seblful.klas.domain.model.ClassSession
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.lessons.LessonChange
 import com.seblful.klas.lessons.LessonChanges
-import com.seblful.klas.lessons.LessonCompletions
 import com.seblful.klas.ui.common.state.UiEvents
 import com.seblful.klas.ui.common.state.write
 import kotlinx.coroutines.CoroutineScope
@@ -29,13 +28,12 @@ import kotlinx.coroutines.flow.update
  */
 class LessonBatch(
     private val classes: ClassRepository,
-    lessonChanges: LessonChanges,
-    private val completions: LessonCompletions,
+    private val lessonChanges: LessonChanges,
     private val scope: CoroutineScope,
 ) {
 
     sealed interface Done {
-        data class Marked(val sessions: List<ClassSession>) : Done
+        data class Marked(val changes: List<LessonChange>) : Done
 
         data class Cancelled(val changes: List<LessonChange>) : Done
 
@@ -72,7 +70,7 @@ class LessonBatch(
         val ids = _selected.value
         clear()
         scope.write(done, Done.Failed) {
-            val marked = completions.complete(ids)
+            val marked = lessonChanges.complete(ids)
             if (marked.isEmpty()) done.send(Done.Untouched(Action.MARK_TAUGHT))
             else done.send(Done.Marked(marked))
         }
@@ -107,11 +105,11 @@ class LessonBatch(
     /** Takes [batch] back, each lesson only if nothing about it has changed since. */
     fun undo(batch: Done) = scope.write(done, Done.Failed) {
         val kept = when (batch) {
-            is Done.Marked -> completions.undoAll(batch.sessions)
-            is Done.Cancelled -> changes.undoAll(batch.changes).count { it != UndoResult.Restored }
-            is Done.Replanned -> changes.undoAll(batch.changes).count { it != UndoResult.Restored }
-            else -> 0
-        }
+            is Done.Marked -> batch.changes
+            is Done.Cancelled -> batch.changes
+            is Done.Replanned -> batch.changes
+            else -> emptyList()
+        }.let { changes.undoAll(it).count { result -> result != UndoResult.Restored } }
         if (kept > 0) done.send(Done.ChangedSince(kept))
     }
 

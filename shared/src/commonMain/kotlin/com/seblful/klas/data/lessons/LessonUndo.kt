@@ -7,7 +7,7 @@ import com.seblful.klas.domain.model.ClassSession
  *
  * An undo writes [before] back only while the lesson is still [after] — calendar ids aside, which are
  * mirrors — so a receipt can never undo an edit made since. It is the guard the completion correction
- * uses (`ClassRepository.correctCompletion`'s `unchanged`), for every change that can be taken back.
+ * uses (`ClassRepository.undoCompletion`), for every change that can be taken back.
  */
 data class SessionReceipt(val before: ClassSession, val after: ClassSession) {
     val lessonId: Long get() = after.lessonId

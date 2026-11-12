@@ -594,17 +594,24 @@ class ClassRepository @Inject constructor(
         }
     }
 
+    /** Corrects the current completion of [session] without the cancel/re-plan detour, keeping later edits. */
+    internal suspend fun correctCompletion(session: ClassSession): Boolean =
+        uncomplete(session, unchanged = null) == UndoResult.Restored
+
     /**
-     * Corrects a completion without the cancel/re-plan detour. Undo supplies [unchanged] so a receipt
-     * cannot undo later edits. Calendar IDs are mirrors and do not count as edits to the lesson.
+     * Takes back a mark while the lesson is still [completed], so a receipt cannot undo later edits. Calendar
+     * IDs are mirrors and do not count as edits to the lesson.
      */
-    internal suspend fun correctCompletion(session: ClassSession, unchanged: ClassSession? = null): Boolean = write {
-        val current = current(session) ?: return@write Committed(false, changed = false)
-        val matches = unchanged == null || current.classes.map { it.copy(calendarEventId = null) } ==
-            unchanged.classes.map { it.copy(calendarEventId = null) }
-        if (current.status != LessonStatus.COMPLETED || !matches) return@write Committed(false, changed = false)
+    internal suspend fun undoCompletion(completed: ClassSession): UndoResult = uncomplete(completed, completed)
+
+    private suspend fun uncomplete(session: ClassSession, unchanged: ClassSession?): UndoResult = write {
+        val current = current(session) ?: return@write Committed(UndoResult.Gone, changed = false)
+        val matches = unchanged == null || current.classes.withoutMirrors() == unchanged.classes.withoutMirrors()
+        if (current.status != LessonStatus.COMPLETED || !matches) {
+            return@write Committed(UndoResult.ChangedSince, changed = false)
+        }
         val corrected = current.classes.map(ClassRules::correctCompletion)
-        persistRows(LessonEdit(lesson = corrected.first(), updated = corrected)).mapValue { true }
+        persistRows(LessonEdit(lesson = corrected.first(), updated = corrected)).mapValue { UndoResult.Restored }
     }
 
     /**
