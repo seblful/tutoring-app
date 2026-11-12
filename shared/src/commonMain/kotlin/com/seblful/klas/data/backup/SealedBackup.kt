@@ -1,5 +1,6 @@
 package com.seblful.klas.data.backup
 
+import dev.zacsweers.metro.Inject
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlin.io.encoding.Base64
@@ -49,14 +50,65 @@ data class SealedBackup(
 }
 
 /**
- * Seals a backup with a password and opens one — a platform port, since the key derivation and the cipher
- * are the platform's. See [SealedBackup] for the format.
+ * The device's cryptography under [BackupCipher] — a platform port; the format, its constants and its errors
+ * stay common. Adapters run the slow calls off the main thread.
  */
-interface BackupCipher {
-    suspend fun seal(json: String, password: String): String
+interface SealCrypto {
+    /** PBKDF2-HMAC-SHA256 over [password] with [salt] and [iterations]: a 32-byte AES-256 key. */
+    suspend fun deriveKey(password: ByteArray, salt: ByteArray, iterations: Int): ByteArray
 
-    /** The plain backup inside [text]. Throws [WrongPasswordException] when [password] does not open it. */
-    suspend fun open(text: String, password: String): String
+    /** [count] bytes from a cryptographically secure source. */
+    fun randomBytes(count: Int): ByteArray
+
+    /** AES-256-GCM of [plain] under [key] and the 96-bit [iv], its 128-bit tag appended. */
+    suspend fun seal(key: ByteArray, iv: ByteArray, plain: ByteArray): ByteArray
+
+    /** [sealed] opened under [key] and [iv], or null when its tag does not match — the wrong key. */
+    suspend fun open(key: ByteArray, iv: ByteArray, sealed: ByteArray): ByteArray?
+}
+
+/**
+ * Seals a backup with a password and opens one, in the [SealedBackup] format on every platform: a file sealed
+ * on one phone opens on the other because the envelope and its constants live here, not in each adapter.
+ */
+@Inject
+class BackupCipher(private val crypto: SealCrypto) {
+    suspend fun seal(json: String, password: String): String {
+        val salt = crypto.randomBytes(SALT_BYTES)
+        val iv = crypto.randomBytes(IV_BYTES)
+        val data = crypto.seal(key(password, salt, ITERATIONS), iv, json.encodeToByteArray())
+        return SealedBackup(
+            iterations = ITERATIONS,
+            salt = SealedBackup.field(salt),
+            iv = SealedBackup.field(iv),
+            data = SealedBackup.field(data),
+        ).encode()
+    }
+
+    /**
+     * The plain backup inside [text]. Throws [WrongPasswordException] when [password] does not open it, and
+     * what [SealedBackup.decode] throws when [text] is not a workable sealed backup.
+     */
+    suspend fun open(text: String, password: String): String {
+        val sealed = SealedBackup.decode(text)
+        val key = key(password, SealedBackup.bytes(sealed.salt), sealed.iterations)
+        // GCM checks the tag before giving anything back, so a wrong key fails here rather than as garbage.
+        val plain = crypto.open(key, SealedBackup.bytes(sealed.iv), SealedBackup.bytes(sealed.data))
+            ?: throw WrongPasswordException()
+        return plain.decodeToString()
+    }
+
+    private suspend fun key(password: String, salt: ByteArray, iterations: Int): ByteArray {
+        require(password.isNotEmpty()) { "A sealed backup needs a password" }
+        return crypto.deriveKey(password.encodeToByteArray(), salt, iterations)
+    }
+
+    companion object {
+        /** What this build seals with; each file keeps its own, so raising it still opens older files. */
+        const val ITERATIONS = 310_000
+        private const val SALT_BYTES = 16
+        private const val IV_BYTES = 12
+    }
 }
 
 /** The file is sealed ([SealedBackup]); it can only be read once the tutor gives its password. */

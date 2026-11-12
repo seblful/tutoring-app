@@ -1,10 +1,10 @@
 package com.seblful.klas.ui.backup
 
+import com.seblful.klas.data.backup.BackupCipher
 import com.seblful.klas.data.backup.BackupFailure
 import com.seblful.klas.domain.time.WallClock
 import com.seblful.klas.storage.DocumentRef
 import com.seblful.klas.storage.DocumentStore
-import com.seblful.klas.testutil.FakeBackupCipher
 import com.seblful.klas.testutil.FakeDocumentStore
 import com.seblful.klas.testutil.TestMain
 import com.seblful.klas.testutil.UiTest
@@ -50,7 +50,7 @@ class BackupViewModelTest : UiTest() {
     private val env = UiTestEnv()
     private val documents = FakeDocumentStore()
     private val ref = DocumentRef("content://backup.json")
-    private val cipher = FakeBackupCipher()
+    private val cipher = BackupCipher(FakeSealCrypto())
 
     private val exportedAt: Instant = Instant.parse("2026-06-20T18:30:00Z")
 

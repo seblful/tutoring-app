@@ -93,7 +93,9 @@ Preserve on-device data and existing backup files when changing storage. Before 
   without a copy (`AutoBackup.isStale`), and so does Today — there only once there is an active student,
   so a fresh install is not told to back up nothing.
 - A manual export can be sealed with a password (`SealedBackup`): PBKDF2-HMAC-SHA256 (iterations kept
-  per file, capped on read) and AES-256-GCM, through the `BackupCipher` port. `BackupManager.parse`
+  per file, capped on read) and AES-256-GCM. `BackupCipher` owns the envelope, its constants and the
+  wrong-password mapping in common code; the `SealCrypto` port supplies only key derivation, random
+  bytes and GCM. `BackupManager.parse`
   refuses a sealed file as `PasswordNeeded`, so the restore flow asks for the password first; a wrong
   one fails the GCM tag and reads as `WrongPassword`, not as a broken file. A lost password is a lost
   backup, and the export dialog says so. The password is never saved, but that one was asked for is, so

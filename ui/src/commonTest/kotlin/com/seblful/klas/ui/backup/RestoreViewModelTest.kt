@@ -1,10 +1,10 @@
 package com.seblful.klas.ui.backup
 
+import com.seblful.klas.data.backup.BackupCipher
 import com.seblful.klas.data.backup.BackupData
 import com.seblful.klas.data.backup.BackupFailure
 import com.seblful.klas.data.local.DatabaseSnapshot
 import com.seblful.klas.storage.DocumentRef
-import com.seblful.klas.testutil.FakeBackupCipher
 import com.seblful.klas.testutil.FakeDocumentStore
 import com.seblful.klas.testutil.TestEnv
 import com.seblful.klas.testutil.TestMain
@@ -42,7 +42,7 @@ class RestoreViewModelTest : UiTest() {
     private val documents = FakeDocumentStore()
     private val ref = DocumentRef("content://backup.json")
 
-    private val cipher = FakeBackupCipher()
+    private val cipher = BackupCipher(FakeSealCrypto())
 
     private fun vm() = main.own(
         RestoreViewModel(

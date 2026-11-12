@@ -2,9 +2,9 @@ package com.seblful.klas.data.backup
 
 import com.seblful.klas.storage.DocumentRef
 import com.seblful.klas.storage.DocumentStore
-import com.seblful.klas.testutil.FakeBackupCipher
 import com.seblful.klas.testutil.FakeBackupFolder
 import com.seblful.klas.testutil.FakeDocumentStore
+import com.seblful.klas.testutil.FakeSealCrypto
 import com.seblful.klas.testutil.TestEnv
 import com.seblful.klas.testutil.backupExports
 import kotlinx.coroutines.CompletableDeferred
@@ -29,7 +29,8 @@ class BackupExportsTest {
     private val env = TestEnv()
     private val documents = FakeDocumentStore()
     private val folders = FakeBackupFolder()
-    private val cipher = FakeBackupCipher()
+    private val crypto = FakeSealCrypto()
+    private val cipher = BackupCipher(crypto)
     private val ref = DocumentRef("manual-backup")
 
     @AfterTest
@@ -60,7 +61,7 @@ class BackupExportsTest {
         assertNull(env.settingsRepo.get().lastExportAt)
 
         documents.failing = false
-        cipher.failing = true
+        crypto.failing = true
         assertFailsWith<IllegalStateException> { exports.toDocument(ref, password = "summer") }
         assertNull(env.settingsRepo.get().lastExportAt)
         assertTrue(documents.docs.isEmpty())

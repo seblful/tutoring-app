@@ -8,7 +8,7 @@ import com.seblful.klas.storage.DocumentStore
 
 fun RepositoryTestEnv.backupExports(
     documents: DocumentStore = FakeDocumentStore(),
-    cipher: BackupCipher = FakeBackupCipher(),
+    cipher: BackupCipher = BackupCipher(FakeSealCrypto()),
     folders: BackupFolder = FakeBackupFolder(),
     clock: WallClock = this.clock,
 ): BackupExports = BackupExports(backupManager, settingsWorkflow, documents, cipher, folders, clock)

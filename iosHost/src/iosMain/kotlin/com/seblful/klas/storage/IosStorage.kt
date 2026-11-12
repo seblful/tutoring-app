@@ -1,10 +1,8 @@
 package com.seblful.klas.storage
 
-import com.seblful.klas.data.backup.BackupCipher
 import com.seblful.klas.data.backup.BackupFolder
 import com.seblful.klas.data.backup.RestoreSnapshots
-import com.seblful.klas.data.backup.SealedBackup
-import com.seblful.klas.data.backup.WrongPasswordException
+import com.seblful.klas.data.backup.SealCrypto
 import com.seblful.klas.di.Computation
 import com.seblful.klas.di.Io
 import com.seblful.klas.ui.common.presentOnTop
@@ -122,47 +120,37 @@ class IosRestoreSnapshots(@param:Io private val io: CoroutineDispatcher) : Resto
 }
 
 /**
- * [BackupCipher] in the [SealedBackup] format Android writes: PBKDF2-HMAC-SHA256 from CommonCrypto, and
- * AES-256-GCM as [AesGcm] over CommonCrypto's AES — CommonCrypto has no public GCM.
+ * [SealCrypto] for iOS: PBKDF2-HMAC-SHA256 from CommonCrypto, and AES-256-GCM as [AesGcm] over CommonCrypto's
+ * AES — CommonCrypto has no public GCM.
  */
 @ContributesBinding(AppScope::class)
 @Inject
-class IosBackupCipher(@param:Computation private val computation: CoroutineDispatcher) : BackupCipher {
+class IosSealCrypto(@param:Computation private val computation: CoroutineDispatcher) : SealCrypto {
 
-    override suspend fun seal(json: String, password: String): String = withContext(computation) {
-        val salt = randomBytes(SALT_BYTES)
-        val iv = randomBytes(IV_BYTES)
-        val sealed = gcm(password, salt, ITERATIONS).seal(iv, json.encodeToByteArray())
-        SealedBackup(
-            iterations = ITERATIONS,
-            salt = SealedBackup.field(salt),
-            iv = SealedBackup.field(iv),
-            data = SealedBackup.field(sealed),
-        ).encode()
+    override suspend fun deriveKey(password: ByteArray, salt: ByteArray, iterations: Int): ByteArray =
+        withContext(computation) { pbkdf2(password, salt, iterations) }
+
+    @OptIn(ExperimentalForeignApi::class)
+    override fun randomBytes(count: Int): ByteArray = ByteArray(count).also { bytes ->
+        val status = bytes.usePinned { SecRandomCopyBytes(kSecRandomDefault, count.convert(), it.addressOf(0)) }
+        check(status == errSecSuccess) { "No secure random bytes" }
     }
 
-    override suspend fun open(text: String, password: String): String = withContext(computation) {
-        val sealed = SealedBackup.decode(text)
-        val gcm = gcm(password, SealedBackup.bytes(sealed.salt), sealed.iterations)
-        val plain = try {
-            gcm.open(SealedBackup.bytes(sealed.iv), SealedBackup.bytes(sealed.data))
-        } catch (e: IllegalArgumentException) {
-            throw WrongPasswordException(e)
+    override suspend fun seal(key: ByteArray, iv: ByteArray, plain: ByteArray): ByteArray =
+        withContext(computation) { gcm(key).seal(iv, plain) }
+
+    override suspend fun open(key: ByteArray, iv: ByteArray, sealed: ByteArray): ByteArray? =
+        withContext(computation) {
+            try {
+                gcm(key).open(iv, sealed)
+            } catch (_: IllegalArgumentException) {
+                null
+            }
         }
-        plain.decodeToString()
-    }
 
-    private fun gcm(password: String, salt: ByteArray, iterations: Int): AesGcm {
-        require(password.isNotEmpty()) { "A sealed backup needs a password" }
-        val key = pbkdf2(password.encodeToByteArray(), salt, iterations)
-        return AesGcm { block -> aesBlock(key, block) }
-    }
+    private fun gcm(key: ByteArray) = AesGcm { block -> aesBlock(key, block) }
 
     internal companion object {
-        /** Android's: the two must agree, or a backup sealed on one would take a different key on the other. */
-        const val ITERATIONS = 310_000
-        private const val SALT_BYTES = 16
-        private const val IV_BYTES = 12
         private const val KEY_BYTES = 32
         private const val BLOCK_BYTES = 16
 
@@ -215,12 +203,6 @@ class IosBackupCipher(@param:Computation private val computation: CoroutineDispa
             }
             check(status == kCCSuccess) { "AES failed" }
             return out
-        }
-
-        @OptIn(ExperimentalForeignApi::class)
-        private fun randomBytes(count: Int): ByteArray = ByteArray(count).also { bytes ->
-            val status = bytes.usePinned { SecRandomCopyBytes(kSecRandomDefault, count.convert(), it.addressOf(0)) }
-            check(status == errSecSuccess) { "No secure random bytes" }
         }
     }
 }
