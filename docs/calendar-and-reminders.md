@@ -48,9 +48,12 @@ system, and its calendar mirror has no guests or email reminder: see [iOS](ios.m
 
 - `AlarmManager` delivers reminders: exact when allowed, otherwise inexact. Changes re-derive the plan
   over a fixed horizon; reboot re-arms it.
-- Upkeep runs after every lesson write, at app start, every 6 hours (`ExistingPeriodicWorkPolicy.UPDATE`,
-  so installs arranged under an older interval move) and, while auto-completion is on, once at the next
-  lesson end (`ReminderScheduler.scheduleNextPass`). The periodic pass only slides the week's window.
+- Hosts forward what happened to `Upkeep.on(trigger)` (opened, periodic, boot, clock changed, data
+  changed); it runs the `Maintenance` pass, reports billing to the tray unless the app is open, and looks at
+  the weekly copy on open, boot and the periodic tick. Upkeep runs after every lesson write, at app start,
+  every 6 hours (`ExistingPeriodicWorkPolicy.UPDATE`, so installs arranged under an older interval move)
+  and, while auto-completion is on, once at the next lesson end (`ReminderScheduler.scheduleNextPass`).
+  The periodic pass only slides the week's window.
 - A passed reminder time with a lesson not yet ended is still **owed** (`Reminders.Plan.due`). Do not
   re-arm or cancel it: Doze may be holding its alarm. Read through `notEndedWithin` so running lessons
   keep their alarms. `Reminders.shouldPost` re-checks state and lead time at delivery.

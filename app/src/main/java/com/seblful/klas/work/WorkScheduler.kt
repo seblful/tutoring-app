@@ -7,6 +7,7 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkInfo
 import androidx.work.WorkManager
+import androidx.work.workDataOf
 import com.seblful.klas.di.ApplicationContext
 import com.seblful.klas.domain.reminders.DigestScheduler
 import com.seblful.klas.domain.reminders.Digests
@@ -14,6 +15,7 @@ import com.seblful.klas.domain.reminders.ReminderScheduler
 import com.seblful.klas.domain.reminders.Reminders
 import com.seblful.klas.domain.schedule.CalendarLayout
 import com.seblful.klas.domain.time.WallClock
+import com.seblful.klas.maintenance.Upkeep
 import com.seblful.klas.notifications.ReminderAlarms
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
@@ -38,14 +40,16 @@ class WorkScheduler @Inject constructor(
 ) : ReminderScheduler, DigestScheduler {
     private val workManager get() = WorkManager.getInstance(context)
 
-    /** Enqueues the recurring jobs. Idempotent — safe to call on every app start. */
-    override fun ensurePeriodicMaintenance() {
+    /**
+     * Enqueues the periodic upkeep pass, which also looks at the weekly copy. Idempotent — `KlasApp` calls it on
+     * every start, so a phone whose owner does not open the app still settles finished lessons.
+     */
+    fun ensurePeriodicMaintenance() {
         val request = PeriodicWorkRequestBuilder<MaintenanceWorker>(PERIODIC_HOURS, TimeUnit.HOURS).build()
         // UPDATE, not KEEP: an install arranged under an older interval takes the new one.
         workManager.enqueueUniquePeriodicWork(PERIODIC_MAINTENANCE, ExistingPeriodicWorkPolicy.UPDATE, request)
-        // Daily, though the copy is weekly: a phone off on the day still gets it the day after.
-        val backup = PeriodicWorkRequestBuilder<AutoBackupWorker>(1, TimeUnit.DAYS).build()
-        workManager.enqueueUniquePeriodicWork(AUTO_BACKUP, ExistingPeriodicWorkPolicy.UPDATE, backup)
+        // Installs from before the periodic pass took the weekly copy over still have its own daily job.
+        workManager.cancelUniqueWork(OLD_AUTO_BACKUP)
     }
 
     override suspend fun scheduleNextPass(at: Instant?) {
@@ -68,7 +72,9 @@ class WorkScheduler @Inject constructor(
 
     /** Runs maintenance now — after a class changes or when the app opens. */
     override fun refreshNow() {
-        val request = OneTimeWorkRequestBuilder<MaintenanceWorker>().build()
+        val request = OneTimeWorkRequestBuilder<MaintenanceWorker>()
+            .setInputData(workDataOf(MaintenanceWorker.TRIGGER to Upkeep.Trigger.DATA_CHANGED.name))
+            .build()
         workManager.enqueueUniqueWork(MAINTENANCE_NOW, ExistingWorkPolicy.REPLACE, request)
     }
 
@@ -138,7 +144,9 @@ class WorkScheduler @Inject constructor(
         const val AGENDA_DIGEST = "digest-agenda"
         const val UNFINISHED_DIGEST = "digest-unfinished"
         const val DEBT_DIGEST = "digest-debts"
-        const val AUTO_BACKUP = "auto-backup"
+
+        /** The weekly copy's own daily job, before the periodic pass took it over. */
+        const val OLD_AUTO_BACKUP = "auto-backup"
 
         /** Reminders are alarms and writes run a pass at once; the tick only slides the week's window. */
         const val PERIODIC_HOURS = 6L

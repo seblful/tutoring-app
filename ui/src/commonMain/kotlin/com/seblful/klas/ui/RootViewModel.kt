@@ -7,7 +7,7 @@ import com.seblful.klas.di.ApplicationScope
 import com.seblful.klas.domain.model.AppLanguage
 import com.seblful.klas.format.AppLocale
 import com.seblful.klas.lock.AppLock
-import com.seblful.klas.maintenance.Maintenance
+import com.seblful.klas.maintenance.Upkeep
 import com.seblful.klas.settings.DevicePreferences
 import com.seblful.klas.ui.common.state.hold
 import com.seblful.klas.ui.onboarding.FirstLesson
@@ -49,7 +49,7 @@ class RootViewModel @Inject constructor(
     settings: SettingsRepository,
 
     private val devicePreferences: DevicePreferences,
-    private val maintenance: Maintenance,
+    private val upkeep: Upkeep,
     // In [ApplicationScope] so the pass outlives this view model, and starts from the UI coming up rather
     // than from whichever screen happened to be showing.
     @param:ApplicationScope private val appScope: CoroutineScope,
@@ -61,7 +61,7 @@ class RootViewModel @Inject constructor(
 
     /** Catch up **in process**, not by enqueueing a worker — called once by `AppRoot` as the UI comes up. */
     fun catchUp() {
-        appScope.launch { maintenance.run() }
+        appScope.launch { upkeep.on(Upkeep.Trigger.OPENED) }
     }
 
     val settings: StateFlow<AppSettings?> = settings.observe()

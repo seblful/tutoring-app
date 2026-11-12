@@ -8,7 +8,7 @@ import com.seblful.klas.domain.reminders.ReminderScheduler
 import com.seblful.klas.domain.reminders.Reminders
 import com.seblful.klas.domain.time.WallClock
 import com.seblful.klas.format.DisplayLocale
-import com.seblful.klas.maintenance.Maintenance
+import com.seblful.klas.maintenance.Upkeep
 import com.seblful.klas.ui.common.phoneHour12
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
@@ -245,7 +245,7 @@ class IosScheduler(
     private val notifier: IosNotifier,
     private val reminders: () -> DueReminder,
     private val digests: () -> DueDigest,
-    private val maintenance: () -> Maintenance,
+    private val upkeep: () -> Upkeep,
     @param:ApplicationScope private val appScope: CoroutineScope,
 ) : ReminderScheduler, DigestScheduler {
 
@@ -255,10 +255,8 @@ class IosScheduler(
     private val center get() = UNUserNotificationCenter.currentNotificationCenter()
 
     override fun refreshNow() {
-        appScope.launch { maintenance().runUnwatched() }
+        appScope.launch { upkeep().on(Upkeep.Trigger.DATA_CHANGED) }
     }
-
-    override fun ensurePeriodicMaintenance() = Unit
 
     override suspend fun scheduleNextPass(at: Instant?) = Unit
 

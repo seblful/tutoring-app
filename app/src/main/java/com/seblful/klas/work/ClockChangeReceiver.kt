@@ -6,7 +6,7 @@ import android.content.Intent
 import com.seblful.klas.di.ApplicationScope
 import com.seblful.klas.di.appGraph
 import com.seblful.klas.launchAsync
-import com.seblful.klas.maintenance.Maintenance
+import com.seblful.klas.maintenance.Upkeep
 import com.seblful.klas.widget.WidgetUpdates
 import dev.zacsweers.metro.Inject
 import kotlinx.coroutines.CoroutineScope
@@ -17,7 +17,7 @@ import kotlinx.coroutines.CoroutineScope
  */
 class ClockChangeReceiver : BroadcastReceiver() {
 
-    @Inject lateinit var maintenance: Maintenance
+    @Inject lateinit var upkeep: Upkeep
 
     @Inject lateinit var widgets: WidgetUpdates
 
@@ -30,7 +30,7 @@ class ClockChangeReceiver : BroadcastReceiver() {
         if (!handles(intent.action)) return
         launchAsync(appScope) {
             widgets.refresh()
-            maintenance.runUnwatched()
+            upkeep.on(Upkeep.Trigger.CLOCK_CHANGED)
         }
     }
 

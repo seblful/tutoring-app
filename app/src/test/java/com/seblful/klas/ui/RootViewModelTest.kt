@@ -42,7 +42,7 @@ class RootViewModelTest {
 
     private fun vm() = mainRule.own(
         RootViewModel(
-            env.settingsRepo, env.deviceLocales.toDevicePreferences(), env.maintenance, mainRule.appScope, AppLock(),
+            env.settingsRepo, env.deviceLocales.toDevicePreferences(), env.upkeep, mainRule.appScope, AppLock(),
             FirstLesson(),
         ),
     )

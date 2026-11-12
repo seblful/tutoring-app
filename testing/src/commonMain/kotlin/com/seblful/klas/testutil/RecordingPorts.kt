@@ -24,16 +24,8 @@ class RecordingReminderScheduler : ReminderScheduler {
     /** The reminders currently armed — the last plan scheduled, or empty if none ever was. */
     val armed: List<Reminders.Plan> get() = schedules.lastOrNull().orEmpty()
 
-    /** How many times the standing upkeep pass was asked for — `KlasApp` does this once, on start. */
-    var periodicCount = 0
-        private set
-
     override fun refreshNow() {
         refreshCount++
-    }
-
-    override fun ensurePeriodicMaintenance() {
-        periodicCount++
     }
 
     /** The extra pass currently arranged, or null when none is. */

@@ -114,7 +114,6 @@ class CommonPersistenceTest {
         var mirrored = 0
         private val reminders = object : ReminderScheduler {
             override fun refreshNow() { refreshes++ }
-            override fun ensurePeriodicMaintenance() = Unit
             override suspend fun scheduleNextPass(at: Instant?) = Unit
             override fun schedule(plans: List<Reminders.Plan>) = Unit
         }

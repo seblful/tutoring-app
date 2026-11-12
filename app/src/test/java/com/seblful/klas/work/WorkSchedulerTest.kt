@@ -16,13 +16,13 @@ import com.seblful.klas.testutil.MutableClock
 import com.seblful.klas.testutil.RecordingAlarmClock
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import java.util.concurrent.TimeUnit
 import kotlin.time.Clock
-import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes
 
@@ -59,11 +59,16 @@ class WorkSchedulerTest {
     }
 
     @Test
-    fun `the weekly backup is looked at daily`() {
+    fun `an install with the weekly copy's old daily job loses it to the periodic pass`() {
+        WorkManager.getInstance(context).enqueueUniquePeriodicWork(
+            WorkScheduler.OLD_AUTO_BACKUP,
+            ExistingPeriodicWorkPolicy.KEEP,
+            PeriodicWorkRequestBuilder<MaintenanceWorker>(1, TimeUnit.DAYS).build(),
+        )
+
         scheduler.ensurePeriodicMaintenance()
 
-        val info = arranged(WorkScheduler.AUTO_BACKUP).single()
-        assertEquals(1.days.inWholeMilliseconds, info.periodicityInfo?.repeatIntervalMillis)
+        assertTrue(arranged(WorkScheduler.OLD_AUTO_BACKUP).isEmpty())
     }
 
     @Test

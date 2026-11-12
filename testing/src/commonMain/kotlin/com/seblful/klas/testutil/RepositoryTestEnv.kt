@@ -1,6 +1,7 @@
 package com.seblful.klas.testutil
 
 import com.seblful.klas.calendar.CalendarMirror
+import com.seblful.klas.data.backup.AutoBackup
 import com.seblful.klas.data.backup.BackupManager
 import com.seblful.klas.data.backup.BackupRestore
 import com.seblful.klas.data.billing.BalanceRepository
@@ -20,6 +21,7 @@ import com.seblful.klas.data.settings.GuideRepository
 import com.seblful.klas.data.settings.SettingsRepository
 import com.seblful.klas.lessons.LessonChanges
 import com.seblful.klas.maintenance.Maintenance
+import com.seblful.klas.maintenance.Upkeep
 import com.seblful.klas.notifications.DueDigest
 import com.seblful.klas.notifications.Notifier
 import com.seblful.klas.pro.ProAccess
@@ -137,9 +139,17 @@ open class RepositoryTestEnv(
         settings = settingsRepo,
         scheduler = reminders,
         digests = digestScheduler,
-        notifier = notifier,
         clock = clock,
     )
+
+    /** Where the weekly copy goes, for [upkeep]. */
+    val backupFolder = FakeBackupFolder()
+
+    /** The real upkeep, so a host's trigger runs the pass, the tray report and the weekly copy as in the app. */
+    val upkeep: Upkeep by lazy {
+        val autoBackup = AutoBackup(backupExports(folders = backupFolder), settingsRepo, backupFolder, clock)
+        Upkeep(maintenance, autoBackup, settingsRepo, notifier, clock)
+    }
 
     /** The real settings workflow, so a setting's calendar and digest work happens as it does in the app. */
     val settingsWorkflow = SettingsWorkflow(settingsRepo, calendarMirror, reminders, maintenance, notifier)

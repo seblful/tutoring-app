@@ -4,7 +4,6 @@ import android.content.Context
 import androidx.work.WorkerFactory
 import com.seblful.klas.KlasStore
 import com.seblful.klas.diagnostics.CrashLogger
-import com.seblful.klas.domain.reminders.ReminderScheduler
 import com.seblful.klas.format.AppLanguagePreferences
 import com.seblful.klas.notifications.Notifier
 import com.seblful.klas.notifications.ReminderActionReceiver
@@ -15,6 +14,7 @@ import com.seblful.klas.widget.MarkTaughtAction
 import com.seblful.klas.widget.WidgetUpdates
 import com.seblful.klas.work.BootReceiver
 import com.seblful.klas.work.ClockChangeReceiver
+import com.seblful.klas.work.WorkScheduler
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.DependencyGraph
 import dev.zacsweers.metro.Provides
@@ -29,7 +29,7 @@ import kotlinx.coroutines.CoroutineScope
 interface AppGraph : ViewModelGraph {
     val appLanguages: AppLanguagePreferences
     val notifier: Notifier
-    val scheduler: ReminderScheduler
+    val scheduler: WorkScheduler
     val crashLogger: CrashLogger
     val workerFactory: WorkerFactory
     val widgets: WidgetUpdates

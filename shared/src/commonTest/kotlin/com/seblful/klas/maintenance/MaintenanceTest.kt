@@ -5,11 +5,9 @@ import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.reminders.Digests
 import com.seblful.klas.domain.reminders.Reminders
-import com.seblful.klas.testutil.RecordingNotifier
 import com.seblful.klas.testutil.TestEnv
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
-import kotlinx.datetime.LocalDate
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -191,39 +189,6 @@ class MaintenanceTest {
 
         assertEquals(2, maintenance().dueForCompletion(now))
         assertEquals(0, maintenance().run(now).lessons, "and counting it settled nothing")
-    }
-
-    @Test
-    fun `an unwatched pass says what it billed`() = runTest {
-        seedClass(now.minus(7200.seconds))
-        seedClass(now.minus(3600.seconds))
-        env.settingsRepo.update { it.copy(autoCompleteEnabled = true) }
-
-        maintenance().runUnwatched(now)
-
-        assertEquals(
-            listOf(RecordingNotifier.AutoCompleted(2, Money.ofMajor(60), LocalDate(2026, 6, 15))),
-            env.notifier.autoCompleted,
-        )
-    }
-
-    @Test
-    fun `an unwatched pass names the latest day it settled`() = runTest {
-        seedClass(now.minus(3.days))
-        seedClass(now.minus(1.days))
-        env.settingsRepo.update { it.copy(autoCompleteEnabled = true) }
-
-        maintenance().runUnwatched(now)
-
-        assertEquals(LocalDate(2026, 6, 14), env.notifier.autoCompleted.single().day)
-    }
-
-    @Test
-    fun `an unwatched pass that settles nothing stays quiet`() = runTest {
-        seedClass(now.minus(7200.seconds))
-        maintenance().runUnwatched(now)
-
-        assertTrue(env.notifier.autoCompleted.isEmpty())
     }
 
     @Test

@@ -18,16 +18,6 @@ interface ReminderScheduler {
     fun refreshNow()
 
     /**
-     * Make sure the recurring upkeep pass is arranged. Idempotent — safe to call on every app start.
-     *
-     * The standing form of [refreshNow]: the same pass, on a timer, so a phone whose owner does not open
-     * the app still auto-completes finished lessons and re-derives the reminder plan. It is on the port
-     * for the reason the other two are: the app's entry point reaches it without naming a `work/`
-     * implementation. The daily look at whether the weekly backup is due is arranged beside it.
-     */
-    fun ensurePeriodicMaintenance()
-
-    /**
      * Arranges one extra pass at [at], replacing any earlier arrangement, or cancels it when null. The
      * periodic pass is hours apart; this one settles a finished lesson when auto-completion is on.
      */

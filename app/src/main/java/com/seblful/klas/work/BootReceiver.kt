@@ -6,14 +6,14 @@ import android.content.Intent
 import com.seblful.klas.di.ApplicationScope
 import com.seblful.klas.di.appGraph
 import com.seblful.klas.launchAsync
-import com.seblful.klas.maintenance.Maintenance
+import com.seblful.klas.maintenance.Upkeep
 import dev.zacsweers.metro.Inject
 import kotlinx.coroutines.CoroutineScope
 
 /** Re-derives the reminder plan after a reboot. */
 class BootReceiver : BroadcastReceiver() {
 
-    @Inject lateinit var maintenance: Maintenance
+    @Inject lateinit var upkeep: Upkeep
 
     @Inject @ApplicationScope
     lateinit var appScope: CoroutineScope
@@ -21,6 +21,6 @@ class BootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         context.appGraph.inject(this)
         if (intent.action != Intent.ACTION_BOOT_COMPLETED) return
-        launchAsync(appScope) { maintenance.runUnwatched() }
+        launchAsync(appScope) { upkeep.on(Upkeep.Trigger.BOOT) }
     }
 }

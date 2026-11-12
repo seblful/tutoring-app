@@ -10,7 +10,6 @@ import com.seblful.klas.domain.reminders.Digests
 import com.seblful.klas.domain.reminders.ReminderScheduler
 import com.seblful.klas.domain.reminders.Reminders
 import com.seblful.klas.domain.time.WallClock
-import com.seblful.klas.notifications.Notifier
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
@@ -20,8 +19,9 @@ import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Instant
 
 /**
- * Everything the periodic upkeep does, except being periodic: auto-complete the classes whose end
- * time has passed, then re-derive the reminder plan for what is still upcoming.
+ * One upkeep pass, whoever asked for it: auto-complete the classes whose end time has passed, then re-derive
+ * the reminder plan for what is still upcoming. Hosts go through [Upkeep]; the settings screen's
+ * auto-completion sweep runs a pass directly, as it reports to the screen.
  */
 @SingleIn(AppScope::class)
 class Maintenance @Inject constructor(
@@ -29,7 +29,6 @@ class Maintenance @Inject constructor(
     private val settings: SettingsRepository,
     private val scheduler: ReminderScheduler,
     private val digests: DigestScheduler,
-    private val notifier: Notifier,
     private val clock: WallClock,
 ) {
     /**
@@ -84,18 +83,6 @@ class Maintenance @Inject constructor(
             billed = Billing.charged(completed),
             lastDay = completed.maxOfOrNull { it.start }?.toLocalDateTime(clock.zone)?.date,
         )
-    }
-
-    /**
-     * One upkeep pass **that nobody is watching** — the periodic tick and the pass after a reboot — which
-     * reports what it billed to the notification tray instead of to a screen.
-     */
-    suspend fun runUnwatched(now: Instant = clock.now()): Settled {
-        val settled = run(now)
-        // A day exactly when something was settled — see [Settled.lastDay].
-        val day = settled.lastDay ?: return settled
-        notifier.showAutoCompleted(settled.lessons, settled.billed, day, settings.get().currency)
-        return settled
     }
 
     /**
