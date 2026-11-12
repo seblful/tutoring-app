@@ -69,8 +69,8 @@ class KlasGraphTest {
     fun `every manifest receiver is injected from the application's graph`() {
         assertNotNull(ReminderReceiver().also { context.appGraph.inject(it) }.due)
         assertNotNull(ReminderActionReceiver().also { context.appGraph.inject(it) }.actions)
-        assertNotNull(BootReceiver().also { context.appGraph.inject(it) }.maintenance)
-        assertNotNull(ClockChangeReceiver().also { context.appGraph.inject(it) }.maintenance)
+        assertNotNull(BootReceiver().also { context.appGraph.inject(it) }.upkeep)
+        assertNotNull(ClockChangeReceiver().also { context.appGraph.inject(it) }.upkeep)
         assertNotNull(ClockChangeReceiver().also { context.appGraph.inject(it) }.widgets)
     }
 
