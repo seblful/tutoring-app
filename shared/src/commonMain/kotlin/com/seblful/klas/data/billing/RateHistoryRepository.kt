@@ -12,7 +12,6 @@ import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import kotlin.time.Instant
 
 @SingleIn(AppScope::class)
 class RateHistoryRepository @Inject constructor(
@@ -37,27 +36,35 @@ class RateHistoryRepository @Inject constructor(
         dao.observeForStudent(studentId).map { list -> list.map { it.toDomain() } }
 
     /**
-     * [owner]'s rate as currently stored, or null when it has none yet — the baseline a change is
-     * measured against, and the [from] a caller should hand [record].
+     * Writes [owner]'s rate as [to] through [write] and logs the change, inside the caller's transaction. The
+     * rate before is read here, ahead of [write], so no change can be measured against its own write; nothing
+     * is logged when the amount did not move, as a rename or a roster edit saves the rate unchanged.
+     * [loggedAs] names the owner [write] produced — a new group's id exists only once its row does, and the
+     * log's foreign key points at that row.
      */
-    suspend fun currentRate(owner: RateOwner): Money? = when (owner) {
+    internal suspend fun <T> changing(
+        owner: RateOwner,
+        to: Money,
+        loggedAs: (T) -> RateOwner = { owner },
+        write: suspend () -> T,
+    ): T {
+        val from = currentRate(owner)
+        val written = write()
+        if (from != to) {
+            dao.insert(RateChange(owner = loggedAs(written), from = from, to = to, at = clock.now()).toEntity())
+        }
+        return written
+    }
+
+    /** [owner]'s rate as stored, or null when it has none yet — which is what starts a history. */
+    private suspend fun currentRate(owner: RateOwner): Money? = when (owner) {
         is RateOwner.StudentSubject ->
             priceDao.get(owner.studentId, owner.subjectId)?.toDomain()?.amount
         is RateOwner.GroupRate -> groupDao.getById(owner.groupId)?.toDomain()?.price
     }
 
-    /**
-     * Records that [owner]'s rate is now [to], having been [from], and reports whether anything was
-     * written.
-     */
-    suspend fun record(owner: RateOwner, from: Money?, to: Money, at: Instant = clock.now()): Boolean {
-        if (from == to) return false
-        dao.insert(RateChange(owner = owner, from = from, to = to, at = at).toEntity())
-        return true
-    }
-
     /** Drops a (student, subject) rate's history, because the student no longer takes that subject. */
-    suspend fun forget(owner: RateOwner.StudentSubject) {
+    internal suspend fun forget(owner: RateOwner.StudentSubject) {
         dao.deleteForStudentSubject(owner.studentId, owner.subjectId)
     }
 }

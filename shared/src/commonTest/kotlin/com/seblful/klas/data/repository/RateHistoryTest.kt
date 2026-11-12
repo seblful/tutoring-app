@@ -14,10 +14,8 @@ import kotlinx.coroutines.test.runTest
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
-import kotlin.time.Instant
 
 class RateHistoryTest {
 
@@ -38,46 +36,67 @@ class RateHistoryTest {
     private suspend fun changesFor(studentId: Long, subjectId: Long) =
         history.observeFor(RateOwner.StudentSubject(studentId, subjectId)).first()
 
+    /** Re-prices group [id] the way its writer does: the row and its log entry in one call. */
+    private suspend fun priceGroup(id: Long, to: Money) = history.changing(RateOwner.GroupRate(id), to) {
+        env.groupDao.upsert(GroupEntity(id = id, name = "11 «А»", priceMinor = to.minor))
+    }
+
+    /** A new group at [rate], logged under the id its row is given. */
+    private suspend fun newPricedGroup(rate: Money): Long =
+        history.changing(RateOwner.GroupRate(0), rate, { id: Long -> RateOwner.GroupRate(id) }) {
+            env.groupDao.upsert(GroupEntity(name = "11 «А»", priceMinor = rate.minor))
+        }
+
+    private suspend fun groupChanges(id: Long) = history.observeFor(RateOwner.GroupRate(id)).first()
+
     @Test
     fun `an unchanged rate is not logged`() = runTest {
-        val owner = RateOwner.GroupRate(unloggedGroup())
-        assertFalse(history.record(owner, from = Money.ofMajor(25), to = Money.ofMajor(25)))
-        assertTrue(history.observeFor(owner).first().isEmpty())
+        val id = newPricedGroup(Money.ofMajor(25))
+
+        priceGroup(id, Money.ofMajor(25))
+
+        assertEquals(1, groupChanges(id).size, "only the first rate")
     }
 
     @Test
     fun `a first-ever rate is logged as the start of the history - not as a change`() = runTest {
-        val owner = RateOwner.GroupRate(unloggedGroup())
-        assertTrue(history.record(owner, from = null, to = Money.ofMajor(25)))
+        val id = newPricedGroup(Money.ofMajor(25))
 
-        val change = history.observeFor(owner).first().single()
-        assertTrue(change.from == null, "no previous rate means the history starts here")
-        assertNull(change.from)
+        val change = groupChanges(id).single()
+        assertNull(change.from, "no previous rate means the history starts here")
         assertEquals(Money.ofMajor(25), change.to)
     }
 
     @Test
+    fun `a change is measured against the stored rate, read before the write`() = runTest {
+        val id = newPricedGroup(Money.ofMajor(20))
+
+        priceGroup(id, Money.ofMajor(25))
+
+        assertEquals(Money.ofMajor(20), groupChanges(id).first().from)
+    }
+
+    @Test
     fun `changes come back newest first`() = runTest {
-        val owner = RateOwner.GroupRate(unloggedGroup())
-        history.record(owner, null, Money.ofMajor(20), at = Instant.fromEpochMilliseconds(1_000))
-        history.record(owner, Money.ofMajor(20), Money.ofMajor(25), at = Instant.fromEpochMilliseconds(2_000))
-        history.record(owner, Money.ofMajor(25), Money.ofMajor(30), at = Instant.fromEpochMilliseconds(3_000))
+        val id = newPricedGroup(Money.ofMajor(20))
+        env.clock.advanceBy(1_000)
+        priceGroup(id, Money.ofMajor(25))
+        env.clock.advanceBy(1_000)
+        priceGroup(id, Money.ofMajor(30))
 
         assertEquals(
             listOf(Money.ofMajor(30), Money.ofMajor(25), Money.ofMajor(20)),
-            history.observeFor(owner).first().map { it.to },
+            groupChanges(id).map { it.to },
         )
     }
 
     @Test
     fun `a rate that predates the log sorts below the dated changes`() = runTest {
-        val owner = RateOwner.GroupRate(unloggedGroup())
-        env.rateHistoryDao.insert(
-            RateChangeEntity(groupId = owner.groupId, toMinor = 2000, atMillis = null),
-        )
-        history.record(owner, Money.ofMajor(20), Money.ofMajor(25), at = Instant.fromEpochMilliseconds(2_000))
+        val id = unloggedGroup()
+        env.rateHistoryDao.insert(RateChangeEntity(groupId = id, toMinor = 2000, atMillis = null))
+        priceGroup(id, Money.ofMajor(25))
 
-        val changes = history.observeFor(owner).first()
+        val changes = groupChanges(id)
         assertEquals(Money.ofMajor(25), changes.first().to)
         assertNull(changes.last().at, "the undated row is last")
     }
@@ -86,12 +105,11 @@ class RateHistoryTest {
     fun `a group's log and a student's log do not bleed into each other`() = runTest {
         val sid = student()
         val subj = subject()
-        val group = RateOwner.GroupRate(unloggedGroup())
-        history.record(RateOwner.StudentSubject(sid, subj), null, Money.ofMajor(40))
-        history.record(group, null, Money.ofMajor(25))
+        env.enrollmentRepo.enroll(sid, subj, Money.ofMajor(40))
+        val id = newPricedGroup(Money.ofMajor(25))
 
         assertEquals(Money.ofMajor(40), changesFor(sid, subj).single().to)
-        assertEquals(Money.ofMajor(25), history.observeFor(group).first().single().to)
+        assertEquals(Money.ofMajor(25), groupChanges(id).single().to)
     }
 
     @Test
@@ -236,28 +254,5 @@ class RateHistoryTest {
         env.lessonChanges.archiveWithoutUndo(env.groupRepo.getById(id)!!)
 
         assertEquals(1, history.observeFor(RateOwner.GroupRate(id)).first().size)
-    }
-
-    @Test
-    fun `currentRate reads a group's rate from the group row`() = runTest {
-        val sid = student()
-        val id = env.groupRepo.save(Group(name = "11 «А»", price = Money.ofMajor(25)), setOf(sid))
-
-        assertEquals(Money.ofMajor(25), history.currentRate(RateOwner.GroupRate(id)))
-    }
-
-    @Test
-    fun `currentRate reads a student's subject price from the price row`() = runTest {
-        val sid = student()
-        val subj = subject()
-        env.enrollmentRepo.enroll(sid, subj, Money.ofMajor(40))
-
-        assertEquals(Money.ofMajor(40), history.currentRate(RateOwner.StudentSubject(sid, subj)))
-    }
-
-    @Test
-    fun `currentRate is null when there is no rate yet - which is what starts a history`() = runTest {
-        assertNull(history.currentRate(RateOwner.GroupRate(999)))
-        assertNull(history.currentRate(RateOwner.StudentSubject(999, 999)))
     }
 }

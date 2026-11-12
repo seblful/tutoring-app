@@ -71,17 +71,16 @@ class GroupRepository @Inject constructor(
     suspend fun save(group: Group, memberIds: Set<Long>): Long {
         // Both reads sit outside the transaction: neither depends on anything written inside it, and
         // the eligibility read in particular hits another table for a decision, not for a row to write.
-        val previousRate = rateHistory.currentRate(RateOwner.GroupRate(group.id))
         val previousName = dao.getById(group.id)?.name
         val wanted = eligible(group, memberIds)
         val id = transactor.transaction {
             // An edit answers -1 (see [upsertedId]); trusting it blindly would point every member
             // insert at group -1 and fail the group_members foreign key.
-            val id = upsertedId(dao.upsert(group.toEntity()), group.id)
-            // Logged after the upsert, so the row the log's foreign key points at already exists — and
-            // only when the amount moved, since a rename or a roster edit comes through here too
-            // (RateHistoryRepository.record drops the no-op).
-            rateHistory.record(RateOwner.GroupRate(id), from = previousRate, to = group.price)
+            val id = rateHistory.changing(
+                owner = RateOwner.GroupRate(group.id),
+                to = group.price,
+                loggedAs = { written: Long -> RateOwner.GroupRate(written) },
+            ) { upsertedId(dao.upsert(group.toEntity()), group.id) }
             val current = dao.getMemberIds(id).toSet()
             (wanted - current).forEach { dao.addMember(GroupMemberCrossRef(id, it)) }
             (current - wanted).forEach { dao.removeMember(id, it) }
