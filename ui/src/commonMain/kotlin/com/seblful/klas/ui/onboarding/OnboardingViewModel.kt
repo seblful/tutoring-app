@@ -10,6 +10,7 @@ import com.seblful.klas.domain.model.AppLanguage
 import com.seblful.klas.domain.model.Currency
 import com.seblful.klas.domain.model.Subject
 import com.seblful.klas.domain.time.WallClock
+import com.seblful.klas.settings.SettingsWorkflow
 import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.common.state.UiEvents
 import com.seblful.klas.ui.common.state.hold
@@ -36,6 +37,7 @@ import kotlinx.coroutines.launch
 class OnboardingViewModel @Inject constructor(
     private val subjectsRepo: SubjectRepository,
     private val settings: SettingsRepository,
+    private val workflow: SettingsWorkflow,
     @param:ApplicationScope private val appScope: CoroutineScope,
     private val firstLesson: FirstLesson,
     private val clock: WallClock,
@@ -118,5 +120,5 @@ class OnboardingViewModel @Inject constructor(
     }
 
     private fun store(transform: (AppSettings) -> AppSettings) =
-        appScope.write(events, Event.WRITE_FAILED) { settings.update(transform) }
+        appScope.write(events, Event.WRITE_FAILED) { workflow.update(transform) }
 }

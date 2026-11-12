@@ -5,6 +5,7 @@ import com.seblful.klas.data.backup.AutoBackup
 import com.seblful.klas.data.settings.SettingsRepository
 import com.seblful.klas.di.ApplicationScope
 import com.seblful.klas.runCatchingCancellable
+import com.seblful.klas.settings.SettingsWorkflow
 import com.seblful.klas.storage.DocumentRef
 import com.seblful.klas.storage.FolderGrants
 import com.seblful.klas.ui.common.state.Loadable
@@ -27,6 +28,7 @@ import kotlinx.coroutines.launch
 @ContributesIntoMap(AppScope::class, binding = binding<ViewModel>())
 class WeeklyBackupViewModel @Inject constructor(
     private val settings: SettingsRepository,
+    private val workflow: SettingsWorkflow,
     private val autoBackup: AutoBackup,
     private val grants: FolderGrants,
     @param:ApplicationScope private val appScope: CoroutineScope,
@@ -57,7 +59,7 @@ class WeeklyBackupViewModel @Inject constructor(
                 return@launch
             }
             val before = settings.get().autoBackupFolder
-            settings.update { it.copy(autoBackupFolder = ref.value, autoBackupFailed = false) }
+            workflow.update { it.copy(autoBackupFolder = ref.value, autoBackupFailed = false) }
             if (before != null && before != ref.value) grants.release(before)
             if (autoBackup.runIfDue() == AutoBackup.Outcome.SAVED) events.send(Event.SAVED)
         }
@@ -66,7 +68,7 @@ class WeeklyBackupViewModel @Inject constructor(
     fun stop() {
         appScope.launch {
             val before = settings.get().autoBackupFolder ?: return@launch
-            settings.update { it.copy(autoBackupFolder = null, autoBackupFailed = false) }
+            workflow.update { it.copy(autoBackupFolder = null, autoBackupFailed = false) }
             grants.release(before)
         }
     }

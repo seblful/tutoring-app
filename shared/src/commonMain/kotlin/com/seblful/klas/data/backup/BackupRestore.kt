@@ -2,6 +2,7 @@ package com.seblful.klas.data.backup
 
 import com.seblful.klas.calendar.CalendarMirror
 import com.seblful.klas.data.settings.SettingsRepository
+import com.seblful.klas.data.settings.WritesWithoutEffects
 import com.seblful.klas.domain.guide.Guide
 import com.seblful.klas.domain.guide.PhoneStep
 import com.seblful.klas.domain.reminders.ReminderScheduler
@@ -85,6 +86,10 @@ class BackupRestore @Inject constructor(
      * @param phoneSetup what this phone is to be asked for; null leaves what it is already asked for.
      * @param earlyUser the data's tutor predates Klas Pro. Only ever grants: a phone that is early stays early.
      */
+    // The settings write is raw: the restore owes the calendar a re-mirror against the imported rows, which
+    // remirrorAfter does once they are in, and the reminders a re-plan after it — work SettingsWorkflow would
+    // start too early, inside the replace.
+    @OptIn(WritesWithoutEffects::class)
     private suspend fun replaceWith(
         data: BackupData,
         backedUpAt: Instant?,

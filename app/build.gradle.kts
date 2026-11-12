@@ -141,10 +141,12 @@ kotlin {
     }
 }
 
-// Fixtures and tests set lessons up without an undo window; app code goes through LessonChanges.
+// Fixtures and tests set lessons and settings up without an undo window or their side effects; app code
+// goes through LessonChanges and SettingsWorkflow.
 tasks.withType<KotlinCompilationTask<*>>().configureEach {
     if (name.contains("UnitTest") || name.contains("AndroidTest")) {
         compilerOptions.optIn.add("com.seblful.klas.data.lessons.WritesWithoutUndo")
+        compilerOptions.optIn.add("com.seblful.klas.data.settings.WritesWithoutEffects")
     }
 }
 

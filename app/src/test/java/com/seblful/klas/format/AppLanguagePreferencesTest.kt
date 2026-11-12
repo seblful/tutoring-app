@@ -18,6 +18,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.xmlpull.v1.XmlPullParser
+import kotlin.time.Instant
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
@@ -32,7 +33,8 @@ class AppLanguagePreferencesTest {
         override fun apply(language: AppLanguage) { if (this.language != null) this.language = language }
     }
 
-    private fun preferences(platform: Platform) = AppLanguagePreferences(env.settingsRepo, platform, main.appScope)
+    private fun preferences(platform: Platform) =
+        AppLanguagePreferences(env.settingsRepo, env.settingsWorkflow, platform, main.appScope)
 
     @Test
     fun `the first launch preserves an existing in-app language choice`() = runTest(main.dispatcher) {
@@ -64,6 +66,24 @@ class AppLanguagePreferencesTest {
         preferences.refresh()
         assertEquals(AppLanguage.SYSTEM, env.settingsRepo.get().language)
     }
+
+    @Test
+    fun `a language chosen in system settings while synced rewrites the upcoming events in it`() =
+        runTest(main.dispatcher) {
+            val subject = env.fixtures.subject("Математика")
+            val student = env.fixtures.student("Аня")
+            env.fixtures.withCalendarSync()
+            env.fixtures.lesson(subject, listOf(student), start = Instant.parse("2026-06-02T09:00:00Z"))
+            val platform = Platform().apply { migrated = true }
+            val preferences = preferences(platform)
+            preferences.refresh()
+            env.calendar.calls.clear()
+
+            platform.language = AppLanguage.SPANISH
+            preferences.refresh()
+
+            assertEquals("the event is re-mirrored in the new language", 1, env.calendar.upserts.size)
+        }
 
     @Test
     fun `an in-app change is published without a resume overwriting the pending choice`() = runTest(main.dispatcher) {

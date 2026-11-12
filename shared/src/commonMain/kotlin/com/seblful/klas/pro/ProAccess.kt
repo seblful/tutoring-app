@@ -61,7 +61,7 @@ class ProAccess @Inject constructor(
 
     /** The tutor has been told that Pro ended. */
     suspend fun endedSeen() {
-        settings.update { it.copy(proEnded = false) }
+        workflow.update { it.copy(proEnded = false) }
     }
 
     /** Asks the store what is owned and settles on its answer. False when the store could not be asked. */
@@ -84,14 +84,17 @@ class ProAccess @Inject constructor(
         }
     }
 
-    /** Stores [plan]; a purchase that stops being Pro is remembered, so the tutor is told why things went quiet. */
+    /**
+     * Stores [plan] in one write; a purchase that stops being Pro is remembered, so the tutor is told why things went
+     * quiet, and what Pro ran by itself is switched off with it.
+     */
     private suspend fun settle(plan: ProPlan?) {
-        val after = settings.update { before ->
+        workflow.update { before ->
             val now = before.copy(proOwned = plan)
             val bought = before.access().let { it is Access.Pro && it.source in BOUGHT }
-            now.copy(proEnded = !now.access().isPro && (before.proEnded || bought))
-        }.after
-        if (!after.access().isPro) workflow.update { it.withoutPro() }
+            val settled = now.copy(proEnded = !now.access().isPro && (before.proEnded || bought))
+            if (settled.access().isPro) settled else settled.withoutPro()
+        }
     }
 
     private fun AppSettings.access(): Access = Access.of(earlyUser, proOwned, store.sells)

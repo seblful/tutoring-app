@@ -56,10 +56,10 @@ Paths below are inside `com.seblful.klas`; follow the linked sources for individ
 | `GroupRepository` | Only writer of group membership; archiving cancels the group's planned lessons. |
 | `HomeworkRepository` | Only writer of homework; refreshes affected calendar descriptions after saving. Phone reminders read homework when firing. |
 | `PaymentRepository` | Payment dates, corrections and derived instants. |
-| `SettingsRepository` | Serialized `update {}` returns required side effects and publishes portable language state. Device currency defaults arrive through `DevicePreferences`. |
+| `SettingsRepository` | Reads the settings row and publishes portable language state. Its serialized `update {}` returns what the change owes (`SettingsChange`) without doing it, so it needs `@WritesWithoutEffects`: tests, fixtures and `BackupRestore` (which re-mirrors after the import) opt in. Device currency defaults arrive through `DevicePreferences`. |
 | `GuideRepository` | The new tutor's guide: tips seen and the first-steps card in the settings row, and whether each first step has happened (`GuideDao`). |
 | `ProAccess` | Whether the tutor has Klas Pro (`Access`, `ProGate`): caches the store's answer in `proOwned`, buys through `ProStore`, and on losing Pro switches calendar sync and digests off through `SettingsWorkflow`. Android's store is `PlayProStore` (Play Billing, Play's sheet opened on `ResumedActivity`); iOS's `IosProStore` sells nothing yet. Screens ask `LocalPro` (`ProDoor`), which `AppRoot` provides; `ProGated` stands the Klas Pro screen in for a form a free tutor has no room for. See [Klas Pro](domain-rules.md#klas-pro). |
-| `SettingsWorkflow` | Applies a settings update, calendar changes and maintenance; returns the number of lessons settled. Permission prompts and confirmation remain with the host UI. |
+| `SettingsWorkflow` | The settings writer: stores an update and finishes what it owes (calendar, alarms, digests, channels, the auto-completion sweep) before returning the number of lessons settled. Permission prompts and confirmation remain with the host UI. |
 | `BackupExports` | Manual and weekly snapshot export, optional sealing and awaited history recording; weekly folder guards and failure flags. Hosts own scope and result messages; `AutoBackup` owns due checks and retention. |
 | `StudentRepository` / `SubjectRepository` | Archiving cancels a student's planned lessons and writes the stored row in the same transaction; subject and group deletion recheck their references inside it. |
 

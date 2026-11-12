@@ -8,6 +8,7 @@ import com.seblful.klas.domain.model.Currency
 import com.seblful.klas.domain.model.Subject
 import com.seblful.klas.format.AppLocale
 import com.seblful.klas.settings.DevicePreferences
+import com.seblful.klas.settings.SettingsWorkflow
 import com.seblful.klas.testutil.TestMain
 import com.seblful.klas.testutil.UiTest
 import com.seblful.klas.testutil.UiTestEnv
@@ -55,7 +56,9 @@ class OnboardingViewModelTest : UiTest() {
     private val firstLesson = FirstLesson()
 
     private fun newVm() =
-        OnboardingViewModel(env.subjectRepo, env.settingsRepo, main.appScope, firstLesson, env.clock)
+        OnboardingViewModel(
+            env.subjectRepo, env.settingsRepo, env.settingsWorkflow, main.appScope, firstLesson, env.clock,
+        )
 
     private fun vm() = main.own(newVm())
 
@@ -87,7 +90,9 @@ class OnboardingViewModelTest : UiTest() {
     fun `an English phone in Minsk is offered English and rubles`() = runTest(main.dispatcher) {
         UiTestEnv(preferences = DevicePreferences(listOf("en-BY"), listOf("BYN"))).use { env ->
             val vm = main.own(
-                OnboardingViewModel(env.subjectRepo, env.settingsRepo, main.appScope, firstLesson, env.clock),
+                OnboardingViewModel(
+                    env.subjectRepo, env.settingsRepo, env.settingsWorkflow, main.appScope, firstLesson, env.clock,
+                ),
             )
             observing(vm.locale)
             advanceUntilIdle()
@@ -131,7 +136,9 @@ class OnboardingViewModelTest : UiTest() {
     fun `skipping the setup still persists the currency the phone named`() = runTest(main.dispatcher) {
         UiTestEnv(preferences = DevicePreferences(listOf("de-DE"), listOf("EUR"))).use { env ->
             val vm = main.own(
-                OnboardingViewModel(env.subjectRepo, env.settingsRepo, main.appScope, firstLesson, env.clock),
+                OnboardingViewModel(
+                    env.subjectRepo, env.settingsRepo, env.settingsWorkflow, main.appScope, firstLesson, env.clock,
+                ),
             )
 
             vm.complete()
@@ -176,10 +183,12 @@ class OnboardingViewModelTest : UiTest() {
         val broken = object : SettingsDao by env.settingsDao {
             override suspend fun upsert(settings: SettingsEntity): Unit = throw IllegalStateException("disk full")
         }
+        val brokenRepo = SettingsRepository(broken, DevicePreferences(listOf("ru-BY"), listOf("BYN")))
         val vm = main.own(
             OnboardingViewModel(
                 env.subjectRepo,
-                SettingsRepository(broken, DevicePreferences(listOf("ru-BY"), listOf("BYN"))),
+                brokenRepo,
+                SettingsWorkflow(brokenRepo, env.calendarMirror, env.reminders, env.maintenance, env.notifier),
                 main.appScope,
                 firstLesson,
                 env.clock,

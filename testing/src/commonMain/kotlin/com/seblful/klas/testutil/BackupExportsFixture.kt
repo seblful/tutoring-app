@@ -11,4 +11,4 @@ fun RepositoryTestEnv.backupExports(
     cipher: BackupCipher = FakeBackupCipher(),
     folders: BackupFolder = FakeBackupFolder(),
     clock: WallClock = this.clock,
-): BackupExports = BackupExports(backupManager, settingsRepo, documents, cipher, folders, clock)
+): BackupExports = BackupExports(backupManager, settingsWorkflow, documents, cipher, folders, clock)

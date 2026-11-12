@@ -4,6 +4,7 @@ import com.seblful.klas.calendar.CalendarMirror
 import com.seblful.klas.data.settings.AppSettings
 import com.seblful.klas.data.settings.SettingsChange
 import com.seblful.klas.data.settings.SettingsRepository
+import com.seblful.klas.data.settings.WritesWithoutEffects
 import com.seblful.klas.domain.reminders.ReminderScheduler
 import com.seblful.klas.maintenance.Maintenance
 import com.seblful.klas.notifications.Notifier
@@ -11,7 +12,10 @@ import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
 
-/** Stores a preference and finishes its calendar and maintenance work before returning. */
+/**
+ * The settings writer: stores a change and finishes what it owes — calendar, alarms, digests, channels and
+ * the auto-completion sweep — before returning, whichever fields it moved.
+ */
 @SingleIn(AppScope::class)
 class SettingsWorkflow @Inject constructor(
     private val settings: SettingsRepository,
@@ -20,6 +24,8 @@ class SettingsWorkflow @Inject constructor(
     private val maintenance: Maintenance,
     private val notifier: Notifier,
 ) {
+    /** Returns how many lessons the auto-completion sweep settled; zero when the change owed none. */
+    @OptIn(WritesWithoutEffects::class)
     suspend fun update(transform: (AppSettings) -> AppSettings): Int {
         val change = settings.update(transform)
         when (change.calendarWork) {

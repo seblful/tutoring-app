@@ -70,7 +70,6 @@ open class RepositoryTestEnv(
     val digestScheduler = RecordingDigestScheduler()
 
     val settingsRepo = SettingsRepository(settingsDao, preferences)
-    val guideRepo = GuideRepository(settingsRepo, db.guideDao())
     val homeworkQuery = HomeworkQuery(homeworkDao, classDao, studentDao, groupDao, clock)
     val calendarMirror =
         CalendarMirror(
@@ -144,6 +143,8 @@ open class RepositoryTestEnv(
 
     /** The real settings workflow, so a setting's calendar and digest work happens as it does in the app. */
     val settingsWorkflow = SettingsWorkflow(settingsRepo, calendarMirror, reminders, maintenance, notifier)
+
+    val guideRepo = GuideRepository(settingsRepo, settingsWorkflow, db.guideDao())
 
     /**
      * A store that sells nothing, so every feature is open — what most tests are about. A test of Klas Pro

@@ -4,6 +4,7 @@ import com.seblful.klas.domain.guide.FirstSteps
 import com.seblful.klas.domain.guide.Guide
 import com.seblful.klas.domain.guide.PhoneStep
 import com.seblful.klas.domain.guide.Tip
+import com.seblful.klas.settings.SettingsWorkflow
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
@@ -20,6 +21,7 @@ import kotlinx.coroutines.flow.map
 @SingleIn(AppScope::class)
 class GuideRepository @Inject constructor(
     private val settings: SettingsRepository,
+    private val workflow: SettingsWorkflow,
     private val dao: GuideDao,
 ) {
     val guide: Flow<Guide> = settings.observe().map { it.guide }.distinctUntilChanged()
@@ -33,21 +35,21 @@ class GuideRepository @Inject constructor(
     val phoneSetup: Flow<Set<PhoneStep>> = settings.observe().map { it.phoneSetup }.distinctUntilChanged()
 
     suspend fun seen(tip: Tip) {
-        settings.update { it.copy(guide = it.guide.seeing(tip)) }
+        workflow.update { it.copy(guide = it.guide.seeing(tip)) }
     }
 
     /** Puts the first-steps card away, or — the hide's Undo — back. */
     suspend fun setFirstStepsHidden(hidden: Boolean) {
-        settings.update { it.copy(guide = it.guide.copy(firstStepsHidden = hidden)) }
+        workflow.update { it.copy(guide = it.guide.copy(firstStepsHidden = hidden)) }
     }
 
     /** Puts the phone-setup card away (empty), or — the hide's Undo — back with [steps]. */
     suspend fun setPhoneSetup(steps: Set<PhoneStep>) {
-        settings.update { it.copy(phoneSetup = steps) }
+        workflow.update { it.copy(phoneSetup = steps) }
     }
 
     /** Settings' «Show tips again»: every tip, and the card, as on the day the app was set up. */
     suspend fun showAgain() {
-        settings.update { it.copy(guide = Guide.FRESH) }
+        workflow.update { it.copy(guide = Guide.FRESH) }
     }
 }

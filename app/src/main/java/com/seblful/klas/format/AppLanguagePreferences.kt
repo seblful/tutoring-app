@@ -8,6 +8,7 @@ import com.seblful.klas.data.settings.SettingsRepository
 import com.seblful.klas.di.ApplicationContext
 import com.seblful.klas.di.ApplicationScope
 import com.seblful.klas.domain.model.AppLanguage
+import com.seblful.klas.settings.SettingsWorkflow
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.Inject
@@ -58,6 +59,7 @@ class AndroidAppLanguagePlatform @Inject constructor(
 @SingleIn(AppScope::class)
 class AppLanguagePreferences @Inject constructor(
     private val settings: SettingsRepository,
+    private val workflow: SettingsWorkflow,
     private val platform: AppLanguagePlatform,
     @param:ApplicationScope private val scope: CoroutineScope,
 ) {
@@ -88,7 +90,7 @@ class AppLanguagePreferences @Inject constructor(
             withContext(Dispatchers.Main.immediate) { platform.apply(stored) }
             lastPlatformLanguage = stored
         } else {
-            if (stored != requested) settings.update { it.copy(language = requested) }
+            if (stored != requested) workflow.update { it.copy(language = requested) }
             lastPlatformLanguage = requested
         }
         platform.migrated = true

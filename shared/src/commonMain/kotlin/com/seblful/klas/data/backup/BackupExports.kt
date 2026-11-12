@@ -1,8 +1,8 @@
 package com.seblful.klas.data.backup
 
-import com.seblful.klas.data.settings.SettingsRepository
 import com.seblful.klas.domain.time.WallClock
 import com.seblful.klas.runCatchingCancellable
+import com.seblful.klas.settings.SettingsWorkflow
 import com.seblful.klas.storage.DocumentRef
 import com.seblful.klas.storage.DocumentStore
 import dev.zacsweers.metro.Inject
@@ -12,7 +12,7 @@ import kotlin.time.Instant
 /** A backup is complete after its file and history are saved, using the snapshot's one timestamp. */
 class BackupExports @Inject constructor(
     private val backup: BackupManager,
-    private val settings: SettingsRepository,
+    private val settings: SettingsWorkflow,
     private val documents: DocumentStore,
     private val cipher: BackupCipher,
     private val folders: BackupFolder,

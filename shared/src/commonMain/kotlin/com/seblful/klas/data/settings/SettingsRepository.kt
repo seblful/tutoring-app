@@ -166,6 +166,18 @@ data class SettingsChange(val before: AppSettings, val after: AppSettings) {
     private fun <T> moved(field: (AppSettings) -> T): Boolean = field(before) != field(after)
 }
 
+/**
+ * Marks a settings write that stores the row and leaves what the change owes ([SettingsChange]) undone.
+ * Production code writes through `SettingsWorkflow`; tests, fixtures and a caller that owns the follow-up
+ * itself opt in.
+ */
+@RequiresOptIn(
+    "Leaves the calendar, alarm, channel and sweep work undone; write through SettingsWorkflow",
+    RequiresOptIn.Level.ERROR,
+)
+@Retention(AnnotationRetention.BINARY)
+annotation class WritesWithoutEffects
+
 /** The single settings row. */
 @SingleIn(AppScope::class)
 class SettingsRepository @Inject constructor(
@@ -193,8 +205,9 @@ class SettingsRepository @Inject constructor(
     /**
      * Applies [transform] to the current settings and stores the result. Read-modify-write against
      * the single row, so a caller changes one field with `update { it.copy(currency = Currency.RUB) }`
-     * and leaves the rest alone.
+     * and leaves the rest alone. What the change owes is the caller's — see [WritesWithoutEffects].
      */
+    @WritesWithoutEffects
     suspend fun update(transform: (AppSettings) -> AppSettings): SettingsChange =
         writeLock.withLock {
             val before = get()

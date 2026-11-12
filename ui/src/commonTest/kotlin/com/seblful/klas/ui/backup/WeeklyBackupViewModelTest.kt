@@ -45,6 +45,7 @@ class WeeklyBackupViewModelTest : UiTest() {
     private fun vm() = main.own(
         WeeklyBackupViewModel(
             settings = env.settingsRepo,
+            workflow = env.settingsWorkflow,
             autoBackup = AutoBackup(env.backupExports(folders = folders), env.settingsRepo, folders, env.clock),
             grants = grants,
             appScope = main.appScope,

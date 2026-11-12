@@ -20,9 +20,11 @@ kotlin {
     iosArm64()
     iosSimulatorArm64()
 
-    // Fixtures set lessons up without an undo window; app code goes through LessonChanges.
+    // Fixtures set lessons and settings up without an undo window or their side effects; app code goes
+    // through LessonChanges and SettingsWorkflow.
     compilerOptions {
         optIn.add("com.seblful.klas.data.lessons.WritesWithoutUndo")
+        optIn.add("com.seblful.klas.data.settings.WritesWithoutEffects")
     }
 
     sourceSets {
