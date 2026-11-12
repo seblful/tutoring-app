@@ -322,7 +322,7 @@ class GroupFormViewModelTest : UiTest() {
     @Test
     fun `archived students are not offered as members`() = runTest(main.dispatcher) {
         val (ann, bob) = seedStudents()
-        env.studentRepo.setArchived(env.studentRepo.getById(bob)!!, archived = true)
+        env.lessonChanges.archiveWithoutUndo(env.studentRepo.getById(bob)!!)
 
         val vm = vm()
         observing(vm.state)
@@ -512,7 +512,7 @@ class GroupFormViewModelTest : UiTest() {
     fun `saving the form keeps the group retired`() = runTest(main.dispatcher) {
         val (ann, _) = seedStudents()
         val id = env.groupRepo.save(Group(name = "Выпускники", price = Money.ofMajor(20)), setOf(ann))
-        env.groupRepo.setArchived(env.groupRepo.getById(id)!!, true)
+        env.lessonChanges.archiveWithoutUndo(env.groupRepo.getById(id)!!)
 
         val vm = vm(id)
         observing(vm.state)

@@ -86,7 +86,7 @@ class GroupsViewModelTest : UiTest() {
         val ann = env.fixtures.student(name = "Аня")
         val active = env.groupRepo.save(Group(name = "Активная"), setOf(ann))
         val retired = env.groupRepo.save(Group(name = "Прошлый год"), setOf(ann))
-        env.groupRepo.setArchived(env.groupRepo.getById(retired)!!, true)
+        env.lessonChanges.archiveWithoutUndo(env.groupRepo.getById(retired)!!)
 
         val vm = vm()
         observing(vm.rows)

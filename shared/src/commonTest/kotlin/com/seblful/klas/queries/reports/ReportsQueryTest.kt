@@ -132,7 +132,7 @@ class ReportsQueryTest {
         val subject = env.fixtures.subject()
         val student = env.fixtures.pricedStudent(subjectId = subject)
         completed(student, subject, at(thisYear, 3), 30)
-        env.studentRepo.setArchived(env.studentRepo.getById(student)!!, archived = true)
+        env.lessonChanges.archiveWithoutUndo(env.studentRepo.getById(student)!!)
 
         assertTrue(report().hasData)
         assertEquals(Money.ofMajor(30), report().totalIncome)

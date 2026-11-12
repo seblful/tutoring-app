@@ -29,7 +29,7 @@ import kotlin.time.Instant
  *
  * The price of it is that there is no "cancel the rest of the series" in one tap. The case that would
  * actually be reached for is already covered: archiving a student calls off every lesson still planned
- * for them (`ClassRepository.cancelScheduledFor`).
+ * for them (`LessonChanges.archive`).
  *
  * @param weeks how far apart two consecutive lessons are. [NONE] is zero because it produces one date
  *   and never adds anything to it.

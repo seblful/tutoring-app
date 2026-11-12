@@ -99,7 +99,7 @@ class StaleSessionWriteTest {
         val (subject, student) = seed()
         val id = env.fixtures.lesson(subject, listOf(student), start).single()
 
-        interleave({ it.cancelScheduledFor(student) }) {
+        interleave({ it.cancelScheduledForUndoable(student) {} }) {
             env.fixtures.setStatus(id, LessonStatus.COMPLETED)
         }
 

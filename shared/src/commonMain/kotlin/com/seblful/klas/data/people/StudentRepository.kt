@@ -61,20 +61,16 @@ class StudentRepository @Inject constructor(
         return RowWrite(upsertedId(dao.upsert(row), student.id), before, row)
     }
 
-    /**
-     * Archives or restores [student], and returns how many of their planned lessons archiving called
-     * off (zero when restoring).
-     */
-    suspend fun setArchived(student: Student, archived: Boolean): Int {
-        val cancelled = if (archived) classes.cancelScheduledFor(student.id).size else 0
+    /** Restores an archived [student]; the lessons archiving called off stay called off. */
+    suspend fun restore(student: Student) {
         // The stored row, not the caller's copy, so an edit made since the screen read it survives.
-        dao.getById(student.id)?.let { dao.upsert(it.copy(archived = archived)) }
-        return cancelled
+        dao.getById(student.id)?.let { dao.upsert(it.copy(archived = false)) }
     }
 
     /**
-     * Archives [student] undoably: their planned lessons are called off as by [setArchived], and the
-     * receipts returned take them back through [unarchive]. LessonChanges owns their settlement.
+     * Archives [student] undoably: their planned lessons are called off — their own cancelled, their groups'
+     * marked absent — and the receipts returned take them back through [unarchive]. LessonChanges owns their
+     * settlement.
      */
     internal suspend fun archive(student: Student): List<SessionReceipt> =
         classes.cancelScheduledForUndoable(student.id) {

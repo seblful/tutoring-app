@@ -49,7 +49,7 @@ Paths below are inside `com.seblful.klas`; follow the linked sources for individ
 | Repository | Contract |
 |---|---|
 | `ClassRepository` | Whole-lesson writes (`ClassSession`), overlap refusal, calendar/reminder effects. `bookSeries` reports taken slots instead of refusing the run. |
-| `LessonChanges` | Undoable lesson and archive writes; owns calendar settlement in the host application's scope. Callers receive opaque undo handles. `ClassRepository.setStatus`, `move` and `setAttendance` write with no undo window and need `@WritesWithoutUndo`, which only test source sets opt into. |
+| `LessonChanges` | Undoable lesson and archive writes; owns calendar settlement in the host application's scope. Callers receive opaque undo handles. The only way the app archives a student or group: their repositories keep just `restore`. `ClassRepository.setStatus`, `move` and `setAttendance`, and its own `archiveWithoutUndo`, write with no undo window and need `@WritesWithoutUndo`, which only test source sets opt into. |
 | `LessonCompletions` | Current-state completion eligibility and batch results; guarded completion undo and explicit correction. Completion mirrors immediately. |
 | `CalendarMirror` | Event content, sync backfill/withdrawal and restore reconciliation. |
 | `EnrollmentRepository` / `RateHistoryRepository` | Subjects and prices stay paired; rate changes share one log. The student form's edit saves the student and their subjects in one transaction. |

@@ -37,7 +37,7 @@ class Fixtures(private val env: RepositoryTestEnv) {
      */
     suspend fun archivedStudent(name: String = "Аня", email: String = ""): Long =
         student(name, email).also { id ->
-            env.studentRepo.setArchived(env.studentRepo.getById(id)!!, archived = true)
+            env.lessonChanges.archiveWithoutUndo(env.studentRepo.getById(id)!!)
         }
 
     suspend fun subject(name: String = "Алгебра", id: Long = 0): Long = when (

@@ -4,6 +4,7 @@ import com.seblful.klas.data.lessons.ClassRepository
 import com.seblful.klas.data.lessons.LessonWrite
 import com.seblful.klas.data.lessons.SessionReceipt
 import com.seblful.klas.data.lessons.UndoResult
+import com.seblful.klas.data.lessons.WritesWithoutUndo
 import com.seblful.klas.data.people.GroupRepository
 import com.seblful.klas.data.people.StudentRepository
 import com.seblful.klas.domain.model.Assignee
@@ -45,6 +46,19 @@ class LessonChanges @Inject constructor(
     private val students: StudentRepository,
     private val groups: GroupRepository,
 ) {
+    /**
+     * Archives [student] at once, with no undo window: their planned lessons are called off in the archive's
+     * transaction and the calendar follows straight away. Returns how many lessons it called off.
+     */
+    @WritesWithoutUndo
+    suspend fun archiveWithoutUndo(student: Student): Int =
+        students.archive(student).also { classes.settleAll(it) }.size
+
+    /** [archiveWithoutUndo] for [group]. */
+    @WritesWithoutUndo
+    suspend fun archiveWithoutUndo(group: Group): Int =
+        groups.archive(group).also { classes.settleAll(it) }.size
+
     /** [scope] belongs to the host application; leaving a screen must not cancel settlement. */
     fun inScope(scope: CoroutineScope, onFailure: (Throwable) -> Unit): Writer = Writer(scope, onFailure)
 

@@ -223,7 +223,7 @@ class ScheduleFilterTest : ScheduleTestFixture() {
             vm.setWho(ScheduleWho.Student(ann))
             advanceUntilIdle()
 
-            env.studentRepo.setArchived(env.studentRepo.getById(ann)!!, archived = true)
+            env.lessonChanges.archiveWithoutUndo(env.studentRepo.getById(ann)!!)
             advanceUntilIdle()
 
             assertEquals("Аня", vm.filter.value.who?.name)

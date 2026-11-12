@@ -108,8 +108,8 @@ class HomeworkConsistencyTest {
         val own = fixtures.homework(Assignee.Student(ann))
         val shared = fixtures.homework(Assignee.Group(group), done = true)
         assertEquals(listOf(own), query.observeDue().first().map { it.homework })
-        store.students.setArchived(store.students.getById(ann)!!, archived = true)
-        store.groups.setArchived(store.groups.getById(group)!!, archived = true)
+        env.lessonChanges.archiveWithoutUndo(store.students.getById(ann)!!)
+        env.lessonChanges.archiveWithoutUndo(store.groups.getById(group)!!)
 
         assertTrue(query.observe().first().lists.current.isEmpty())
         assertTrue(query.observe().first().lists.archive.isEmpty())

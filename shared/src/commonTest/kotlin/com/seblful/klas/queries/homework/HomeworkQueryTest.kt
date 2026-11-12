@@ -104,7 +104,7 @@ class HomeworkQueryTest {
         val boris = fixtures.student("Борис")
         fixtures.homework(Assignee.Student(anya), text = "Ани")
         fixtures.homework(Assignee.Student(boris), text = "Бориса", done = true)
-        env.studentRepo.setArchived(env.studentRepo.getById(boris)!!, archived = true)
+        env.lessonChanges.archiveWithoutUndo(env.studentRepo.getById(boris)!!)
         val filter = MutableStateFlow<Assignee?>(null)
         val state = backgroundScope.watch(filter)
         runCurrent()
@@ -159,7 +159,7 @@ class HomeworkQueryTest {
             val state = backgroundScope.watch(filter)
             runCurrent()
             val row = state.value!!.lists.current.single()
-            env.studentRepo.setArchived(env.studentRepo.getById(anya)!!, archived = true)
+            env.lessonChanges.archiveWithoutUndo(env.studentRepo.getById(anya)!!)
             runCurrent()
 
             val choices = query.choicesFor(row)
@@ -253,7 +253,7 @@ class HomeworkQueryTest {
                 state.value!!.filterAssignees,
             )
 
-            env.groupRepo.setArchived(env.groupRepo.getById(group)!!, archived = true)
+            env.lessonChanges.archiveWithoutUndo(env.groupRepo.getById(group)!!)
             runCurrent()
             assertTrue(state.value!!.filterAssignees.isEmpty())
             assertTrue(state.value!!.choices(env.clock.now()).any { it.assignee == Assignee.Group(withoutHomework) })

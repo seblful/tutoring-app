@@ -100,19 +100,17 @@ class GroupRepository @Inject constructor(
         return memberIds intersect priced
     }
 
-    /**
-     * Archives or restores [group], and returns how many of its planned lessons archiving called off
-     * (zero when restoring) — as students are archived. An archived group can't be booked, so a planned
-     * lesson left standing would still remind, sync and auto-bill a group nobody can see.
-     */
-    suspend fun setArchived(group: Group, archived: Boolean): Int {
-        val cancelled = if (archived) classes.cancelScheduledForGroup(group.id) else 0
+    /** Restores an archived [group]; the lessons archiving called off stay called off. */
+    suspend fun restore(group: Group) {
         // The stored row, not the caller's copy, so an edit made since the screen read it survives.
-        dao.getById(group.id)?.let { dao.upsert(it.copy(archived = archived)) }
-        return cancelled
+        dao.getById(group.id)?.let { dao.upsert(it.copy(archived = false)) }
     }
 
-    /** Archives [group] undoably — as [StudentRepository.archive], for [unarchive] to take back. */
+    /**
+     * Archives [group] undoably — as [StudentRepository.archive], for [unarchive] to take back. An archived group
+     * can't be booked, so a planned lesson left standing would still remind, sync and auto-bill a group nobody can
+     * see.
+     */
     internal suspend fun archive(group: Group): List<SessionReceipt> =
         classes.cancelScheduledForGroupUndoable(group.id) {
             dao.getById(group.id)?.let { dao.upsert(it.copy(archived = true)) }

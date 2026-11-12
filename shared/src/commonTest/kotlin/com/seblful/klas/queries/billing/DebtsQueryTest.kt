@@ -109,7 +109,7 @@ class DebtsQueryTest {
     fun `an archived student's debt is not outstanding, but stays theirs`() = runTest {
         val subject = env.fixtures.subject("Алгебра")
         val anya = owing("Аня", subject, rate = 30, hour = 9)
-        env.studentRepo.setArchived(env.studentRepo.getById(anya)!!, archived = true)
+        env.lessonChanges.archiveWithoutUndo(env.studentRepo.getById(anya)!!)
 
         val debts = env.debts.get()
 

@@ -153,7 +153,7 @@ interface ClassDao {
      * One student's classes in lessons that are still merely *planned* — whatever their time. What
      * archiving them has to settle: a scheduled lesson is one the tutor never confirmed happened, and
      * left behind it would auto-complete into income that no report shows (see
-     * `StudentRepository.setArchived`).
+     * `StudentRepository.archive`).
      */
     @Query("$CLASS_ROWS WHERE a.studentId = :studentId AND l.status = 'SCHEDULED'")
     suspend fun scheduledForStudent(studentId: Long): List<ClassRow>

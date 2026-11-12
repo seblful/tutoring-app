@@ -100,7 +100,7 @@ class StudentArchiveTest : StudentDetailTestFixture() {
         env.fixtures.completedLesson(
             subject, listOf(sid), today.minus(2, DateTimeUnit.DAY).atTime(10, 0).toInstant(zone),
         )
-        env.studentRepo.setArchived(env.studentRepo.getById(sid)!!, archived = true)
+        env.lessonChanges.archiveWithoutUndo(env.studentRepo.getById(sid)!!)
         val vm = vm(sid)
         observing(vm.state)
         runCurrent()

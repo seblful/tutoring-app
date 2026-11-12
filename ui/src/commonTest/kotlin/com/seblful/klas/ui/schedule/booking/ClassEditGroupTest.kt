@@ -32,8 +32,8 @@ class ClassEditGroupTest : ClassEditTestFixture() {
     @Test
     fun `a group whose members are all archived cannot be booked`() = runTest(main.dispatcher) {
         val (groupId, ann, bob) = seedGroup()
-        env.studentRepo.setArchived(env.studentDao.getById(ann)!!.toDomain(), true)
-        env.studentRepo.setArchived(env.studentDao.getById(bob)!!.toDomain(), true)
+        env.lessonChanges.archiveWithoutUndo(env.studentDao.getById(ann)!!.toDomain())
+        env.lessonChanges.archiveWithoutUndo(env.studentDao.getById(bob)!!.toDomain())
         val vm = vm()
         observing(vm.state)
         advanceUntilIdle()
@@ -148,7 +148,7 @@ class ClassEditGroupTest : ClassEditTestFixture() {
     @Test
     fun `an archived member is left out of a new group lesson`() = runTest(main.dispatcher) {
         val (groupId, ann, bob) = seedGroup()
-        env.studentRepo.setArchived(env.studentRepo.getById(bob)!!, archived = true)
+        env.lessonChanges.archiveWithoutUndo(env.studentRepo.getById(bob)!!)
 
         val vm = vm(groupId = groupId)
         observing(vm.state)

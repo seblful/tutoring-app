@@ -192,7 +192,7 @@ class ClassRepositoryGroupTest {
         val annEvent = session.classes.single { it.studentId == ann }.calendarEventId
         assertNotNull(bobEvent)
 
-        env.studentRepo.setArchived(env.studentRepo.getById(bob)!!, archived = true)
+        env.lessonChanges.archiveWithoutUndo(env.studentRepo.getById(bob)!!)
 
         val after = repo.getSessionFor(ids.first())!!
         val away = after.classes.single { it.studentId == bob }
@@ -216,7 +216,7 @@ class ClassRepositoryGroupTest {
         )
         val events = planned.flatten().map { repo.getById(it)!!.calendarEventId }
 
-        val cancelled = env.groupRepo.setArchived(env.groupRepo.getById(groupId)!!, archived = true)
+        val cancelled = env.lessonChanges.archiveWithoutUndo(env.groupRepo.getById(groupId)!!)
 
         assertEquals(2, cancelled, "lessons are counted, not member classes")
         planned.forEach { ids ->
@@ -233,11 +233,11 @@ class ClassRepositoryGroupTest {
         seed()
         val planned = bookSession(at = start.plus((7 * 24 * 3600).seconds))
         val group = env.groupRepo.getById(groupId)!!
-        env.groupRepo.setArchived(group, archived = true)
+        env.lessonChanges.archiveWithoutUndo(group)
 
-        val restored = env.groupRepo.setArchived(env.groupRepo.getById(groupId)!!, archived = false)
+        env.groupRepo.restore(env.groupRepo.getById(groupId)!!)
 
-        assertEquals(0, restored)
+        assertEquals(false, env.groupRepo.getById(groupId)!!.archived)
         assertEquals(LessonStatus.CANCELLED, repo.getSessionFor(planned.first())!!.status)
     }
 

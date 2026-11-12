@@ -170,7 +170,7 @@ class GroupRepositoryTest {
         val (ann) = students("Аня")
         val id = repo.save(Group(name = "Выпускники"), setOf(ann))
 
-        repo.setArchived(repo.getById(id)!!, true)
+        env.lessonChanges.archiveWithoutUndo(repo.getById(id)!!)
 
         assertTrue(repo.observeActive().first().isEmpty())
         assertEquals(listOf("Выпускники"), repo.observeAll().first().map { it.name })

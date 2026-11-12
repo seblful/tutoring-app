@@ -120,7 +120,7 @@ class GroupDetailViewModel @AssistedInject constructor(
     fun setArchived(value: Boolean) {
         if (!value) {
             return appScope.write(events, Event.WriteFailed) {
-                groups.getById(groupId)?.let { groups.setArchived(it, archived = false) }
+                groups.getById(groupId)?.let { groups.restore(it) }
             }
         }
         appScope.write(

@@ -118,7 +118,7 @@ class ClassEditFormTest : ClassEditTestFixture() {
     fun `an archived student's lesson still names them`() = runTest(main.dispatcher) {
         val date = env.clock.today().plus(2, DateTimeUnit.DAY)
         val (studentId, id) = seedLesson(date, LocalTime(14, 0), studentName = "Аня")
-        env.studentRepo.setArchived(env.studentRepo.getById(studentId)!!, archived = true)
+        env.lessonChanges.archiveWithoutUndo(env.studentRepo.getById(studentId)!!)
 
         val vm = vm(id)
         observing(vm.state)
@@ -145,8 +145,8 @@ class ClassEditFormTest : ClassEditTestFixture() {
         val date = env.clock.today().plus(2, DateTimeUnit.DAY)
         val (studentId, id) = seedLesson(date, LocalTime(14, 0), studentName = "Аня")
         val other = env.fixtures.student("Глеб")
-        env.studentRepo.setArchived(env.studentRepo.getById(studentId)!!, archived = true)
-        env.studentRepo.setArchived(env.studentRepo.getById(other)!!, archived = true)
+        env.lessonChanges.archiveWithoutUndo(env.studentRepo.getById(studentId)!!)
+        env.lessonChanges.archiveWithoutUndo(env.studentRepo.getById(other)!!)
 
         val vm = vm(id)
         observing(vm.state)

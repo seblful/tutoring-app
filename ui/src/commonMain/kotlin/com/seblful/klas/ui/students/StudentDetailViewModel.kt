@@ -162,7 +162,7 @@ class StudentDetailViewModel @AssistedInject constructor(
      */
     fun setArchived(archived: Boolean) {
         val current = state.value.valueOrNull()?.student ?: return
-        if (!archived) return write { students.setArchived(current, archived = false) }
+        if (!archived) return write { students.restore(current) }
         write(
             onWritten = { archive: ArchiveChange -> events.send(Event.Archived(archive)) },
         ) { changes.archive(current) }

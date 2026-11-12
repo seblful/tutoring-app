@@ -664,21 +664,11 @@ class ClassRepository @Inject constructor(
         return Committed(touched, mirror = touched, drop = edit.dropped)
     }
 
-    /** Settles [studentId]'s scheduled classes for archiving and returns the changed rows. */
-    suspend fun cancelScheduledFor(studentId: Long): List<TutoringClass> {
-        if (dao.scheduledForStudent(studentId).isEmpty()) return emptyList()
-        // One transaction for the lot: a half-archived student would have some lessons called off and
-        // others still due to bill, which is the state this exists to rule out. Read inside it, so a
-        // lesson completed (or re-priced) in the meantime is not written back from a stale row.
-        return write {
-            val rows = cancelRowsFor(studentId)
-            Committed(rows, mirror = rows)
-        }
-    }
-
     /**
-     * [cancelScheduledFor], undoably: a receipt per lesson it changed — see [undoAll], [settleAll]. [alongside]
-     * is written in the same transaction, so a student is never archived without their lessons called off.
+     * Calls off [studentId]'s scheduled lessons for archiving them, undoably: a receipt per lesson it changed —
+     * see [undoAll], [settleAll]. One transaction for the lot, with [alongside] written in it: a half-archived
+     * student would have some lessons called off and others still due to bill. Read inside it, so a lesson
+     * completed (or re-priced) in the meantime is not written back from a stale row.
      */
     internal suspend fun cancelScheduledForUndoable(
         studentId: Long,
@@ -705,20 +695,9 @@ class ClassRepository @Inject constructor(
     }
 
     /**
-     * Cancels [groupId]'s scheduled lessons for archiving the group, and returns how many **lessons** it
-     * called off. One transaction, read inside it, for the same reasons as [cancelScheduledFor].
-     */
-    suspend fun cancelScheduledForGroup(groupId: Long): Int {
-        if (dao.scheduledForGroup(groupId).isEmpty()) return 0
-        return write {
-            val rows = cancelRowsForGroup(groupId)
-            Committed(rows.distinctBy { it.lessonId }.size, mirror = rows)
-        }
-    }
-
-    /**
-     * [cancelScheduledForGroup], undoably: a receipt per lesson it called off — see [undoAll], [settleAll].
-     * [alongside] is written in the same transaction, as for [cancelScheduledForUndoable].
+     * Cancels [groupId]'s scheduled lessons for archiving the group, undoably: a receipt per lesson it called
+     * off — see [undoAll], [settleAll]. One transaction, read inside it, with [alongside] written in it, as for
+     * [cancelScheduledForUndoable].
      */
     internal suspend fun cancelScheduledForGroupUndoable(
         groupId: Long,

@@ -233,7 +233,7 @@ class RateHistoryTest {
     fun `archiving a group logs nothing`() = runTest {
         val sid = student()
         val id = env.groupRepo.save(Group(name = "11 «А»", price = Money.ofMajor(25)), setOf(sid))
-        env.groupRepo.setArchived(env.groupRepo.getById(id)!!, true)
+        env.lessonChanges.archiveWithoutUndo(env.groupRepo.getById(id)!!)
 
         assertEquals(1, history.observeFor(RateOwner.GroupRate(id)).first().size)
     }
