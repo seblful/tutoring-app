@@ -103,19 +103,22 @@ class LessonChanges @Inject constructor(
         private val onFailure: (Throwable) -> Unit,
     ) {
         /** Completed routes to [complete]: a null change when the lesson may not be marked taught. */
-        suspend fun setStatus(session: ClassSession, status: LessonStatus): LessonWrite<LessonChange?> =
-            if (status == LessonStatus.COMPLETED) {
-                completing(session)
-            } else {
-                classes.setStatusUndoable(session, status).track()
+        suspend fun setStatus(session: ClassSession, status: LessonStatus): LessonWrite<LessonChange?> {
+            if (status != LessonStatus.COMPLETED) return classes.setStatusUndoable(session, status).track()
+            val change = complete(session.first.id)
+            return when {
+                change != null -> LessonWrite.Written(change)
+                classes.getSessionFor(session.first.id) == null -> LessonWrite.Gone
+                else -> LessonWrite.Written(null)
             }
+        }
 
         /** The undo window starts after the batch, including when a later write fails. */
         suspend fun setStatus(
             sessions: List<ClassSession>,
             status: LessonStatus,
         ): List<LessonWrite<LessonChange?>> {
-            if (status == LessonStatus.COMPLETED) return sessions.map { completing(it) }
+            if (status == LessonStatus.COMPLETED) return sessions.map { setStatus(it, status) }
             val receipts = mutableListOf<SessionReceipt>()
             try {
                 return sessions.map { session ->
@@ -162,15 +165,6 @@ class LessonChanges @Inject constructor(
         suspend fun undoArchive(change: ArchiveChange): Int = when (val owner = change.owner) {
             is Assignee.Student -> students.unarchive(owner.studentId, change.receipts)
             is Assignee.Group -> groups.unarchive(owner.groupId, change.receipts)
-        }
-
-        private suspend fun completing(session: ClassSession): LessonWrite<LessonChange?> {
-            val change = complete(session.first.id)
-            return when {
-                change != null -> LessonWrite.Written(change)
-                classes.getSessionFor(session.first.id) == null -> LessonWrite.Gone
-                else -> LessonWrite.Written(null)
-            }
         }
 
         private fun LessonWrite<SessionReceipt?>.track(
