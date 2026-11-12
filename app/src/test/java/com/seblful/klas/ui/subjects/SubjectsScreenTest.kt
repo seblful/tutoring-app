@@ -5,7 +5,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.testutil.AppLocaleRule
-import com.seblful.klas.testutil.TestEnv
+import com.seblful.klas.testutil.TestEnvRule
 import com.seblful.klas.ui.theme.KlasTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.MainScope
@@ -26,7 +26,7 @@ class SubjectsScreenTest {
     val language = AppLocaleRule.english()
 
     @get:Rule(order = 0)
-    val env = TestEnv()
+    val env = TestEnvRule()
 
     private fun show() {
         val vm =

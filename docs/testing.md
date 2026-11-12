@@ -12,28 +12,33 @@ builds used by CI. Device and iOS simulator execution are separate checks.
 | Location | Use for |
 |---|---|
 | `domain/src/commonTest` | Pure rules with `kotlin.test`; the same tests run on JVM and iOS. |
-| `shared/src/commonTest` | Repository atomicity and race cases, backup contracts, feature queries, parsing and clock events over real Room databases. Platform test source sets provide database creation. |
-| `ui/src/commonTest` | Date, time and money formatting in each language, what the notification tray says and does (`TrayText`, `TrayNoticesTest`), what the widgets and shortcuts say and open (`TodayLessonsTest`, `WidgetSnapshotsTest`, `ShortcutsTest`), and screen logic that needs no database or Android: navigation state, form reducers, pagers, sorting (`kotlin.test`, `kotlinx-coroutines-test`; test names avoid commas, which Kotlin/Native refuses). The JVM run reads Android's `java.text`/`java.time` tables; the iOS run reads Foundation's, so both platforms' CLDR data meet the same expectations. |
+| `shared/src/commonTest` | Repository atomicity and race cases, backup contracts, feature queries, parsing and clock events over real Room databases. |
+| `ui/src/commonTest` | Date, time and money formatting in each language, what the notification tray says and does (`TrayText`, `TrayNoticesTest`), what the widgets and shortcuts say and open (`TodayLessonsTest`, `WidgetSnapshotsTest`, `ShortcutsTest`), screen logic (navigation state, form reducers, pagers, sorting), and view models over a real database: a test that opens one extends `UiTest` (`kotlin.test`, `kotlinx-coroutines-test`; test names avoid commas, which Kotlin/Native refuses). The JVM run reads Android's `java.text`/`java.time` tables; the iOS run reads Foundation's, so both platforms' CLDR data meet the same expectations. |
 | `ui/src/androidHostTest` | Common code checked against a JVM reference, such as `AesGcm` against the JDK's GCM, and the iOS widget snapshot against its fixture (`WidgetSnapshotContractTest`). |
 | `ui/src/iosTest` | What only iOS can show, drawn by Compose's own test rule: `InkCentredTextIosTest` measures Skia's pixels. |
-| `app/src/test` | Android locale/graph behavior, view models over a real database, Compose UI on Robolectric, mappers and source/artifact tripwires. A `:ui` test that needs none of these goes in `ui/src/commonTest`, so it runs on iOS too. Unmocked Android calls fail (`isReturnDefaultValues` is off). |
+| `app/src/test` | Android locale/graph behavior, adapters, workers and widgets, Compose UI on Robolectric, mappers and source/artifact tripwires. A `:ui` test that needs none of these goes in `ui/src/commonTest`, so it runs on iOS too. Unmocked Android calls fail (`isReturnDefaultValues` is off). |
 
 - Seed valid application states through `testutil/Fixtures`; use `storedClass` for raw persisted states.
   `DirectSeedingRatchetTest` lists the few direct-write exceptions by file and purpose, and fails if an
   exception grows or disappears without updating that list.
-- `RepositoryTestEnv` in `shared/src/testFixtures/kotlin` owns the common repository graph. Shared,
-  Android JVM and device adapters supply real Room databases with bundled SQLite and own their cleanup.
-  Shared tests close their adapter with `@AfterTest`; Android JVM tests use a JUnit rule. No fake DAOs.
+- Test support is two modules that only test configurations depend on. `:testing` holds what `:shared`
+  tests need: `TestEnv` (the repository graph over a fresh in-memory `TestDatabase`), `Fixtures`, port
+  doubles and a pinned `MutableClock`. `:uiTesting` adds the screens' side: `UiTestEnv` (with permission
+  doubles), `TestMain`, `current`, `UiTest` and fixtures shared by `ui/src/commonTest` and `:app`'s Compose
+  tests. Common tests close their env with `@AfterTest`; `:app` wraps it as `TestEnvRule`. No fake DAOs.
   Query tests exercise the production shared graph.
-- Portable port doubles, fixtures and a pinned `MutableClock` are compiled only into test source sets.
+- `UiTest` runs on Robolectric on Android's host JVM (`@RunWith` is inherited) and plainly on iOS. Room
+  needs it there: `android.jar`'s stub `SQLException` drops the message its upsert reads, and
+  `SavedStateHandle` needs a real `Bundle`.
   Give repositories and view models the same clock and zone. Tests of system clock changes explicitly
   opt into the device clock.
 - Digest and maintenance behavior belongs in shared common tests; Android tests cover notifier and
   scheduling adapters. Generated invariant tests use fixed seeds and include the seed/case in failures;
   keep their assertions independent of the rule they exercise.
-- Wrap manually constructed view models in `mainRule.own(...)`. The dispatcher rule clears them and
-  cancels its application scope before the database rule closes; use rule order 1 for the dispatcher
-  and order 0 for the database environment. `clearViewModels()` models leaving the screen without
+- Wrap manually constructed view models in `main.own(...)` (`TestMain`; `:app` wraps it as
+  `MainDispatcherRule`). Start it in `@BeforeTest`; in `@AfterTest` finish it, which clears the view
+  models and cancels its application scope, before closing the env. In `:app`, use rule order 1 for the
+  dispatcher and order 0 for the database environment. `clearViewModels()` models leaving the screen without
   cancelling application writes. For save races, use `pauseNextTransaction()`, await its entry, perform
   the competing action, then release it in `finally`; assert both the paused state and the final rows.
   Use queued test dispatchers for lifecycle tests rather than relying on immediate execution.
@@ -90,16 +95,18 @@ Use Roborazzi tasks to record or verify screenshots; keep those checks in `verif
 Windows/Linux rasterization differences. Tiny color changes can pass: inspect those previews yourself.
 For platform-only failures, use the Linux render from CI's artifact.
 
-Shared Robolectric configuration lives in `app/src/test/resources/robolectric.properties` (target SDK,
-bare `Application`); native graphics, resources and JDK access flags live in `app/build.gradle.kts`.
+Robolectric configuration (target SDK, bare `Application`) lives in `robolectric.properties` under
+`app/src/test/resources` and `ui/src/androidHostTest/resources`; keep the two equal. Native graphics,
+resources and JDK access flags live in `app/build.gradle.kts`; `ui/build.gradle.kts` passes the same JDK flags.
 
 ## Coverage
 
-`./gradlew coverageReport` runs `:app:testDebugBehavior`, `:domain:jvmTest` and `:shared:jvmTest` with
-the JaCoCo agent and writes one merged HTML/XML report to `build/reports/jacoco/coverageReport/`. The
-`:ui` screens count through the `:app` behavior tests that drive them.
+`./gradlew coverageReport` runs `:app:testDebugBehavior`, `:ui:testAndroidHostTest`, `:domain:jvmTest` and
+`:shared:jvmTest` with the JaCoCo agent and writes one merged HTML/XML report to
+`build/reports/jacoco/coverageReport/`. `:ui` counts through its own tests and the `:app` tests that drive its
+screens.
 Preview screenshots are left out: they render code without asserting on it. `:shared` counts only its
-own tests, because `:app` runs its Android build, whose classes differ from the JVM ones the report
+own tests, because `:app` and `:ui` run its Android build, whose classes differ from the JVM ones the report
 reads. Metro, Room and Compose-generated classes and debug previews are excluded. Device, iOS and
 screenshot runs carry no agent. There is no coverage gate; read the report for untested branches.
 

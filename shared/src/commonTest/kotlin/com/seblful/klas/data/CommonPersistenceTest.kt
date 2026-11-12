@@ -22,6 +22,7 @@ import com.seblful.klas.domain.reminders.Reminders
 import com.seblful.klas.domain.time.WallClock
 import com.seblful.klas.queries.homework.HomeworkQuery
 import com.seblful.klas.settings.DevicePreferences
+import com.seblful.klas.testutil.openTestDatabase
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
@@ -31,8 +32,6 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
 import kotlin.time.Instant
-
-internal expect fun openTestDatabase(): AppDatabase
 
 class CommonPersistenceTest {
     @Test

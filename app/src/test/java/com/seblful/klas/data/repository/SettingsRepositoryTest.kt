@@ -21,6 +21,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.yield
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -39,8 +40,10 @@ class SettingsRepositoryTest {
     @get:Rule
     val locale = AppLocaleRule.russian()
 
-    @get:Rule
-    val database = TestDatabase()
+    private val database = TestDatabase()
+
+    @After
+    fun closeDatabase() = database.close()
 
     private val dao = database.db.settingsDao()
     private val repo = SettingsRepository(dao, RussianMinskPhone.toDevicePreferences())

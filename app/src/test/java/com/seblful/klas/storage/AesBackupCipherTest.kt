@@ -4,7 +4,7 @@ import com.seblful.klas.data.backup.BackupFailure
 import com.seblful.klas.data.backup.PasswordNeededException
 import com.seblful.klas.data.backup.SealedBackup
 import com.seblful.klas.data.backup.WrongPasswordException
-import com.seblful.klas.testutil.TestEnv
+import com.seblful.klas.testutil.TestEnvRule
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -21,7 +21,7 @@ import org.robolectric.RobolectricTestRunner
 class AesBackupCipherTest {
 
     @get:Rule
-    val env = TestEnv()
+    val env = TestEnvRule()
     private val cipher = AesBackupCipher(Dispatchers.Unconfined)
 
     @Test

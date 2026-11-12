@@ -96,8 +96,6 @@ android {
     // Robolectric gets merged resources. Device migration tests need Room’s exported schemas.
     sourceSets {
         getByName("androidTest").assets.directories.add("${project(":shared").projectDir}/schemas")
-        getByName("androidTest").kotlin.srcDir(rootProject.file("shared/src/testFixtures/kotlin"))
-        getByName("test").kotlin.srcDir(rootProject.file("shared/src/testFixtures/kotlin"))
     }
     testOptions {
         unitTests.isIncludeAndroidResources = true
@@ -211,6 +209,7 @@ dependencies {
 
     coreLibraryDesugaring(libs.desugar.jdk.libs)
 
+    testImplementation(project(":uiTesting"))
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.robolectric)
@@ -226,6 +225,7 @@ dependencies {
     testImplementation(libs.composable.preview.scanner)
     testImplementation(libs.androidx.espresso.core)
 
+    androidTestImplementation(project(":testing"))
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))

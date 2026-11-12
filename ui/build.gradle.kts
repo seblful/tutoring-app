@@ -34,6 +34,17 @@ kotlin {
     iosArm64()
     iosSimulatorArm64()
 
+    // Tests set lessons up without an undo window; app code goes through LessonChanges.
+    targets.configureEach {
+        compilations.configureEach {
+            if (name != "main") {
+                compileTaskProvider.configure {
+                    compilerOptions.optIn.add("com.seblful.klas.data.lessons.WritesWithoutUndo")
+                }
+            }
+        }
+    }
+
     compilerOptions {
         // Compose Styles (`ui/theme/KlasStyles.kt`) are still experimental in foundation 1.12.
         optIn.add("androidx.compose.foundation.style.ExperimentalFoundationStyleApi")
@@ -63,12 +74,17 @@ kotlin {
             implementation(libs.kotlinx.serialization.json)
         }
         commonTest.dependencies {
+            implementation(project(":uiTesting"))
             implementation(kotlin("test"))
             implementation(libs.kotlinx.coroutines.test)
         }
         iosTest.dependencies {
             // Compose's own test rule, drawn by Skia as the app is: Android's UI tests run on Robolectric in :app.
             implementation(libs.compose.ui.test)
+        }
+        getByName("androidHostTest").dependencies {
+            // The host JVM loads the desktop SQLite natives; Android's are excluded below.
+            implementation(libs.androidx.sqlite.bundled.jvm)
         }
         androidMain.dependencies {
             implementation(libs.androidx.core.ktx)
@@ -91,4 +107,21 @@ composeCompiler {
 
 tasks.withType<KotlinNativeSimulatorTest>().configureEach {
     providers.environmentVariable("KMP_IOS_SIMULATOR_ID").orNull?.let { device.set(it) }
+}
+
+tasks.withType<Test>().configureEach {
+    // Robolectric (UiTest) needs these JDK 17+ reflective accesses; :app's unit tests pass the same.
+    jvmArgs(
+        "--add-opens=java.base/java.lang=ALL-UNNAMED",
+        "--add-opens=java.base/java.util=ALL-UNNAMED",
+        "--add-opens=java.base/java.io=ALL-UNNAMED",
+        "--add-opens=java.base/java.net=ALL-UNNAMED",
+        "--add-opens=java.base/java.security=ALL-UNNAMED",
+        "--add-opens=java.base/java.text=ALL-UNNAMED",
+        "--add-opens=java.base/jdk.internal.access=ALL-UNNAMED",
+    )
+}
+
+configurations.matching { it.name.contains("HostTest") && it.name.endsWith("RuntimeClasspath") }.configureEach {
+    exclude(group = "androidx.sqlite", module = "sqlite-bundled-android")
 }

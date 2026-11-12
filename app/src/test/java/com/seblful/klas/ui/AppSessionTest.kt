@@ -5,7 +5,7 @@ import com.seblful.klas.domain.model.AppLanguage
 import com.seblful.klas.format.DisplayLocale
 import com.seblful.klas.format.toDevicePreferences
 import com.seblful.klas.lock.AppLock
-import com.seblful.klas.testutil.TestEnv
+import com.seblful.klas.testutil.TestEnvRule
 import com.seblful.klas.text.Strings
 import com.seblful.klas.text.Texts
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -27,7 +27,7 @@ import kotlin.time.TestTimeSource
 class AppSessionTest {
 
     @get:Rule
-    val env = TestEnv()
+    val env = TestEnvRule()
 
     private val time = TestTimeSource()
     private val lock = AppLock(time)

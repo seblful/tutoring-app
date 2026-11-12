@@ -1,5 +1,5 @@
 [versions]
-# SDK levels every module builds against. `targetSdk` also moves `app/src/test/resources/robolectric.properties`.
+# SDK levels every module builds against. `targetSdk` also moves both `robolectric.properties` (app and ui tests).
 compileSdk = "37"
 minSdk = "24"
 targetSdk = "36"

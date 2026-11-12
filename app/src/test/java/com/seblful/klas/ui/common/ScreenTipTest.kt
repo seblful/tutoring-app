@@ -21,7 +21,7 @@ import com.seblful.klas.domain.guide.Guide
 import com.seblful.klas.domain.guide.Tip
 import com.seblful.klas.testutil.AppLocaleRule
 import com.seblful.klas.testutil.MainDispatcherRule
-import com.seblful.klas.testutil.TestEnv
+import com.seblful.klas.testutil.TestEnvRule
 import com.seblful.klas.ui.designsystem.component.CoachMark
 import com.seblful.klas.ui.theme.KlasTheme
 import kotlinx.coroutines.flow.first
@@ -38,7 +38,7 @@ import org.robolectric.annotation.Config
 @Config(qualifiers = "en-rUS")
 class ScreenTipTest {
     @get:Rule(order = 0)
-    val env = TestEnv()
+    val env = TestEnvRule()
 
     @get:Rule(order = 1)
     val mainRule = MainDispatcherRule()

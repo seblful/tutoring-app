@@ -112,7 +112,7 @@ object ProjectFiles {
     fun testSourceFile(relative: String): File = moduleFileOrNull("$TEST_SOURCE_ROOT/$relative")
         ?: error("Could not find `$TEST_SOURCE_ROOT/$relative` from ${System.getProperty("user.dir")}")
 
-    /** Every `.kt` file under [TEST_SOURCE_ROOT] — for the one test that scans the suite itself. */
+    /** Every test and test-fixture `.kt` file in the build — for the one test that scans the suite itself. */
     fun testSources(): List<File> {
         val roots = listOf(
             moduleFileOrNull(TEST_SOURCE_ROOT),
@@ -120,7 +120,9 @@ object ProjectFiles {
             siblingModuleFileOrNull("shared", "src/commonTest/kotlin/com/seblful/klas"),
             siblingModuleFileOrNull("shared", "src/jvmTest/kotlin/com/seblful/klas"),
             siblingModuleFileOrNull("shared", "src/iosTest/kotlin/com/seblful/klas"),
-            siblingModuleFileOrNull("shared", "src/testFixtures/kotlin/com/seblful/klas"),
+            siblingModuleFileOrNull("ui", "src/commonTest/kotlin/com/seblful/klas"),
+            siblingModuleFileOrNull("testing", "src"),
+            siblingModuleFileOrNull("uiTesting", "src"),
         )
         check(roots.all { it != null }) { "Could not find every module's test sources" }
         return roots.filterNotNull().flatMap { root ->

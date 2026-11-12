@@ -8,7 +8,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import com.seblful.klas.testutil.AppLocaleRule
 import com.seblful.klas.testutil.MainDispatcherRule
-import com.seblful.klas.testutil.TestEnv
+import com.seblful.klas.testutil.TestEnvRule
 import com.seblful.klas.ui.theme.KlasTheme
 import com.seblful.klas.ui.theme.klasSemantics
 import org.junit.Assert.assertFalse
@@ -26,7 +26,7 @@ import kotlin.math.abs
 @Config(qualifiers = "en-rUS")
 class BatchActionsTest {
     @get:Rule(order = 0)
-    val env = TestEnv()
+    val env = TestEnvRule()
 
     @get:Rule(order = 1)
     val mainRule = MainDispatcherRule()

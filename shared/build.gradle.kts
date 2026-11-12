@@ -23,7 +23,7 @@ kotlin {
     iosArm64()
     iosSimulatorArm64()
 
-    // Fixtures and tests set lessons up without an undo window; app code goes through LessonChanges.
+    // Tests set lessons up without an undo window; app code goes through LessonChanges.
     targets.configureEach {
         compilations.configureEach {
             if (name != "main") {
@@ -42,12 +42,10 @@ kotlin {
             implementation(libs.androidx.sqlite.bundled)
             implementation(libs.kotlinx.serialization.json)
         }
-        commonTest {
-            kotlin.srcDir("src/testFixtures/kotlin")
-            dependencies {
-                implementation(kotlin("test"))
-                implementation(libs.kotlinx.coroutines.test)
-            }
+        commonTest.dependencies {
+            implementation(project(":testing"))
+            implementation(kotlin("test"))
+            implementation(libs.kotlinx.coroutines.test)
         }
     }
 }

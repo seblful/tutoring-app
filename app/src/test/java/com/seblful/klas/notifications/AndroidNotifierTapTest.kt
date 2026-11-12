@@ -13,7 +13,7 @@ import com.seblful.klas.format.DisplayLocale
 import com.seblful.klas.notifications.TrayNavigation.Destination
 import com.seblful.klas.settings.DevicePreferences
 import com.seblful.klas.testutil.FakeNotificationPermission
-import com.seblful.klas.testutil.TestEnv
+import com.seblful.klas.testutil.TestEnvRule
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
@@ -30,7 +30,7 @@ import org.robolectric.Shadows.shadowOf
 @RunWith(RobolectricTestRunner::class)
 class AndroidNotifierTapTest {
     @get:Rule
-    val env = TestEnv()
+    val env = TestEnvRule()
 
     private val context = ApplicationProvider.getApplicationContext<Context>()
     private val manager = context.getSystemService(NotificationManager::class.java)

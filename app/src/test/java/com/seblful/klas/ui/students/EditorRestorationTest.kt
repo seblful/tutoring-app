@@ -31,7 +31,7 @@ class EditorRestorationTest : StudentDetailTestFixture() {
     val language = AppLocaleRule.english()
 
     @Test
-    fun `a card restores the open homework editor and its unfinished text`() = runTest(mainRule.dispatcher) {
+    fun `a card restores the open homework editor and its unfinished text`() = runTest(main.dispatcher) {
         val student = seedStudent()
         val vm = vm(student)
         observing(vm.state)

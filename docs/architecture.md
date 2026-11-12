@@ -6,7 +6,8 @@ the Android host: device adapters, workers, widgets and the Metro graph. `:iosHo
 adapters, graph and entry point — linked as the `KlasApp` framework into the SwiftUI shell in `iosApp/`
 ([iOS app](ios.md)); `:ui`'s `iosMain` keeps only the screens' `*.ios.kt` seams. Shared persistence and workflows live
 in `:shared`; pure rules live in `:domain`. The three libraries use Kotlin Multiplatform with iOS targets. `:baselineprofile`
-drives the app to collect its baseline profile and ships nothing. Shared common
+drives the app to collect its baseline profile and ships nothing; `:testing` and `:uiTesting` hold the test
+fixtures and ship nothing either ([Testing](testing.md)). Shared common
 sources reject Android/JDK APIs. Dates use kotlinx-datetime; instants/durations use `kotlin.time`.
 Device preferences cross as BCP 47 tags and ISO currency codes.
 

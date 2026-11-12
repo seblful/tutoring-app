@@ -1,6 +1,6 @@
 package com.seblful.klas.notifications
 
-import com.seblful.klas.testutil.TestEnv
+import com.seblful.klas.testutil.TestEnvRule
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -14,7 +14,7 @@ import kotlin.time.Instant
 @RunWith(RobolectricTestRunner::class)
 class MovedReminderTest {
     @get:Rule(order = 0)
-    val env = TestEnv()
+    val env = TestEnvRule()
 
     private fun due() = DueReminder(
         env.classRepo, env.studentRepo, env.subjectRepo, env.groupRepo, env.homeworkQuery,

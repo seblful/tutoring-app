@@ -1,0 +1,421 @@
+package com.seblful.klas.ui.students
+
+import com.seblful.klas.data.people.StudentSubjectCrossRef
+import com.seblful.klas.data.toDomain
+import com.seblful.klas.domain.homework.HomeworkRules
+import com.seblful.klas.domain.model.Assignee
+import com.seblful.klas.domain.model.LessonStatus
+import com.seblful.klas.domain.model.Money
+import com.seblful.klas.domain.model.Payment
+import com.seblful.klas.print.Sheet
+import com.seblful.klas.queries.homework.AssigneeChoice
+import com.seblful.klas.testutil.current
+import com.seblful.klas.testutil.observing
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.advanceTimeBy
+import kotlinx.coroutines.test.runCurrent
+import kotlinx.coroutines.test.runTest
+import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.atStartOfDayIn
+import kotlinx.datetime.atTime
+import kotlinx.datetime.minus
+import kotlinx.datetime.plus
+import kotlinx.datetime.toInstant
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
+import kotlin.time.Duration.Companion.days
+import kotlin.time.Duration.Companion.hours
+import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Instant
+
+@OptIn(ExperimentalCoroutinesApi::class)
+class StudentDetailViewModelTest : StudentDetailTestFixture() {
+
+    @Test
+    fun `the lesson history is cut into months in the clock's zone - not the system's`() = runTest(main.dispatcher) {
+        val vm = vm(seedStudent())
+        observing(vm.zone)
+        runCurrent()
+
+        assertEquals(zone, vm.zone.value)
+    }
+
+    @Test
+    fun `addSubject links and prices the subject together`() = runTest(main.dispatcher) {
+        val sid = seedStudent()
+        val math = env.fixtures.subject(name = "Математика")
+        val vm = vm(sid)
+        observing(vm.state)
+        runCurrent()
+
+        vm.addSubject(math, Money.ofMajor(35))
+        runCurrent()
+
+        assertEquals(listOf(math), env.studentDao.getSubjectIds(sid))
+        assertEquals(Money.ofMajor(35), env.enrollmentRepo.priceFor(sid, math)?.amount)
+    }
+
+    @Test
+    fun `removing a subject with no classes unlinks and unprices it`() = runTest(main.dispatcher) {
+        val sid = seedStudent()
+        val math = env.fixtures.subject(name = "Математика")
+        env.studentDao.addSubjectLink(StudentSubjectCrossRef(sid, math))
+        env.enrollmentRepo.enroll(sid, math, Money.ofMajor(30))
+        val vm = vm(sid)
+        observing(vm.state)
+        runCurrent()
+
+        vm.removeSubject(math)
+        runCurrent()
+
+        assertTrue(env.studentDao.getSubjectIds(sid).isEmpty())
+        assertNull(env.enrollmentRepo.priceFor(sid, math))
+    }
+
+    @Test
+    fun `removing a subject the student has classes for is blocked and emits an event`() =
+        runTest(main.dispatcher) {
+            val sid = seedStudent()
+            val math = env.fixtures.subject(name = "Математика")
+            env.studentDao.addSubjectLink(StudentSubjectCrossRef(sid, math))
+            env.enrollmentRepo.enroll(sid, math, Money.ofMajor(30))
+            env.fixtures.storedClass(
+                studentId = sid, subjectId = math, startMillis = 1, durationMinutes = 60,
+                status = LessonStatus.COMPLETED, chargeMinor = Money.ofMajor(30).minor,
+            )
+
+            val vm = vm(sid)
+            val events = mutableListOf<StudentDetailViewModel.Event>()
+            observing(vm.state)
+            backgroundScope.launch { vm.events.stream.collect { events += it } }
+            runCurrent()
+
+            vm.removeSubject(math)
+            runCurrent()
+
+            assertEquals(
+                listOf<StudentDetailViewModel.Event>(
+                    StudentDetailViewModel.Event.RemoveBlockedHasClasses,
+                ),
+                events,
+            )
+            assertEquals(listOf(math), env.studentDao.getSubjectIds(sid))
+            assertEquals(Money.ofMajor(30), env.enrollmentRepo.priceFor(sid, math)?.amount)
+        }
+
+    @Test
+    fun `addPayment ignores a zero amount`() = runTest(main.dispatcher) {
+        val sid = seedStudent()
+        val vm = vm(sid)
+        observing(vm.state)
+        runCurrent()
+
+        vm.addPayment(Money.ZERO, today)
+        runCurrent()
+        assertTrue(env.stored().payments.isEmpty())
+
+        vm.addPayment(Money.ofMajor(10), today)
+        runCurrent()
+        assertEquals(1, env.stored().payments.size)
+    }
+
+    @Test
+    fun `a payment is recorded on the day it was made - not the day it was typed`() =
+        runTest(main.dispatcher) {
+            val sid = seedStudent()
+            val vm = vm(sid)
+            observing(vm.state)
+            runCurrent()
+
+            val lastTuesday = today.minus(5, DateTimeUnit.DAY)
+            vm.addPayment(Money.ofMajor(40), lastTuesday)
+            runCurrent()
+
+            assertEquals(
+                lastTuesday.atStartOfDayIn(zone).toEpochMilliseconds(),
+                env.stored().payments.single().dateMillis,
+                "the start of that day: there is no hour the tutor could have supplied",
+            )
+        }
+
+    @Test
+    fun `payments entered today keep the hour - so a run of them stays in order`() =
+        runTest(main.dispatcher) {
+            val sid = seedStudent()
+            val vm = vm(sid)
+            observing(vm.state)
+            runCurrent()
+
+            vm.addPayment(Money.ofMajor(10), today)
+            runCurrent()
+            clock.advanceBy(60_000)
+            vm.addPayment(Money.ofMajor(20), today)
+            runCurrent()
+
+            val stamps = env.stored().payments.sortedBy { it.id }.map { it.dateMillis }
+            assertEquals(2, stamps.distinct().size, "two different instants, not two midnights")
+            assertTrue(stamps[1] > stamps[0], "the second is later")
+            assertEquals(
+                today.atTime(14, 30).toInstant(zone).toEpochMilliseconds(),
+                stamps[0],
+                "and both are the moment they were entered, not the start of the day",
+            )
+        }
+
+    @Test
+    fun `editing a payment corrects the row rather than replacing it`() =
+        runTest(main.dispatcher) {
+            val sid = seedStudent()
+            val vm = vm(sid)
+            observing(vm.state)
+            runCurrent()
+
+            val recordedOn = today.minus(3, DateTimeUnit.DAY)
+            vm.addPayment(Money.ofMajor(40), recordedOn)
+            runCurrent()
+            val original = env.stored().payments.single()
+
+            vm.editPayment(original.toDomain(), Money.ofMajor(45), recordedOn)
+            runCurrent()
+
+            val corrected = env.stored().payments.single()
+            assertEquals(original.id, corrected.id, "the same row")
+            assertEquals(Money.ofMajor(45).minor, corrected.amountMinor)
+            assertEquals(
+                recordedOn.atStartOfDayIn(zone).toEpochMilliseconds(),
+                corrected.dateMillis,
+                "the date was left alone",
+            )
+        }
+
+    @Test
+    fun `writes are launched into the application scope - not the view model's`() = runTest(main.dispatcher) {
+        val sid = seedStudent(name = "Аня")
+        val subject = env.fixtures.subject(name = "Математика")
+        env.enrollmentRepo.enroll(sid, subject, Money.ofMajor(30))
+        val vm = vm(sid)
+        observing(vm.state)
+        runCurrent()
+
+        main.appScope.cancel()
+
+        vm.addPayment(Money.ofMajor(50), today)
+        vm.setPrice(subject, Money.ofMajor(40))
+        runCurrent()
+
+        assertTrue(env.stored().payments.isEmpty(), "no payment was recorded")
+        assertEquals(
+            Money.ofMajor(30).minor,
+            env.priceDao.get(sid, subject)!!.amountMinor,
+            "the rate was not changed",
+        )
+    }
+
+    @Test
+    fun `a payment correction is offered back - and its undo restores the payment`() =
+        runTest(main.dispatcher) {
+            val sid = seedStudent()
+            val vm = vm(sid)
+            observing(vm.state)
+            runCurrent()
+            val recordedOn = today.minus(3, DateTimeUnit.DAY)
+            vm.addPayment(Money.ofMajor(40), recordedOn)
+            runCurrent()
+            val original = env.stored().payments.single()
+            val events = mutableListOf<StudentDetailViewModel.Event>()
+            backgroundScope.launch { vm.events.stream.collect { events += it } }
+
+            vm.editPayment(original.toDomain(), Money.ofMajor(45), recordedOn)
+            runCurrent()
+            val corrected = events.single() as StudentDetailViewModel.Event.PaymentCorrected
+
+            vm.undoPaymentCorrection(corrected)
+            runCurrent()
+
+            assertEquals(original, env.stored().payments.single())
+            assertEquals(1, events.size, "the undo went through, so nothing more is said")
+        }
+
+    @Test
+    fun `restoring a deleted payment is launched into the application scope`() = runTest(main.dispatcher) {
+        val sid = seedStudent()
+        val payment = Payment(studentId = sid, date = Instant.fromEpochMilliseconds(10), amount = Money.ofMajor(50))
+        env.paymentRepo.restore(payment)
+        val vm = vm(sid)
+        observing(vm.state)
+        runCurrent()
+
+        val stored = vm.state.current.payments.single()
+        vm.deletePayment(stored)
+        runCurrent()
+        assertTrue(env.stored().payments.isEmpty(), "the delete went through first")
+
+        main.appScope.cancel()
+        vm.restorePayment(stored)
+        runCurrent()
+
+        assertTrue(env.stored().payments.isEmpty(), "and the undo needed that scope to be alive")
+    }
+
+    @Test
+    fun `a write that fails to commit is reported - not swallowed`() = runTest(main.dispatcher) {
+        val subj = env.fixtures.subject("Математика")
+        val sid = env.fixtures.student("Аня")
+        val vm = vm(sid)
+        observing(vm.state)
+        runCurrent()
+        val events = mutableListOf<StudentDetailViewModel.Event>()
+        backgroundScope.launch { vm.events.stream.collect { events += it } }
+        env.transactor.failAt = env.transactor.count + 1
+
+        vm.addSubject(subj, Money.ofMajor(30))
+        runCurrent()
+
+        assertEquals(listOf<StudentDetailViewModel.Event>(StudentDetailViewModel.Event.WriteFailed), events)
+        assertEquals(emptyList<Long>(), env.studentDao.getSubjectIds(sid), "and nothing of it was kept")
+    }
+
+    @Test
+    fun `a write that succeeds reports nothing`() = runTest(main.dispatcher) {
+        val sid = env.fixtures.student("Аня")
+        val vm = vm(sid)
+        observing(vm.state)
+        runCurrent()
+        val events = mutableListOf<StudentDetailViewModel.Event>()
+        backgroundScope.launch { vm.events.stream.collect { events += it } }
+
+        vm.addPayment(Money.ofMajor(50), today)
+        runCurrent()
+
+        assertTrue(events.isEmpty(), "nothing to report about a payment that recorded")
+        assertEquals(1, env.stored().payments.size)
+    }
+
+    @Test
+    fun `the overview moves on from a lesson once it ends`() = runTest(main.dispatcher) {
+        val maths = env.fixtures.subject("Математика")
+        val anya = env.fixtures.pricedStudent("Аня", maths)
+        val underWay = env.fixtures.lesson(maths, listOf(anya), clock.now().minus(30.minutes)).single()
+        val later = env.fixtures.lesson(maths, listOf(anya), clock.now().plus(2.days)).single()
+        val vm = vm(anya)
+        observing(vm.overview)
+        runCurrent()
+
+        val next = checkNotNull(vm.overview.value?.next)
+        assertEquals(underWay, next.classId)
+        assertTrue(next.running, "begun, so said as under way")
+        val shown = vm.overview.value?.lessons?.map { it.klass.id }
+        assertEquals(listOf(later), shown, "nothing else begun, so the booking after it")
+
+        val pastItsEnd = 31.minutes
+        clock.advanceBy(pastItsEnd.inWholeMilliseconds)
+        advanceTimeBy(pastItsEnd.inWholeMilliseconds)
+
+        assertEquals(later, vm.overview.value?.next?.classId)
+        assertEquals(listOf(underWay), vm.overview.value?.lessons?.map { it.klass.id })
+    }
+
+    @Test
+    fun `the overview waits for the card to load`() = runTest(main.dispatcher) {
+        val vm = vm(seedStudent())
+        assertNull(vm.overview.value)
+
+        observing(vm.overview)
+        runCurrent()
+
+        assertEquals("Аня", vm.overview.value?.details?.student?.name)
+    }
+
+    @Test
+    fun `the card lists the student's homework and their group's - current and done`() =
+        runTest(main.dispatcher) {
+            val maths = env.fixtures.subject()
+            val anya = env.fixtures.pricedStudent("Аня", maths)
+            val boris = env.fixtures.pricedStudent("Борис", maths)
+            val group = env.fixtures.group(name = "9 «Б»", subjectId = maths, members = setOf(anya, boris))
+            val tomorrow = clock.now().plus(1.days)
+            env.fixtures.lesson(maths, listOf(anya, boris), tomorrow, groupId = group)
+            env.fixtures.homework(Assignee.Group(group), text = "группы")
+            env.fixtures.homework(Assignee.Student(anya), text = "своё", done = true)
+            env.fixtures.homework(Assignee.Student(boris), text = "Бориса")
+            val vm = vm(anya)
+            observing(vm.state)
+
+            val homework = vm.state.current.homework
+            assertEquals(listOf("группы"), homework.current.map { it.text })
+            assertEquals("9 «Б»", homework.current.single().title)
+            assertEquals(tomorrow, homework.current.single().lessonAt)
+            assertEquals(listOf("своё"), homework.archive.map { it.text })
+        }
+
+    @Test
+    fun `homework set from the card is the student's - for their next lesson`() = runTest(main.dispatcher) {
+        val maths = env.fixtures.subject()
+        val anya = env.fixtures.pricedStudent("Аня", maths)
+        val tomorrow = clock.now().plus(1.days)
+        env.fixtures.lesson(maths, listOf(anya), tomorrow)
+        val vm = vm(anya)
+        observing(vm.state)
+
+        assertEquals(AssigneeChoice(Assignee.Student(anya), "Аня", tomorrow), vm.cardHomework.choice())
+
+        vm.cardHomework.give("§ 12")
+        runCurrent()
+
+        val row = vm.state.current.homework.current.single()
+        assertEquals(Assignee.Student(anya), row.homework.assignee)
+        assertEquals("§ 12", row.text)
+        assertEquals(tomorrow, row.lessonAt)
+    }
+
+    @Test
+    fun `at midnight the card's homework for tomorrow becomes today's`() = runTest(main.dispatcher) {
+        val maths = env.fixtures.subject()
+        val anya = env.fixtures.pricedStudent("Аня", maths)
+        env.fixtures.lesson(maths, listOf(anya), clock.now().plus(1.days))
+        env.fixtures.homework(Assignee.Student(anya))
+        val vm = vm(anya)
+        observing(vm.state)
+        runCurrent()
+        assertEquals(HomeworkRules.Due.LATER, vm.state.current.homework.current.single().due)
+
+        // 14:30 to a minute past midnight, on both the clock and the scheduler the flow sleeps on.
+        val untilMidnight = 9.hours + 31.minutes
+        clock.advanceBy(untilMidnight.inWholeMilliseconds)
+        advanceTimeBy(untilMidnight.inWholeMilliseconds)
+
+        assertEquals(HomeworkRules.Due.TODAY, vm.state.current.homework.current.single().due)
+    }
+
+    @Test
+    fun `the statement is printed and shared as a PDF`() = runTest(main.dispatcher) {
+        val vm = vm(seedStudent())
+        val sheet = Sheet("Anna: lessons and payments", emptyList())
+
+        vm.shareStatement("Statement — Anna.pdf", "Anna: lessons and payments", sheet)
+        runCurrent()
+
+        val shared = sharing.shared.single()
+        assertEquals("Statement — Anna.pdf", shared.filename)
+        assertEquals("application/pdf", shared.mimeType)
+        assertEquals("%PDF Anna: lessons and payments", shared.text)
+        assertEquals(listOf(sheet), printer.printed)
+    }
+
+    @Test
+    fun `a statement nothing can receive is said`() = runTest(main.dispatcher) {
+        val vm = vm(seedStudent())
+        sharing.failing = true
+        val events = mutableListOf<StudentDetailViewModel.Event>()
+        backgroundScope.launch { vm.events.stream.collect { events += it } }
+
+        vm.shareStatement("Statement — Anna.pdf", "Anna", Sheet("Anna", emptyList()))
+        runCurrent()
+
+        assertEquals(listOf<StudentDetailViewModel.Event>(StudentDetailViewModel.Event.ShareFailed), events)
+    }
+}

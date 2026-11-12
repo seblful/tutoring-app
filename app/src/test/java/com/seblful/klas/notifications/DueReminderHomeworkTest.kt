@@ -2,7 +2,7 @@ package com.seblful.klas.notifications
 
 import com.seblful.klas.domain.model.Assignee
 import com.seblful.klas.testutil.RecordingNotifier
-import com.seblful.klas.testutil.TestEnv
+import com.seblful.klas.testutil.TestEnvRule
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -17,7 +17,7 @@ import kotlin.time.Instant
 class DueReminderHomeworkTest {
 
     @get:Rule(order = 0)
-    val env = TestEnv()
+    val env = TestEnvRule()
     private val notifier = RecordingNotifier()
     private val fixtures = env.fixtures
 

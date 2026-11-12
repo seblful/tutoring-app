@@ -9,7 +9,7 @@
 style:
   ForbiddenImport:
     active: true
-    excludes: ['**/test/**', '**/androidTest/**', '**/commonTest/**', '**/androidHostTest/**', '**/testFixtures/**']
+    excludes: ['**/test/**', '**/androidTest/**', '**/commonTest/**', '**/androidHostTest/**', '**/testFixtures/**', '**/testing/src/**', '**/uiTesting/src/**']
     forbiddenImports:
       - 'android.os.Vibrator'
       - 'android.os.VibrationEffect'
@@ -56,7 +56,7 @@ style:
   MagicNumber:
     ignoreAnnotated: ['Composable']
     # Shared test fixtures follow the same rules as the suites that compile them.
-    excludes: ['**/test/**', '**/androidTest/**', '**/commonTest/**', '**/jvmTest/**', '**/iosTest/**', '**/androidHostTest/**', '**/testFixtures/**']
+    excludes: ['**/test/**', '**/androidTest/**', '**/commonTest/**', '**/jvmTest/**', '**/iosTest/**', '**/androidHostTest/**', '**/testFixtures/**', '**/testing/src/**', '**/uiTesting/src/**']
   # A @Preview is called by the IDE, never by the code.
   UnusedPrivateFunction:
     ignoreAnnotated: ['Preview']
@@ -74,7 +74,7 @@ naming:
 
 complexity:
   TooManyFunctions:
-    excludes: ['**/test/**', '**/androidTest/**', '**/commonTest/**', '**/jvmTest/**', '**/iosTest/**', '**/androidHostTest/**', '**/testFixtures/**']
+    excludes: ['**/test/**', '**/androidTest/**', '**/commonTest/**', '**/jvmTest/**', '**/iosTest/**', '**/androidHostTest/**', '**/testFixtures/**', '**/testing/src/**', '**/uiTesting/src/**']
   # A composable takes `modifier: Modifier = Modifier` and a defaulted parameter per optional slot; those
   # are the API working as intended, not a parameter list that wants a class.
   LongParameterList:

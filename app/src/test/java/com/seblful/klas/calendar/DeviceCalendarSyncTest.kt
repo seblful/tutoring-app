@@ -12,7 +12,7 @@ import com.seblful.klas.domain.model.TutoringClass
 import com.seblful.klas.format.DisplayLocale
 import com.seblful.klas.settings.DevicePreferences
 import com.seblful.klas.testutil.FakeCalendarPermission
-import com.seblful.klas.testutil.TestEnv
+import com.seblful.klas.testutil.TestEnvRule
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -30,7 +30,7 @@ import kotlin.time.Instant
 class DeviceCalendarSyncTest {
 
     @get:Rule(order = 0)
-    val env = TestEnv()
+    val env = TestEnvRule()
 
     private lateinit var provider: FakeCalendarProvider
     private lateinit var sync: DeviceCalendarSync

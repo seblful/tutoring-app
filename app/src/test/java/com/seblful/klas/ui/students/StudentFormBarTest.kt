@@ -12,7 +12,7 @@ import androidx.compose.ui.test.performTextInput
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Student
 import com.seblful.klas.testutil.AppLocaleRule
-import com.seblful.klas.testutil.TestEnv
+import com.seblful.klas.testutil.TestEnvRule
 import com.seblful.klas.ui.theme.KlasTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.MainScope
@@ -33,7 +33,7 @@ class StudentFormBarTest {
     val language = AppLocaleRule.english()
 
     @get:Rule(order = 0)
-    val env = TestEnv()
+    val env = TestEnvRule()
 
     private fun vm() = StudentFormViewModel(
         androidx.lifecycle.SavedStateHandle(),

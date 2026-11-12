@@ -8,7 +8,7 @@ import com.seblful.klas.data.people.StudentEntity
 import com.seblful.klas.data.people.SubjectEntity
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.Payment
-import com.seblful.klas.testutil.TestEnv
+import com.seblful.klas.testutil.TestEnvRule
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -21,9 +21,9 @@ import kotlin.time.Instant
 class SnapshotDaoTest {
 
     @get:Rule(order = 0)
-    val env = TestEnv()
+    val env = TestEnvRule()
 
-    private suspend fun seedALesson(subject: String, student: String, into: TestEnv = env) {
+    private suspend fun seedALesson(subject: String, student: String, into: TestEnvRule = env) {
         val subjectId = into.fixtures.subject(subject)
         val studentId = into.fixtures.pricedStudent(student, subjectId)
         into.fixtures.completedLesson(
@@ -36,7 +36,7 @@ class SnapshotDaoTest {
 
     @Test
     fun `replace throws away what was there rather than merging into it`() = runTest {
-        val taken = TestEnv().use { other ->
+        val taken = TestEnvRule().use { other ->
             seedALesson("Алгебра", "Аня", into = other)
             other.snapshotDao.read()
         }

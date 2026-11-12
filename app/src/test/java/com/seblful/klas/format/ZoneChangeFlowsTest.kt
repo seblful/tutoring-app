@@ -6,7 +6,7 @@ import android.content.Intent
 import android.os.Looper
 import androidx.test.core.app.ApplicationProvider
 import com.seblful.klas.testutil.MainDispatcherRule
-import com.seblful.klas.testutil.TestEnv
+import com.seblful.klas.testutil.TestEnvRule
 import com.seblful.klas.testutil.current
 import com.seblful.klas.testutil.observing
 import com.seblful.klas.ui.schedule.ScheduleViewModel
@@ -35,7 +35,7 @@ class ZoneChangeFlowsTest {
     val main = MainDispatcherRule()
 
     @get:Rule(order = 0)
-    val env = TestEnv()
+    val env = TestEnvRule()
 
     private val instant = Instant.parse("2026-06-01T00:30:00Z")
 

@@ -45,7 +45,7 @@ class CardPaymentsTest : StudentDetailTestFixture() {
     val language = AppLocaleRule.english()
 
     @Test
-    fun `the parent payment interaction restores the open dialog and typed amount`() = runTest(mainRule.dispatcher) {
+    fun `the parent payment interaction restores the open dialog and typed amount`() = runTest(main.dispatcher) {
         val student = seedStudent()
         val vm = vm(student)
         observing(vm.state)
@@ -69,7 +69,7 @@ class CardPaymentsTest : StudentDetailTestFixture() {
     }
 
     @Test
-    fun `Add takes fresh opening defaults and replaces Edit`() = runTest(mainRule.dispatcher) {
+    fun `Add takes fresh opening defaults and replaces Edit`() = runTest(main.dispatcher) {
         val subject = env.fixtures.subject()
         val student = env.fixtures.pricedStudent(subjectId = subject)
         val lesson = env.fixtures.lesson(subject, listOf(student), clock.now() - 2.hours).single()
@@ -103,7 +103,7 @@ class CardPaymentsTest : StudentDetailTestFixture() {
     }
 
     @Test
-    fun `Add waits for the student to load`() = runTest(mainRule.dispatcher) {
+    fun `Add waits for the student to load`() = runTest(main.dispatcher) {
         val vm = vm(seedStudent())
         lateinit var interaction: CardPayments
         val messages = Messages(SnackbarHostState(), backgroundScope, "Undo")
@@ -115,7 +115,7 @@ class CardPaymentsTest : StudentDetailTestFixture() {
     }
 
     @Test
-    fun `opening another payment replaces typed fields`() = runTest(mainRule.dispatcher) {
+    fun `opening another payment replaces typed fields`() = runTest(main.dispatcher) {
         val student = seedStudent()
         env.paymentRepo.record(student, Money.ofMajor(10), today)
         env.paymentRepo.record(student, Money.ofMajor(20), today)
@@ -140,7 +140,7 @@ class CardPaymentsTest : StudentDetailTestFixture() {
 
     @Test
     fun `wording changes preserve typed fields and deletion Undo uses the current messages`() =
-        runTest(mainRule.dispatcher) {
+        runTest(main.dispatcher) {
             val student = seedStudent()
             env.paymentRepo.record(student, Money.ofMajor(10), today, PaymentMethod.TRANSFER)
             val original = env.paymentRepo.observeForStudent(student).first().single()
@@ -175,7 +175,7 @@ class CardPaymentsTest : StudentDetailTestFixture() {
 
     @Test
     fun `saving an added payment and a correction uses the card's existing write actions`() =
-        runTest(mainRule.dispatcher) {
+        runTest(main.dispatcher) {
             val student = seedStudent()
             val vm = vm(student)
             observing(vm.state)

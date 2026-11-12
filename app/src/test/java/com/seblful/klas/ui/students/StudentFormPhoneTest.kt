@@ -12,7 +12,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import com.seblful.klas.domain.model.Currency
 import com.seblful.klas.testutil.AppLocaleRule
-import com.seblful.klas.testutil.TestEnv
+import com.seblful.klas.testutil.TestEnvRule
 import com.seblful.klas.ui.common.LocalCurrency
 import com.seblful.klas.ui.theme.KlasTheme
 import kotlinx.coroutines.Dispatchers
@@ -32,7 +32,7 @@ class StudentFormPhoneTest {
     val language = AppLocaleRule.english()
 
     @get:Rule(order = 0)
-    val env = TestEnv()
+    val env = TestEnvRule()
 
     @Test
     fun `the phone opens empty whatever the currency, and offers the phone's contacts`() {

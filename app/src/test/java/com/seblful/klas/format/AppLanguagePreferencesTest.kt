@@ -5,7 +5,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.seblful.klas.R
 import com.seblful.klas.domain.model.AppLanguage
 import com.seblful.klas.testutil.MainDispatcherRule
-import com.seblful.klas.testutil.TestEnv
+import com.seblful.klas.testutil.TestEnvRule
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
@@ -23,7 +23,7 @@ import org.xmlpull.v1.XmlPullParser
 @RunWith(RobolectricTestRunner::class)
 class AppLanguagePreferencesTest {
     @get:Rule(order = 0)
-    val env = TestEnv()
+    val env = TestEnvRule()
     @get:Rule(order = 1)
     val main = MainDispatcherRule()
 

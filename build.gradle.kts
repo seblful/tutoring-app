@@ -71,17 +71,23 @@ tasks.register("verify") {
         ":domain:jvmTest", ":shared:jvmTest", ":ui:testAndroidHostTest", ":app:verifyRoborazziDebug", ":app:lintDebug",
         ":app:assembleDebug", ":app:assembleDebugAndroidTest",
     )
-    listOf(":app", ":domain", ":shared", ":ui", ":iosHost", ":baselineprofile").forEach { module ->
+    listOf(":app", ":domain", ":shared", ":ui", ":iosHost", ":testing", ":uiTesting", ":baselineprofile").forEach { module ->
         dependsOn("$module:ktlintCheck", "$module:detekt")
     }
 }
 
 // Coverage of the JVM suites. :app is measured by its behavior tests, not the preview screenshots, which
-// render code without asserting on it; they also cover the :ui screens they drive. :shared is measured by
-// its own tests only: :app runs its Android build, whose classes do not match the JVM ones the report reads.
+// render code without asserting on it. :ui is measured by its own host tests (its view models) and the :app
+// tests that drive its screens. :shared is measured by its own tests only: :app and :ui run its Android build,
+// whose classes do not match the JVM ones the report reads.
 val jacocoVersion = libs.versions.jacoco.get()
 jacoco { toolVersion = jacocoVersion }
-val coverageTests = mapOf(":app" to "testDebugBehavior", ":domain" to "jvmTest", ":shared" to "jvmTest")
+val coverageTests = mapOf(
+    ":app" to "testDebugBehavior",
+    ":ui" to "testAndroidHostTest",
+    ":domain" to "jvmTest",
+    ":shared" to "jvmTest",
+)
 coverageTests.forEach { (path, coverageTest) ->
     project(path) {
         apply(plugin = "jacoco")

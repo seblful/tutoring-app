@@ -10,7 +10,7 @@ import com.seblful.klas.domain.model.Homework
 import com.seblful.klas.queries.homework.AssigneeChoice
 import com.seblful.klas.queries.homework.HomeworkRow
 import com.seblful.klas.testutil.MainDispatcherRule
-import com.seblful.klas.testutil.TestEnv
+import com.seblful.klas.testutil.TestEnvRule
 import com.seblful.klas.ui.common.Messages
 import com.seblful.klas.ui.common.state.UiEvents
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -31,7 +31,7 @@ import kotlin.time.Instant
 @OptIn(ExperimentalCoroutinesApi::class)
 class CardHomeworkTest {
     @get:Rule(order = 0)
-    val env = TestEnv()
+    val env = TestEnvRule()
 
     @get:Rule(order = 1)
     val main = MainDispatcherRule()

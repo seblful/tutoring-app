@@ -9,7 +9,7 @@ import com.seblful.klas.domain.model.TutoringClass
 import com.seblful.klas.format.DisplayLocale
 import com.seblful.klas.settings.DevicePreferences
 import com.seblful.klas.testutil.FakeNotificationPermission
-import com.seblful.klas.testutil.TestEnv
+import com.seblful.klas.testutil.TestEnvRule
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atTime
@@ -24,7 +24,7 @@ import org.robolectric.Shadows.shadowOf
 @RunWith(RobolectricTestRunner::class)
 class AndroidNotifierIconTest {
     @get:Rule
-    val env = TestEnv()
+    val env = TestEnvRule()
 
     private val context = ApplicationProvider.getApplicationContext<Context>()
 

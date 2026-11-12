@@ -11,7 +11,7 @@ import com.seblful.klas.format.toDevicePreferences
 import com.seblful.klas.lock.AppLock
 import com.seblful.klas.testutil.AppLocaleRule
 import com.seblful.klas.testutil.MainDispatcherRule
-import com.seblful.klas.testutil.TestEnv
+import com.seblful.klas.testutil.TestEnvRule
 import com.seblful.klas.testutil.observing
 import com.seblful.klas.ui.onboarding.FirstLesson
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -35,7 +35,7 @@ class RootViewModelTest {
     val mainRule = MainDispatcherRule()
 
     @get:Rule(order = 0)
-    val env = TestEnv()
+    val env = TestEnvRule()
 
     @get:Rule
     val locale = AppLocaleRule.russian()

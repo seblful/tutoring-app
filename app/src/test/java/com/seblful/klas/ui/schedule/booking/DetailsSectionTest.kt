@@ -144,7 +144,7 @@ class DetailsSectionTest : ClassEditTestFixture() {
     }
 
     @Test
-    fun `the rate steps from the student's own`() = runTest(mainRule.dispatcher) {
+    fun `the rate steps from the student's own`() = runTest(main.dispatcher) {
         val (studentId, _) = seedStudentWithPricedSubject(price = Money.ofMajor(30))
         val vm = vm(day = day, studentId = studentId)
         open(vm)
