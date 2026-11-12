@@ -6,6 +6,7 @@ import com.seblful.klas.data.backup.BackupFailure
 import com.seblful.klas.data.local.DatabaseSnapshot
 import com.seblful.klas.storage.DocumentRef
 import com.seblful.klas.testutil.FakeDocumentStore
+import com.seblful.klas.testutil.FakeSealCrypto
 import com.seblful.klas.testutil.TestEnv
 import com.seblful.klas.testutil.TestMain
 import com.seblful.klas.testutil.UiTest

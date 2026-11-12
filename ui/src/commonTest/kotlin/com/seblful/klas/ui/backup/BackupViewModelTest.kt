@@ -6,6 +6,7 @@ import com.seblful.klas.domain.time.WallClock
 import com.seblful.klas.storage.DocumentRef
 import com.seblful.klas.storage.DocumentStore
 import com.seblful.klas.testutil.FakeDocumentStore
+import com.seblful.klas.testutil.FakeSealCrypto
 import com.seblful.klas.testutil.TestMain
 import com.seblful.klas.testutil.UiTest
 import com.seblful.klas.testutil.UiTestEnv
