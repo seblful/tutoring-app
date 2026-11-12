@@ -15,7 +15,6 @@ import com.seblful.klas.data.settings.SettingsDefaults
 import com.seblful.klas.data.settings.SettingsRepository
 import com.seblful.klas.di.ApplicationScope
 import com.seblful.klas.di.Computation
-import com.seblful.klas.domain.lesson.ClassRules
 import com.seblful.klas.domain.lesson.GroupRules
 import com.seblful.klas.domain.lesson.SessionEdit
 import com.seblful.klas.domain.model.Assignee
@@ -28,7 +27,6 @@ import com.seblful.klas.domain.schedule.CalendarLayout
 import com.seblful.klas.domain.schedule.DayBounds
 import com.seblful.klas.domain.schedule.DayTimeline
 import com.seblful.klas.domain.schedule.Scheduling
-import com.seblful.klas.domain.schedule.TimeConflict
 import com.seblful.klas.domain.time.WallClock
 import com.seblful.klas.domain.time.today
 import com.seblful.klas.format.MoneyField
@@ -209,69 +207,16 @@ class ClassEditViewModel @AssistedInject constructor(
         else -> flowOf(SubjectChoice())
     }
 
-    private data class Conflicts(val first: TimeConflict? = null, val available: Int = 1)
+    private val around = BookingConflicts(classes, allStudents, allGroups, clock)
 
-    private val conflict: StateFlow<Conflicts> =
-        saving.flatMapLatest { underWay -> if (underWay) flowOf(Conflicts()) else liveConflicts() }
-            .derive(this, computation, Conflicts())
-
-    private fun liveConflicts(): Flow<Conflicts> =
-        combine(form, session, clock.zones()) { f, editing, zone ->
-            val slot = f.slot(zone) ?: return@combine null
-            // A correction that leaves a past lesson cancelled reserves no time.
-            if (editing != null && !ClassRules.move(editing.first, slot.start, clock.now()).status.occupiesTime) {
-                return@combine null
-            }
-            f.starts(zone).map { Scheduling.Slot(it, slot.durationMinutes) } to editing
-        }.distinctUntilChanged().flatMapLatest { check ->
-            if (check == null) {
-                flowOf(Conflicts())
-            } else {
-                val (slots, editing) = check
-                val window = Scheduling.windowFor(slots)
-                combine(
-                    classes.observeBetween(window.from, window.toExclusive),
-                    allStudents,
-                    allGroups,
-                ) { existing, studentList, groupList ->
-                    val clashes = slots.map { Scheduling.conflicts(it, existing, editing?.ids.orEmpty()).firstOrNull() }
-                    Conflicts(
-                        first = clashes.firstNotNullOfOrNull { it }?.let { describe(it, studentList, groupList) },
-                        available = clashes.count { it == null },
-                    )
-                }
-            }
+    private val conflict: StateFlow<BookingConflicts.Conflicts> =
+        saving.flatMapLatest { underWay ->
+            if (underWay) flowOf(BookingConflicts.Conflicts()) else around.clashes(form, session)
         }
+            .derive(this, computation, BookingConflicts.Conflicts())
 
     /** The chosen date as the timeline draws it, without this lesson in it; null until there is a date. */
-    private val timeline: StateFlow<DayTimeline?> =
-        combine(form.map { it.date }.distinctUntilChanged(), session, clock.zones()) { date, editing, zone ->
-            date?.let { DayKey(it, editing?.ids.orEmpty(), zone) }
-        }.distinctUntilChanged()
-            .flatMapLatest { key -> if (key == null) flowOf(null) else dayTimeline(key) }
-            .derive(this, computation, null)
-
-    private data class DayKey(val date: LocalDate, val ignoring: Set<Long>, val zone: TimeZone)
-
-    private fun dayTimeline(key: DayKey): Flow<DayTimeline> {
-        val bounds = DayBounds.of(key.date, key.zone)
-        val wholeDay = Scheduling.Slot(bounds.start, (bounds.end - bounds.start).inWholeMinutes.toInt())
-        val window = Scheduling.windowFor(wholeDay)
-        return combine(
-            classes.observeBetween(window.from, window.toExclusive),
-            allStudents,
-            allGroups,
-        ) { existing, studentList, groupList ->
-            val booked = Scheduling.conflicts(wholeDay, existing, key.ignoring).map { session ->
-                DayTimeline.Lesson.of(
-                    session,
-                    groupName = session.groupId?.let { id -> groupList.firstOrNull { it.id == id }?.name },
-                    studentName = studentList.firstOrNull { it.id == session.first.studentId }?.name,
-                )
-            }
-            DayTimeline.of(key.date, key.zone, booked)
-        }
-    }
+    private val timeline: StateFlow<DayTimeline?> = around.day(form, session).derive(this, computation, null)
 
     private data class Pickers(
         val students: List<Student>,
@@ -374,13 +319,6 @@ class ClassEditViewModel @AssistedInject constructor(
             }
         }
     }
-
-    private fun describe(clash: ClassSession, students: List<Student>, groups: List<Group>): TimeConflict =
-        TimeConflict.of(
-            clash = clash,
-            groupName = clash.groupId?.let { id -> groups.firstOrNull { it.id == id }?.name },
-            studentName = students.firstOrNull { it.id == clash.first.studentId }?.name,
-        )
 
     init {
         if (!isNew) {
