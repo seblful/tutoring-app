@@ -1,7 +1,5 @@
 package com.seblful.klas.queries.groups
 
-import com.seblful.klas.data.billing.BalanceRepository
-import com.seblful.klas.data.billing.balanceOf
 import com.seblful.klas.data.lessons.ClassRepository
 import com.seblful.klas.data.people.GroupRepository
 import com.seblful.klas.data.people.StudentRepository
@@ -11,6 +9,7 @@ import com.seblful.klas.domain.lesson.SessionRules
 import com.seblful.klas.domain.model.Attended
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.reports.Taught
+import com.seblful.klas.queries.billing.DebtsQuery
 import com.seblful.klas.queries.homework.HomeworkQuery
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.Inject
@@ -26,7 +25,7 @@ class GroupDetailsQuery @Inject constructor(
     private val subjects: SubjectRepository,
     private val classes: ClassRepository,
     private val homework: HomeworkQuery,
-    private val balances: BalanceRepository,
+    private val debts: DebtsQuery,
 ) {
     fun observe(groupId: Long): Flow<GroupDetails> {
         val base = combine(
@@ -70,11 +69,11 @@ class GroupDetailsQuery @Inject constructor(
         return combine(
             base,
             homework.observeForGroup(groupId),
-            balances.observe(),
-        ) { base, homework, sums ->
+            debts.observe(),
+        ) { base, homework, owed ->
             base.copy(
                 homework = homework,
-                members = base.members.map { it.copy(balance = sums.balanceOf(it.student.id).state) },
+                members = base.members.map { it.copy(balance = owed.of(it.student.id).state) },
             )
         }
     }

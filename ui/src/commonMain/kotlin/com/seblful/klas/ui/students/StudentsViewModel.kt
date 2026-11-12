@@ -1,8 +1,6 @@
 package com.seblful.klas.ui.students
 
 import androidx.lifecycle.ViewModel
-import com.seblful.klas.data.billing.BalanceRepository
-import com.seblful.klas.data.billing.balanceOf
 import com.seblful.klas.data.lessons.ClassRepository
 import com.seblful.klas.data.lessons.NearestLessons
 import com.seblful.klas.data.people.EnrollmentRepository
@@ -16,6 +14,7 @@ import com.seblful.klas.domain.people.NameOrder
 import com.seblful.klas.domain.people.PeopleSearch
 import com.seblful.klas.domain.time.WallClock
 import com.seblful.klas.format.minutes
+import com.seblful.klas.queries.billing.DebtsQuery
 import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.common.state.derive
 import com.seblful.klas.ui.common.state.ready
@@ -74,7 +73,7 @@ private val Money.owes: Boolean get() = Balance.of(this) is Balance.Owed
 @ContributesIntoMap(AppScope::class, binding = binding<ViewModel>())
 class StudentsViewModel @Inject constructor(
     private val students: StudentRepository,
-    balances: BalanceRepository,
+    debts: DebtsQuery,
     classes: ClassRepository,
     enrollments: EnrollmentRepository,
     subjects: SubjectRepository,
@@ -102,9 +101,7 @@ class StudentsViewModel @Inject constructor(
 
     /** How many active students owe — the N on that chip. */
     val owing: StateFlow<Int> =
-        combine(students.observeActive(), balances.observe()) { active, sums ->
-            active.count { sums.balanceOf(it.id).balance.owes }
-        }
+        debts.observe().map { it.outstanding.students }
             .derive(this, computation, 0)
 
     fun toggleOwes() = _owesOnly.update { !it }
@@ -135,13 +132,13 @@ class StudentsViewModel @Inject constructor(
             val source = if (archived) students.observeAll() else students.observeActive()
             // SQLite sums the balances, so neither a keystroke nor a write re-reads every class ever taught.
             val asked = combine(_query, _owesOnly, ::Pair)
-            combine(source, balances.observe(), facts, asked, _sort) { studentList, sums, known, (query, owes), sort ->
+            combine(source, debts.observe(), facts, asked, _sort) { studentList, owed, known, (query, owes), sort ->
                 PeopleSearch.filter(studentList, query) { it.name }
-                    .filter { !owes || sums.balanceOf(it.id).balance.owes }
+                    .filter { !owes || owed.of(it.id).balance.owes }
                     .map { student ->
                         StudentRow(
                             student = student,
-                            balance = sums.balanceOf(student.id).balance,
+                            balance = owed.of(student.id).balance,
                             subjects = known.subjects[student.id].orEmpty(),
                             lessons = LessonLine.of(
                                 known.lessons[student.id] ?: NearestLessons.NONE, known.now, clock.zone,

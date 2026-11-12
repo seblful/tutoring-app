@@ -2,9 +2,6 @@ package com.seblful.klas.ui.today
 
 import androidx.lifecycle.ViewModel
 import com.seblful.klas.data.backup.AutoBackup
-import com.seblful.klas.data.billing.BalanceRepository
-import com.seblful.klas.data.billing.PaymentRepository
-import com.seblful.klas.data.billing.balanceOf
 import com.seblful.klas.data.people.GroupRepository
 import com.seblful.klas.data.people.StudentRepository
 import com.seblful.klas.data.settings.GuideRepository
@@ -17,7 +14,6 @@ import com.seblful.klas.domain.guide.PhoneStep
 import com.seblful.klas.domain.lesson.CompletionTiming
 import com.seblful.klas.domain.lesson.LessonPhase
 import com.seblful.klas.domain.model.ClassSession
-import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.people.Captions
 import com.seblful.klas.domain.reports.Reports
 import com.seblful.klas.domain.schedule.DaySummary
@@ -26,6 +22,8 @@ import com.seblful.klas.format.minutes
 import com.seblful.klas.lessons.LessonCompletions
 import com.seblful.klas.notifications.NotificationPermission
 import com.seblful.klas.notifications.RecentMarks
+import com.seblful.klas.queries.billing.Debtor
+import com.seblful.klas.queries.billing.DebtsQuery
 import com.seblful.klas.queries.homework.HomeworkQuery
 import com.seblful.klas.queries.homework.HomeworkRow
 import com.seblful.klas.queries.lessons.TodayLessonsQuery
@@ -67,9 +65,6 @@ data class TodayLessonRow(
     val minutesAway: Long = 0,
 )
 
-/** A student who owes, for Today's «Owed to you»: what, and when they last paid, if ever. */
-data class TodayDebtor(val studentId: Long, val name: String, val owed: Money, val lastPaidAt: Instant?)
-
 /** A lesson marked taught outside the app — the widget, a reminder — still within its Undo's window. */
 data class TodayMark(val mark: RecentMarks.Mark, val who: String)
 
@@ -81,7 +76,7 @@ data class TodayState(
     val lessons: List<TodayLessonRow>,
     val outstanding: Reports.Outstanding,
     val homework: List<HomeworkRow>,
-    val debtors: List<TodayDebtor> = emptyList(),
+    val debtors: List<Debtor> = emptyList(),
     val recentMarks: List<TodayMark> = emptyList(),
     val lastBackupAt: Instant?,
     val backupStale: Boolean,
@@ -114,10 +109,9 @@ class TodayViewModel @Inject constructor(
     students: StudentRepository,
     todayLessons: TodayLessonsQuery,
     groups: GroupRepository,
-    balances: BalanceRepository,
+    debts: DebtsQuery,
     homework: HomeworkQuery,
     settings: SettingsRepository,
-    payments: PaymentRepository,
     private val guide: GuideRepository,
     private val notificationPermission: NotificationPermission,
     private val recentMarks: RecentMarks,
@@ -163,21 +157,8 @@ class TodayViewModel @Inject constructor(
         }
 
     /** What is owed in all, and by whom — most first, each with when they last paid. */
-    private val owed: Flow<Pair<Reports.Outstanding, List<TodayDebtor>>> =
-        combine(
-            balances.observe(),
-            students.observeActive(),
-            payments.observeBetween(null, null),
-        ) { sums, active, paid ->
-            val owing = active.map { sums.balanceOf(it.id) }
-            val lastPaid = paid.groupBy { it.studentId }.mapValues { (_, theirs) -> theirs.maxOf { it.date } }
-            val names = active.associateBy { it.id }
-            val outstanding = Reports.Outstanding.of(owing)
-            val debtors = outstanding.debts.mapNotNull { debt ->
-                names[debt.student.value]?.let { TodayDebtor(it.id, it.name, debt.amount, lastPaid[it.id]) }
-            }
-            outstanding to debtors
-        }
+    private val owed: Flow<Pair<Reports.Outstanding, List<Debtor>>> =
+        debts.observe().map { it.outstanding to it.debtors }
 
     /** Marks made outside the app within their window, newest first — see [RecentMarks]. */
     private val recent: Flow<List<TodayMark>> =

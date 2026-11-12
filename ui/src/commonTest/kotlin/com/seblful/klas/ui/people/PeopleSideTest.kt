@@ -37,7 +37,7 @@ class PeopleSideTest : UiTest() {
     fun `each side holds its own search and archive toggle`() = runTest(main.dispatcher) {
         val students: PeopleSide = main.own(
             StudentsViewModel(
-                env.studentRepo, env.balanceRepo, env.classRepo, env.enrollmentRepo, env.subjectRepo, env.clock,
+                env.studentRepo, env.debts, env.classRepo, env.enrollmentRepo, env.subjectRepo, env.clock,
                 main.dispatcher,
             ),
         )
@@ -61,7 +61,7 @@ class PeopleSideTest : UiTest() {
     fun `closing the search clears only the side it was open on`() = runTest(main.dispatcher) {
         val students: PeopleSide = main.own(
             StudentsViewModel(
-                env.studentRepo, env.balanceRepo, env.classRepo, env.enrollmentRepo, env.subjectRepo, env.clock,
+                env.studentRepo, env.debts, env.classRepo, env.enrollmentRepo, env.subjectRepo, env.clock,
                 main.dispatcher,
             ),
         )

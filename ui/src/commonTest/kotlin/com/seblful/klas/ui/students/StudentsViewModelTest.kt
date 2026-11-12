@@ -44,7 +44,7 @@ class StudentsViewModelTest : UiTest() {
 
     private fun vm() = main.own(
         StudentsViewModel(
-            env.studentRepo, env.balanceRepo, env.classRepo, env.enrollmentRepo, env.subjectRepo, env.clock,
+            env.studentRepo, env.debts, env.classRepo, env.enrollmentRepo, env.subjectRepo, env.clock,
             main.dispatcher,
         ),
     )

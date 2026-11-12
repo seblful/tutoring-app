@@ -1,7 +1,5 @@
 package com.seblful.klas.notifications
 
-import com.seblful.klas.data.billing.BalanceRepository
-import com.seblful.klas.data.billing.balanceOf
 import com.seblful.klas.data.lessons.ClassRepository
 import com.seblful.klas.data.people.GroupRepository
 import com.seblful.klas.data.people.StudentRepository
@@ -13,10 +11,10 @@ import com.seblful.klas.domain.model.ClassSession
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.TutoringClass
 import com.seblful.klas.domain.reminders.Digests
-import com.seblful.klas.domain.reports.Reports
 import com.seblful.klas.domain.schedule.DayBounds
 import com.seblful.klas.domain.schedule.DaySummary
 import com.seblful.klas.domain.time.WallClock
+import com.seblful.klas.queries.billing.DebtsQuery
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
@@ -47,7 +45,7 @@ class DueDigest @Inject constructor(
     private val students: StudentRepository,
     subjects: SubjectRepository,
     groups: GroupRepository,
-    private val balances: BalanceRepository,
+    private val debts: DebtsQuery,
     private val settings: SettingsRepository,
     private val notifier: Notifier,
     private val clock: WallClock,
@@ -156,14 +154,7 @@ class DueDigest @Inject constructor(
         val current = settings.get()
         if (!current.debtDigestEnabled) return false
 
-        val sums = balances.get()
-        val balances = students.getActive().map { sums.balanceOf(it.id) }
-        // `Reports.Outstanding` rather than the two aggregations behind it: `ReportsSurfaceTest` keeps
-        // callers from reaching past `Reports.of` for pieces of a report and reassembling them, and a
-        // summary of what is owed is a thing the reports module should name rather than something a
-        // notification works out for itself. It also does not net an overpaid student off against
-        // somebody else's debt, which a hand-rolled sum here would be free to get wrong.
-        val owed = Reports.Outstanding.of(balances)
+        val owed = debts.get().outstanding
         val digest = Digests.Debts(students = owed.students, total = owed.total)
 
         if (!digest.isWorthPosting) return false

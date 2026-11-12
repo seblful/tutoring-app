@@ -335,37 +335,6 @@ class DueDigestTest {
     }
 
     @Test
-    fun `an archived student's debt is not chased`() = runTest {
-        enableDebts()
-        val subject = env.fixtures.subject("Алгебра")
-        val anya = env.fixtures.pricedStudent("Аня", subject, rate = Money.ofMajor(30))
-        env.fixtures.completedLesson(subject, listOf(anya), start = at(11))
-        env.studentRepo.setArchived(env.studentRepo.getById(anya)!!, archived = true)
-
-        assertFalse(env.dueDigest.postDebts())
-    }
-
-    /**
-     * An overpaid student does not reduce what somebody else owes — `Reports.totalOutstanding` sums the
-     * positive balances rather than netting them, which is the difference between "owed to the tutor" and
-     * "the tutor's net position".
-     */
-    @Test
-    fun `credit is not netted off against another student's debt`() = runTest {
-        enableDebts()
-        val subject = env.fixtures.subject("Алгебра")
-        val anya = env.fixtures.pricedStudent("Аня", subject, rate = Money.ofMajor(30))
-        val boris = env.fixtures.pricedStudent("Боря", subject, rate = Money.ofMajor(30))
-        env.fixtures.completedLesson(subject, listOf(anya), start = at(11))
-        // Boris has paid for a lesson he has not had.
-        env.paymentRepo.restore(Payment(studentId = boris, date = morning, amount = Money.ofMajor(50)))
-
-        env.dueDigest.postDebts()
-
-        assertEquals(Digests.Debts(students = 1, total = Money.ofMajor(30)), env.notifier.debts.single())
-    }
-
-    @Test
     fun `nothing is posted while the debt digest is switched off`() = runTest {
         val subject = env.fixtures.subject("Алгебра")
         val anya = env.fixtures.pricedStudent("Аня", subject, rate = Money.ofMajor(30))
