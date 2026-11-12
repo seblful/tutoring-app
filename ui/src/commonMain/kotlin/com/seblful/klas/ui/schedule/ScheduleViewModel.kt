@@ -38,6 +38,7 @@ import com.seblful.klas.format.zones
 import com.seblful.klas.lessons.LessonChange
 import com.seblful.klas.lessons.LessonChanges
 import com.seblful.klas.queries.homework.HomeworkQuery
+import com.seblful.klas.queries.people.PeopleDirectory
 import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.common.state.UiEvents
 import com.seblful.klas.ui.common.state.derive
@@ -99,6 +100,7 @@ class ScheduleViewModel @Inject constructor(
     private val groups: GroupRepository,
     homework: HomeworkRepository,
     private val homeworkQuery: HomeworkQuery,
+    private val people: PeopleDirectory,
     private val lessonChanges: LessonChanges,
     @param:ApplicationScope private val appScope: CoroutineScope,
     @param:Computation private val computation: CoroutineDispatcher,
@@ -148,7 +150,7 @@ class ScheduleViewModel @Inject constructor(
     /** The filter as asked, by ids — [filter] is it resolved against who still exists. */
     private val askedFilter = MutableStateFlow(ScheduleFilter())
 
-    /** Every student, read once for the filter, the week's captions and the lesson sheet. */
+    /** Every student, read once for the filter. */
     private val everyone: Flow<List<Student>> =
         students.observeAll().shared(this)
 
@@ -315,14 +317,9 @@ class ScheduleViewModel @Inject constructor(
                 val bounds = DayBounds.of(week, week.plus(DAYS_IN_WEEK, DateTimeUnit.DAY), zone)
                 combine(
                     classes.observeBetween(bounds.start, bounds.end),
-                    everyone,
-                    subjects.observeAll(),
-                    groups.observeAll(),
-                ) { readClasses, studentList, subjectList, groupList ->
+                    people.observe(),
+                ) { readClasses, captions ->
                     val visibleClasses = filter.narrow(readClasses)
-                    // Built once per emission and asked per lesson — the three `associateBy` maps this
-                    // replaces, plus the rule about which name titles a lesson. See [Captions].
-                    val captions = Captions.of(studentList, subjectList, groupList)
                     // Sessions are collapsed per day, not across the week: grouping first would let a
                     // group lesson's members land in one row even if the days differed. Days without a
                     // class are left out — an agenda reads better as a list of what's on than a wall of
@@ -597,12 +594,7 @@ class ScheduleViewModel @Inject constructor(
      * on screen to be taken back.
      */
     fun homeworkAt(session: ClassSession): Flow<List<SheetHomework>> =
-        combine(
-            homeworkQuery.observeAttachedTo(session),
-            everyone,
-            groups.observeAll(),
-        ) { attached, studentList, groupList ->
-            val captions = Captions.of(studentList, emptyList(), groupList)
+        combine(homeworkQuery.observeAttachedTo(session), people.observe()) { attached, captions ->
             attached.map { item ->
                 val named = session.isGroup && item.assignee is Assignee.Student
                 SheetHomework(item, who = captions.titleOf(item.assignee).takeIf { named })

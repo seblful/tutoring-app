@@ -47,7 +47,7 @@ abstract class StudentDetailTestFixture : UiTest() {
             students = env.studentRepo,
             lessonChanges = env.lessonChanges,
             details = StudentDetailsQuery(
-                env.studentRepo, env.subjectRepo, env.enrollmentRepo, env.classRepo, env.groupRepo,
+                env.studentRepo, env.subjectRepo, env.enrollmentRepo, env.classRepo, env.peopleDirectory,
                 env.homeworkQuery, env.paymentRepo, env.rateHistoryRepo,
             ),
             homework = env.homeworkRepo,

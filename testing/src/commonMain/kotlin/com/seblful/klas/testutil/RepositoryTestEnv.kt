@@ -22,6 +22,7 @@ import com.seblful.klas.data.settings.SettingsRepository
 import com.seblful.klas.lessons.LessonChanges
 import com.seblful.klas.maintenance.Maintenance
 import com.seblful.klas.maintenance.Upkeep
+import com.seblful.klas.queries.people.PeopleDirectory
 import com.seblful.klas.notifications.DueDigest
 import com.seblful.klas.notifications.Notifier
 import com.seblful.klas.pro.ProAccess
@@ -96,6 +97,7 @@ open class RepositoryTestEnv(
     val subjectRepo = SubjectRepository(subjectDao, classRepo, groupRepo, studentDao, calendarMirror, transactor)
     val studentRepo = StudentRepository(studentDao, classRepo, calendarMirror)
     val debts = DebtsQuery(balanceRepo, studentRepo, paymentRepo)
+    val peopleDirectory = PeopleDirectory(studentRepo, subjectRepo, groupRepo)
 
     val enrollmentRepo = EnrollmentRepository(studentDao, priceDao, classRepo, rateHistoryRepo, transactor, studentRepo)
 

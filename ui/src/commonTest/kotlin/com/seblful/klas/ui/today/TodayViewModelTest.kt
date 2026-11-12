@@ -65,10 +65,8 @@ class TodayViewModelTest : UiTest() {
         TodayViewModel(
             lessonChanges = env.lessonChanges,
             students = env.studentRepo,
-            todayLessons = TodayLessonsQuery(
-                env.classRepo, env.studentRepo, env.subjectRepo, env.groupRepo, env.clock,
-            ),
-            groups = env.groupRepo,
+            todayLessons = TodayLessonsQuery(env.classRepo, env.peopleDirectory, env.clock),
+            people = env.peopleDirectory,
             debts = env.debts,
             homework = env.homeworkQuery,
             settings = env.settingsRepo,

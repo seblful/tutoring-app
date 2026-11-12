@@ -171,7 +171,8 @@ class ScheduleWriteTest : ScheduleTestFixture() {
         )
         val vm = main.own(
             ScheduleViewModel(
-                env.classRepo, env.studentRepo, env.subjectRepo, env.groupRepo, env.homeworkRepo, env.homeworkQuery,
+                env.classRepo, env.studentRepo, env.subjectRepo, env.groupRepo, env.homeworkRepo,
+                env.homeworkQuery, env.peopleDirectory,
                 env.lessonChanges, main.appScope,
                 main.dispatcher, env.clock, env.settingsRepo,
             ),
@@ -198,7 +199,8 @@ class ScheduleWriteTest : ScheduleTestFixture() {
         )
         val vm = main.own(
             ScheduleViewModel(
-                env.classRepo, env.studentRepo, env.subjectRepo, env.groupRepo, env.homeworkRepo, env.homeworkQuery,
+                env.classRepo, env.studentRepo, env.subjectRepo, env.groupRepo, env.homeworkRepo,
+                env.homeworkQuery, env.peopleDirectory,
                 env.lessonChanges, main.appScope,
                 main.dispatcher, env.clock, env.settingsRepo,
             ),

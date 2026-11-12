@@ -3,7 +3,6 @@ package com.seblful.klas.ui.today
 import androidx.lifecycle.ViewModel
 import com.seblful.klas.data.backup.AutoBackup
 import com.seblful.klas.data.lessons.UndoResult
-import com.seblful.klas.data.people.GroupRepository
 import com.seblful.klas.data.people.StudentRepository
 import com.seblful.klas.data.settings.GuideRepository
 import com.seblful.klas.data.settings.SettingsRepository
@@ -29,6 +28,7 @@ import com.seblful.klas.queries.billing.DebtsQuery
 import com.seblful.klas.queries.homework.HomeworkQuery
 import com.seblful.klas.queries.homework.HomeworkRow
 import com.seblful.klas.queries.lessons.TodayLessonsQuery
+import com.seblful.klas.queries.people.PeopleDirectory
 import com.seblful.klas.ui.common.state.Loadable
 import com.seblful.klas.ui.common.state.UiEvents
 import com.seblful.klas.ui.common.state.derive
@@ -110,7 +110,7 @@ class TodayViewModel @Inject constructor(
     private val lessonChanges: LessonChanges,
     students: StudentRepository,
     todayLessons: TodayLessonsQuery,
-    groups: GroupRepository,
+    people: PeopleDirectory,
     debts: DebtsQuery,
     homework: HomeworkQuery,
     settings: SettingsRepository,
@@ -142,10 +142,7 @@ class TodayViewModel @Inject constructor(
 
     private val changes = lessonChanges.inScope(appScope) { events.send(Event.ActionFailed) }
 
-    private val captions: Flow<Captions> =
-        combine(students.observeAll(), groups.observeAll()) { people, groupList ->
-            Captions.of(people, emptyList(), groupList)
-        }
+    private val captions: Flow<Captions> = people.observe()
 
     private val lessons: Flow<List<TodayLessonRow>> =
         combine(todayLessons.observe(), clock.minutes()) { lessons, now ->

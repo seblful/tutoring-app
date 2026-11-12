@@ -45,7 +45,8 @@ abstract class ScheduleTestFixture : UiTest() {
     ) =
         main.own(
             ScheduleViewModel(
-                env.classRepo, env.studentRepo, env.subjectRepo, env.groupRepo, env.homeworkRepo, env.homeworkQuery,
+                env.classRepo, env.studentRepo, env.subjectRepo, env.groupRepo, env.homeworkRepo,
+                env.homeworkQuery, env.peopleDirectory,
                 env.lessonChanges, main.appScope,
                 main.dispatcher, clock, env.settingsRepo, weekStart,
             ),
