@@ -23,8 +23,9 @@ mirrors and [database and backup](database-and-backup.md) for persistence contra
   existing classes untouched. A new individual booking follows subject price suggestions until the
   tutor overrides the amount; changing subjects never replaces a typed or historical booked rate.
 - Balance = completed-lesson charges − payments; balances/income are derived. Lists, reports and the
-  debt digest read them summed by SQLite (`BalanceDao`, held to `Billing` by `BalanceRepositoryTest`); a
-  report reads only its period and the one before (`Reports.window`). Partial payments and
+  debt digest read them summed by SQLite (`BalanceDao`, held to `Billing` by `DebtsQueryTest`); who owes
+  what is `DebtsQuery`'s answer. A report reads only its period and the one before, a day wider each end
+  (`Reports.window`), and `Reports.of` takes those rows with the whole-history balances. Partial payments and
   overpayments work. `Billing.billedOrNull` distinguishes a taught zero-rate lesson (show zero) from an
   unbilled absence (show no amount).
 - A payment may say how it was made (`PaymentMethod`: cash, card, transfer). It is optional — payments
@@ -43,7 +44,7 @@ mirrors and [database and backup](database-and-backup.md) for persistence contra
   what an accountant reconciles; the summary is what a tutor reads.
 - The summary also prints as a PDF (`reportSheet`): the same lines under the same sections, amounts in the
   tutor's currency, the scope under the title. A PDF is for a reader, the CSVs for a spreadsheet.
-- A report narrows to one student or one subject (`ReportScope`). A student's narrows lessons, payments
+- A report narrows to one student or one subject (`ReportScope`, applied inside `Reports.of`). A student's narrows lessons, payments
   and debts; a subject's narrows lessons only — no payment belongs to a subject, so received is not offered.
 - Auto-completion is opt-in: scheduled lessons become completed, and therefore billable, after ending.
   Upkeep and app start catch up; enabling it asks before settling the backlog and reports the result.

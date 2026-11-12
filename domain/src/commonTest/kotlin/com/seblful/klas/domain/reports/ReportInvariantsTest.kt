@@ -37,7 +37,7 @@ class ReportInvariantsTest {
             }
             for (kind in ReportPeriod.Kind.entries) {
                 val period = ReportPeriod(kind, YearMonth(2026, 6))
-                fun report(rows: List<TutoringClass>) = Reports.of(
+                fun report(rows: List<TutoringClass>) = reportFromHistory(
                     period, rows, students, emptyList(), subjects, mapOf(GroupId(1) to "Group"),
                     TimeZone.UTC, LocalDate(2026, 6, 15),
                 )

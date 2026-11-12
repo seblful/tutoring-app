@@ -12,10 +12,15 @@ import com.seblful.klas.domain.model.StudentBalance
 import com.seblful.klas.domain.model.StudentId
 import com.seblful.klas.domain.model.SubjectId
 import com.seblful.klas.domain.model.TutoringClass
+import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.atStartOfDayIn
+import kotlinx.datetime.minus
 import kotlinx.datetime.number
+import kotlinx.datetime.plus
 import kotlinx.datetime.toLocalDateTime
+import kotlin.time.Instant
 
 /**
  * Builds reports from completed lessons and payments, including archived students. [of] applies the
@@ -204,64 +209,52 @@ object Reports {
     }
 
     /**
-     * Builds [period]'s report, retaining archived students' financial history. Source lists must be
-     * unfiltered; only income is clipped to the period, while debt spans all history.
+     * What a report is built from. [classes] and [payments] need only cover [window]; [balances] are each
+     * student's over their whole history, with an entry for every student who has a class or payment — as the
+     * database sums them. Archived students stay in [students], so their financial history is kept.
+     */
+    data class Sources(
+        val classes: List<TutoringClass>,
+        val students: List<Student>,
+        val balances: Map<Long, StudentBalance>,
+        val payments: List<Payment>,
+        val subjectNames: Map<SubjectId, String>,
+        val groupNames: Map<GroupId, String>,
+    )
+
+    /**
+     * The instants a report on [period] reads its classes and payments from: the period and the one
+     * [Report.change] compares it with, a day wider at each end so the read still covers those days after the
+     * zone changes. Null for all time, which reads everything.
+     */
+    fun window(period: ReportPeriod, zone: TimeZone): OpenEndRange<Instant>? {
+        val bounds = period.bounds ?: return null
+        val from = minOf(period.shifted(-1).bounds?.from ?: bounds.from, bounds.from)
+        val start = from.minus(1, DateTimeUnit.DAY).atStartOfDayIn(zone)
+        val end = bounds.untilExclusive.plus(1, DateTimeUnit.DAY).atStartOfDayIn(zone)
+        return start..<end
+    }
+
+    /**
+     * Builds [period]'s report from [sources], narrowed to [scope]. Only income is clipped to the period; debt
+     * spans all history. Whether there is anything to report at all ignores the scope.
      */
     fun of(
         period: ReportPeriod,
-        classes: List<TutoringClass>,
-        students: List<Student>,
-        payments: List<Payment>,
-        subjectNames: Map<SubjectId, String>,
-        groupNames: Map<GroupId, String>,
+        sources: Sources,
         zone: TimeZone,
         /** Today, by the app's clock — what says whether [period] is still going. See [Report.changeToDate]. */
         today: LocalDate,
+        scope: ReportScope = ReportScope.Everything,
     ): Report {
-        val studentIds = students.map { it.id }.toSet()
-        return of(
-            period = period,
-            classes = classes,
-            students = students,
-            // A balance spans a student's whole history, so it is built from every class and payment —
-            // clipping the charges to a period while the payments stay whole would invent credit.
-            balances = Billing.balancesFor(students, classes, payments),
-            hasData = classes.any { it.studentId in studentIds } || payments.any { it.studentId in studentIds },
-            payments = payments,
-            subjectNames = subjectNames,
-            groupNames = groupNames,
-            zone = zone,
-            today = today,
-        )
-    }
-
-    /**
-     * The days a report on [period] reads classes from: the period and the one [Report.change] compares
-     * it with. Null for all time, which reads every class.
-     */
-    fun window(period: ReportPeriod): ReportPeriod.Bounds? {
-        val bounds = period.bounds ?: return null
-        val from = period.shifted(-1).bounds?.from ?: bounds.from
-        return ReportPeriod.Bounds(minOf(from, bounds.from), bounds.untilExclusive)
-    }
-
-    /**
-     * [of] from what a database can sum: [classes] need only cover [window], [balances] are each student's
-     * over their whole history, and [hasData] says whether any student has a class or payment.
-     */
-    fun of(
-        period: ReportPeriod,
-        classes: List<TutoringClass>,
-        students: List<Student>,
-        balances: List<StudentBalance>,
-        hasData: Boolean,
-        subjectNames: Map<SubjectId, String>,
-        groupNames: Map<GroupId, String>,
-        zone: TimeZone,
-        today: LocalDate,
-        /** Payments covering at least [period]; those of students not in [students] are left out. */
-        payments: List<Payment> = emptyList(),
-    ): Report {
+        val students = sources.students
+        val classes = scope.classes(sources.classes)
+        val balances = scope.balances(sources.balances.values.toList())
+        val payments = scope.payments(sources.payments)
+        val subjectNames = sources.subjectNames
+        val groupNames = sources.groupNames
+        // Every student with a class or payment has a balance, billed or not.
+        val hasData = students.any { it.id in sources.balances }
         val studentIds = students.map { it.id }.toSet()
         val knownClasses = classes.filter { it.studentId in studentIds }
         val studentNames = students.associate { StudentId(it.id) to it.name }

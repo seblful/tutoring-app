@@ -24,7 +24,7 @@ class ArchivedReportsTest {
             start = start, durationMinutes = 60, price = Money.ofMajor(30),
             status = LessonStatus.COMPLETED, attended = Attended.PRESENT, charge = Money.ofMajor(30),
         )
-        fun report(who: Student) = Reports.of(
+        fun report(who: Student) = reportFromHistory(
             period = ReportPeriod(ReportPeriod.Kind.YEAR, YearMonth(2026, 5)),
             classes = listOf(lesson),
             students = listOf(who),

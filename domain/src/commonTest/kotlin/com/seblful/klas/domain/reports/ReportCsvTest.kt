@@ -239,7 +239,7 @@ class ReportCsvTest {
 
     @Test
     fun `the ledger writes a formula-like student or subject as text and keeps its amount`() {
-        val report = Reports.of(
+        val report = reportFromHistory(
             period = june,
             classes = listOf(taught(1, "2026-06-14T10:00:00Z", -3000)),
             students = listOf(Student(id = 1, name = "=cmd|' /C calc'!A0")),
@@ -276,7 +276,7 @@ class ReportCsvTest {
     private fun lesson(day: Int, amount: Long) =
         Reports.LedgerEntry(LocalDate(2026, 6, day), "Аня", "Физика", payment = false, method = null, Money(amount))
 
-    private fun ledgerOf(classes: List<TutoringClass>, payments: List<Payment>) = Reports.of(
+    private fun ledgerOf(classes: List<TutoringClass>, payments: List<Payment>) = reportFromHistory(
         period = june,
         classes = classes,
         students = listOf(Student(id = 1, name = "Аня")),

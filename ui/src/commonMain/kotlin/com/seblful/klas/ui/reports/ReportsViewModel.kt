@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.seblful.klas.di.Computation
 import com.seblful.klas.domain.reports.ReportCsv
 import com.seblful.klas.domain.reports.ReportPeriod
+import com.seblful.klas.domain.reports.ReportScope
 import com.seblful.klas.domain.reports.Reports
 import com.seblful.klas.domain.time.WallClock
 import com.seblful.klas.domain.time.today
@@ -12,7 +13,6 @@ import com.seblful.klas.format.AppLocale
 import com.seblful.klas.print.Sheet
 import com.seblful.klas.print.SheetPrinter
 import com.seblful.klas.pro.ProAccess
-import com.seblful.klas.queries.reports.ReportScope
 import com.seblful.klas.queries.reports.ReportsQuery
 import com.seblful.klas.queries.reports.ScopeChoice
 import com.seblful.klas.runCatchingCancellable

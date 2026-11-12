@@ -34,11 +34,11 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.seblful.klas.domain.pro.ProFeature
 import com.seblful.klas.domain.reports.ReportPeriod
+import com.seblful.klas.domain.reports.ReportScope
 import com.seblful.klas.domain.reports.Reports
 import com.seblful.klas.format.formatMonth
 import com.seblful.klas.format.money
 import com.seblful.klas.print.SheetPrinter
-import com.seblful.klas.queries.reports.ReportScope
 import com.seblful.klas.queries.reports.ScopeChoice
 import com.seblful.klas.storage.DocumentRef
 import com.seblful.klas.text.StringResource

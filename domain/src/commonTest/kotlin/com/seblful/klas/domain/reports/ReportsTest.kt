@@ -1,6 +1,5 @@
 package com.seblful.klas.domain.reports
 
-import com.seblful.klas.domain.billing.Billing
 import com.seblful.klas.domain.homework.takes
 import com.seblful.klas.domain.lesson.ClassRules
 import com.seblful.klas.domain.lesson.LessonKind
@@ -16,6 +15,7 @@ import com.seblful.klas.domain.model.TutoringClass
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.YearMonth
+import kotlinx.datetime.atStartOfDayIn
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -54,7 +54,7 @@ class ReportsTest {
         classes: List<TutoringClass>,
         period: ReportPeriod,
         today: LocalDate = LocalDate(2100, 1, 1),
-    ) = Reports.of(
+    ) = reportFromHistory(
         period = period,
         classes = classes,
         students = classes.map { it.studentId }.distinct().map { Student(id = it, name = "S$it") },
@@ -471,48 +471,77 @@ class ReportsTest {
     }
 
     @Test
-    fun `a month's window reaches back to the month it is compared with`() {
+    fun `a month's window reaches back to the month it is compared with, a day wider each end`() {
         assertEquals(
-            ReportPeriod.Bounds(LocalDate(2026, 5, 1), LocalDate(2026, 7, 1)),
-            Reports.window(ReportPeriod(ReportPeriod.Kind.MONTH, YearMonth(2026, 6))),
+            LocalDate(2026, 4, 30).atStartOfDayIn(zone)..<LocalDate(2026, 7, 2).atStartOfDayIn(zone),
+            Reports.window(ReportPeriod(ReportPeriod.Kind.MONTH, YearMonth(2026, 6)), zone),
         )
     }
 
     @Test
     fun `all time has no window`() {
-        assertNull(Reports.window(ReportPeriod(ReportPeriod.Kind.ALL, YearMonth(2026, 6))))
+        assertNull(Reports.window(ReportPeriod(ReportPeriod.Kind.ALL, YearMonth(2026, 6)), zone))
     }
 
     @Test
-    fun `a report from its window and summed balances matches one from every class`() {
+    fun `a report given only its window's classes and payments matches one given every one`() {
         val classes = listOf(
             klass(1, 1, "2024-03-10T10:00:00Z", 3_000),
             klass(1, 1, "2025-04-10T10:00:00Z", 3_000),
+            klass(2, 1, "2025-05-31T22:30:00Z", 4_500),
             klass(2, 1, "2026-02-10T10:00:00Z", 4_500),
             klass(2, 2, "2026-06-10T10:00:00Z", 4_500, status = LessonStatus.SCHEDULED),
         )
         val students = listOf(Student(id = 1, name = "S1"), Student(id = 2, name = "S2"))
         val payments = listOf(
             Payment(studentId = 1, date = Instant.parse("2025-05-01T00:00:00Z"), amount = Money(1_000)),
+            Payment(studentId = 2, date = Instant.parse("2026-03-01T00:00:00Z"), amount = Money(2_000)),
         )
         val period = ReportPeriod(ReportPeriod.Kind.YEAR, YearMonth(2026, 6))
         val today = LocalDate(2026, 6, 20)
         val subjectNames = mapOf(SubjectId(1) to "П1", SubjectId(2) to "П2")
-        val window = assertNotNull(Reports.window(period))
-
-        val whole = Reports.of(period, classes, students, payments, subjectNames, emptyMap(), zone, today)
-        val windowed = Reports.of(
-            period = period,
-            classes = window.filter(classes, zone),
-            students = students,
-            balances = Billing.balancesFor(students, classes, payments),
-            hasData = true,
-            subjectNames = subjectNames,
-            groupNames = emptyMap(),
-            zone = zone,
-            today = today,
+        val window = assertNotNull(Reports.window(period, zone))
+        val every = historySources(classes, students, payments, subjectNames)
+        val read = every.copy(
+            classes = classes.filter { it.start in window },
+            payments = payments.filter { it.date in window },
         )
 
-        assertEquals(whole, windowed)
+        assertEquals(Reports.of(period, every, zone, today), Reports.of(period, read, zone, today))
+    }
+
+    @Test
+    fun `a student's report holds their income, debt and payments only`() {
+        val classes = listOf(klass(1, 1, "2026-06-10T10:00:00Z", 3_000), klass(2, 1, "2026-06-11T10:00:00Z", 4_000))
+        val students = listOf(Student(id = 1, name = "S1"), Student(id = 2, name = "S2"))
+        val payments = listOf(
+            Payment(studentId = 1, date = Instant.parse("2026-06-12T10:00:00Z"), amount = Money(1_000)),
+            Payment(studentId = 2, date = Instant.parse("2026-06-12T10:00:00Z"), amount = Money(500)),
+        )
+        val sources = historySources(classes, students, payments, mapOf(SubjectId(1) to "П1"))
+        val june = ReportPeriod(ReportPeriod.Kind.MONTH, YearMonth(2026, 6))
+
+        val report = Reports.of(june, sources, zone, LocalDate(2026, 6, 30), ReportScope.Student(1))
+
+        assertEquals(Money(3_000), report.totalIncome)
+        assertEquals(Money(2_000), report.totalOutstanding)
+        assertEquals(Money(1_000), report.received.total)
+    }
+
+    @Test
+    fun `a subject's report receives nothing, owes everyone's debt, and still has data`() {
+        val classes = listOf(klass(1, 1, "2026-06-10T10:00:00Z", 3_000), klass(2, 2, "2026-06-11T10:00:00Z", 4_000))
+        val students = listOf(Student(id = 1, name = "S1"), Student(id = 2, name = "S2"))
+        val payments =
+            listOf(Payment(studentId = 1, date = Instant.parse("2026-06-12T10:00:00Z"), amount = Money(1_000)))
+        val sources = historySources(classes, students, payments)
+        val june = ReportPeriod(ReportPeriod.Kind.MONTH, YearMonth(2026, 6))
+
+        val report = Reports.of(june, sources, zone, LocalDate(2026, 6, 30), ReportScope.Subject(3))
+
+        assertEquals(Money.ZERO, report.totalIncome)
+        assertEquals(Money(6_000), report.totalOutstanding, "a subject cannot divide a student's debt")
+        assertEquals(Money.ZERO, report.received.total)
+        assertTrue(report.hasData, "the tutor has data; this subject just has none of it")
     }
 }

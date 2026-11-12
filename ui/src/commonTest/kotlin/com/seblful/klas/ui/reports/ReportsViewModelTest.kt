@@ -6,13 +6,13 @@ import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.PaymentMethod
 import com.seblful.klas.domain.reports.ReportCsv
 import com.seblful.klas.domain.reports.ReportPeriod
+import com.seblful.klas.domain.reports.ReportScope
 import com.seblful.klas.domain.reports.Reports
 import com.seblful.klas.domain.time.WallClock
 import com.seblful.klas.domain.time.today
 import com.seblful.klas.format.AppLocale
 import com.seblful.klas.format.money
 import com.seblful.klas.print.Sheet
-import com.seblful.klas.queries.reports.ReportScope
 import com.seblful.klas.queries.reports.ReportsQuery
 import com.seblful.klas.storage.DocumentRef
 import com.seblful.klas.testutil.CountingDispatcher

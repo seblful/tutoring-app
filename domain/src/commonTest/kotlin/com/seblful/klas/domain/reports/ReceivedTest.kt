@@ -71,7 +71,7 @@ class ReceivedTest {
 
     @Test
     fun `received is money in rather than income - a payment in advance counts with nothing taught`() {
-        val report = Reports.of(
+        val report = reportFromHistory(
             period = june,
             classes = emptyList(),
             students = listOf(Student(id = 1, name = "Аня")),
@@ -88,7 +88,7 @@ class ReceivedTest {
 
     @Test
     fun `a payment by a student the report does not know is left out`() {
-        val report = Reports.of(
+        val report = reportFromHistory(
             period = june,
             classes = emptyList(),
             students = listOf(Student(id = 1, name = "Аня")),
