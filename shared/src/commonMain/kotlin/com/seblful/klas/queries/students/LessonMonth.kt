@@ -1,6 +1,7 @@
 package com.seblful.klas.queries.students
 
 import com.seblful.klas.domain.billing.Billing
+import com.seblful.klas.domain.lesson.LessonKind
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
 import kotlinx.datetime.TimeZone
@@ -29,5 +30,14 @@ data class LessonMonth(val month: YearMonth, val rows: List<ClassRow>) {
     }
 }
 
-/** How many lessons have each status, for the history's chips. A status with none is absent. */
-fun statusTally(rows: List<ClassRow>): Map<LessonStatus, Int> = rows.groupingBy { it.klass.status }.eachCount()
+/** A student's lesson history as narrowed: its months, and the chips that narrow it. */
+data class LessonHistory(
+    val months: List<LessonMonth>,
+    /**
+     * How many lessons have each status, over every lesson whatever the kind picked — so the chips keep their
+     * numbers while the kind changes. A status with none is absent.
+     */
+    val statuses: Map<LessonStatus, Int>,
+    /** How many lessons of each kind; null when the student is taught only one way, so there is nothing to pick. */
+    val kinds: Map<LessonKind, Int>?,
+)

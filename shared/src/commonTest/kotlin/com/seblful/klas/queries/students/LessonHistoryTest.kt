@@ -2,6 +2,7 @@ package com.seblful.klas.queries.students
 
 import com.seblful.klas.domain.lesson.ClassRules
 import com.seblful.klas.domain.lesson.LessonFilter
+import com.seblful.klas.domain.lesson.LessonKind
 import com.seblful.klas.domain.model.LessonStatus
 import com.seblful.klas.domain.model.Money
 import com.seblful.klas.domain.model.TutoringClass
@@ -53,16 +54,43 @@ class LessonHistoryTest {
         assertEquals(true, taught.shownCharge != null)
     }
 
+    private fun StudentDetails.shown(kind: LessonFilter, status: LessonStatus? = null) =
+        history(kind, status, TimeZone.UTC).months.flatMap { it.rows }
+
     @Test
     fun `the history counts each status and narrows to the one picked`() {
         val details = StudentDetails(classes = rows)
 
         assertEquals(
             mapOf(LessonStatus.SCHEDULED to 1, LessonStatus.COMPLETED to 2, LessonStatus.CANCELLED to 1),
-            statusTally(rows),
+            details.history(LessonFilter.ALL, LessonStatus.COMPLETED, TimeZone.UTC).statuses,
+            "every status keeps its count while one is picked",
         )
-        val taughtOnly = details.lessonsShown(LessonFilter.ALL, LessonStatus.COMPLETED)
-        assertEquals(listOf(2L, 3L), taughtOnly.map { it.klass.id })
-        assertEquals(rows, details.lessonsShown(LessonFilter.ALL))
+        assertEquals(listOf(2L, 3L), details.shown(LessonFilter.ALL, LessonStatus.COMPLETED).map { it.klass.id })
+        assertEquals(rows, details.shown(LessonFilter.ALL))
+    }
+
+    @Test
+    fun `the status chips count every kind while one kind is picked`() {
+        val inGroup = row(5, "2026-10-20T16:00:00Z", LessonStatus.COMPLETED).let {
+            it.copy(klass = it.klass.copy(groupId = 7))
+        }
+        val details = StudentDetails(
+            classes = rows + inGroup,
+            lessonKinds = mapOf(LessonKind.INDIVIDUAL to 4, LessonKind.GROUP to 1),
+        )
+
+        val group = details.history(LessonFilter.GROUP, null, TimeZone.UTC)
+
+        assertEquals(listOf(inGroup), group.months.flatMap { it.rows })
+        assertEquals(3, group.statuses[LessonStatus.COMPLETED])
+        assertEquals(mapOf(LessonKind.INDIVIDUAL to 4, LessonKind.GROUP to 1), group.kinds)
+    }
+
+    @Test
+    fun `a student taught one way gets no kind chips`() {
+        val details = StudentDetails(classes = rows, lessonKinds = mapOf(LessonKind.INDIVIDUAL to 4))
+
+        assertNull(details.history(LessonFilter.ALL, null, TimeZone.UTC).kinds)
     }
 }

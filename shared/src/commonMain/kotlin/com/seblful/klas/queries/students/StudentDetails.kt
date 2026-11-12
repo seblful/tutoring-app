@@ -16,6 +16,7 @@ import com.seblful.klas.domain.model.Subject
 import com.seblful.klas.domain.model.TutoringClass
 import com.seblful.klas.domain.reports.Taught
 import com.seblful.klas.queries.homework.HomeworkLists
+import kotlinx.datetime.TimeZone
 import kotlin.time.Instant
 
 /**
@@ -72,7 +73,7 @@ data class StudentDetails(
      * Whether narrowing the lesson list by kind means anything here. A student taught only one way
      * gets no chips: every chip but one would be empty, and «Все» would filter nothing.
      */
-    val hasBothKinds: Boolean get() = lessonKinds.size > 1
+    private val hasBothKinds: Boolean get() = lessonKinds.size > 1
 
     /** The subjects that can still be added: every subject not already priced for them. */
     val addableSubjects: List<Subject>
@@ -81,10 +82,19 @@ data class StudentDetails(
             return allSubjects.filter { it.id !in priced }
         }
 
-    /** The lessons list's rows under [filter], and of [status] only when one is picked. */
-    fun lessonsShown(filter: LessonFilter, status: LessonStatus? = null): List<ClassRow> =
-        (if (hasBothKinds) filter.accepted(classes) { it.kind } else classes)
+    /**
+     * The lesson history under [kind], and of [status] only when one is picked, cut into months in [zone]. A
+     * [kind] whose chips are not shown ([hasBothKinds]) hides nothing.
+     */
+    fun history(kind: LessonFilter, status: LessonStatus?, zone: TimeZone): LessonHistory {
+        val shown = (if (hasBothKinds) kind.accepted(classes) { it.kind } else classes)
             .filter { status == null || it.klass.status == status }
+        return LessonHistory(
+            months = LessonMonth.of(shown, zone),
+            statuses = classes.groupingBy { it.klass.status }.eachCount(),
+            kinds = lessonKinds.takeIf { hasBothKinds },
+        )
+    }
 
     /** The lesson the tutor next sees them at — see [CardLessons.next]. */
     fun nextLesson(now: Instant): ClassRow? = CardLessons.next(classes, now) { it.klass }

@@ -22,9 +22,9 @@ import com.seblful.klas.domain.model.Payment
 import com.seblful.klas.format.bulletJoin
 import com.seblful.klas.format.formatHours
 import com.seblful.klas.format.formatMonth
+import com.seblful.klas.queries.students.LessonHistory
 import com.seblful.klas.queries.students.LessonMonth
 import com.seblful.klas.queries.students.StudentDetails
-import com.seblful.klas.queries.students.statusTally
 import com.seblful.klas.text.Plurals
 import com.seblful.klas.text.Strings
 import com.seblful.klas.text.currentTexts
@@ -94,7 +94,7 @@ private fun StudentList(
             when (section) {
                 StudentSection.LESSONS -> lessons(
                     state = state,
-                    months = history.months,
+                    history = history.shown,
                     filters = history.filters,
                     now = now,
                     onLessonClick = onLessonClick,
@@ -129,19 +129,17 @@ private fun ShowStudentMessages(viewModel: StudentDetailViewModel, messages: Mes
     }
 }
 
-/** The lesson history as narrowed: its filters, and its months under them. */
-private class LessonHistory(val filters: LessonHistoryFilters, val months: List<LessonMonth>)
+/** The lesson history as narrowed, and its filters. */
+private class NarrowedHistory(val filters: LessonHistoryFilters, val shown: LessonHistory)
 
 @Composable
-private fun rememberLessonHistory(state: StudentDetails, zone: TimeZone): LessonHistory {
+private fun rememberLessonHistory(state: StudentDetails, zone: TimeZone): NarrowedHistory {
     var kind by rememberSaveable { mutableStateOf(LessonFilter.ALL) }
     var status by rememberSaveable { mutableStateOf<LessonStatus?>(null) }
     // Filtered and cut into months here rather than in the list's builder, which runs again on every
     // scroll-driven remeasure.
-    val months = remember(state, kind, status, zone) {
-        LessonMonth.of(state.lessonsShown(kind, status), zone)
-    }
-    return LessonHistory(LessonHistoryFilters(kind, { kind = it }, status) { status = it }, months)
+    val shown = remember(state, kind, status, zone) { state.history(kind, status, zone) }
+    return NarrowedHistory(LessonHistoryFilters(kind, { kind = it }, status) { status = it }, shown)
 }
 
 /** What the lesson history is narrowed to, and how to change it. */
@@ -154,7 +152,7 @@ private class LessonHistoryFilters(
 
 private fun LazyListScope.lessons(
     state: StudentDetails,
-    months: List<LessonMonth>,
+    history: LessonHistory,
     filters: LessonHistoryFilters,
     now: Instant,
     onLessonClick: (Long) -> Unit,
@@ -163,15 +161,16 @@ private fun LazyListScope.lessons(
         item(key = StudentDetailKeys.CLASSES_FILTER, contentType = StudentDetailKeys.CLASSES_FILTER) {
             LessonHistoryChips(
                 status = filters.status,
-                statuses = remember(state) { statusTally(state.classes) },
+                statuses = history.statuses,
                 onStatus = filters.onStatus,
                 kind = filters.kind,
-                kinds = state.lessonKinds.takeIf { state.hasBothKinds },
+                kinds = history.kinds,
                 onKind = filters.onKind,
                 modifier = Modifier.padding(vertical = Spacing.inline),
             )
         }
     }
+    val months = history.months
     if (months.isEmpty()) {
         item(key = StudentDetailKeys.CLASSES_EMPTY, contentType = StudentDetailKeys.CLASSES_EMPTY) {
             // No action: booking belongs to the schedule's form, reached from the card's next lesson.

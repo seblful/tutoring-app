@@ -1,5 +1,6 @@
 package com.seblful.klas.queries.students
 
+import com.seblful.klas.domain.lesson.LessonFilter
 import com.seblful.klas.domain.lesson.LessonKind
 import com.seblful.klas.domain.model.Balance
 import com.seblful.klas.domain.model.LessonStatus
@@ -10,10 +11,11 @@ import com.seblful.klas.testutil.store
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
+import kotlinx.datetime.TimeZone
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertFalse
+import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.time.Instant
@@ -129,7 +131,7 @@ class StudentDetailsQueryTest {
         )
 
         assertEquals(mapOf(LessonKind.INDIVIDUAL to 2), query.observe(sid).first().lessonKinds)
-        assertFalse(query.observe(sid).first().hasBothKinds, "nothing to narrow")
+        assertNull(query.observe(sid).first().history(LessonFilter.ALL, null, TimeZone.UTC).kinds, "nothing to narrow")
 
         val groupId = env.fixtures.group(name = "11 «А»", subjectId = subj, rate = Money.ZERO)
         env.fixtures.storedClass(
@@ -141,7 +143,7 @@ class StudentDetailsQueryTest {
             mapOf(LessonKind.INDIVIDUAL to 2, LessonKind.GROUP to 1),
             query.observe(sid).first().lessonKinds,
         )
-        assertTrue(query.observe(sid).first().hasBothKinds)
+        assertNotNull(query.observe(sid).first().history(LessonFilter.ALL, null, TimeZone.UTC).kinds)
     }
 
     @Test

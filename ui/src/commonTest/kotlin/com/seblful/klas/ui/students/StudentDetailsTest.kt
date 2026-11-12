@@ -9,6 +9,7 @@ import com.seblful.klas.domain.model.TutoringClass
 import com.seblful.klas.queries.students.ClassRow
 import com.seblful.klas.queries.students.StudentDetails
 import com.seblful.klas.queries.students.SubjectPrice
+import kotlinx.datetime.TimeZone
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -45,9 +46,9 @@ class StudentDetailsTest {
             classes = listOf(alone, inGroup),
             lessonKinds = mapOf(LessonKind.INDIVIDUAL to 1, LessonKind.GROUP to 1),
         )
-        assertEquals(listOf(alone, inGroup), state.lessonsShown(LessonFilter.ALL))
-        assertEquals(listOf(alone), state.lessonsShown(LessonFilter.INDIVIDUAL))
-        assertEquals(listOf(inGroup), state.lessonsShown(LessonFilter.GROUP))
+        assertEquals(listOf(alone, inGroup), state.shown(LessonFilter.ALL))
+        assertEquals(listOf(alone), state.shown(LessonFilter.INDIVIDUAL))
+        assertEquals(listOf(inGroup), state.shown(LessonFilter.GROUP))
     }
 
     private fun at(id: Long, startMinute: Int, status: LessonStatus = LessonStatus.SCHEDULED) = ClassRow(
@@ -106,6 +107,9 @@ class StudentDetailsTest {
     fun `a filter whose chips have gone hides nothing`() {
         val alone = row(1)
         val state = StudentDetails(classes = listOf(alone), lessonKinds = mapOf(LessonKind.INDIVIDUAL to 1))
-        assertEquals(listOf(alone), state.lessonsShown(LessonFilter.GROUP))
+        assertEquals(listOf(alone), state.shown(LessonFilter.GROUP))
     }
+
+    private fun StudentDetails.shown(kind: LessonFilter) =
+        history(kind, status = null, zone = TimeZone.UTC).months.flatMap { it.rows }
 }
