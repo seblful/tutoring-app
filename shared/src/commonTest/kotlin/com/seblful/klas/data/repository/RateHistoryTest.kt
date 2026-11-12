@@ -36,16 +36,10 @@ class RateHistoryTest {
     private suspend fun changesFor(studentId: Long, subjectId: Long) =
         history.observeFor(RateOwner.StudentSubject(studentId, subjectId)).first()
 
-    /** Re-prices group [id] the way its writer does: the row and its log entry in one call. */
-    private suspend fun priceGroup(id: Long, to: Money) = history.changing(RateOwner.GroupRate(id), to) {
-        env.groupDao.upsert(GroupEntity(id = id, name = "11 «А»", priceMinor = to.minor))
-    }
+    private suspend fun priceGroup(id: Long, to: Money) =
+        env.groupRepo.save(env.groupRepo.getById(id)!!.copy(price = to), memberIds = emptySet())
 
-    /** A new group at [rate], logged under the id its row is given. */
-    private suspend fun newPricedGroup(rate: Money): Long =
-        history.changing(RateOwner.GroupRate(0), rate, { id: Long -> RateOwner.GroupRate(id) }) {
-            env.groupDao.upsert(GroupEntity(name = "11 «А»", priceMinor = rate.minor))
-        }
+    private suspend fun newPricedGroup(rate: Money): Long = env.fixtures.group(rate = rate)
 
     private suspend fun groupChanges(id: Long) = history.observeFor(RateOwner.GroupRate(id)).first()
 
