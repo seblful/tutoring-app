@@ -22,12 +22,12 @@ import com.seblful.klas.data.settings.SettingsRepository
 import com.seblful.klas.lessons.LessonChanges
 import com.seblful.klas.maintenance.Maintenance
 import com.seblful.klas.maintenance.Upkeep
-import com.seblful.klas.queries.people.PeopleDirectory
 import com.seblful.klas.notifications.DueDigest
 import com.seblful.klas.notifications.Notifier
 import com.seblful.klas.pro.ProAccess
 import com.seblful.klas.queries.billing.DebtsQuery
 import com.seblful.klas.queries.homework.HomeworkQuery
+import com.seblful.klas.queries.people.PeopleDirectory
 import com.seblful.klas.settings.DevicePreferences
 import com.seblful.klas.settings.SettingsWorkflow
 
