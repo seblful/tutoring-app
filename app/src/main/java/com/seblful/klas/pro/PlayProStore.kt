@@ -132,15 +132,10 @@ class PlayProStore @Inject constructor(
 
     private suspend fun details(): Map<String, ProductDetails>? {
         if (!connected()) return null
-        val products = listOf(LIFETIME_ID to ProductType.INAPP, MONTHLY_ID to ProductType.SUBS).map { (id, type) ->
-            QueryProductDetailsParams.Product.newBuilder().setProductId(id).setProductType(type).build()
-        }
-        val result = client.queryProductDetails(QueryProductDetailsParams.newBuilder().setProductList(products).build())
-        return if (result.billingResult.responseCode == BillingResponseCode.OK) {
-            result.productDetailsList.orEmpty().associateBy { it.productId }
-        } else {
-            null
-        }
+        val results = productQueries().map { client.queryProductDetails(it) }
+        return results.takeIf { all -> all.all { it.billingResult.responseCode == BillingResponseCode.OK } }
+            ?.flatMap { it.productDetailsList.orEmpty() }
+            ?.associateBy { it.productId }
     }
 
     /** Connects once; afterwards the client reconnects by itself ([BillingClient.Builder.enableAutoServiceReconnection]). */
@@ -182,11 +177,21 @@ class PlayProStore @Inject constructor(
         }
     }
 
-    private companion object {
+    internal companion object {
         const val LIFETIME_ID = "klas_pro_lifetime"
         const val MONTHLY_ID = "klas_pro"
-        const val DAYS_PER_WEEK = 7
-        const val DAYS_PER_MONTH = 30
+        private const val DAYS_PER_WEEK = 7
+        private const val DAYS_PER_MONTH = 30
+
+        /**
+         * One query per product type: Play Billing refuses a query that mixes them ("All products should be of the
+         * same product type"), throwing before anything reaches Play.
+         */
+        fun productQueries(): List<QueryProductDetailsParams> =
+            listOf(LIFETIME_ID to ProductType.INAPP, MONTHLY_ID to ProductType.SUBS).map { (id, type) ->
+                val product = QueryProductDetailsParams.Product.newBuilder().setProductId(id).setProductType(type).build()
+                QueryProductDetailsParams.newBuilder().setProductList(listOf(product)).build()
+            }
 
         val ProPlan.productId: String
             get() = when (this) {
