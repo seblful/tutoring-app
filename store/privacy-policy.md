@@ -1,6 +1,6 @@
 # Klas — Privacy Policy
 
-Last updated: 11 November 2026
+Last updated: 14 November 2026
 
 Klas (Android application ID: `com.seblful.klas`) is a tutoring-management app developed by
 **Aliaksei Chymba**. It helps tutors manage students, groups, subjects, lessons, homework, rates,
@@ -87,10 +87,20 @@ storage and sharing methods.
 
 Klas Pro, the paid tier, is sold through Google Play Billing. Google Play handles the purchase, your
 payment details and any subscription under the [Google Payments Privacy Notice](https://payments.google.com/payments/apis-secure/u/0/get_legal_document?ldo=0&ldt=privacynotice)
-and the [Google Privacy Policy](https://policies.google.com/privacy). Klas asks Google Play on your device
-which Klas Pro plan your Google account owns and keeps only that answer, in the app's private storage. The
-developer does not receive your payment details, and Klas sends nothing about your purchase or your tutoring
-records to a developer server.
+and the [Google Privacy Policy](https://policies.google.com/privacy). Neither Klas nor the developer receives
+your card or other payment details.
+
+Klas asks Google Play on your device which Klas Pro plan your Google account owns. In the app's private
+storage it keeps only that answer, whether a bought Klas Pro has ended (so it can tell you once), and whether
+your copy of Klas was set up before Klas Pro existed. Backups carry only the last of these, so a restored
+backup keeps an early user's free access. Klas sends nothing about your purchase or your tutoring records to a
+developer server.
+
+Google Play gives the developer a record of each order: the order number, the product, the price and
+currency, the date and status, and the buyer's country or region, plus a state or postal code where tax
+rules require it. The developer uses these records to handle refunds and cancellations, keep accounts and pay
+taxes, and keeps them for as long as accounting and tax law requires. They are not linked to your tutoring
+records, which stay on your device.
 
 ## Crash diagnostics
 
