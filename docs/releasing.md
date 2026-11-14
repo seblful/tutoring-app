@@ -116,9 +116,9 @@ internal test, which is separate from the closed test.
 
 1. Upload a build with Play Billing (it adds the `com.android.vending.BILLING` permission) to any track:
    Play offers products only once such a build exists. A payments profile must be set up.
-2. Monetize → Products → One-time products: `klas_pro_lifetime`, $15 (let Play set other countries'
+2. Monetize → Products → One-time products: `klas_pro_lifetime`, $14.99 (let Play set other countries'
    prices). Activate it.
-3. Monetize → Products → Subscriptions: `klas_pro` with an auto-renewing monthly base plan at $1. Add an
+3. Monetize → Products → Subscriptions: `klas_pro` with an auto-renewing monthly base plan at $0.99. Add an
    offer on it for new customers only (never had this subscription), with one phase: a 7-day free trial.
    The app finds the trial as the offer whose first phase is free, so its id does not matter. Activate both.
 4. Settings → License testing: add the testers' Google accounts. Their purchases are free test orders and a

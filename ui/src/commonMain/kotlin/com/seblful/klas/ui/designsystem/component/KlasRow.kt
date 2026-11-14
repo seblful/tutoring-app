@@ -20,6 +20,7 @@ import com.seblful.klas.ui.common.OpensScreenMark
 import com.seblful.klas.ui.common.StatusBadge
 import com.seblful.klas.ui.common.insetRowPress
 import com.seblful.klas.ui.common.rememberToggleFeedback
+import com.seblful.klas.ui.theme.KlasIcons
 
 /**
  * What leads a row — **one of these**, or nothing: typed, so a row cannot lead with a control of its own
@@ -51,6 +52,9 @@ sealed interface RowEnd {
 
     /** The row opens a screen of the app. */
     data object Opens : RowEnd
+
+    /** The row opens something outside the app, such as a Google Play page; the whole row takes the tap. */
+    data object OpensOutside : RowEnd
 
     /** The row **is** the switch: a tap anywhere toggles it, and it is announced as one switch. */
     data class Toggle(val on: Boolean, val onChange: (Boolean) -> Unit) : RowEnd
@@ -141,6 +145,7 @@ private fun Trail(end: RowEnd, enabled: Boolean) {
         is RowEnd.Money -> Amount(end.amount)
         is RowEnd.Value -> Text(end.text, style = MaterialTheme.typography.bodyMedium, maxLines = 1)
         RowEnd.Opens -> OpensScreenMark()
+        RowEnd.OpensOutside -> Icon(KlasIcons.Filled.OpenInNew, contentDescription = null)
         // A picture of the state: the row is the control (see KlasRow).
         is RowEnd.Toggle -> Switch(checked = end.on, onCheckedChange = null, enabled = enabled)
         is RowEnd.Action -> NamedIconButton(end.icon, end.label, end.onClick, enabled = enabled)

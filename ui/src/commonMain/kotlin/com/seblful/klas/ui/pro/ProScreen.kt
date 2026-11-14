@@ -250,8 +250,9 @@ private fun PlanRow(title: String, supporting: String, selected: Boolean, onClic
     )
 }
 
+/** What a tutor with Pro sees: where it comes from, the way to manage a subscription, and what Pro holds. */
 @Composable
-private fun Owned(source: ProSource, onManage: (() -> Unit)?) {
+fun Owned(source: ProSource, onManage: (() -> Unit)?) {
     val (title, detail) = when (source) {
         ProSource.EARLY_USER -> Strings.pro_have_early to Strings.pro_have_early_detail
         ProSource.MONTHLY -> Strings.pro_have_monthly to Strings.pro_have_detail
@@ -267,7 +268,9 @@ private fun Owned(source: ProSource, onManage: (() -> Unit)?) {
         if (source == ProSource.MONTHLY && onManage != null) {
             KlasRow(
                 title = stringResource(Strings.pro_manage),
-                end = RowEnd.Action(KlasIcons.Filled.OpenInNew, stringResource(Strings.pro_manage), onManage),
+                end = RowEnd.OpensOutside,
+                onClick = onManage,
+                onClickLabel = stringResource(Strings.pro_manage),
             )
         }
     }
