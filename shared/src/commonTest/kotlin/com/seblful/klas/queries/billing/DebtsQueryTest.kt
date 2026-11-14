@@ -89,7 +89,7 @@ class DebtsQueryTest {
     }
 
     @Test
-    fun `debtors are listed most owed first, each with when they last paid`() = runTest {
+    fun `debtors are listed most owed first with when each last paid`() = runTest {
         val subject = env.fixtures.subject("Алгебра")
         val anya = owing("Аня", subject, rate = 30, hour = 9)
         val boris = owing("Боря", subject, rate = 40, hour = 11)
@@ -106,7 +106,7 @@ class DebtsQueryTest {
     }
 
     @Test
-    fun `an archived student's debt is not outstanding, but stays theirs`() = runTest {
+    fun `an archived student's debt is not outstanding but stays theirs`() = runTest {
         val subject = env.fixtures.subject("Алгебра")
         val anya = owing("Аня", subject, rate = 30, hour = 9)
         env.lessonChanges.archiveWithoutUndo(env.studentRepo.getById(anya)!!)

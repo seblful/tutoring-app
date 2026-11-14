@@ -62,7 +62,7 @@ class RateHistoryTest {
     }
 
     @Test
-    fun `a change is measured against the stored rate, read before the write`() = runTest {
+    fun `a change is measured against the stored rate as read before the write`() = runTest {
         val id = newPricedGroup(Money.ofMajor(20))
 
         priceGroup(id, Money.ofMajor(25))

@@ -204,7 +204,7 @@ class LessonChangesCompletionTest {
     }
 
     @Test
-    fun `a writer's status change to completed is a completion, undone with the other changes`() = runTest {
+    fun `a writer's status change to completed is a completion undone with the other changes`() = runTest {
         env.settingsRepo.update { it.copy(calendarSyncEnabled = true) }
         val subject = env.fixtures.subject()
         val student = env.fixtures.pricedStudent(subjectId = subject)
@@ -223,7 +223,7 @@ class LessonChangesCompletionTest {
     }
 
     @Test
-    fun `a writer reports an ineligible completion as no change, and a deleted lesson as gone`() = runTest {
+    fun `a writer reports an ineligible completion as no change and a deleted lesson as gone`() = runTest {
         val subject = env.fixtures.subject()
         val student = env.fixtures.pricedStudent(subjectId = subject)
         val id = env.fixtures.lesson(subject, listOf(student), start).single()

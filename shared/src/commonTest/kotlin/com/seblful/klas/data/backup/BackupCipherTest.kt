@@ -44,7 +44,7 @@ class BackupCipherTest {
     }
 
     @Test
-    fun `a file asking for an unworkable key derivation is malformed, not a hang`() = runTest {
+    fun `a file asking for an unworkable key derivation is malformed rather than a hang`() = runTest {
         val greedy = SealedBackup.decode(cipher.seal("{}", "pw")).copy(iterations = Int.MAX_VALUE).encode()
 
         val refused = runCatching { cipher.open(greedy, "pw") }.exceptionOrNull()
@@ -54,7 +54,7 @@ class BackupCipherTest {
     }
 
     @Test
-    fun `each seal has its own salt and iv, at this build's iterations`() = runTest {
+    fun `each seal has its own salt and iv at this build's iterations`() = runTest {
         val first = SealedBackup.decode(cipher.seal("{}", "same"))
         val second = SealedBackup.decode(cipher.seal("{}", "same"))
 

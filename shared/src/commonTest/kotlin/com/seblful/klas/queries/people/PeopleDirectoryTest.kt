@@ -17,7 +17,7 @@ class PeopleDirectoryTest {
     fun close() = env.close()
 
     @Test
-    fun `names a group lesson by its group, subject and members`() = runTest {
+    fun `names a group lesson by its group and subject and members`() = runTest {
         val subject = env.fixtures.subject("Биология")
         val members = listOf(env.fixtures.pricedStudent("Аня", subject), env.fixtures.pricedStudent("Борис", subject))
         val group = env.fixtures.group("11 «А»", subject, members.toSet())

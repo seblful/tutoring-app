@@ -471,7 +471,7 @@ class ReportsTest {
     }
 
     @Test
-    fun `a month's window reaches back to the month it is compared with, a day wider each end`() {
+    fun `a month's window reaches back to the month it is compared with and is a day wider at each end`() {
         assertEquals(
             LocalDate(2026, 4, 30).atStartOfDayIn(zone)..<LocalDate(2026, 7, 2).atStartOfDayIn(zone),
             Reports.window(ReportPeriod(ReportPeriod.Kind.MONTH, YearMonth(2026, 6)), zone),
@@ -511,7 +511,7 @@ class ReportsTest {
     }
 
     @Test
-    fun `a student's report holds their income, debt and payments only`() {
+    fun `a student's report holds only their income and debt and payments`() {
         val classes = listOf(klass(1, 1, "2026-06-10T10:00:00Z", 3_000), klass(2, 1, "2026-06-11T10:00:00Z", 4_000))
         val students = listOf(Student(id = 1, name = "S1"), Student(id = 2, name = "S2"))
         val payments = listOf(
@@ -529,7 +529,7 @@ class ReportsTest {
     }
 
     @Test
-    fun `a subject's report receives nothing, owes everyone's debt, and still has data`() {
+    fun `a subject's report receives nothing but owes everyone's debt and still has data`() {
         val classes = listOf(klass(1, 1, "2026-06-10T10:00:00Z", 3_000), klass(2, 2, "2026-06-11T10:00:00Z", 4_000))
         val students = listOf(Student(id = 1, name = "S1"), Student(id = 2, name = "S2"))
         val payments =
