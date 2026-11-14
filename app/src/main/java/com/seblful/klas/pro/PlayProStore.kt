@@ -189,7 +189,10 @@ class PlayProStore @Inject constructor(
          */
         fun productQueries(): List<QueryProductDetailsParams> =
             listOf(LIFETIME_ID to ProductType.INAPP, MONTHLY_ID to ProductType.SUBS).map { (id, type) ->
-                val product = QueryProductDetailsParams.Product.newBuilder().setProductId(id).setProductType(type).build()
+                val product = QueryProductDetailsParams.Product.newBuilder()
+                    .setProductId(id)
+                    .setProductType(type)
+                    .build()
                 QueryProductDetailsParams.newBuilder().setProductList(listOf(product)).build()
             }
 
