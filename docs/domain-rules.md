@@ -147,7 +147,7 @@ mirrors and [database and backup](database-and-backup.md) for persistence contra
   fault. The student paywall also names the free way out: archiving a student no longer taught.
 - The store's answer is cached in the settings row (`proOwned`) so Pro holds offline; only an answer
   replaces it. `AppSession` asks once each time the app opens. No server checks purchases: the app is
-  offline and open source, so the store's answer on the phone is the whole check.
+  offline and its source is public, so the store's answer on the phone is the whole check.
 - A form opened with room (the fifth student) stays open when saving it fills the room (`ProGated` decides
   once); every other gate is checked on the tap (`LocalPro`, `ProDoor.guard`).
 

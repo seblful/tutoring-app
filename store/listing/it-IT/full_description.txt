@@ -53,5 +53,3 @@ GRATIS PER INIZIARE, KLAS PRO QUANDO CRESCI
 Tutto quanto sopra è gratis fino a 5 studenti. Klas Pro aggiunge studenti senza limiti, gruppi, sincronizzazione del calendario, i riepiloghi del mattino, della sera e settimanale, rapporti di qualsiasi mese o anno con esportazione in PDF e CSV ed estratti conto in PDF — mensile con 7 giorni di prova gratuita, oppure con un acquisto unico.
 
 Pensato per tutor indipendenti e insegnanti privati che danno lezioni e ripetizioni di qualsiasi materia: lingue, matematica, musica, preparazione alla maturità e molto altro. 25 lingue, oltre 150 valute, tema chiaro e scuro.
-
-Klas è open source con licenza GNU GPL v3.

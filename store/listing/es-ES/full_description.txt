@@ -53,5 +53,3 @@ GRATIS PARA EMPEZAR, KLAS PRO CUANDO CREZCAS
 Todo lo anterior es gratis para hasta 5 alumnos. Klas Pro añade alumnos ilimitados, grupos, sincronización con el calendario, los resúmenes de la mañana, de la noche y semanal, informes de cualquier mes o año con exportación a PDF y CSV, y estados de cuenta en PDF — mensual con 7 días de prueba gratis, o en un único pago.
 
 Pensada para profesores particulares autónomos y docentes que dan clases particulares de cualquier materia: idiomas, matemáticas, música, preparación de Selectividad y mucho más. 25 idiomas, más de 150 monedas, temas claro y oscuro.
-
-Klas es de código abierto, con licencia GNU GPL v3.

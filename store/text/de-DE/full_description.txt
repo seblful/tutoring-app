@@ -53,5 +53,3 @@ KOSTENLOS STARTEN, MIT KLAS PRO WACHSEN
 Alles oben Genannte ist für bis zu 5 Schüler kostenlos. Klas Pro bietet beliebig viele Schüler, Gruppen, Kalendersynchronisierung, die Zusammenfassungen am Morgen, am Abend und wöchentlich, Berichte für jeden Monat und jedes Jahr mit PDF- und CSV-Export sowie Kontoauszüge als PDF — monatlich mit 7 Tagen kostenlosem Test oder als Einmalkauf.
 
 Für selbstständige Nachhilfelehrer und Privatlehrer in jedem Fach — Sprachen, Mathe, Musik, Abi-Vorbereitung und mehr. 25 Sprachen, über 150 Währungen, helles und dunkles Design.
-
-Klas ist Open Source unter der GNU GPL v3.

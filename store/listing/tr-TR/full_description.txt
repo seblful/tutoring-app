@@ -53,5 +53,3 @@ VERİLERİNİZ SİZDE KALIR
 Yukarıdakilerin hepsi 5 öğrenciye kadar ücretsizdir. Klas Pro; sınırsız öğrenci, gruplar, takvim eşitleme, sabah, akşam ve haftalık özetler, herhangi bir ay veya yıl için PDF ve CSV olarak dışa aktarılabilen raporlar ve PDF hesap dökümleri ekler — 7 gün ücretsiz denemeli aylık abonelikle ya da tek seferlik satın almayla.
 
 Her branştan bağımsız özel ders öğretmenleri ve eğitmenler için tasarlandı — yabancı dil, matematik, müzik, LGS ve YKS hazırlığı ve çok daha fazlası. 25 dil, 150'den fazla para birimi, açık ve koyu tema.
-
-Klas, GNU GPL v3 lisansı altında açık kaynaklıdır.

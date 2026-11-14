@@ -53,5 +53,3 @@ ALOITA ILMAISEKSI, KLAS PRO KUN KASVAT
 Kaikki edellä mainittu on ilmaista enintään 5 oppilaalle. Klas Pro tuo rajattomasti oppilaita, ryhmät, kalenterin synkronoinnin, aamun, illan ja viikon yhteenvedot, raportit mistä tahansa kuukaudesta tai vuodesta PDF- ja CSV-vientineen sekä PDF-tiliotteet — kuukausitilauksena 7 päivän ilmaisella kokeilulla tai kertaostoksena.
 
 Tehty itsenäisille yksityisopettajille ja opettajille aineesta riippumatta — kielet, matematiikka, musiikki, yo-valmennus ja paljon muuta. 25 kieltä, yli 150 valuuttaa, vaalea ja tumma teema.
-
-Klas on avointa lähdekoodia GNU GPL v3 -lisenssillä.

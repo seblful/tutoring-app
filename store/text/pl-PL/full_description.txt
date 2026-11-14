@@ -53,5 +53,3 @@ ZACZNIJ ZA DARMO, PRZEJDŹ NA KLAS PRO, GDY SIĘ ROZWINIESZ
 Wszystko powyżej jest za darmo dla maksymalnie 5 uczniów. Klas Pro dodaje dowolną liczbę uczniów, grupy, synchronizację kalendarza, poranne, wieczorne i cotygodniowe podsumowania, raporty za dowolny miesiąc lub rok z eksportem do PDF i CSV oraz zestawienia rozliczeń w PDF — miesięcznie z 7-dniowym bezpłatnym okresem próbnym albo jako jednorazowy zakup.
 
 Dla niezależnych korepetytorów i nauczycieli prywatnych lekcji z każdego przedmiotu — od języków obcych, przez matematykę i muzykę, po przygotowanie do matury i egzaminu ósmoklasisty. 25 języków, ponad 150 walut, jasny i ciemny motyw.
-
-Klas to oprogramowanie open source na licencji GNU GPL v3.

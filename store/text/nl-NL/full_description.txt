@@ -53,5 +53,3 @@ GRATIS BEGINNEN, KLAS PRO ALS JE GROEIT
 Alles hierboven is gratis voor maximaal 5 leerlingen. Klas Pro voegt een onbeperkt aantal leerlingen toe, plus groepen, kalendersynchronisatie, de ochtend-, avond- en weekoverzichten, rapporten over elke maand of elk jaar met export naar PDF en CSV, en rekeningoverzichten als PDF — maandelijks met 7 dagen gratis proberen, of als eenmalige aankoop.
 
 Gemaakt voor zelfstandige bijlesdocenten en privéleraren in elk vak — talen, wiskunde, muziek, examentraining en meer. 25 talen, meer dan 150 valuta's, licht en donker thema.
-
-Klas is open source onder de GNU GPL v3.

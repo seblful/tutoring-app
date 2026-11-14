@@ -53,5 +53,3 @@ FREE TO START, KLAS PRO AS YOU GROW
 Everything above is free for up to 5 students. Klas Pro adds any number of students, groups, calendar sync, the morning, evening and weekly summaries, reports for any month or year with PDF and CSV export, and PDF statements — monthly with a 7-day free trial, or as a one-time purchase.
 
 Made for independent tutors and private teachers of any subject — languages, math, music, exam prep and more. 25 languages, over 150 currencies, light and dark themes.
-
-Klas is open source under the GNU GPL v3.

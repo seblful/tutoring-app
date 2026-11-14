@@ -53,5 +53,3 @@ GRATIS ATT BÖRJA, KLAS PRO NÄR DU VÄXER
 Allt ovan är gratis för upp till 5 elever. Klas Pro lägger till obegränsat antal elever, grupper, kalendersynkronisering, morgon-, kvälls- och veckosammanfattningarna, rapporter för valfri månad eller valfritt år med export till PDF och CSV samt kontoutdrag som PDF — månadsvis med 7 dagars gratis provperiod eller som ett engångsköp.
 
 Gjord för privatlärare som arbetar på egen hand och lärare som ger privatlektioner i alla ämnen — språk, matte, musik, provförberedelser och mycket mer. 25 språk, över 150 valutor, ljust och mörkt tema.
-
-Klas är öppen källkod under GNU GPL v3.

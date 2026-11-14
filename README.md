@@ -84,4 +84,4 @@ adapters for notifications, the calendar, files and backups. Build it on a Mac w
 
 ## License
 
-Copyright (C) 2026 seblful. [GNU General Public License v3.0](LICENSE); distributed without warranty.
+Copyright (C) 2026 seblful. All rights reserved. The source is public to read, not to use: see [LICENSE](LICENSE).
