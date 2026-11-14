@@ -96,6 +96,9 @@ jobs:
       # profile: without one, avdmanager makes a 320dp-wide screen, and the text-fit tests that lay a
       # bar or a tile out at 360dp and 411dp were squeezed to 320 and failed (StatRowAutoSizeTest,
       # BottomBarLabelTest). A Pixel 6 is 411dp wide, the widest any of them asks for.
+      # hide_error_dialogs: on the software-rendered API 35 image the launcher stalls, and its "Pixel Launcher
+      # isn't responding" dialog covered the app (BottomBarLabelTest read its buttons, SearchKeyboardTest
+      # timed out behind it).
       - name: Run the instrumented tests
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
         with:
@@ -106,6 +109,7 @@ jobs:
           disable-animations: false
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
           script: |
+            adb shell settings put global hide_error_dialogs 1
             ./gradlew :app:connectedDebugAndroidTest --stacktrace ${{ matrix.scope == 'data' && '-Pandroid.testInstrumentationRunnerArguments.package=com.seblful.klas.data' || '' }}
             ./gradlew :app:installDebug :app:installDebugAndroidTest --stacktrace
             node scripts/android-relaunch.mjs
