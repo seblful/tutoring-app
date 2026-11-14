@@ -12,6 +12,9 @@ class NavigateToTabTest {
 
     private fun stack(): List<String> = navigator.backStack.map { it.routeName() }
 
+    /** A copy: the back stack itself is a SnapshotStateList, equal on Kotlin/Native only to itself. */
+    private fun screens(): List<Screen> = navigator.backStack.toList()
+
     private fun showing(): TopDestination? = TopDestination.of(navigator.top.route)
 
     private fun tap(tab: TopDestination) = navigator.navigateToTab(tab)
@@ -65,12 +68,12 @@ class NavigateToTabTest {
     @Test
     fun `a tap on the tab that is showing goes nowhere`() {
         tap(TopDestination.HOMEWORK)
-        val shown = navigator.backStack.toList()
+        val shown = screens()
 
         tap(TopDestination.HOMEWORK)
         tap(TopDestination.HOMEWORK)
 
-        assertEquals(shown, navigator.backStack)
+        assertEquals(shown, screens())
         assertEquals(TopDestination.HOMEWORK, showing())
     }
 
@@ -87,11 +90,11 @@ class NavigateToTabTest {
 
     @Test
     fun `a tap on the start tab while it shows goes nowhere either`() {
-        val shown = navigator.backStack.toList()
+        val shown = screens()
 
         tap(TopDestination.START)
 
-        assertEquals(shown, navigator.backStack)
+        assertEquals(shown, screens())
     }
 
     @Test

@@ -56,7 +56,9 @@ builds used by CI. Device and iOS simulator execution are separate checks.
 - `./gradlew :domain:jvmTest :shared:jvmTest :ui:testAndroidHostTest` runs common tests on the JVM without
   a device.
 - Common tests use `kotlin.test` assertions and `assertFailsWith`, without JVM-only annotation
-  parameters or plain `assert`. Keep commas out of backtick function names; Kotlin/Native rejects them.
+  parameters or plain `assert`. Keep commas out of backtick function names; Kotlin/Native rejects them
+  (CI's `verify` job checks). Copy a `SnapshotStateList` with `toList()` before `assertEquals`: it has
+  identity equality, which only the Kotlin/Native asserter exposes.
 - On an Apple Silicon Mac, run `./gradlew :domain:iosSimulatorArm64Test :shared:iosSimulatorArm64Test
   :ui:iosSimulatorArm64Test`.
   Set `KMP_IOS_SIMULATOR_ID` to an available simulator UDID to select a device. CI selects an available
