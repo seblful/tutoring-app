@@ -42,6 +42,10 @@ builds used by CI. Device and iOS simulator execution are separate checks.
   cancelling application writes. For save races, use `pauseNextTransaction()`, await its entry, perform
   the competing action, then release it in `finally`; assert both the paused state and the final rows.
   Use queued test dispatchers for lifecycle tests rather than relying on immediate execution.
+- Compose rules come from `androidx.compose.ui.test.junit4.v2`. The v1 rules run composition effects on an
+  unconfined dispatcher, so a `StateFlow` that `derive` sets on the computation thread recomposed and laid out
+  on that thread, and `TutorWorkflowTest` failed now and then with "addObserver must be called on the main
+  thread". The screenshot tests still use v1.
 - `PilotWorkflowTest` closes and reopens a temporary file database to prove persistence; each platform
   supplies file creation and cleanup. In-memory tests cannot prove this contract.
 - `RecordingTransactor` counts real transactions and `failAt` forces rollback. Queries use
